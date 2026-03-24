@@ -118,6 +118,7 @@
             <button class="primary" onclick="processData()">נתח נתונים</button>
         </div>
         <textarea id="csvInput" placeholder="או הדבק כאן את תוכן קובץ ה-CSV מ-Barchart..."></textarea>
+        <div style="font-size:12px;color:#38a169;margin-top:6px;" id="autoLoadNote"></div>
         <div id="addHistoryRow" style="display:none;margin-top:8px;">
             <button class="add-history-btn" onclick="addCurrentToHistory()">+ הוסף להיסטוריה</button>
             <span id="historyStatus" style="margin-right:10px;font-size:12px;color:#718096;"></span>
@@ -467,6 +468,20 @@ function rvolLabel(v) {
     if (v >= 0.8) return `<span style="color:#38a169">${v.toFixed(2)}</span>`;
     return `<span style="color:#b7791f">${v.toFixed(2)}</span>`;
 }
+
+/* ═══════════ AUTO LOAD ═══════════ */
+async function autoLoadData() {
+    try {
+        const res = await fetch('data.csv?t=' + Date.now());
+        if (!res.ok) return;
+        const text = await res.text();
+        if (text.length < 100) return;
+        document.getElementById('csvInput').value = text;
+        processData();
+        document.getElementById('autoLoadNote').textContent = 'נטען אוטומטית מ-data.csv';
+    } catch(e) { /* no data.csv — that's fine */ }
+}
+window.addEventListener('DOMContentLoaded', autoLoadData);
 
 /* ═══════════ FILE LOADER ═══════════ */
 function parseDateFromFilename(name) {
