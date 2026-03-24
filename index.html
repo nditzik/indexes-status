@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S&P 500 Market Bottom Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f0f4f8; margin: 0; padding: 20px; color: #2d3748; }
+        .container { max-width: 1200px; margin: auto; }
+        .header { background: linear-gradient(135deg, #1a365d, #2b6cb0); color: white; padding: 25px 30px; border-radius: 14px; margin-bottom: 20px; text-align: center; }
+        .header h1 { margin: 0 0 5px; font-size: 24px; }
+        .header p  { margin: 0; opacity: .8; font-size: 14px; }
+        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+        .input-row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+        input[type=file] { font-size: 14px; padding: 6px; border: 1px solid #cbd5e0; border-radius: 6px; flex: 1; }
+        button.primary { background: #3182ce; color: white; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-size: 15px; white-space: nowrap; }
+        button.primary:hover { background: #2b6cb0; }
+        button.secondary { background: #e2e8f0; color: #4a5568; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        button.secondary:hover { background: #cbd5e0; }
+        textarea { width: 100%; height: 80px; border-radius: 8px; border: 1px solid #cbd5e0; padding: 10px; font-size: 13px; resize: vertical; }
+        /* Health banner */
+        .health-banner { display: flex; align-items: center; gap: 24px; background: white; border-radius: 12px; padding: 20px 28px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+        .score-circle { width: 90px; height: 90px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; }
+        .score-circle .num { font-size: 28px; line-height: 1; }
+        .score-circle .lbl { font-size: 10px; opacity: .85; margin-top: 2px; }
+        .score-desc h2 { margin: 0 0 4px; font-size: 18px; }
+        .score-desc p  { margin: 0; font-size: 13px; color: #718096; }
+        /* Stats */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 14px 16px; border-radius: 10px; text-align: center; border-top: 4px solid #3182ce; box-shadow: 0 2px 6px rgba(0,0,0,.06); }
+        .stat-card.red    { border-top-color: #e53e3e; }
+        .stat-card.orange { border-top-color: #ed8936; }
+        .stat-card.green  { border-top-color: #38a169; }
+        .stat-card.gold   { border-top-color: #d69e2e; }
+        .stat-card h3 { margin: 0; font-size: 11px; color: #718096; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+        .stat-card p  { margin: 8px 0 0; font-size: 24px; font-weight: 700; color: #1a202c; }
+        /* Charts */
+        .section-title { font-size: 15px; font-weight: 700; color: #4a5568; margin: 0 0 14px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
+        .charts-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .chart-card { background: white; border-radius: 12px; padding: 18px 20px; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+        .chart-card h3 { margin: 0 0 12px; font-size: 13px; color: #4a5568; font-weight: 600; text-align: center; }
+        @media (max-width: 750px) { .charts-2col { grid-template-columns: 1fr; } }
+        /* Analysis boxes */
+        .analysis-box { margin-top: 14px; padding: 12px 14px; background: #f8fafc; border-radius: 8px; border-right: 3px solid #3182ce; font-size: 13px; line-height: 1.7; color: #4a5568; }
+        .analysis-box .pos  { background: #f0fff4; color: #276749; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
+        .analysis-box .neg  { background: #fff5f5; color: #c53030; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
+        .analysis-box .warn { background: #fffaf0; color: #c05621; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
+        .analysis-box ul { margin: 6px 0 0; padding-right: 18px; }
+        .analysis-box li { margin-bottom: 3px; }
+        /* Market Summary */
+        .summary-box { background: #ebf8ff; border-radius: 10px; padding: 18px 20px; border-right: 4px solid #3182ce; line-height: 1.8; font-size: 14px; }
+        .summary-box h4 { margin: 14px 0 6px; font-size: 14px; color: #2b6cb0; }
+        .summary-box h4:first-child { margin-top: 0; }
+        .summary-box ul { margin: 0; padding-right: 20px; }
+        .summary-box li { margin-bottom: 4px; }
+        .signal-watch { background: #fefcbf; border-radius: 8px; padding: 12px 14px; margin-top: 12px; font-size: 13px; border-right: 3px solid #d69e2e; }
+        .signal-watch strong { color: #744210; }
+        /* Table */
+        .filter-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; align-items: center; }
+        .filter-row select, .filter-row input[type=text] { padding: 7px 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 13px; background: white; }
+        .filter-row label { font-size: 13px; color: #4a5568; display: flex; align-items: center; gap: 6px; }
+        .tbl-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { background: #edf2f7; padding: 10px 12px; text-align: right; cursor: pointer; user-select: none; color: #4a5568; font-weight: 600; white-space: nowrap; }
+        th:hover { background: #e2e8f0; }
+        td { padding: 9px 12px; border-bottom: 1px solid #f0f4f8; white-space: nowrap; }
+        tr:hover td { background: #f7fafc; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .score-bar { display: inline-flex; gap: 3px; }
+        .score-dot { width: 10px; height: 10px; border-radius: 50%; }
+        #tableInfo { font-size: 13px; color: #718096; margin-bottom: 8px; }
+        .export-btn { float: left; }
+        .scatter-note { text-align: center; font-size: 12px; color: #718096; margin-top: 8px; }
+        /* Opportunity stock tags */
+        .opp-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .opp-tag { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px; font-size: 12px; min-width: 110px; }
+        .opp-tag.hot { border-color: #ed8936; border-width: 2px; }
+        .opp-tag .sym { font-weight: 700; font-size: 13px; display: block; }
+        .opp-tag .meta { color: #718096; font-size: 11px; }
+        /* History */
+        .history-section { margin-top: 20px; }
+        .trend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        @media (max-width: 750px) { .trend-grid { grid-template-columns: 1fr; } }
+        .history-tbl { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+        .history-tbl th { background: #edf2f7; padding: 7px 10px; text-align: right; font-weight: 600; color: #4a5568; }
+        .history-tbl td { padding: 6px 10px; border-bottom: 1px solid #f0f4f8; }
+        .add-history-btn { background: #38a169; color: white; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-top: 8px; }
+        .add-history-btn:hover { background: #2f855a; }
+        /* Heatmap */
+        .heatmap-wrap { overflow-x: auto; }
+        .heatmap-tbl { border-collapse: collapse; font-size: 12px; width: 100%; }
+        .heatmap-tbl th { background: #edf2f7; padding: 8px 12px; text-align: center; font-weight: 600; color: #4a5568; white-space: nowrap; }
+        .heatmap-tbl th.left { text-align: right; }
+        .heatmap-tbl td { padding: 7px 12px; text-align: center; font-weight: 600; font-size: 12px; border: 1px solid #e2e8f0; }
+        .heatmap-tbl td.sector-name { text-align: right; background: #f7fafc; font-weight: 600; color: #4a5568; white-space: nowrap; }
+        /* Setup screener */
+        .setup-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .setup-tbl th { background: #edf2f7; padding: 9px 12px; text-align: right; font-weight: 600; color: #4a5568; }
+        .setup-tbl td { padding: 8px 12px; border-bottom: 1px solid #f0f4f8; }
+        .momentum-bar { display: inline-block; height: 8px; border-radius: 4px; margin-right: 6px; vertical-align: middle; }
+        /* NH/NL */
+        .stat-card.teal { border-top-color: #319795; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="header">
+        <h1>דשבורד ניתוח תחתית שוק — איציק</h1>
+        <p>S&P 500 · Breadth &amp; Sector Analysis</p>
+    </div>
+
+    <div class="card">
+        <div class="input-row">
+            <input type="file" id="fileInput" accept=".csv" onchange="loadFile(event)">
+            <button class="primary" onclick="processData()">נתח נתונים</button>
+        </div>
+        <textarea id="csvInput" placeholder="או הדבק כאן את תוכן קובץ ה-CSV מ-Barchart..."></textarea>
+        <div id="addHistoryRow" style="display:none;margin-top:8px;">
+            <button class="add-history-btn" onclick="addCurrentToHistory()">+ הוסף להיסטוריה</button>
+            <span id="historyStatus" style="margin-right:10px;font-size:12px;color:#718096;"></span>
+        </div>
+    </div>
+
+    <!-- History section -->
+    <div class="card history-section" id="historySection" style="display:none;">
+        <h3 class="section-title">ניתוח היסטורי — מגמות לאורך זמן</h3>
+        <div class="input-row">
+            <input type="file" id="historyFiles" accept=".csv" multiple onchange="processHistoryFiles(event)">
+            <span style="font-size:12px;color:#718096;">בחר מספר קבצי CSV (שמות: watchlist-sp-500-intraday-MM-DD-YYYY.csv)</span>
+        </div>
+        <div id="historyCharts" style="display:none;">
+            <div class="trend-grid">
+                <div class="chart-card">
+                    <h3>ציון בריאות שוק לאורך זמן</h3>
+                    <canvas id="trendHealthChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>רוחב שוק — % מעל 200D MA</h3>
+                    <canvas id="trendBreadthChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card" style="margin-bottom:20px;">
+                <h3>כל המדדים לאורך זמן</h3>
+                <canvas id="trendAllChart" style="max-height:320px;"></canvas>
+            </div>
+            <div class="tbl-wrap">
+                <table class="history-tbl" id="historyTable">
+                    <thead><tr>
+                        <th>תאריך</th>
+                        <th>ציון בריאות</th>
+                        <th>מעל 200D MA%</th>
+                        <th>Golden Cross%</th>
+                        <th>RSI&gt;50%</th>
+                        <th>קרוב לשיא%</th>
+                        <th>Oversold%</th>
+                        <th>מניות</th>
+                    </tr></thead>
+                    <tbody id="historyTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="dashboard" style="display:none;">
+
+        <div class="health-banner" id="healthBanner"></div>
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <!-- Row 1 -->
+        <div class="charts-2col">
+            <div class="chart-card">
+                <h3>רוחב שוק — % מניות מעל ממוצע נע</h3>
+                <canvas id="breadthChart"></canvas>
+                <div class="analysis-box" id="analysisBreadth"></div>
+            </div>
+            <div class="chart-card">
+                <h3>התפלגות RSI</h3>
+                <canvas id="rsiChart"></canvas>
+                <div class="analysis-box" id="analysisRsi"></div>
+            </div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="charts-2col">
+            <div class="chart-card">
+                <h3>מרחק מהשיא השנתי (52W High)</h3>
+                <canvas id="highChart"></canvas>
+                <div class="analysis-box" id="analysisHigh"></div>
+            </div>
+            <div class="chart-card">
+                <h3>Golden Cross — 50D MA מול 200D MA</h3>
+                <canvas id="goldenChart"></canvas>
+                <div class="analysis-box" id="analysisGolden"></div>
+            </div>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="charts-2col">
+            <div class="chart-card">
+                <h3>בריאות סקטורים — % מניות מעל 200D MA</h3>
+                <canvas id="sectorChart"></canvas>
+                <div class="analysis-box" id="analysisSector"></div>
+            </div>
+            <div class="chart-card">
+                <h3>ציון יישור ממוצעים (0–4 MAs)</h3>
+                <canvas id="alignChart"></canvas>
+                <div class="analysis-box" id="analysisAlign"></div>
+            </div>
+        </div>
+
+        <!-- Row 4: Scatter -->
+        <div class="card">
+            <h3 class="section-title">מפת הזדמנויות — RSI מול מרחק מהשיא</h3>
+            <canvas id="scatterChart" style="max-height:380px;"></canvas>
+            <p class="scatter-note">שמאל-למטה = מכירת יתר + רחוק מהשיא &nbsp;|&nbsp; ימין-למעלה = חוזק טכני + קרוב לשיא &nbsp;|&nbsp; צבע = ציון MA (אדום=0, ירוק=4)</p>
+            <div class="analysis-box" id="analysisScatter"></div>
+        </div>
+
+        <!-- Row 5: Sector Heatmap -->
+        <div class="card">
+            <h3 class="section-title">מטריצת רוטציה סקטוריאלית — % מניות מעל כל ממוצע נע</h3>
+            <div class="heatmap-wrap"><div id="sectorHeatmap"></div></div>
+            <div class="analysis-box" id="analysisHeatmap" style="margin-top:12px;"></div>
+        </div>
+
+        <!-- Row 6: RVOL Analysis -->
+        <div class="charts-2col">
+            <div class="chart-card">
+                <h3>התפלגות RVOL — כל השוק</h3>
+                <canvas id="rvolHistChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>% מניות עם RVOL גבוה (&gt;1.2) לפי סקטור</h3>
+                <canvas id="rvolSectorChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Setup Screener -->
+        <div class="card">
+            <h3 class="section-title">מסנן Setup אידיאלי — מועמדות לריבאונד עם נפח</h3>
+            <p style="font-size:12px;color:#718096;margin:0 0 12px;">RSI חלש/oversold + MA Score ≥ 1 + RVOL &gt; 1.2 · ממוין לפי ציון מתנע</p>
+            <div id="setupScreener"></div>
+        </div>
+
+        <!-- Market Summary -->
+        <div class="card" id="summaryCard">
+            <h3 class="section-title">ניתוח שוק מקיף</h3>
+            <div id="marketSummary"></div>
+        </div>
+
+        <!-- Watchlist -->
+        <div class="card">
+            <h3 class="section-title">מניות לצפייה</h3>
+            <div class="filter-row">
+                <label>RSI: <select id="fRsi" onchange="renderTable()">
+                    <option value="">הכל</option>
+                    <option value="oversold">מכירת יתר (&lt;30)</option>
+                    <option value="weak">חלש (30–50)</option>
+                    <option value="strong">חזק (50–70)</option>
+                    <option value="overbought">קניית יתר (&gt;70)</option>
+                </select></label>
+                <label>ציון MA: <select id="fScore" onchange="renderTable()">
+                    <option value="">הכל</option>
+                    <option value="4">4/4 — מושלם</option>
+                    <option value="3">3+</option>
+                    <option value="2">2+</option>
+                    <option value="0">0–1 — חלש</option>
+                </select></label>
+                <label>52W%: <select id="f52w" onchange="renderTable()">
+                    <option value="">הכל</option>
+                    <option value="near">קרוב לשיא (עד 10%-)</option>
+                    <option value="mid">תיקון בינוני (10%–25%)</option>
+                    <option value="deep">ירידה חמורה (מעל 25%-)</option>
+                </select></label>
+                <label>סקטור: <select id="fSector" onchange="renderTable()"></select></label>
+                <label>RVOL: <select id="fRvol" onchange="renderTable()">
+                    <option value="">הכל</option>
+                    <option value="high">גבוה (&gt;1.2)</option>
+                    <option value="normal">רגיל (0.8–1.2)</option>
+                    <option value="low">נמוך (&lt;0.8)</option>
+                </select></label>
+                <label>חיפוש: <input type="text" id="fSearch" placeholder="סימול / שם" oninput="renderTable()" style="width:130px;"></label>
+                <button class="secondary export-btn" onclick="exportCSV()">ייצא CSV</button>
+            </div>
+            <div id="tableInfo"></div>
+            <div class="tbl-wrap">
+                <table id="watchTable">
+                    <thead><tr>
+                        <th onclick="sortTable('Symbol')">סימול ↕</th>
+                        <th onclick="sortTable('Name')">שם ↕</th>
+                        <th onclick="sortTable('sector')">סקטור ↕</th>
+                        <th onclick="sortTable('maScore')">MA Score ↕</th>
+                        <th onclick="sortTable('RSI Rank')">RSI ↕</th>
+                        <th onclick="sortTable('52w')">52W% ↕</th>
+                        <th onclick="sortTable('dist200')">מרחק 200D% ↕</th>
+                        <th onclick="sortTable('rvol')">RVOL ↕</th>
+                        <th onclick="sortTable('momentumScore')">מתנע ↕</th>
+                    </tr></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+/* ═══════════ SECTOR MAP ═══════════ */
+const S = {
+    'AAPL':'IT','MSFT':'IT','NVDA':'IT','AVGO':'IT','ORCL':'IT','CRM':'IT','AMD':'IT',
+    'INTC':'IT','QCOM':'IT','AMAT':'IT','TXN':'IT','ADI':'IT','KLAC':'IT','LRCX':'IT',
+    'MCHP':'IT','NXPI':'IT','ON':'IT','STX':'IT','WDC':'IT','MU':'IT','SNDK':'IT',
+    'HPQ':'IT','HPE':'IT','DELL':'IT','IBM':'IT','CSCO':'IT','ADSK':'IT','SNPS':'IT',
+    'CDNS':'IT','FTNT':'IT','PANW':'IT','CRWD':'IT','KEYS':'IT','FFIV':'IT','MPWR':'IT',
+    'TER':'IT','ZBRA':'IT','CDW':'IT','AKAM':'IT','PTC':'IT','EPAM':'IT','GLW':'IT',
+    'SMCI':'IT','SWKS':'IT','NTAP':'IT','GDDY':'IT','ANET':'IT','DDOG':'IT','PLTR':'IT',
+    'INTU':'IT','NOW':'IT','WDAY':'IT','PAYC':'IT','GEN':'IT','CTSH':'IT','ACN':'IT',
+    'ADBE':'IT','FICO':'IT','Q':'IT','IT':'IT',
+    'UNH':'HC','LLY':'HC','JNJ':'HC','ABBV':'HC','MRK':'HC','TMO':'HC','ABT':'HC',
+    'DHR':'HC','ISRG':'HC','SYK':'HC','BSX':'HC','VRTX':'HC','REGN':'HC','GILD':'HC',
+    'AMGN':'HC','BIIB':'HC','BMY':'HC','PFE':'HC','MDT':'HC','EW':'HC','BDX':'HC',
+    'ZBH':'HC','IDXX':'HC','IQV':'HC','A':'HC','BAX':'HC','HCA':'HC','HUM':'HC',
+    'CNC':'HC','CI':'HC','ELV':'HC','MOH':'HC','DXCM':'HC','PODD':'HC','RMD':'HC',
+    'HOLX':'HC','WAT':'HC','MTD':'HC','COO':'HC','TECH':'HC','CRL':'HC','ALGN':'HC',
+    'INCY':'HC','RVTY':'HC','DGX':'HC','LH':'HC','HSIC':'HC','UHS':'HC','DVA':'HC',
+    'STE':'HC','GEHC':'HC','MRNA':'HC','SOLV':'HC','VTRS':'HC','CAH':'HC','COR':'HC',
+    'MCK':'HC','CVS':'HC',
+    'JPM':'FIN','BAC':'FIN','WFC':'FIN','GS':'FIN','MS':'FIN','C':'FIN','BLK':'FIN',
+    'SCHW':'FIN','AXP':'FIN','COF':'FIN','USB':'FIN','PNC':'FIN','TFC':'FIN','MTB':'FIN',
+    'FITB':'FIN','KEY':'FIN','RF':'FIN','HBAN':'FIN','CFG':'FIN','BK':'FIN','STT':'FIN',
+    'NTRS':'FIN','IVZ':'FIN','BEN':'FIN','TROW':'FIN','AMP':'FIN','PRU':'FIN','MET':'FIN',
+    'AFL':'FIN','ALL':'FIN','AIG':'FIN','PGR':'FIN','CB':'FIN','TRV':'FIN','HIG':'FIN',
+    'CINF':'FIN','GL':'FIN','AIZ':'FIN','EG':'FIN','ERIE':'FIN','WRB':'FIN','RJF':'FIN',
+    'IBKR':'FIN','HOOD':'FIN','KKR':'FIN','APO':'FIN','ARES':'FIN','BX':'FIN','PFG':'FIN',
+    'SYF':'FIN','ACGL':'FIN','MCO':'FIN','SPGI':'FIN','ICE':'FIN','NDAQ':'FIN','CBOE':'FIN',
+    'CME':'FIN','MSCI':'FIN','FDS':'FIN','VRSK':'FIN','MA':'FIN','V':'FIN','PYPL':'FIN',
+    'FIS':'FIN','FISV':'FIN','GPN':'FIN','CPAY':'FIN','PAYX':'FIN','ADP':'FIN','BR':'FIN',
+    'JKHY':'FIN','COIN':'FIN','MRSH':'FIN','AON':'FIN','AJG':'FIN','BRO':'FIN',
+    'BRK.B':'FIN','L':'FIN','XYZ':'FIN',
+    'AMZN':'CD','TSLA':'CD','HD':'CD','MCD':'CD','NKE':'CD','LOW':'CD','SBUX':'CD',
+    'TJX':'CD','BKNG':'CD','CMG':'CD','ROST':'CD','DHI':'CD','LEN':'CD','PHM':'CD',
+    'NVR':'CD','GM':'CD','F':'CD','APTV':'CD','LULU':'CD','EBAY':'CD','BBY':'CD',
+    'DRI':'CD','YUM':'CD','DPZ':'CD','LVS':'CD','WYNN':'CD','MGM':'CD','RCL':'CD',
+    'CCL':'CD','NCLH':'CD','UAL':'CD','DAL':'CD','LUV':'CD','MAR':'CD','HLT':'CD',
+    'ABNB':'CD','EXPE':'CD','AZO':'CD','ORLY':'CD','TSCO':'CD','RL':'CD','TPR':'CD',
+    'DECK':'CD','ULTA':'CD','TKO':'CD','LYV':'CD','CVNA':'CD','BLDR':'CD','WSM':'CD',
+    'GPC':'CD','POOL':'CD','MAS':'CD','CTVA':'CD',
+    'META':'COM','GOOGL':'COM','GOOG':'COM','NFLX':'COM','DIS':'COM','CMCSA':'COM',
+    'T':'COM','VZ':'COM','TMUS':'COM','CHTR':'COM','FOXA':'COM','FOX':'COM','NWS':'COM',
+    'NWSA':'COM','WBD':'COM','PSKY':'COM','OMC':'COM','TTD':'COM','DASH':'COM',
+    'MTCH':'COM','EA':'COM','TTWO':'COM','APP':'COM','UBER':'COM','CSGP':'COM',
+    'GE':'IND','GEV':'IND','CAT':'IND','DE':'IND','HON':'IND','RTX':'IND','LMT':'IND',
+    'NOC':'IND','GD':'IND','HII':'IND','LHX':'IND','BA':'IND','TDG':'IND','HWM':'IND',
+    'TT':'IND','ETN':'IND','EMR':'IND','ROK':'IND','AME':'IND','FTV':'IND','PH':'IND',
+    'DOV':'IND','ITW':'IND','XYL':'IND','HUBB':'IND','GNRC':'IND','FIX':'IND','EME':'IND',
+    'PWR':'IND','AXON':'IND','MSI':'IND','LDOS':'IND','J':'IND','JCI':'IND','CARR':'IND',
+    'OTIS':'IND','IR':'IND','IEX':'IND','PNR':'IND','ROP':'IND','TYL':'IND','TRMB':'IND',
+    'WAB':'IND','GWW':'IND','FAST':'IND','SNA':'IND','SWK':'IND','TXT':'IND','CPRT':'IND',
+    'CTAS':'IND','CSX':'IND','UNP':'IND','NSC':'IND','JBHT':'IND','ODFL':'IND','CHRW':'IND',
+    'EXPD':'IND','UPS':'IND','FDX':'IND','RSG':'IND','WM':'IND','ROL':'IND','NDSN':'IND',
+    'URI':'IND','PCAR':'IND','CMI':'IND','JBL':'IND','MMM':'IND','TDY':'IND','AOS':'IND',
+    'ALLE':'IND',
+    'PG':'CS','KO':'CS','PEP':'CS','PM':'CS','MO':'CS','WMT':'CS','COST':'CS','KR':'CS',
+    'MDLZ':'CS','CL':'CS','KMB':'CS','CLX':'CS','CHD':'CS','EL':'CS','KVUE':'CS',
+    'HSY':'CS','GIS':'CS','CPB':'CS','CAG':'CS','HRL':'CS','SJM':'CS','MKC':'CS',
+    'TSN':'CS','TAP':'CS','STZ':'CS','BF.B':'CS','KDP':'CS','MNST':'CS','KHC':'CS',
+    'LW':'CS','BG':'CS','SYY':'CS','ADM':'CS','DG':'CS','DLTR':'CS',
+    'XOM':'ENE','CVX':'ENE','COP':'ENE','EOG':'ENE','OXY':'ENE','SLB':'ENE','HAL':'ENE',
+    'BKR':'ENE','PSX':'ENE','VLO':'ENE','MPC':'ENE','DVN':'ENE','FANG':'ENE','APA':'ENE',
+    'CTRA':'ENE','EQT':'ENE','OKE':'ENE','KMI':'ENE','WMB':'ENE','TRGP':'ENE','NRG':'ENE',
+    'CEG':'ENE','VST':'ENE','TPL':'ENE','EXE':'ENE','CF':'ENE','FSLR':'ENE',
+    'NEE':'UTL','SO':'UTL','DUK':'UTL','D':'UTL','AEP':'UTL','EXC':'UTL','XEL':'UTL',
+    'PCG':'UTL','ED':'UTL','ES':'UTL','AEE':'UTL','ETR':'UTL','WEC':'UTL','CMS':'UTL',
+    'DTE':'UTL','CNP':'UTL','EIX':'UTL','PPL':'UTL','ATO':'UTL','LNT':'UTL','NI':'UTL',
+    'EVRG':'UTL','PNW':'UTL','SRE':'UTL','AWK':'UTL','PEG':'UTL','AES':'UTL','FE':'UTL',
+    'PLD':'RE','AMT':'RE','EQIX':'RE','CCI':'RE','SBAC':'RE','DLR':'RE','O':'RE',
+    'WELL':'RE','AVB':'RE','EQR':'RE','MAA':'RE','UDR':'RE','ESS':'RE','CPT':'RE',
+    'INVH':'RE','SPG':'RE','REG':'RE','FRT':'RE','KIM':'RE','VTR':'RE','DOC':'RE',
+    'VICI':'RE','IRM':'RE','EXR':'RE','PSA':'RE','ARE':'RE','BXP':'RE','CBRE':'RE',
+    'HST':'RE',
+    'LIN':'MAT','APD':'MAT','FCX':'MAT','NEM':'MAT','NUE':'MAT','STLD':'MAT','ALB':'MAT',
+    'MOS':'MAT','LYB':'MAT','DOW':'MAT','DD':'MAT','PPG':'MAT','SHW':'MAT','ECL':'MAT',
+    'IFF':'MAT','VMC':'MAT','MLM':'MAT','PKG':'MAT','IP':'MAT','SW':'MAT','AVY':'MAT',
+    'AMCR':'MAT','BALL':'MAT','CRH':'MAT',
+};
+const SECTOR_HE = { 'IT':'טכנולוגיה','HC':'בריאות','FIN':'פיננסים','CD':'צריכה מחזורית',
+    'CS':'צריכה בסיסית','IND':'תעשייה','COM':'תקשורת','ENE':'אנרגיה',
+    'UTL':'תשתיות','RE':'נדל"ן','MAT':'חומרי גלם','?':'אחר' };
+const RSI_APPROX = { 'New Above 20':21,'Below 30':25,'New Above 30':33,'New Below 50':47,
+    'Below 50':42,'New Above 50':53,'Above 50':62,'New Below 70':68,
+    'New Above 70':72,'Above 70':75,'Above 80':83 };
+const RSI_GROUP = {
+    oversold:   ['Below 30','New Above 20'],
+    weak:       ['Below 50','New Below 50','New Above 30'],
+    strong:     ['Above 50','New Above 50'],
+    overbought: ['Above 70','Above 80','New Above 70','New Below 70']
+};
+const SCORE_COLORS = ['#e53e3e','#ed8936','#ecc94b','#68d391','#38a169'];
+
+/* ═══════════ STATE ═══════════ */
+const charts = {};
+let tableData = [], M = {}, sortKey = 'maScore', sortAsc = false;
+let historyData = [], currentDateLabel = '';
+const trendCharts = {};
+
+/* ═══════════ HELPERS ═══════════ */
+function parseCSVLine(line) {
+    const res = []; let cur = '', inQ = false;
+    for (const c of line) {
+        if (c === '"') inQ = !inQ;
+        else if (c === ',' && !inQ) { res.push(cur.trim()); cur = ''; }
+        else cur += c;
+    }
+    res.push(cur.trim()); return res;
+}
+function getMAScore(d) {
+    const l = parseFloat(d['Latest']); let s = 0;
+    for (const f of ['20D MA','50D MA','150D MA','200D MA']) {
+        const v = parseFloat(d[f]); if (!isNaN(l)&&!isNaN(v)&&v>0&&l>v) s++;
+    }
+    return s;
+}
+function getRsiGroup(rank) {
+    for (const [g,list] of Object.entries(RSI_GROUP)) if (list.includes(rank)) return g;
+    return 'strong';
+}
+function rsiColor(rank) {
+    return {oversold:'#e53e3e',weak:'#ed8936',strong:'#48bb78',overbought:'#4299e1'}[getRsiGroup(rank)];
+}
+function dist200pct(d) {
+    const l=parseFloat(d['Latest']),m=parseFloat(d['200D MA']);
+    return (isNaN(l)||isNaN(m)||m===0) ? null : (l-m)/m*100;
+}
+function pct(n,t)  { return +((n/t)*100).toFixed(1); }
+function destroyChart(id) { if(charts[id]){charts[id].destroy();delete charts[id];} }
+function healthColor(s) { return s<30?'#e53e3e':s<50?'#ed8936':s<70?'#ecc94b':'#38a169'; }
+function healthLabel(s) {
+    return s<25?'תחתית שוק פוטנציאלית':s<40?'שוק חלש — זהירות':s<60?'שוק ניטרלי':s<75?'שוק חזק':'שוק שורי';
+}
+// tag helpers for analysis boxes
+function pos(t)  { return `<span class="pos">${t}</span>`; }
+function neg(t)  { return `<span class="neg">${t}</span>`; }
+function warn(t) { return `<span class="warn">${t}</span>`; }
+function getMomentumScore(d) {
+    const maComp   = (d.maScore / 4) * 35;
+    const rsiVal   = RSI_APPROX[d['RSI Rank']] || 50;
+    const rsiComp  = Math.max(0, Math.min(25, (rsiVal - 20) / 65 * 25));
+    const w52Comp  = Math.max(0, Math.min(25, (100 + (d['52w'] || 0)) / 100 * 25));
+    const rvolComp = Math.min(15, (d.rvol || 0) / 2 * 15);
+    return Math.round(maComp + rsiComp + w52Comp + rvolComp);
+}
+function momentumColor(s) {
+    return s >= 70 ? '#276749' : s >= 50 ? '#38a169' : s >= 35 ? '#ecc94b' : s >= 20 ? '#ed8936' : '#e53e3e';
+}
+function rvolColor(v) {
+    if (isNaN(v) || v <= 0) return '#a0aec0';
+    if (v > 1.2)  return '#276749';
+    if (v >= 0.8) return '#68d391';
+    return '#ecc94b';
+}
+function rvolLabel(v) {
+    if (isNaN(v) || v <= 0) return '—';
+    if (v > 1.2)  return `<span style="color:#276749;font-weight:700">${v.toFixed(2)}</span>`;
+    if (v >= 0.8) return `<span style="color:#38a169">${v.toFixed(2)}</span>`;
+    return `<span style="color:#b7791f">${v.toFixed(2)}</span>`;
+}
+
+/* ═══════════ FILE LOADER ═══════════ */
+function parseDateFromFilename(name) {
+    const m = name.match(/(\d{2})-(\d{2})-(\d{4})/);
+    if (!m) return '';
+    return `${m[3]}-${m[1]}-${m[2]}`;
+}
+function loadFile(e) {
+    const file = e.target.files[0]; if (!file) return;
+    currentDateLabel = parseDateFromFilename(file.name) || new Date().toISOString().slice(0,10);
+    const r = new FileReader();
+    r.onload = ev => { document.getElementById('csvInput').value = ev.target.result; processData(); };
+    r.readAsText(file,'UTF-8');
+}
+
+/* ═══════════ PROCESS DATA ═══════════ */
+function processData() {
+    const input = document.getElementById('csvInput').value.trim();
+    const lines = input.split('\n');
+    if (lines.length < 2) return alert('אנא הדבק נתונים תקינים');
+
+    const headers = parseCSVLine(lines[0]);
+    const raw = lines.slice(1)
+        .map(line => { const v=parseCSVLine(line),o={}; headers.forEach((h,i)=>o[h]=v[i]||''); return o; })
+        .filter(d => /^[A-Z][A-Z0-9.]{0,4}$/.test(d['Symbol']));
+
+    if (!raw.length) return alert('לא נמצאו נתונים תקינים');
+
+    tableData = raw.map(d => {
+        const base = {
+            ...d,
+            maScore:  getMAScore(d),
+            rsiGroup: getRsiGroup(d['RSI Rank']),
+            sector:   S[d['Symbol']] || '?',
+            '52w':    parseFloat(d['52W %/High']) || 0,
+            dist200:  dist200pct(d),
+            rvol:     parseFloat(d['20D RelVol']) || 0,
+        };
+        base.momentumScore = getMomentumScore(base);
+        return base;
+    });
+
+    const total = tableData.length;
+    const aboveMA = f => tableData.filter(d=>{const l=parseFloat(d['Latest']),m=parseFloat(d[f]);return !isNaN(l)&&!isNaN(m)&&m>0&&l>m;}).length;
+    const a20=aboveMA('20D MA'),a50=aboveMA('50D MA'),a150=aboveMA('150D MA'),a200=aboveMA('200D MA');
+    const golden = tableData.filter(d=>{const m50=parseFloat(d['50D MA']),m200=parseFloat(d['200D MA']);return !isNaN(m50)&&!isNaN(m200)&&m200>0&&m50>m200;}).length;
+    const nearHigh = tableData.filter(d=>d['52w']>=-5).length;
+    const deepDrop = tableData.filter(d=>d['52w']<=-30).length;
+    const nhCount  = nearHigh;
+    const nlCount  = tableData.filter(d=>d['52w']<=-30).length;
+    const nhNlRatio = nlCount > 0 ? (nhCount / nlCount).toFixed(2) : nhCount > 0 ? '∞' : '0';
+    const within20 = tableData.filter(d=>d['52w']>=-20).length;
+    const rsiC = g => tableData.filter(d=>d.rsiGroup===g).length;
+    const oversold=rsiC('oversold'),weak=rsiC('weak'),strong=rsiC('strong'),overbought=rsiC('overbought');
+    const rsiAbove50 = strong + overbought;
+
+    // Sector stats
+    const sectors = {};
+    tableData.forEach(d=>{
+        const sc=d.sector;
+        if(!sectors[sc]) sectors[sc]={total:0,above200:0};
+        sectors[sc].total++;
+        const l=parseFloat(d['Latest']),m=parseFloat(d['200D MA']);
+        if(!isNaN(l)&&!isNaN(m)&&m>0&&l>m) sectors[sc].above200++;
+    });
+    const sectorsSorted = Object.keys(sectors).sort((a,b)=>(sectors[b].above200/sectors[b].total)-(sectors[a].above200/sectors[a].total));
+    const topSector    = sectorsSorted[0];
+    const bottomSector = sectorsSorted[sectorsSorted.length-1];
+
+    // Opportunity stocks: RSI approx < 40, 52W% < -15%, MA score >= 1
+    const opportunityStocks = tableData.filter(d =>
+        (RSI_APPROX[d['RSI Rank']]||50) < 40 &&
+        d['52w'] < -15 &&
+        d.maScore >= 1
+    ).sort((a,b) => (RSI_APPROX[a['RSI Rank']]||50) - (RSI_APPROX[b['RSI Rank']]||50));
+    const opportunities = opportunityStocks.length;
+
+    // Health score
+    const healthScore = Math.round(
+        pct(a200,total)*0.30 + pct(golden,total)*0.25 +
+        pct(rsiAbove50,total)*0.25 + pct(within20,total)*0.20
+    );
+
+    // Store for analysis
+    M = { total, a20, a50, a150, a200, golden, oversold, weak, strong, overbought,
+          nearHigh, deepDrop, within20, rsiAbove50, healthScore, sectors,
+          topSector, bottomSector, opportunities, opportunityStocks,
+          nhCount, nlCount, nhNlRatio };
+
+    // Health banner
+    const hc = healthColor(healthScore);
+    document.getElementById('healthBanner').innerHTML = `
+        <div class="score-circle" style="background:${hc}22;border:3px solid ${hc};color:${hc}">
+            <span class="num">${healthScore}</span><span class="lbl">מתוך 100</span>
+        </div>
+        <div class="score-desc">
+            <h2 style="color:${hc}">${healthLabel(healthScore)}</h2>
+            <p>ציון בריאות שוק מחושב מ-4 אינדיקטורים: % מעל 200D MA · Golden Cross · RSI&gt;50 · מרחק מהשיא</p>
+        </div>`;
+
+    document.getElementById('statsGrid').innerHTML = `
+        <div class="stat-card"><h3>מעל 20D MA</h3><p>${pct(a20,total)}%</p></div>
+        <div class="stat-card"><h3>מעל 50D MA</h3><p>${pct(a50,total)}%</p></div>
+        <div class="stat-card"><h3>מעל 150D MA</h3><p>${pct(a150,total)}%</p></div>
+        <div class="stat-card"><h3>מעל 200D MA</h3><p>${pct(a200,total)}%</p></div>
+        <div class="stat-card gold"><h3>Golden Cross</h3><p>${pct(golden,total)}%</p></div>
+        <div class="stat-card green"><h3>קרוב לשיא (≤5%-)</h3><p>${nearHigh}</p></div>
+        <div class="stat-card red"><h3>מכירת יתר (RSI&lt;30)</h3><p>${oversold}</p></div>
+        <div class="stat-card orange"><h3>ירידה מעל 30%</h3><p>${deepDrop}</p></div>
+        <div class="stat-card teal"><h3>יחס NH/NL</h3><p style="font-size:20px">${nhNlRatio}</p></div>`;
+
+    document.getElementById('dashboard').style.display = 'block';
+    document.getElementById('historySection').style.display = 'block';
+    document.getElementById('addHistoryRow').style.display = 'block';
+    document.getElementById('historyStatus').textContent = currentDateLabel ? `תאריך: ${currentDateLabel}` : '';
+
+    const sectorSel = document.getElementById('fSector');
+    sectorSel.innerHTML = '<option value="">כל הסקטורים</option>';
+    [...new Set(tableData.map(d=>d.sector))].sort().forEach(sc=>{
+        const o=document.createElement('option'); o.value=sc; o.textContent=SECTOR_HE[sc]||sc; sectorSel.appendChild(o);
+    });
+
+    updateCharts(a20,a50,a150,a200,total,oversold,weak,strong,overbought,golden,tableData,sectors,sectorsSorted);
+    renderHeatmap(sectors, sectorsSorted);
+    renderRvolCharts(tableData, sectorsSorted, sectors);
+    renderSetupScreener();
+    generateAllAnalysis();
+    sortKey='maScore'; sortAsc=false;
+    renderTable();
+}
+
+/* ═══════════ CHARTS ═══════════ */
+function updateCharts(a20,a50,a150,a200,total,oversold,weak,strong,overbought,golden,data,sectors,sectorsSorted) {
+    destroyChart('breadthChart');
+    charts['breadthChart'] = new Chart(document.getElementById('breadthChart'),{
+        type:'bar', data:{labels:['מעל 20 MA','מעל 50 MA','מעל 150 MA','מעל 200 MA'],
+        datasets:[{data:[pct(a20,total),pct(a50,total),pct(a150,total),pct(a200,total)],
+        backgroundColor:['#90cdf4','#63b3ed','#3182ce','#2b6cb0']}]},
+        options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}}
+    });
+
+    destroyChart('rsiChart');
+    charts['rsiChart'] = new Chart(document.getElementById('rsiChart'),{
+        type:'doughnut',
+        data:{labels:['מכירת יתר (<30)','חלש (30–50)','חזק (50–70)','קניית יתר (>70)'],
+        datasets:[{data:[oversold,weak,strong,overbought],backgroundColor:['#e53e3e','#ed8936','#48bb78','#4299e1']}]},
+        options:{plugins:{legend:{position:'bottom'}}}
+    });
+
+    const buckets=[0,0,0,0,0];
+    data.forEach(d=>{
+        const v=d['52w']; if(isNaN(v)) return;
+        if(v>=-5) buckets[0]++; else if(v>=-10) buckets[1]++;
+        else if(v>=-20) buckets[2]++; else if(v>=-30) buckets[3]++; else buckets[4]++;
+    });
+    destroyChart('highChart');
+    charts['highChart'] = new Chart(document.getElementById('highChart'),{
+        type:'bar', data:{labels:['0 עד 5%-','5- עד 10%-','10- עד 20%-','20- עד 30%-','מתחת ל-30%-'],
+        datasets:[{data:buckets,backgroundColor:['#48bb78','#68d391','#ecc94b','#ed8936','#e53e3e']}]},
+        options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
+    });
+
+    destroyChart('goldenChart');
+    charts['goldenChart'] = new Chart(document.getElementById('goldenChart'),{
+        type:'bar', data:{labels:['Golden Cross (50>200)','Death Cross (50<200)'],
+        datasets:[{data:[golden,total-golden],backgroundColor:['#f6ad55','#a0aec0']}]},
+        options:{indexAxis:'y',plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:c=>`${c.raw} מניות (${pct(c.raw,total)}%)`}}},
+        scales:{x:{beginAtZero:true,max:total}}}
+    });
+
+    destroyChart('sectorChart');
+    charts['sectorChart'] = new Chart(document.getElementById('sectorChart'),{
+        type:'bar',
+        data:{labels:sectorsSorted.map(sc=>SECTOR_HE[sc]||sc),
+        datasets:[{data:sectorsSorted.map(sc=>+(sectors[sc].above200/sectors[sc].total*100).toFixed(1)),
+        backgroundColor:sectorsSorted.map(sc=>{const p=sectors[sc].above200/sectors[sc].total;return p>=0.6?'#38a169':p>=0.4?'#ecc94b':'#e53e3e';})}]},
+        options:{indexAxis:'y',plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:c=>`${c.raw}% (${sectors[sectorsSorted[c.dataIndex]].above200}/${sectors[sectorsSorted[c.dataIndex]].total})`}}},
+        scales:{x:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}}
+    });
+
+    const scores=[0,0,0,0,0];
+    data.forEach(d=>scores[d.maScore]++);
+    destroyChart('alignChart');
+    charts['alignChart'] = new Chart(document.getElementById('alignChart'),{
+        type:'bar', data:{labels:['0/4','1/4','2/4','3/4','4/4'],
+        datasets:[{data:scores,backgroundColor:SCORE_COLORS}]},
+        options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
+    });
+
+    const scoreDs = [0,1,2,3,4].map(score=>({
+        label:`MA Score ${score}`,
+        data:data.filter(d=>d.maScore===score&&!isNaN(d['52w'])&&RSI_APPROX[d['RSI Rank']])
+                 .map(d=>({x:d['52w'],y:RSI_APPROX[d['RSI Rank']],symbol:d['Symbol']})),
+        backgroundColor:SCORE_COLORS[score]+'cc', pointRadius:4, pointHoverRadius:7
+    }));
+    destroyChart('scatterChart');
+    charts['scatterChart'] = new Chart(document.getElementById('scatterChart'),{
+        type:'scatter', data:{datasets:scoreDs},
+        options:{plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11}}},
+        tooltip:{callbacks:{label:c=>`${c.raw.symbol}  52W: ${c.raw.x.toFixed(1)}%  RSI≈${c.raw.y}`}}},
+        scales:{x:{title:{display:true,text:'מרחק מהשיא השנתי (%)'},reverse:true},
+                y:{title:{display:true,text:'RSI (קירוב)'},min:10,max:95}}}
+    });
+}
+
+/* ═══════════ ANALYSIS TEXTS ═══════════ */
+function generateAllAnalysis() {
+    const {total,a20,a50,a150,a200,golden,oversold,weak,strong,overbought,
+           nearHigh,deepDrop,within20,rsiAbove50,sectors,topSector,bottomSector,opportunities} = M;
+
+    const p200 = pct(a200,total), p50 = pct(a50,total), p20 = pct(a20,total);
+    const pGold = pct(golden,total);
+    const pOversold = pct(oversold,total);
+
+    // ── 1. MA Breadth ──
+    let cond200, tag200;
+    if      (p200 < 20) { cond200 = 'מצב קיצוני — שוק דובי חמור'; tag200 = neg; }
+    else if (p200 < 35) { cond200 = 'חולשה רחבה — רוב המניות בטרנד יורד'; tag200 = neg; }
+    else if (p200 < 50) { cond200 = 'שוק חלש — מתחת לנורמה'; tag200 = warn; }
+    else if (p200 < 65) { cond200 = 'שוק ניטרלי'; tag200 = warn; }
+    else                { cond200 = 'שוק בריא'; tag200 = pos; }
+
+    const spread = (p20 - p200).toFixed(1);
+    const spreadSign = parseFloat(spread) >= 0 ? `+${spread}` : spread;
+    const spreadNote = parseFloat(spread) > 12
+        ? `הפער החיובי בין 20D ל-200D (${pos(spreadSign+'%')}) מרמז על ${pos('שיפור בטווח הקצר — מניות מתאוששות')}.`
+        : parseFloat(spread) < -5
+            ? `הטווח הקצר חלש מהארוך (${neg(spreadSign+'%')}) — ${neg('לחץ מכירות טרי, שוק ממשיך לרדת')}.`
+            : `הפער בין 20D ל-200D קטן — אין כיוון חד בטווח הקצר.`;
+
+    let bottomHint = '';
+    if (p200 < 30 && parseFloat(spread) > 8)
+        bottomHint = `<br>⚡ ${pos('אות תחתית אפשרי')}: 200D MA נמוך מאוד אך 20D MA מתאושש — לפקוח עיניים.`;
+
+    document.getElementById('analysisBreadth').innerHTML =
+        `<strong>${p200}%</strong> מהמניות מעל 200D MA — ${tag200(cond200)}.<br>
+        ${spreadNote}${bottomHint}
+        <ul>
+            <li><strong>200D MA</strong> = מדד הטרנד הראשי. מתחת ל-40% = שוק דובי רחב.</li>
+            <li><strong>20D MA</strong> = מדד טווח קצר. אם עולה בזמן ש-200D יורד — שוק בתיקון קצר.</li>
+        </ul>`;
+
+    // ── 2. RSI ──
+    let rsiCondition, rsiTag;
+    if      (pOversold > 25) { rsiCondition = 'רמה קיצונית — היסטורית קרובה לתחתיות שוק'; rsiTag = warn; }
+    else if (pOversold > 15) { rsiCondition = 'לחץ מכירות משמעותי'; rsiTag = warn; }
+    else if (pOversold > 5)  { rsiCondition = 'לחץ מכירות רגיל'; rsiTag = warn; }
+    else                     { rsiCondition = 'לחץ מכירות נמוך — שוק יחסית בריא'; rsiTag = pos; }
+
+    const pStrong = pct(strong+overbought, total);
+    document.getElementById('analysisRsi').innerHTML =
+        `${warn(pOversold+'%')} מהמניות במכירת יתר (RSI&lt;30) — ${rsiTag(rsiCondition)}.<br>
+        רק ${pStrong < 30 ? neg(pStrong+'%') : pos(pStrong+'%')} מהמניות עם RSI חיובי (מעל 50).
+        <ul>
+            <li><strong>RSI &lt;30</strong> = מניה "נמכרה יתר על המידה" — פוטנציאל לריבאונד.</li>
+            <li><strong>מעל 25% oversold</strong> = פאניקה ברחבת השוק — היסטורית מסמן תחתיות.</li>
+            <li>שים לב: מניה oversold יכולה להמשיך לרדת בשוק דובי.</li>
+        </ul>`;
+
+    // ── 3. 52W High ──
+    const pNear = pct(nearHigh,total), pDeep = pct(deepDrop,total);
+    let highCondition, highTag;
+    if      (pNear > 30)  { highCondition = 'שוק חזק — מניות רבות קרובות לשיא'; highTag = pos; }
+    else if (pNear > 15)  { highCondition = 'שוק ניטרלי'; highTag = warn; }
+    else if (pDeep > 40)  { highCondition = 'שוק דובי עמוק — רוב המניות ירדו חדות'; highTag = neg; }
+    else                  { highCondition = 'שוק בתיקון — מניות רחוקות מהשיא'; highTag = warn; }
+
+    document.getElementById('analysisHigh').innerHTML =
+        `רק ${pNear < 15 ? neg(nearHigh+' מניות ('+pNear+'%)') : pos(nearHigh+' מניות ('+pNear+'%)')} קרובות לשיא השנתי — ${highTag(highCondition)}.<br>
+        ${neg(deepDrop+' מניות ('+pDeep+'%)')} ירדו מעל 30% מהשיא — ירידה משמעותית.
+        <ul>
+            <li><strong>מניות קרובות לשיא</strong> = proxy ל-"New Highs" — אינדיקטור מובייל לעוצמת שוק.</li>
+            <li>שוק בריא: 20%+ קרובות לשיא. שוק חולה: פחות מ-10%.</li>
+        </ul>`;
+
+    // ── 4. Golden Cross ──
+    let gcCondition, gcTag;
+    if      (pGold < 25) { gcCondition = 'רוב המניות ב-Death Cross — מבנה שוק יורד'; gcTag = neg; }
+    else if (pGold < 40) { gcCondition = 'שוק חלש — מעטות בגולדן קרוס'; gcTag = warn; }
+    else if (pGold < 55) { gcCondition = 'שוק בתפנית — חלוקה שקולה'; gcTag = warn; }
+    else                 { gcCondition = 'שוק בריא — רוב המניות בטרנד עולה'; gcTag = pos; }
+
+    document.getElementById('analysisGolden').innerHTML =
+        `${pGold < 40 ? neg(pGold+'%') : pos(pGold+'%')} מהמניות ב-Golden Cross — ${gcTag(gcCondition)}.
+        <ul>
+            <li><strong>Golden Cross</strong> (50D&gt;200D): הממוצע הקצר מעל הארוך = טרנד עולה.</li>
+            <li><strong>Death Cross</strong> (50D&lt;200D): טרנד יורד — מניות בשוק דובי מבני.</li>
+            <li>שיפור ב-Golden Cross% לאורך זמן = אות התאוששות אמין.</li>
+        </ul>`;
+
+    // ── 5. Sector ──
+    const topPct  = (sectors[topSector]?.above200/sectors[topSector]?.total*100||0).toFixed(1);
+    const botPct  = (sectors[bottomSector]?.above200/sectors[bottomSector]?.total*100||0).toFixed(1);
+    const isDefensive = ['UTL','CS','HC'].includes(topSector);
+
+    document.getElementById('analysisSector').innerHTML =
+        `הסקטור החזק ביותר: ${pos(SECTOR_HE[topSector]||topSector)} (${topPct}% מעל 200D MA).<br>
+        הסקטור החלש ביותר: ${neg(SECTOR_HE[bottomSector]||bottomSector)} (${botPct}% מעל 200D MA).<br>
+        ${isDefensive ? warn('אזהרה: סקטורים דפנסיביים מובילים — רוטציה לבטיחות, סימן לסנטימנט שלילי.') : pos('סקטורים צמיחה/מחזוריים מובילים — סימן חיובי לרוח גבית.')}
+        <ul>
+            <li>כשאנרגיה/תשתיות/צריכה בסיסית מובילים — שוק מגנן, משקיעים בורחים לנכסים בטוחים.</li>
+            <li>כשטכנולוגיה/צריכה מחזורית מובילים — תיאבון לסיכון חוזר.</li>
+        </ul>`;
+
+    // ── 6. MA Alignment ──
+    const score4 = tableData.filter(d=>d.maScore===4).length;
+    const score0 = tableData.filter(d=>d.maScore===0).length;
+    const p4 = pct(score4,total), p0 = pct(score0,total);
+
+    document.getElementById('analysisAlign').innerHTML =
+        `${p4 < 15 ? neg(score4+' מניות ('+p4+'%)') : pos(score4+' מניות ('+p4+'%)')} עם ציון 4/4 — מעל כל הממוצעים.<br>
+        ${neg(score0+' מניות ('+p0+'%)')} עם ציון 0/4 — מתחת לכל הממוצעים.
+        <ul>
+            <li><strong>4/4</strong>: מניה בריאה לחלוטין — מחיר מעל 20D, 50D, 150D, 200D MA.</li>
+            <li><strong>0/4</strong>: מניה חלשה לחלוטין — טרנד יורד בכל המסגרות הזמן.</li>
+            <li>כשהממוצע עולה ל-3–4 → שוק מתאושש.</li>
+        </ul>`;
+
+    // ── 7. Scatter ──
+    document.getElementById('analysisScatter').innerHTML =
+        `${pos(opportunities+' מניות')} נמצאות ב"זון ההזדמנויות" — RSI נמוך + ירידה &gt;15% + עדיין מעל 2 ממוצעים.
+        <ul>
+            <li>אלו מניות שנמכרו יתר על המידה אך עדיין מחזיקות מעמד טכנית — המועמדות הטובות לריבאונד.</li>
+            <li>חפש נקודות בצבע ירוק/צהוב בפינה השמאלית התחתונה של הגרף.</li>
+            <li>נקודות אדומות בפינה שמאלית-תחתונה = סכנה — מניות חלשות ונמכרות.</li>
+        </ul>`;
+
+    // ── 8. Market Summary ──
+    generateMarketSummary();
+}
+
+function generateMarketSummary() {
+    const {total,a200,golden,oversold,rsiAbove50,nearHigh,deepDrop,within20,
+           healthScore,topSector,bottomSector,sectors,opportunities,opportunityStocks} = M;
+
+    const p200 = pct(a200,total), pGold = pct(golden,total);
+    const pOversold = pct(oversold,total), pNear = pct(nearHigh,total);
+
+    // Overall condition
+    let overallText, overallTag;
+    if      (healthScore < 25) { overallText = 'שוק במצב קיצוני — אותות תחתית'; overallTag = neg; }
+    else if (healthScore < 40) { overallText = 'שוק חלש ובלחץ'; overallTag = warn; }
+    else if (healthScore < 55) { overallText = 'שוק ניטרלי — חוסר כיוון'; overallTag = warn; }
+    else if (healthScore < 70) { overallText = 'שוק חזק'; overallTag = pos; }
+    else                       { overallText = 'שוק שורי חזק'; overallTag = pos; }
+
+    // Key findings
+    const findings = [];
+    findings.push(`<strong>${p200}%</strong> מהמניות מעל 200D MA — ${p200 < 35 ? neg('חולשה רחבה') : p200 < 50 ? warn('מתחת לנורמה') : pos('שוק בריא')}`);
+    findings.push(`<strong>${pGold}%</strong> Golden Cross — ${pGold < 35 ? neg('מבנה שוק יורד') : pGold < 50 ? warn('חלוקה') : pos('טרנד עולה')}`);
+    findings.push(`<strong>${pOversold}%</strong> מניות במכירת יתר — ${pOversold > 20 ? warn('לחץ מכירות גבוה, פוטנציאל ריבאונד') : pOversold < 5 ? pos('לחץ נמוך') : 'רמה רגילה'}`);
+    findings.push(`רק <strong>${pNear}%</strong> קרובות לשיא שנתי — ${pNear < 10 ? neg('שוק ירוד מאוד') : pNear < 25 ? warn('שוק חלש') : pos('שוק בריא')}`);
+    findings.push(`${pos('סקטור ' + (SECTOR_HE[topSector]||topSector))} מוביל, ${neg('סקטור ' + (SECTOR_HE[bottomSector]||bottomSector))} הכי חלש`);
+    findings.push(`${pos(opportunities+' מניות')} בזון ההזדמנויות — oversold אך עם ביסוס טכני`);
+
+    // Reversal signals to watch
+    const threshold200 = Math.min(p200 + 10, 50);
+    const thresholdGold = Math.min(pGold + 10, 50);
+
+    const signals = [
+        `% מעל 200D MA יחצה ${threshold200}% ↑`,
+        `Golden Cross יעלה ל-${thresholdGold}%+ ↑`,
+        `% מניות oversold ירד מ-5% ↓`,
+        `סקטור הטכנולוגיה יתחיל לעלות בדירוג הסקטורים`,
+        `נפח קנייה (Volume) גדול לאחר יום ירידות = אות ספיגה`
+    ];
+
+    document.getElementById('marketSummary').innerHTML = `
+        <div class="summary-box">
+            <h4>מצב כללי: ${overallTag(overallText)} | ציון ${healthScore}/100</h4>
+            <p>השוק כרגע נמצא ב${overallTag(overallText.toLowerCase())}. ניתוח ${total} מניות של מדד S&P 500 מצביע על:</p>
+            <h4>נקודות מפתח</h4>
+            <ul>${findings.map(f=>`<li>${f}</li>`).join('')}</ul>
+            <h4>פרשנות</h4>
+            <p>
+                ${p200 < 30 && pOversold > 15
+                    ? pos('שילוב של חולשה קיצונית + oversold גבוה הוא לרוב אות לתחתית בקרוב. ') + 'היסטורית, כשפחות מ-30% מהמניות מעל 200D MA ו-15%+ במכירת יתר — השוק קרוב לנקודת ספיגה.'
+                    : p200 > 60
+                        ? pos('השוק בריא וברוב המניות בטרנד עולה. ') + 'ממשיכים לחפש מניות עם ציון MA גבוה.'
+                        : warn('השוק בשלב ביניים — לא קיצוני כלפי מטה ולא חזק כלפי מעלה. ') + 'מומלץ להמתין לאות ברור יותר לפני הגדלת חשיפה.'
+                }
+            </p>
+        </div>
+        <div class="signal-watch">
+            <strong>אותות להיפוך שוק — מה לצפות:</strong>
+            <ul style="margin:6px 0 0;padding-right:18px;">
+                ${signals.map(s=>`<li>${s}</li>`).join('')}
+            </ul>
+        </div>
+        ${opportunityStocks.length > 0 ? `
+        <div style="margin-top:16px;">
+            <strong style="font-size:13px;color:#2b6cb0;">מניות בזון ההזדמנויות (${opportunityStocks.length})</strong>
+            <p style="font-size:12px;color:#718096;margin:4px 0 8px;">RSI נמוך + ירידה &gt;15% מהשיא + לפחות ממוצע נע אחד תומך. גבול כתום = RVOL גבוה (&gt;1.2)</p>
+            <div class="opp-tags">
+                ${opportunityStocks.map(d=>{
+                    const rv = d.rvol || 0;
+                    const isHot = rv > 1.2;
+                    const rsiApprox = RSI_APPROX[d['RSI Rank']] || '?';
+                    const rvolDisp = rv > 0 ? ` · RVOL ${rv.toFixed(2)}` : '';
+                    return `<div class="opp-tag${isHot?' hot':''}">
+                        <span class="sym">${d['Symbol']}</span>
+                        <span class="meta">${d['RSI Rank']}</span>
+                        <span class="meta">52W: ${d['52w'].toFixed(1)}% · MA: ${d.maScore}/4${rvolDisp}</span>
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>` : ''}`;
+}
+
+/* ═══════════ TABLE ═══════════ */
+function sortTable(key) {
+    if (sortKey===key) sortAsc=!sortAsc; else {sortKey=key; sortAsc=false;}
+    renderTable();
+}
+function renderTable() {
+    const fRsi=document.getElementById('fRsi').value, fScore=document.getElementById('fScore').value;
+    const f52w=document.getElementById('f52w').value, fSec=document.getElementById('fSector').value;
+    const fSearch=document.getElementById('fSearch').value.toLowerCase();
+    const fRvol=document.getElementById('fRvol').value;
+
+    let rows = tableData.filter(d=>{
+        if (fRsi==='oversold'   && d.rsiGroup!=='oversold')   return false;
+        if (fRsi==='weak'       && d.rsiGroup!=='weak')        return false;
+        if (fRsi==='strong'     && d.rsiGroup!=='strong')      return false;
+        if (fRsi==='overbought' && d.rsiGroup!=='overbought')  return false;
+        if (fScore==='4' && d.maScore!==4)  return false;
+        if (fScore==='3' && d.maScore<3)    return false;
+        if (fScore==='2' && d.maScore<2)    return false;
+        if (fScore==='0' && d.maScore>1)    return false;
+        if (f52w==='near' && d['52w']<-10)  return false;
+        if (f52w==='mid'  && (d['52w']<-25||d['52w']>-10)) return false;
+        if (f52w==='deep' && d['52w']>-25)  return false;
+        if (fSec && d.sector!==fSec) return false;
+        if (fRvol==='high'   && d.rvol <= 1.2) return false;
+        if (fRvol==='normal' && (d.rvol < 0.8 || d.rvol > 1.2)) return false;
+        if (fRvol==='low'    && d.rvol >= 0.8) return false;
+        if (fSearch && !d['Symbol'].toLowerCase().includes(fSearch) && !d['Name'].toLowerCase().includes(fSearch)) return false;
+        return true;
+    });
+
+    rows.sort((a,b)=>{
+        let va=a[sortKey], vb=b[sortKey];
+        if (typeof va==='string'){va=va.toLowerCase();vb=vb.toLowerCase();}
+        return sortAsc ? (va<vb?-1:va>vb?1:0) : (va>vb?-1:va<vb?1:0);
+    });
+
+    document.getElementById('tableInfo').textContent=`מציג ${rows.length} מניות מתוך ${tableData.length}`;
+    document.getElementById('tableBody').innerHTML = rows.map(d=>{
+        const scoreHtml='<span class="score-bar">'+[0,1,2,3].map(i=>`<span class="score-dot" style="background:${i<d.maScore?SCORE_COLORS[d.maScore]:'#e2e8f0'}"></span>`).join('')+'</span>';
+        const badge=`<span class="badge" style="background:${rsiColor(d['RSI Rank'])}22;color:${rsiColor(d['RSI Rank'])}">${d['RSI Rank']}</span>`;
+        const d200 = d.dist200!==null?(d.dist200>0?'+':'')+d.dist200.toFixed(1)+'%':'—';
+        const c200 = d.dist200===null?'':d.dist200>=0?'color:#276749':'color:#c53030';
+        const c52w = d['52w']>=-10?'color:#276749':d['52w']<=-25?'color:#c53030':'color:#c05621';
+        return `<tr>
+            <td><strong>${d['Symbol']}</strong></td>
+            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">${d['Name']}</td>
+            <td>${SECTOR_HE[d.sector]||d.sector}</td>
+            <td>${scoreHtml} <small>${d.maScore}/4</small></td>
+            <td>${badge}</td>
+            <td style="${c52w}">${d['52w'].toFixed(1)}%</td>
+            <td style="${c200}">${d200}</td>
+            <td>${rvolLabel(d.rvol)}</td>
+            <td><span class="momentum-bar" style="width:${d.momentumScore/2}px;background:${momentumColor(d.momentumScore)};"></span><span style="color:${momentumColor(d.momentumScore)};font-weight:600">${d.momentumScore}</span></td>
+        </tr>`;
+    }).join('');
+}
+
+function exportCSV() {
+    const rows=[...document.getElementById('tableBody').querySelectorAll('tr')];
+    const lines=[['Symbol','Name','Sector','MA Score','RSI Rank','52W %','Dist 200D %','RVOL'].join(',')];
+    rows.forEach(tr=>{
+        const c=[...tr.querySelectorAll('td')];
+        if(c.length<8) return;
+        lines.push([c[0].textContent.trim(),'"'+c[1].textContent.trim()+'"',c[2].textContent.trim(),
+            c[3].textContent.replace(/[^\d/]/g,'').trim(),c[4].textContent.trim(),
+            c[5].textContent.trim(),c[6].textContent.trim(),c[7].textContent.replace(/[^\d.]/g,'').trim()].join(','));
+    });
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8;'}));
+    a.download='watchlist.csv'; a.click();
+}
+
+/* ═══════════ SECTOR HEATMAP ═══════════ */
+function renderHeatmap(sectors, sectorsSorted) {
+    const MAs = ['20D MA','50D MA','150D MA','200D MA'];
+    const labels = ['20D','50D','150D','200D'];
+
+    function cellStyle(pct) {
+        const r = pct < 40 ? 229 : pct < 70 ? Math.round(229 - (pct-40)/30*191) : 38;
+        const g = pct < 40 ? Math.round(83 + (pct/40)*84)  : pct < 70 ? 167 : 161;
+        const b = pct < 40 ? 62  : pct < 70 ? 60 : 57;
+        const textColor = (pct > 30 && pct < 70) ? '#2d3748' : 'white';
+        return `background:rgb(${r},${g},${b});color:${textColor}`;
+    }
+
+    let html = `<table class="heatmap-tbl"><thead><tr>
+        <th class="left">סקטור</th>
+        ${labels.map(l=>`<th>${l} MA</th>`).join('')}
+        <th>ממוצע</th>
+    </tr></thead><tbody>`;
+
+    sectorsSorted.forEach(sc => {
+        const stocks = tableData.filter(d => d.sector === sc);
+        const n = stocks.length;
+        const pcts = MAs.map(ma => {
+            const above = stocks.filter(d => { const l=parseFloat(d['Latest']),m=parseFloat(d[ma]); return !isNaN(l)&&!isNaN(m)&&m>0&&l>m; }).length;
+            return +(above/n*100).toFixed(0);
+        });
+        const avg = Math.round(pcts.reduce((a,b)=>a+b,0)/4);
+        html += `<tr>
+            <td class="sector-name">${SECTOR_HE[sc]||sc} <small style="color:#a0aec0">(${n})</small></td>
+            ${pcts.map(p=>`<td style="${cellStyle(p)}">${p}%</td>`).join('')}
+            <td style="${cellStyle(avg)};font-size:13px">${avg}%</td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('sectorHeatmap').innerHTML = html;
+
+    // Analysis
+    const sc0 = sectorsSorted[0];
+    const scLast = sectorsSorted[sectorsSorted.length-1];
+    const p0_200 = (sectors[sc0].above200/sectors[sc0].total*100).toFixed(0);
+    const pL_200 = (sectors[scLast].above200/sectors[scLast].total*100).toFixed(0);
+    const isDefTop = ['UTL','CS','HC'].includes(sc0);
+    document.getElementById('analysisHeatmap').innerHTML =
+        `קרא את הטבלה: <strong>עמודה ירוקה</strong> = סקטור חזק בטווח זה | <strong>אדום</strong> = חולשה.
+        ${isDefTop ? warn('סקטורים דפנסיביים מובילים — רוטציה לבטיחות.') : pos('סקטורים מחזוריים/טכנולוגיה מובילים — תיאבון סיכון.')}
+        <ul>
+            <li>כשהעמודה 20D ירוקה אך 200D אדומה → שוק בהתאוששות מוקדמת.</li>
+            <li>כשכל העמודות ירוקות → טרנד עולה בריא בכל המסגרות.</li>
+            <li>שים לב לסקטורים שמשפרים מ-200D לכיוון 20D — אלה מובילי ההתאוששות.</li>
+        </ul>`;
+}
+
+/* ═══════════ RVOL CHARTS ═══════════ */
+function renderRvolCharts(data, sectorsSorted, sectors) {
+    // Histogram
+    const buckets = [0,0,0,0,0,0,0];
+    const labels  = ['<0.5','0.5-0.8','0.8-1.0','1.0-1.2','1.2-1.5','1.5-2.0','>2.0'];
+    const colors  = ['#b7791f','#d69e2e','#68d391','#38a169','#276749','#276749','#1c4532'];
+    data.forEach(d => {
+        const v = d.rvol;
+        if (!v || isNaN(v)) return;
+        if (v < 0.5)  buckets[0]++;
+        else if (v < 0.8)  buckets[1]++;
+        else if (v < 1.0)  buckets[2]++;
+        else if (v < 1.2)  buckets[3]++;
+        else if (v < 1.5)  buckets[4]++;
+        else if (v < 2.0)  buckets[5]++;
+        else               buckets[6]++;
+    });
+    destroyChart('rvolHistChart');
+    charts['rvolHistChart'] = new Chart(document.getElementById('rvolHistChart'), {
+        type:'bar', data:{ labels, datasets:[{ data:buckets, backgroundColor:colors }] },
+        options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
+    });
+
+    // By sector
+    const sectorRvol = sectorsSorted.map(sc => {
+        const stocks = data.filter(d=>d.sector===sc && d.rvol > 0);
+        if (!stocks.length) return 0;
+        return +(stocks.filter(d=>d.rvol>1.2).length / stocks.length * 100).toFixed(1);
+    });
+    destroyChart('rvolSectorChart');
+    charts['rvolSectorChart'] = new Chart(document.getElementById('rvolSectorChart'), {
+        type:'bar',
+        data:{ labels: sectorsSorted.map(sc=>SECTOR_HE[sc]||sc), datasets:[{
+            data: sectorRvol,
+            backgroundColor: sectorRvol.map(v => v >= 40 ? '#276749' : v >= 20 ? '#38a169' : '#68d391')
+        }]},
+        options:{ indexAxis:'y', plugins:{ legend:{ display:false } },
+            scales:{ x:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } } }
+    });
+}
+
+/* ═══════════ SETUP SCREENER ═══════════ */
+function renderSetupScreener() {
+    const setups = tableData
+        .filter(d => ['oversold','weak'].includes(d.rsiGroup) && d.maScore >= 1 && d.rvol > 1.2)
+        .sort((a,b) => b.momentumScore - a.momentumScore)
+        .slice(0, 30);
+
+    if (!setups.length) {
+        document.getElementById('setupScreener').innerHTML = '<p style="color:#718096;font-size:13px;">אין מניות העומדות בקריטריונים כרגע.</p>';
+        return;
+    }
+    document.getElementById('setupScreener').innerHTML = `
+        <div style="margin-bottom:8px;font-size:12px;color:#718096;">נמצאו <strong>${setups.length}</strong> מניות (מציג עד 30)</div>
+        <div class="tbl-wrap"><table class="setup-tbl">
+            <thead><tr>
+                <th>סימול</th><th>שם</th><th>סקטור</th>
+                <th>RSI</th><th>MA Score</th><th>52W%</th><th>RVOL</th><th>מתנע</th>
+            </tr></thead>
+            <tbody>
+            ${setups.map(d => {
+                const mc = momentumColor(d.momentumScore);
+                const c52 = d['52w'] >= -10 ? '#276749' : d['52w'] <= -25 ? '#c53030' : '#c05621';
+                return `<tr>
+                    <td><strong>${d['Symbol']}</strong></td>
+                    <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d['Name']}</td>
+                    <td>${SECTOR_HE[d.sector]||d.sector}</td>
+                    <td><span class="badge" style="background:${rsiColor(d['RSI Rank'])}22;color:${rsiColor(d['RSI Rank'])}">${d['RSI Rank']}</span></td>
+                    <td>${d.maScore}/4</td>
+                    <td style="color:${c52}">${d['52w'].toFixed(1)}%</td>
+                    <td>${rvolLabel(d.rvol)}</td>
+                    <td><span class="momentum-bar" style="width:${d.momentumScore/2}px;background:${mc}"></span><strong style="color:${mc}">${d.momentumScore}</strong></td>
+                </tr>`;
+            }).join('')}
+            </tbody>
+        </table></div>`;
+}
+
+/* ═══════════ HISTORY ═══════════ */
+function computeMetrics(data) {
+    const total = data.length;
+    const aboveMA = f => data.filter(d=>{const l=parseFloat(d['Latest']),m=parseFloat(d[f]);return !isNaN(l)&&!isNaN(m)&&m>0&&l>m;}).length;
+    const a20=aboveMA('20D MA'),a50=aboveMA('50D MA'),a150=aboveMA('150D MA'),a200=aboveMA('200D MA');
+    const golden=data.filter(d=>{const m50=parseFloat(d['50D MA']),m200=parseFloat(d['200D MA']);return !isNaN(m50)&&!isNaN(m200)&&m200>0&&m50>m200;}).length;
+    const within20=data.filter(d=>parseFloat(d['52W %/High']||0)>=-20).length;
+    const oversold=data.filter(d=>['Below 30','New Above 20'].includes(d['RSI Rank'])).length;
+    const strong=data.filter(d=>['Above 50','New Above 50','Above 70','Above 80','New Above 70','New Below 70'].includes(d['RSI Rank'])).length;
+    const rsiAbove50=strong;
+    const healthScore=Math.round(pct(a200,total)*0.30+pct(golden,total)*0.25+pct(rsiAbove50,total)*0.25+pct(within20,total)*0.20);
+    return { total, p200:pct(a200,total), p50:pct(a50,total), p20:pct(a20,total),
+             pGolden:pct(golden,total), pRsi50:pct(rsiAbove50,total), pWithin20:pct(within20,total),
+             pOversold:pct(oversold,total), healthScore };
+}
+
+function addCurrentToHistory() {
+    if (!tableData.length) return;
+    const label = currentDateLabel || new Date().toISOString().slice(0,10);
+    if (historyData.find(h=>h.date===label)) {
+        document.getElementById('historyStatus').textContent = `תאריך ${label} כבר קיים בהיסטוריה`;
+        return;
+    }
+    const metrics = computeMetrics(tableData);
+    historyData.push({ date: label, metrics });
+    historyData.sort((a,b)=>a.date.localeCompare(b.date));
+    document.getElementById('historyStatus').textContent = `נוסף: ${label} (סה"כ ${historyData.length} נקודות)`;
+    renderHistoryUI();
+}
+
+function processHistoryFiles(e) {
+    const files = [...e.target.files];
+    if (!files.length) return;
+    let loaded = 0;
+    files.forEach(file => {
+        const date = parseDateFromFilename(file.name);
+        if (!date) { loaded++; return; }
+        const r = new FileReader();
+        r.onload = ev => {
+            const lines = ev.target.result.trim().split('\n');
+            if (lines.length < 2) { loaded++; if(loaded===files.length) renderHistoryUI(); return; }
+            const headers = parseCSVLine(lines[0]);
+            const data = lines.slice(1)
+                .map(line=>{const v=parseCSVLine(line),o={};headers.forEach((h,i)=>o[h]=v[i]||'');return o;})
+                .filter(d=>/^[A-Z][A-Z0-9.]{0,4}$/.test(d['Symbol']));
+            if (!historyData.find(h=>h.date===date)) {
+                historyData.push({ date, metrics: computeMetrics(data) });
+            }
+            loaded++;
+            if (loaded === files.length) {
+                historyData.sort((a,b)=>a.date.localeCompare(b.date));
+                renderHistoryUI();
+            }
+        };
+        r.readAsText(file,'UTF-8');
+    });
+}
+
+function renderHistoryUI() {
+    if (historyData.length < 2) return;
+    document.getElementById('historyCharts').style.display = 'block';
+
+    const labels = historyData.map(h=>h.date);
+    const get = key => historyData.map(h=>h.metrics[key]);
+
+    function makeChart(id, datasets, yLabel) {
+        if (trendCharts[id]) { trendCharts[id].destroy(); delete trendCharts[id]; }
+        trendCharts[id] = new Chart(document.getElementById(id), {
+            type:'line',
+            data:{ labels, datasets },
+            options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11}} } },
+                scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } },
+                elements:{ line:{tension:0.3}, point:{radius:4} } }
+        });
+    }
+
+    makeChart('trendHealthChart', [{
+        label:'ציון בריאות', data:get('healthScore'),
+        borderColor:'#3182ce', backgroundColor:'#3182ce22', fill:true
+    }]);
+
+    makeChart('trendBreadthChart', [{
+        label:'% מעל 200D MA', data:get('p200'),
+        borderColor:'#2b6cb0', backgroundColor:'#2b6cb022', fill:true
+    }]);
+
+    if (trendCharts['trendAllChart']) { trendCharts['trendAllChart'].destroy(); delete trendCharts['trendAllChart']; }
+    trendCharts['trendAllChart'] = new Chart(document.getElementById('trendAllChart'), {
+        type:'line',
+        data:{ labels, datasets:[
+            { label:'200D MA%',     data:get('p200'),     borderColor:'#2b6cb0', fill:false, tension:0.3 },
+            { label:'Golden Cross%',data:get('pGolden'),  borderColor:'#d69e2e', fill:false, tension:0.3 },
+            { label:'RSI>50%',      data:get('pRsi50'),   borderColor:'#38a169', fill:false, tension:0.3 },
+            { label:'Oversold%',    data:get('pOversold'),borderColor:'#e53e3e', fill:false, tension:0.3 },
+        ]},
+        options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11}} } },
+            scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } },
+            elements:{ point:{radius:4} } }
+    });
+
+    document.getElementById('historyTableBody').innerHTML = historyData.map(h=>{
+        const m = h.metrics;
+        const hc = healthColor(m.healthScore);
+        return `<tr>
+            <td>${h.date}</td>
+            <td style="color:${hc};font-weight:700">${m.healthScore}</td>
+            <td>${m.p200}%</td>
+            <td>${m.pGolden}%</td>
+            <td>${m.pRsi50}%</td>
+            <td>${m.pWithin20}%</td>
+            <td>${m.pOversold}%</td>
+            <td>${m.total}</td>
+        </tr>`;
+    }).join('');
+}
+</script>
+</body>
+</html>
