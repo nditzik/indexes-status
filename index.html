@@ -472,7 +472,7 @@ function rvolLabel(v) {
 /* ═══════════ AUTO LOAD ═══════════ */
 async function autoLoadData() {
     try {
-        const res = await fetch('data.csv?t=' + Date.now());
+        const res = await fetch('data/data.csv?t=' + Date.now());
         if (!res.ok) return;
         const text = await res.text();
         if (text.length < 100) return;
