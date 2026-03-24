@@ -475,7 +475,7 @@ async function autoLoadData() {
     try {
         note.textContent = 'טוען נתונים...';
         note.style.color = '#718096';
-        const res = await fetch('data/data.csv?t=' + Date.now());
+        const res = await fetch('data/data.txt?t=' + Date.now());
         if (!res.ok) { note.textContent = ''; return; }
         const text = await res.text();
         if (text.length < 100) { note.textContent = ''; return; }
