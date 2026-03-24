@@ -472,21 +472,66 @@ function rvolLabel(v) {
 /* ═══════════ AUTO LOAD ═══════════ */
 async function autoLoadData() {
     const note = document.getElementById('autoLoadNote');
+    const t = Date.now();
     try {
         note.textContent = 'טוען נתונים...';
         note.style.color = '#718096';
-        const res = await fetch('data/data.txt?t=' + Date.now());
+
+        // טען נתוני היום
+        const res = await fetch('data/data.txt?t=' + t);
         if (!res.ok) { note.textContent = ''; return; }
         const text = await res.text();
         if (text.length < 100) { note.textContent = ''; return; }
         document.getElementById('csvInput').value = text;
         processData();
-        note.textContent = 'נטען אוטומטית מ-data.csv ✓';
+        note.textContent = 'נטען אוטומטית ✓';
         note.style.color = '#38a169';
+
+        // טען היסטוריה מ-index.json
+        autoLoadHistory(t);
     } catch(e) {
-        note.textContent = 'שגיאה בטעינה: ' + e.message;
+        note.textContent = 'שגיאה: ' + e.message;
         note.style.color = '#e53e3e';
     }
+}
+
+async function autoLoadHistory(t) {
+    try {
+        const res = await fetch('data/index.json?t=' + t);
+        if (!res.ok) return;
+        const files = await res.json();
+        if (!files.length) return;
+
+        historyData = [];
+        let loaded = 0;
+        files.forEach(filename => {
+            fetch('data/' + filename + '?t=' + t)
+                .then(r => r.text())
+                .then(text => {
+                    const date = parseDateFromFilename(filename);
+                    if (date && text.length > 100) {
+                        const lines = text.trim().split('\n');
+                        const headers = parseCSVLine(lines[0]);
+                        const data = lines.slice(1)
+                            .map(line => { const v=parseCSVLine(line),o={}; headers.forEach((h,i)=>o[h]=v[i]||''); return o; })
+                            .filter(d => /^[A-Z][A-Z0-9.]{0,4}$/.test(d['Symbol']));
+                        if (data.length && !historyData.find(h => h.date === date))
+                            historyData.push({ date, metrics: computeMetrics(data) });
+                    }
+                })
+                .catch(() => {})
+                .finally(() => {
+                    loaded++;
+                    if (loaded === files.length) {
+                        historyData.sort((a,b) => a.date.localeCompare(b.date));
+                        if (historyData.length >= 2) {
+                            document.getElementById('historySection').style.display = 'block';
+                            renderHistoryUI();
+                        }
+                    }
+                });
+        });
+    } catch(e) {}
 }
 
 /* ═══════════ FILE LOADER ═══════════ */

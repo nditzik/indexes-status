@@ -8,6 +8,7 @@ import email
 import subprocess
 import os
 import glob
+import json
 import logging
 from datetime import datetime
 from email.header import decode_header
@@ -20,6 +21,7 @@ REPO_DIR       = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR       = os.path.join(REPO_DIR, "data")
 DATA_FILE      = os.path.join(DATA_DIR, "data.txt")
 DATA_CSV       = os.path.join(DATA_DIR, "data.csv")
+INDEX_FILE     = os.path.join(DATA_DIR, "index.json")
 
 BARCHART_FROM  = "barchart"               # חיפוש חלקי בשם השולח
 SUBJECT_FILTER = "watchlist"              # חיפוש חלקי בנושא המייל
@@ -82,10 +84,22 @@ def delete_old_data():
         os.remove(f)
         log.info(f"נמחק: {os.path.basename(f)}")
 
+def update_index(archive_name):
+    """מעדכן את index.json עם הקובץ החדש"""
+    index = []
+    if os.path.exists(INDEX_FILE):
+        with open(INDEX_FILE, "r") as f:
+            index = json.load(f)
+    if archive_name not in index:
+        index.append(archive_name)
+        index.sort()
+    with open(INDEX_FILE, "w") as f:
+        json.dump(index, f, indent=2)
+    log.info(f"index.json עודכן: {len(index)} קבצים")
+
 def save_data(content, filename):
     """שומר את הקובץ החדש"""
     os.makedirs(DATA_DIR, exist_ok=True)
-    delete_old_data()
 
     # שמור כ-data.txt (לטעינה בדף)
     with open(DATA_FILE, "wb") as f:
@@ -98,6 +112,7 @@ def save_data(content, filename):
     with open(archive_path, "wb") as f:
         f.write(content)
 
+    update_index(archive_name)
     log.info(f"נשמר: data.txt + {archive_name}")
     return archive_name
 
