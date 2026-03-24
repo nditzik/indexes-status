@@ -488,7 +488,6 @@ async function autoLoadData() {
         note.style.color = '#e53e3e';
     }
 }
-window.addEventListener('load', autoLoadData);
 
 /* ═══════════ FILE LOADER ═══════════ */
 function parseDateFromFilename(name) {
@@ -1223,6 +1222,8 @@ function renderHistoryUI() {
         </tr>`;
     }).join('');
 }
+
+setTimeout(autoLoadData, 300);
 </script>
 </body>
 </html>
