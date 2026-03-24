@@ -471,17 +471,24 @@ function rvolLabel(v) {
 
 /* ═══════════ AUTO LOAD ═══════════ */
 async function autoLoadData() {
+    const note = document.getElementById('autoLoadNote');
     try {
+        note.textContent = 'טוען נתונים...';
+        note.style.color = '#718096';
         const res = await fetch('data/data.csv?t=' + Date.now());
-        if (!res.ok) return;
+        if (!res.ok) { note.textContent = ''; return; }
         const text = await res.text();
-        if (text.length < 100) return;
+        if (text.length < 100) { note.textContent = ''; return; }
         document.getElementById('csvInput').value = text;
         processData();
-        document.getElementById('autoLoadNote').textContent = 'נטען אוטומטית מ-data.csv';
-    } catch(e) { /* no data.csv — that's fine */ }
+        note.textContent = 'נטען אוטומטית מ-data.csv ✓';
+        note.style.color = '#38a169';
+    } catch(e) {
+        note.textContent = 'שגיאה בטעינה: ' + e.message;
+        note.style.color = '#e53e3e';
+    }
 }
-window.addEventListener('DOMContentLoaded', autoLoadData);
+window.addEventListener('load', autoLoadData);
 
 /* ═══════════ FILE LOADER ═══════════ */
 function parseDateFromFilename(name) {
