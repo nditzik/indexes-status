@@ -598,7 +598,12 @@ function processData() {
         <div class="stat-card green"><h3>קרוב לשיא (≤5%-)</h3><p>${nearHigh}</p></div>
         <div class="stat-card red"><h3>מכירת יתר (RSI&lt;30)</h3><p>${oversold}</p></div>
         <div class="stat-card orange"><h3>ירידה מעל 30%</h3><p>${deepDrop}</p></div>
-        <div class="stat-card teal"><h3>יחס NH/NL</h3><p style="font-size:20px">${nhNlRatio}</p></div>`;
+        <div class="stat-card teal"><h3>יחס NH/NL</h3><p style="font-size:20px">${nhNlRatio}</p>
+            <p style="font-size:11px;color:#718096;margin:4px 0 0;line-height:1.4">
+                ${nhCount} קרובות לשיא (≤5%-) מול ${nlCount} ירדו מעל 30%.<br>
+                ${parseFloat(nhNlRatio) >= 2 ? '🟢 שוק חזק' : parseFloat(nhNlRatio) >= 1 ? '🟡 מאוזן' : parseFloat(nhNlRatio) > 0 ? '🔴 לחץ מכירות' : '🔴 אין מניות חזקות'}
+            </p>
+        </div>`;
 
     document.getElementById('dashboard').style.display = 'block';
     document.getElementById('historySection').style.display = 'block';
