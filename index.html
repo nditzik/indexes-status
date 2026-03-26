@@ -492,6 +492,15 @@ async function autoLoadData() {
         note.textContent = 'טוען נתונים...';
         note.style.color = '#718096';
 
+        // קבל תאריך מהקובץ האחרון ב-index.json
+        try {
+            const idxRes = await fetch('data/index.json?t=' + t);
+            if (idxRes.ok) {
+                const files = await idxRes.json();
+                if (files.length) currentDateLabel = parseDateFromFilename(files[files.length - 1]);
+            }
+        } catch(e2) {}
+
         // טען נתוני היום
         const res = await fetch('data/data.txt?t=' + t);
         if (!res.ok) { note.textContent = ''; return; }
@@ -499,7 +508,7 @@ async function autoLoadData() {
         if (text.length < 100) { note.textContent = ''; return; }
         document.getElementById('csvInput').value = text;
         processData();
-        note.textContent = 'נטען אוטומטית ✓';
+        note.textContent = `נטען אוטומטית ✓ (${currentDateLabel})`;
         note.style.color = '#38a169';
 
         // טען היסטוריה מ-index.json
