@@ -148,6 +148,21 @@
                 <canvas id="trendAllChart" style="max-height:320px;"></canvas>
             </div>
             <div class="chart-card" style="margin-bottom:20px;">
+                <h3>ממוצע שינוי יומי — שוק כללי</h3>
+                <canvas id="trendAvgChangeChart" style="max-height:220px;"></canvas>
+            </div>
+            <div class="chart-card" style="margin-bottom:20px;">
+                <h3>Heatmap שינוי יומי ממוצע לפי סקטור</h3>
+                <div id="sectorHeatmap" style="overflow-x:auto;"></div>
+                <div style="margin-top:10px;font-size:11px;color:#718096;display:flex;gap:16px;align-items:center;">
+                    <span>🟥 ירידה חדה (&lt;-2%)</span>
+                    <span>🟧 ירידה (-1% עד -2%)</span>
+                    <span>⬜ יציב</span>
+                    <span>🟩 עלייה (1%-2%)</span>
+                    <span>💚 עלייה חזקה (&gt;2%)</span>
+                </div>
+            </div>
+            <div class="chart-card" style="margin-bottom:20px;">
                 <h3>רוחב שוק לפי סקטור — % מניות מעל 200D MA</h3>
                 <canvas id="trendSectorChart" style="max-height:320px;"></canvas>
             </div>
@@ -1194,16 +1209,24 @@ function computeMetrics(data) {
     const nhCount = data.filter(d=>parseFloat(d['52W %/High']||0)>=-5).length;
     const nlCount = data.filter(d=>parseFloat(d['52W %/High']||0)<=-30).length;
     const nhNlRatio = nlCount > 0 ? +(nhCount/nlCount).toFixed(2) : nhCount > 0 ? 99 : 0;
-    const sectorBreadth = {};
-    ['IT','HC','FIN','CD','CS','IND','COM','ENE','UTL','RE','MAT'].forEach(sec => {
+    const sectorBreadth = {}, sectorChange = {};
+    const SECS = ['IT','HC','FIN','CD','CS','IND','COM','ENE','UTL','RE','MAT'];
+    SECS.forEach(sec => {
         const ss = data.filter(d=>(S[d['Symbol']]||'?')===sec);
-        if (!ss.length) { sectorBreadth[sec]=null; return; }
+        if (!ss.length) { sectorBreadth[sec]=null; sectorChange[sec]=null; return; }
         const ab = ss.filter(d=>{ const l=parseFloat(d['Latest']),m=parseFloat(d['200D MA']); return !isNaN(l)&&!isNaN(m)&&m>0&&l>m; }).length;
         sectorBreadth[sec] = Math.round(ab/ss.length*100);
+        const chs = ss.map(d=>parseFloat(d['%Change']||0)).filter(v=>!isNaN(v)&&v!==0);
+        sectorChange[sec] = chs.length ? +(chs.reduce((a,b)=>a+b,0)/chs.length).toFixed(2) : null;
     });
+    const allChanges = data.map(d=>parseFloat(d['%Change']||0)).filter(v=>!isNaN(v)&&v!==0);
+    const avgChange  = allChanges.length ? +(allChanges.reduce((a,b)=>a+b,0)/allChanges.length).toFixed(2) : null;
+    const advancing  = allChanges.filter(v=>v>0).length;
+    const declining  = allChanges.filter(v=>v<0).length;
     return { total, p200:pct(a200,total), p50:pct(a50,total), p20:pct(a20,total),
              pGolden:pct(golden,total), pRsi50:pct(rsiAbove50,total), pWithin20:pct(within20,total),
-             pOversold:pct(oversold,total), healthScore, nhCount, nlCount, nhNlRatio, sectorBreadth };
+             pOversold:pct(oversold,total), healthScore, nhCount, nlCount, nhNlRatio,
+             sectorBreadth, sectorChange, avgChange, advancing, declining };
 }
 
 function addCurrentToHistory() {
@@ -1289,6 +1312,59 @@ function renderHistoryUI() {
             scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } },
             elements:{ point:{radius:4} } }
     });
+
+    // פונקציית צבע לheatmap
+    function heatColor(v) {
+        if (v === null) return '#f0f4f8';
+        const a = Math.min(Math.abs(v) / 3, 1);
+        if (v > 0) return `rgba(56,161,105,${0.15 + a * 0.75})`;
+        if (v < 0) return `rgba(229,62,62,${0.15 + a * 0.75})`;
+        return '#f7fafc';
+    }
+
+    // ממוצע שינוי יומי — קו שוק
+    if (trendCharts['trendAvgChangeChart']) { trendCharts['trendAvgChangeChart'].destroy(); delete trendCharts['trendAvgChangeChart']; }
+    const avgData = historyData.map(h=>h.metrics.avgChange);
+    if (avgData.some(v=>v!==null)) {
+        trendCharts['trendAvgChangeChart'] = new Chart(document.getElementById('trendAvgChangeChart'), {
+            type:'bar',
+            data:{ labels, datasets:[{
+                label:'ממוצע שינוי יומי %',
+                data: avgData,
+                backgroundColor: avgData.map(v=>v===null?'#e2e8f0':v>=0?'rgba(56,161,105,0.7)':'rgba(229,62,62,0.7)'),
+                borderColor:     avgData.map(v=>v===null?'#e2e8f0':v>=0?'#38a169':'#e53e3e'),
+                borderWidth:1
+            }]},
+            options:{ plugins:{ legend:{display:false} },
+                scales:{ y:{ ticks:{ callback:v=>v+'%' } } } }
+        });
+    }
+
+    // Heatmap סקטורים
+    const SECS = ['IT','HC','FIN','CD','CS','IND','COM','ENE','UTL','RE','MAT'];
+    const hmDates = historyData.filter(h=>h.metrics.sectorChange && Object.values(h.metrics.sectorChange).some(v=>v!==null));
+    if (hmDates.length) {
+        const tbl = document.createElement('table');
+        tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:12px;';
+        // כותרת תאריכים
+        const hdr = tbl.insertRow(); hdr.insertCell().innerHTML = '<b>סקטור</b>';
+        hmDates.forEach(h=>{ const c=hdr.insertCell(); c.style.cssText='text-align:center;padding:4px 8px;font-weight:600;font-size:11px;'; c.textContent=h.date.slice(5); });
+        // שורה לכל סקטור
+        SECS.forEach(sec=>{
+            const row = tbl.insertRow();
+            const lbl = row.insertCell();
+            lbl.style.cssText = 'padding:5px 10px;font-weight:600;white-space:nowrap;';
+            lbl.textContent = SECTOR_HE[sec];
+            hmDates.forEach(h=>{
+                const v = h.metrics.sectorChange ? h.metrics.sectorChange[sec] : null;
+                const cell = row.insertCell();
+                cell.style.cssText = `background:${heatColor(v)};text-align:center;padding:5px 8px;border-radius:4px;font-weight:600;`;
+                cell.textContent = v !== null ? (v>0?'+':'')+v+'%' : '—';
+            });
+        });
+        document.getElementById('sectorHeatmap').innerHTML = '';
+        document.getElementById('sectorHeatmap').appendChild(tbl);
+    }
 
     // Sector breadth trend chart
     const SECTOR_COLORS = { IT:'#3182ce',HC:'#38a169',FIN:'#d69e2e',CD:'#e53e3e',
