@@ -148,6 +148,10 @@
                 <canvas id="trendAllChart" style="max-height:320px;"></canvas>
             </div>
             <div class="chart-card" style="margin-bottom:20px;">
+                <h3>רוחב שוק לפי סקטור — % מניות מעל 200D MA</h3>
+                <canvas id="trendSectorChart" style="max-height:320px;"></canvas>
+            </div>
+            <div class="chart-card" style="margin-bottom:20px;">
                 <h3>יחס NH/NL לאורך זמן — מניות קרובות לשיא מול מניות בירידה חדה</h3>
                 <canvas id="trendNhNlChart" style="max-height:260px;"></canvas>
                 <div class="analysis-box" style="margin-top:12px;">
@@ -1190,9 +1194,16 @@ function computeMetrics(data) {
     const nhCount = data.filter(d=>parseFloat(d['52W %/High']||0)>=-5).length;
     const nlCount = data.filter(d=>parseFloat(d['52W %/High']||0)<=-30).length;
     const nhNlRatio = nlCount > 0 ? +(nhCount/nlCount).toFixed(2) : nhCount > 0 ? 99 : 0;
+    const sectorBreadth = {};
+    ['IT','HC','FIN','CD','CS','IND','COM','ENE','UTL','RE','MAT'].forEach(sec => {
+        const ss = data.filter(d=>(S[d['Symbol']]||'?')===sec);
+        if (!ss.length) { sectorBreadth[sec]=null; return; }
+        const ab = ss.filter(d=>{ const l=parseFloat(d['Latest']),m=parseFloat(d['200D MA']); return !isNaN(l)&&!isNaN(m)&&m>0&&l>m; }).length;
+        sectorBreadth[sec] = Math.round(ab/ss.length*100);
+    });
     return { total, p200:pct(a200,total), p50:pct(a50,total), p20:pct(a20,total),
              pGolden:pct(golden,total), pRsi50:pct(rsiAbove50,total), pWithin20:pct(within20,total),
-             pOversold:pct(oversold,total), healthScore, nhCount, nlCount, nhNlRatio };
+             pOversold:pct(oversold,total), healthScore, nhCount, nlCount, nhNlRatio, sectorBreadth };
 }
 
 function addCurrentToHistory() {
@@ -1275,6 +1286,25 @@ function renderHistoryUI() {
             { label:'Oversold%',    data:get('pOversold'),borderColor:'#e53e3e', fill:false, tension:0.3 },
         ]},
         options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11}} } },
+            scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } },
+            elements:{ point:{radius:4} } }
+    });
+
+    // Sector breadth trend chart
+    const SECTOR_COLORS = { IT:'#3182ce',HC:'#38a169',FIN:'#d69e2e',CD:'#e53e3e',
+        CS:'#805ad5',IND:'#ed8936',COM:'#00b5d8',ENE:'#744210',UTL:'#4a5568',RE:'#9f7aea',MAT:'#48bb78' };
+    if (trendCharts['trendSectorChart']) { trendCharts['trendSectorChart'].destroy(); delete trendCharts['trendSectorChart']; }
+    trendCharts['trendSectorChart'] = new Chart(document.getElementById('trendSectorChart'), {
+        type:'line',
+        data:{ labels, datasets: Object.keys(SECTOR_COLORS).map(sec=>({
+            label: SECTOR_HE[sec],
+            data: historyData.map(h => h.metrics.sectorBreadth ? h.metrics.sectorBreadth[sec] : null),
+            borderColor: SECTOR_COLORS[sec],
+            backgroundColor: 'transparent',
+            borderWidth: 2, tension: 0.3,
+            pointRadius: 4, fill: false
+        }))},
+        options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:10,font:{size:10}} } },
             scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } },
             elements:{ point:{radius:4} } }
     });
