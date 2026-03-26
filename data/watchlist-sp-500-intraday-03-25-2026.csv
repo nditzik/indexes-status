@@ -1,0 +1,505 @@
+Symbol,Name,Latest,"50D MA","20D MA","200D MA","150D MA","RSI Rank","52W %/High","20D RelVol"
+A,"Agilent Technologies",112.98,125.4,115.11,129.93,133.97,"Below 50",-29.51%,0.62
+AAPL,"Apple Inc",252.62,260.67,257.15,247.56,259.85,"Below 50",-12.47%,0.69
+ABBV,"Abbvie Inc",207.18,222.18,221.44,215.51,223.39,"New Above 30",-15.37%,0.78
+ABNB,"Airbnb Inc Cl A",131.81,129.39,132.1,128.48,126.84,"New Above 50",-8.39%,0.66
+ABT,"Abbott Laboratories",104.83,111.85,109.96,125.24,123.22,"Below 50",-24.62%,0.51
+ACGL,"Arch Capital Grp Ltd",93.32,95.98,95.72,92.07,92.98,"Below 50",-9.74%,0.76
+ACN,"Accenture Plc",192.29,230.21,202.93,254.81,245.78,"Below 50",-40.96%,0.51
+ADBE,"Adobe Systems Inc",237.25,271.96,260.61,332.8,320.06,"Below 50",-43.91%,0.81
+ADI,"Analog Devices",322.03,322.72,323.44,265.57,276.29,"Above 50",-11.34%,0.6
+ADM,"Archer Daniels Midland",71.66,68.15,69.38,60.89,62.95,"Above 50",-2.79%,0.64
+ADP,"Automatic Data Processing",202.11,226.91,213.13,270.49,258.78,"Below 50",-38.74%,0.64
+ADSK,"Autodesk Inc",235.42,247.89,249.96,288.76,285.57,"Below 50",-28.46%,0.71
+AEE,"Ameren Corp",107.8,107.71,110.66,102.34,103.75,"Below 50",-5.38%,0.56
+AEP,"American Electric Power Company",128.3,126.06,131.4,116.03,119.01,"Below 50",-4.96%,0.83
+AES,"The Aes Corp",14.06,15.01,14.44,13.74,14.22,"Below 50",-20.34%,0.68
+AFL,"Aflac Inc",107.21,111.1,109.78,108.24,110.09,"Below 50",-10.15%,0.75
+AIG,"American International Group",75.47,76.38,77.28,79.4,78.63,"Below 50",-14.31%,1.17
+AIZ,"Assurant Inc",217.02,227.57,221.28,216.43,223.48,"Below 50",-11.89%,0.67
+AJG,"Arthur J. Gallagher & Company",213.56,228.09,217.22,271.26,259.26,"Below 50",-39.20%,0.69
+AKAM,"Akamai Technologies",119.15,100.9,105.84,85.2,87.7,"New Above 70",-1.19%,1.47
+ALB,"Albemarle Corp",181.39,172.11,168.39,114.13,128.76,"Above 50",-11.95%,1.04
+ALGN,"Align Technology",180.27,176.76,177.05,159.78,153.9,"Above 50",-13.46%,0.51
+ALL,"Allstate Corp",204.71,204.49,208.63,203.28,204.8,"New Below 50",-5.55%,1.02
+ALLE,"Allegion Plc",147.48,160.35,149.84,162.42,165.61,"Below 50",-19.46%,1.01
+AMAT,"Applied Materials",369.34,342.94,354.14,243.87,264.01,"Above 50",-6.72%,0.73
+AMCR,"Amcor Plc",40.55,44.85,42.49,43.68,42.59,"New Above 30",-20.40%,0.78
+AMD,"Adv Micro Devices",220.27,214.7,200.83,194.36,208.39,"Above 50",-17.53%,1.48
+AME,"Ametek Inc",215.33,224.72,222.55,198.11,203.9,"Below 50",-11.04%,0.8
+AMGN,"Amgen Inc",353.93,360.83,366.97,317.52,325.59,"Below 50",-9.55%,0.67
+AMP,"Ameriprise Financial Services",451.89,481.91,454.05,492.78,483.36,"Below 50",-17.87%,0.95
+AMT,"American Tower Corp",167.27,181.76,183.42,192.67,184.6,"Below 50",-28.62%,1.21
+AMZN,"Amazon.com Inc",211.71,218.65,211.09,224.81,225.79,"Below 50",-18.13%,0.8
+ANET,"Arista Networks Inc",135.01,135.49,134.05,130.75,137.16,"New Above 50",-18.15%,0.81
+AON,"AON Plc",321.45,330.79,327.7,348.97,345.97,"Below 50",-20.13%,0.66
+AOS,"Smith A.O. Corp",66.9,73.04,69.46,69.98,70.43,"Below 50",-18.28%,1.22
+APA,"Apa Corp",41.32,29.97,34.5,24.3,25.93,"Above 80",-0.88%,1
+APD,"Air Products and Chemicals",290.09,276.7,280.33,272.98,268.04,"Above 50",-3.66%,0.66
+APH,"Amphenol Corp",128.73,142.25,133.87,125.49,133.49,"Below 50",-22.93%,1.13
+APO,"Apollo Asset Management Inc",109.8,121.84,108.39,133.65,130.61,"Below 50",-30.19%,0.74
+APP,"Applovin Corp Cl A",436.69,470.34,458.9,515.66,562.82,"Below 50",-41.43%,0.58
+APTV,"Aptiv Plc",70.89,76.82,71.62,77.08,79.61,"Below 50",-20.29%,0.75
+ARE,"Alexandria Real Estate Equities",47.28,53.33,50.35,65.08,61.46,"Below 50",-51.59%,0.77
+ARES,"Ares Management LP",106.5,129.02,108.21,158.55,151.76,"Below 50",-45.46%,0.46
+ATO,"Atmos Energy Corp",181.55,177.44,184.93,168.71,172.77,"Below 50",-4.51%,0.59
+AVB,"Avalonbay Communities",163.65,174.87,171.72,185.88,181.51,"Below 50",-24.70%,0.55
+AVGO,"Broadcom Ltd",318.81,329.02,324.74,326.13,341.59,"Below 50",-23.11%,0.65
+AVY,"Avery Dennison Corp",170.64,184.7,176.29,176.36,176.32,"Below 50",-14.48%,1.16
+AWK,"American Water Works",134.59,132.23,136.19,136.08,134.15,"Below 50",-13.45%,0.9
+AXON,"Axon Enterprise Inc",460.15,514.01,524.36,650.28,609.2,"Below 50",-48.06%,1.03
+AXP,"American Express Company",300.24,332.57,304.14,335.26,344.72,"Below 50",-22.52%,0.64
+AZO,Autozone,3386.1399,3641.18,3566.2,3792.32,3794.11,"Below 50",-22.83%,0.62
+BA,"Boeing Company",199.61,230.04,214.19,218.94,218.47,"Below 50",-21.52%,0.67
+BAC,"Bank of America Corp",48.75,51.27,48.46,50.73,52.06,"Below 50",-15.29%,0.64
+BALL,"Ball Corporation",60.75,61.86,62.18,54.6,53.95,"Below 50",-11.04%,1.26
+BAX,"Baxter International Inc",17.12,19.46,17.93,22.39,20.55,"Below 50",-50.40%,0.57
+BBY,"Best Buy Company",60.4,65.21,63.63,71.34,72.01,"Below 50",-28.93%,0.66
+BDX,"Becton Dickinson and Company",158.27,166.58,164.25,151.92,155.61,"Below 50",-15.52%,0.69
+BEN,"Franklin Resources",23.89,26.03,25.13,24.35,24.4,"Below 50",-15.64%,0.74
+BF.B,"Brown Forman Inc Cl B",23.49,27.01,24.88,27.93,27.69,"New Above 30",-35.07%,0.4
+BG,"Bunge Ltd",125.4,118.02,120.91,94.12,99.06,"Above 50",-2.38%,0.95
+BIIB,"Biogen Inc",189.18,184.26,186.04,157.67,166.75,"New Above 50",-6.54%,0.82
+BK,"Bank of New York Mellon Corp",117.99,118.99,116.88,108.76,112.96,"Above 50",-8.36%,1.05
+BKNG,"Booking Holdings Inc",4237.75,4524.16,4324.73,5161.89,5028.89,"Below 50",-27.43%,0.6
+BKR,"Baker Hughes Company",62.62,58.73,60.32,48.58,51.09,"Above 50",-6.54%,0.83
+BLDR,"Builders Firstsource",85.41,108.02,91.44,117.95,115.2,"Below 50",-43.45%,0.62
+BLK,"Blackrock Inc",981.35,1054.5,988.97,1084.35,1087.3,"Below 50",-19.56%,0.84
+BMY,"Bristol-Myers Squibb Company",58.94,58.65,59.84,50.52,51.61,"Below 50",-6.28%,0.61
+BR,"Broadridge Financial Solutions Llc",163.36,187.83,180.67,225.4,218.44,"Below 30",-39.92%,0.69
+BRK.B,"Berkshire Hathaway Cl B",476.19,491.18,489.5,491.03,494.99,"Below 50",-12.15%,0.83
+BRO,"Brown & Brown",64.29,71.61,69.28,86.69,81.39,"New Below 30",-48.84%,1.58
+BSX,"Boston Scientific Corp",69.78,78.73,71.38,95.25,92.47,"Below 50",-36.27%,0.73
+BX,"Blackstone Inc",108.38,127.7,110.83,151.54,148.75,"Below 50",-42.98%,0.54
+BXP,"Bxp Inc",52.84,59.81,54.04,67.96,67.71,"Below 50",-33.39%,0.48
+C,"Citigroup Inc",114.48,113.21,109.71,102.12,106.74,"Above 50",-8.53%,0.69
+CAG,"Conagra Brands Inc",15.32,17.94,17.18,18.5,17.99,"New Below 30",-44.65%,1.13
+CAH,"Cardinal Health",211.31,217.43,217.5,183.33,191.43,"Below 50",-9.54%,0.92
+CARR,"Carrier Global Corp",59.25,60.25,59.18,61.87,58.47,"Below 50",-26.93%,0.64
+CAT,"Caterpillar Inc",719.04,703.7,710.76,539.36,585.49,"Above 50",-8.96%,0.56
+CB,"Chubb Ltd",323.21,322.17,329.79,294.47,300.09,"Below 50",-6.50%,0.85
+CBOE,"CBOE Global Markets Inc",277.04,281.51,291.15,252.8,258.08,"Below 50",-9.37%,1.03
+CBRE,"CBRE Group Inc",134.75,151.55,137.43,153.63,156.64,"Below 50",-22.68%,0.75
+CCI,"Crown Castle Inc",76.96,86.61,86.57,94.01,90.82,"Below 30",-33.52%,1.6
+CCL,"Carnival Corp",25.73,29.14,26.45,28.83,29.1,"Below 50",-24.39%,0.81
+CDNS,"Cadence Design Sys",281.39,297.56,293.68,322.59,321.31,"Below 50",-25.25%,1.04
+CDW,"CDW Corp",121.3,125.97,120.66,150.84,142.94,"Below 50",-36.92%,0.91
+CEG,"Constellation Energy Corp",303.32,298.97,312.02,329.5,332.6,"Below 50",-26.50%,0.79
+CF,"Cf Industries Holdings",128.11,102.45,117.17,90.42,89.69,"Above 50",-6.79%,0.52
+CFG,"Citizens Financial Group Inc/Ri",59.42,61.79,58.57,53.86,56.4,"Below 50",-13.62%,0.67
+CHD,"Church & Dwight Company",94.38,97.89,99.1,92.04,90.77,"Below 50",-17.15%,0.84
+CHRW,"C.H. Robinson Ww",169.74,181.59,177.07,143.16,156.53,"Below 50",-16.52%,1.02
+CHTR,"Charter Communications Inc",218.91,217.53,222.31,259.88,229.72,"Below 50",-49.91%,0.76
+CI,"The Cigna Group",270.36,277.05,271.93,287.29,282.55,"Below 50",-22.75%,0.95
+CIEN,"Ciena Corp",437.7,308.68,358.72,185.93,219.93,"Above 70",-2.06%,0.77
+CINF,"Cincinnati Financial",155.45,163.06,163.46,157.86,160.95,"Below 50",-10.80%,0.63
+CL,"Colgate-Palmolive Company",85.49,90.88,90.82,84.6,83.46,"Below 50",-13.93%,0.88
+CLX,"Clorox Company",104.76,115.67,113.33,116.18,113.33,"New Above 30",-30.55%,0.95
+CMCSA,"Comcast Corp A",28.73,30.24,30.31,31.04,29.95,"Below 50",-23.83%,0.59
+CME,"CME Group Inc",293.93,301.2,312.5,279.04,280.23,"Below 50",-10.70%,1.16
+CMG,"Chipotle Mexican Grill",32.5,37.13,34.65,40.59,37.48,"Below 50",-44.37%,0.81
+CMI,"Cummins Inc",553.36,572.4,554.15,458.47,494.41,"Below 50",-10.46%,0.9
+CMS,"Cms Energy Corp",75.44,74.61,76.95,72.58,73,"Below 50",-4.36%,0.7
+CNC,"Centene Corp",32.73,41.07,38.35,37.6,37.83,"Below 30",-50.43%,1.07
+CNP,"Centerpoint Energy Inc",42.07,41.61,43.16,39.01,39.64,"Below 50",-5.23%,0.59
+COF,"Capital One Financial Corp",185.23,205.86,186.96,216.64,218.39,"Below 50",-28.66%,0.57
+COIN,"Coinbase Global Inc Cl A",181.1,192.4,194.95,282.8,263.93,"Below 50",-59.27%,0.8
+COO,"Cooper Companies",71.45,79.25,75.31,74.62,75.49,"New Above 30",-20.46%,0.9
+COP,Conocophillips,128.93,110.88,120.35,97.23,98.45,"Above 70",-1.58%,0.62
+COR,"Cencora Inc",325.08,353.25,348.65,325.44,336.4,"Below 50",-13.90%,0.85
+COST,"Costco Wholesale",974.86,984.06,992.07,948.5,940.58,"Below 50",-8.64%,0.57
+CPAY,"Corpay Inc",291.83,322.71,313.11,311.64,306.44,"Below 50",-19.38%,0.57
+CPB,"The Campbell's Company",20.81,25.84,23.36,29.78,29.04,"Below 30",-48.73%,0.95
+CPRT,"Copart Inc",33.08,37.77,35.44,42.81,41.25,"Below 50",-48.19%,0.65
+CPT,"Camden Property Trust",97.34,106.23,103.31,107.51,105.92,"Below 30",-21.70%,0.78
+CRH,"CRH Plc ADR",106.05,117.17,107.39,112.48,117.67,"Below 50",-19.38%,0.64
+CRL,"Charles River Laboratories Intl",165.89,183.09,165.88,173.33,178.74,"Below 50",-27.52%,1.1
+CRM,"Salesforce Inc",181.96,201.66,194.91,239.73,233.08,"Below 50",-38.54%,0.87
+CRWD,"Crowdstrike Holdings Inc",385.86,421.49,415.51,466.54,465.48,"Below 50",-31.94%,0.71
+CSCO,"Cisco Systems Inc",81.83,78.7,78.85,72.84,74.47,"Above 50",-7.21%,0.95
+CSGP,"Costar Group Inc",41.41,51.46,44.8,72.07,67.25,"Below 30",-57.50%,0.91
+CSX,"CSX Corp",39.57,39.63,40.46,35.96,36.57,"Below 50",-8.71%,1.05
+CTAS,"Cintas Corp",176.85,194.03,193.11,200.35,193.57,"Below 30",-22.85%,1.26
+CTRA,"Coterra Energy Inc",35.18,30.25,32.18,26.2,26.65,"Above 70",-0.40%,0.47
+CTSH,"Cognizant Tech Sol",59.79,70.68,62.71,73.59,72.93,"Below 50",-31.30%,0.6
+CTVA,"Corteva Inc",82.03,75.65,78.82,70.7,69.86,"Above 50",-0.28%,0.77
+CVNA,"Carvana Company Cl A",308.56,366.63,312.05,364.34,372.86,"Below 50",-36.63%,0.83
+CVS,"CVS Corp",72.18,77.07,76.15,74.25,77.3,"Below 50",-15.23%,0.64
+CVX,"Chevron Corp",205.15,183.43,194.51,160.62,164.04,"Above 70",-2.21%,0.59
+D,"Dominion Energy Inc",60.66,62.29,62.24,60.06,60.78,"Below 50",-10.23%,0.77
+DAL,"Delta Air Lines Inc",67.99,66.93,63.13,61.15,63.84,"Above 50",-11.00%,0.83
+DASH,"Doordash Inc Cl A",152.92,182.28,168.72,225.68,220.66,"Below 50",-46.44%,0.74
+DD,"Dupont Denemours Inc",46.33,46.47,46.13,37.31,39.71,"New Above 50",-12.02%,0.67
+DDOG,"Datadog Inc Cl A",123.29,122.62,123.27,139.41,140.75,"Below 50",-38.87%,0.76
+DE,"Deere & Company",577.99,575.46,590.92,507.39,506.54,"Below 50",-14.27%,0.67
+DECK,"Deckers Outdoor Corp",100.05,108.39,105.78,103.48,103.12,"Below 50",-25.02%,0.89
+DELL,"Dell Technologies Inc",184.01,131.91,152.31,132.64,134.72,"Above 70",-0.46%,1.02
+DG,"Dollar General Corp",119.55,144.5,138.37,120.37,123.14,"Below 30",-24.45%,0.99
+DGX,"Quest Diagnostics Inc",196.46,196.62,201.36,183.8,186.82,"Below 50",-7.98%,0.81
+DHI,"D.R. Horton",137.69,152.74,144.94,151.84,155.85,"Below 50",-25.39%,1.18
+DHR,"Danaher Corp",187.15,211.94,195.99,210.22,213.49,"Below 50",-22.92%,1.3
+DIS,"Walt Disney Company",95.95,105.46,100.81,112.21,109.91,"Below 30",-23.05%,0.71
+DLR,"Digital Realty Trust",176.43,172.58,178.57,169,167.56,"Below 50",-4.52%,0.63
+DLTR,"Dollar Tree Inc",106.64,122.03,113.65,110.96,112.21,"Below 50",-25.11%,0.74
+DOC,"Healthpeak Properties Inc",16.81,17.25,17.31,17.58,17.56,"Below 50",-18.08%,1.08
+DOV,"Dover Corp",215.16,216.09,214.12,190.23,192.9,"Above 50",-9.42%,0.76
+DOW,"Dow Inc",39.62,31.85,34.84,26.33,26.25,"New Above 70",-0.19%,0.76
+DPZ,"Domino's Pizza Inc",362.53,395.8,392,426.03,415.25,"Below 50",-27.36%,0.91
+DRI,"Darden Restaurants",201.66,207.34,204.41,199.4,195.34,"Below 50",-11.66%,0.75
+DTE,"Dte Energy Company",143.45,141.77,147.16,137.26,137.78,"Below 50",-7.23%,0.75
+DUK,"Duke Energy Corp",128.16,125.7,130.57,122.15,123.09,"Below 50",-4.71%,0.69
+DVA,"Davita Healthcare Partners Inc",155.11,137.36,152,131.52,128.86,"Above 50",-2.70%,0.57
+DVN,"Devon Energy Corp",50.41,43.16,46.14,36.62,37.75,"Above 70",-0.58%,0.55
+DXCM,"Dexcom Inc",66.84,70.28,68.68,72.26,68.67,"Below 50",-25.72%,0.7
+EA,"Electronic Arts Inc",202.34,201.47,200.46,186.51,196.42,"Above 50",-1.24%,0.92
+EBAY,"Ebay Inc",89.55,89.79,90.79,87.37,88.99,"Below 50",-11.47%,1.09
+ECL,"Ecolab Inc",268.54,285.62,279.59,272.89,274.18,"Below 50",-13.17%,1.26
+ED,"Consolidated Edison Company",110.03,109.22,112,102.22,102.4,"Below 50",-5.33%,0.83
+EFX,"Equifax Inc",172.55,197.68,192.45,227.18,218.17,"New Above 30",-38.60%,1.26
+EG,"Everest Re Group",323.93,328.91,326.79,332.96,332.27,"Below 50",-12.50%,0.67
+EIX,"Edison International",71.19,68.11,72.18,58.51,60.66,"Above 50",-5.71%,0.46
+EL,"Estee Lauder Companies",73.11,103.81,90.89,94.92,98.2,"Below 30",-39.89%,1.23
+ELV,"Elevance Health Inc",296.09,326.23,293.13,330.58,330.93,"Below 50",-35.46%,0.75
+EME,"Emcor Group",764.76,739.31,731.57,645.71,674.29,"Above 50",-8.41%,0.62
+EMR,"Emerson Electric Company",130.86,145.31,137.87,137.07,137.26,"Below 50",-20.76%,1.04
+EOG,"Eog Resources",143.21,121.49,133.08,115.69,114.26,"New Above 80",-0.36%,0.57
+EPAM,"Epam Systems Inc",133.26,167.98,138.84,171.96,173.35,"Below 50",-40.12%,0.89
+EQIX,"Equinix Inc",965.95,897.9,965.08,817.67,821.56,"Above 50",-2.71%,0.56
+EQR,"Equity Residential",58.46,61.92,60.98,63.33,62.29,"Below 50",-19.53%,0.99
+EQT,"Eqt Corp",67.93,58.83,63.32,55.77,56.03,"Above 70",-0.09%,0.76
+ERIE,"Erie Indemnity Company",236.09,268.34,252.65,309.4,294.54,"Below 50",-45.60%,0.59
+ES,"Eversource Energy",67.04,71.31,72.43,68.44,69.56,"Below 50",-12.26%,1.27
+ESS,"Essex Property Trust",242.14,252.87,251.08,262.81,257.97,"Below 50",-21.92%,1.16
+ETN,"Eaton Corp",375,360.26,361.33,356.46,355.89,"Above 50",-8.19%,0.91
+ETR,"Entergy Corp",102.76,101.02,104.61,93.16,95.74,"Below 50",-4.79%,0.97
+EVRG,"Evergy Inc",79.98,79.71,82.14,74.65,76.31,"Below 50",-6.16%,0.52
+EW,"Edwards Lifesciences Corp",82.67,82.3,83.95,80.49,81.56,"Below 50",-5.94%,0.78
+EXC,"Exelon Corp",47.67,46.77,48.81,45.08,45.56,"Below 50",-5.88%,0.56
+EXE,"Expand Energy Corporation",113.92,106.6,107.61,106.78,106.73,"Above 50",-10.03%,0.84
+EXPD,"Expeditors Intl",143.18,152.08,144.29,133.66,139.59,"Below 50",-14.36%,0.65
+EXPE,"Expedia Group Inc",236.26,240.22,232.08,226.28,241.22,"Above 50",-22.23%,0.56
+EXR,"Extra Space Storage Inc",129.99,142.65,141.68,141.11,139.54,"Below 30",-16.24%,0.99
+F,"Ford Motor Company",11.67,13.21,12.3,12.4,12.81,"Below 50",-21.12%,0.58
+FANG,"Diamondback Energy",196.02,170.77,182.9,151.47,154.15,"Above 70",-1.97%,0.54
+FAST,"Fastenal Company",45.37,45.33,45.73,44.51,44.39,"Below 50",-10.39%,0.6
+FCX,"Freeport-Mcmoran Inc",57.09,61.45,60.2,48.19,49.94,"Below 50",-18.15%,0.7
+FDS,"Factset Research Systems Inc",193.88,227.54,212,311.44,275.89,"Below 50",-59.17%,0.87
+FDX,"Fedex Corp",357.52,352.88,364.64,273.63,288.39,"New Below 50",-9.00%,1
+FE,"Firstenergy Corp",49.52,48.88,50.44,45.15,46.43,"Below 50",-4.80%,1.12
+FFIV,"F5 Inc",297.86,277.92,285.03,287.01,282,"Above 50",-13.91%,0.98
+FICO,"Fair Isaac and Company",1043.1,1362.87,1254.61,1565.73,1555.22,"New Above 30",-52.96%,0.83
+FIS,"Fidelity National Information Services",47.6,52.52,50.06,65.95,61.8,"Below 50",-42.47%,1.58
+FISV,"Fiserv Inc",56.64,61.54,59.41,103.01,85.41,"Below 50",-75.05%,0.82
+FITB,"Fifth Third Bancorp",45.81,49.65,46.46,45.2,46.36,"Below 50",-17.37%,0.64
+FIX,"Comfort Systems USA",1470.64,1298.88,1403.02,910.6,1018.94,"Above 50",-1.96%,0.62
+FOX,"Fox Corp Cl B",52.35,56.8,52.56,55.92,57.51,"Below 50",-23.21%,0.57
+FOXA,"Fox Corp Cl A",58.49,62.65,57.9,61.84,63.86,"Below 50",-23.43%,0.65
+FRT,"Federal Realty Investment Trust",103.27,105.01,106.65,99.41,101.06,"Below 50",-6.87%,1.37
+FSLR,"First Solar Inc",193.51,219.09,196.32,217.62,232.4,"Below 50",-32.34%,0.57
+FTNT,"Fortinet Inc",78.89,81.13,82.26,85.82,81.66,"Below 50",-27.84%,0.99
+FTV,"Fortive Corp",54.78,56.36,56.35,53.6,52.83,"Below 50",-28.43%,0.56
+GD,"General Dynamics Corp",352.5,355.59,355.56,332.42,343.25,"Below 50",-4.65%,1.28
+GDDY,"Godaddy Inc",81.58,92.96,86.14,131.32,119.7,"Below 50",-57.85%,0.66
+GE,"GE Aerospace",296.56,315.8,314.85,292.42,303.72,"Below 50",-14.90%,0.81
+GEHC,"GE Healthcare Technologies Inc",72.2,78.54,74.43,76.9,77.91,"Below 50",-19.57%,0.95
+GEN,"Gen Digital Inc",19.47,23.05,21.44,27.08,26.12,"Below 30",-39.56%,0.83
+GEV,"GE Vernova Inc",923.69,791.51,852.35,646.74,673.01,"Above 50",-2.60%,1.08
+GILD,"Gilead Sciences Inc",138.26,142.91,144.11,123.43,127.16,"Below 50",-12.10%,0.74
+GIS,"General Mills",36.17,43.86,40.83,47.74,46.59,"New Below 20",-42.23%,1.27
+GL,"Globe Life Inc",137.51,141.54,141.05,136.12,138.95,"Below 50",-9.95%,0.54
+GLW,"Corning Inc",146.35,124.1,136.68,86.4,96.46,"Above 50",-9.72%,0.94
+GM,"General Motors Company",76.61,79.49,75.54,66.83,71.79,"Below 50",-12.57%,0.85
+GNRC,"Generac Holdings Inc",205.16,198.1,210.72,172.31,176.82,"New Below 50",-14.90%,3.41
+GOOG,"Alphabet Cl C",289.59,315.83,302.98,262.29,287.63,"Below 50",-17.30%,1.11
+GOOGL,"Alphabet Cl A",290.93,315.93,303.77,261.74,287.22,"Below 50",-16.64%,0.99
+GPC,"Genuine Parts Company",105.12,125.04,108.72,129.08,129.59,"Below 50",-30.65%,1.12
+GPN,"Global Payments Inc",70.77,73.69,73.1,79.69,79.27,"Below 50",-29.62%,0.57
+GRMN,"Garmin Ltd",244.78,225.35,241.53,222.42,223.5,"Above 50",-6.46%,0.61
+GS,"Goldman Sachs Group",841.84,891.15,831.77,802.35,837.6,"Below 50",-14.51%,0.62
+GWW,"W.W. Grainger",1075.87,1104.46,1095.09,1022.43,1022.08,"Below 50",-11.71%,0.7
+HAL,"Halliburton Company",38.63,34.68,35.69,26.91,28.67,"Above 50",-0.52%,0.51
+HAS,"Hasbro Inc",92.19,94.57,94.76,81.84,84.1,"Below 50",-13.83%,0.62
+HBAN,"Huntington Bancshares Inc",15.54,17.09,15.93,16.83,16.93,"Below 50",-20.12%,0.74
+HCA,"Hca Holdings Inc",484.02,509.73,521.13,444.75,469.13,"Below 50",-13.03%,0.78
+HD,"Home Depot",332.51,368.58,349,374.61,375.43,"Below 50",-22.08%,1.03
+HIG,"The Hartford Insurance Group Inc",134.1,136.65,136.76,131.63,133.78,"Below 50",-7.20%,0.69
+HII,"Huntington Ingalls Industries",402.56,420.33,422.75,320.13,342.69,"Below 50",-12.49%,0.55
+HLT,"Hilton Inc",303.16,304.65,301.09,279.1,283.89,"New Above 50",-9.20%,0.73
+HOLX,"Hologic Inc",75.52,75.2,75.42,70.9,72.62,"Above 50",-0.30%,0.65
+HON,"Honeywell International Inc",225.79,232.37,234.91,210.67,209.47,"Below 50",-9.02%,1.11
+HOOD,"Robinhood Markets Inc Cl A",72.54,85.17,76.14,107.82,111.64,"Below 50",-52.85%,1.02
+HPE,"Hewlett Packard Enterprise Comp",25.78,21.91,21.93,22.27,23.01,"New Above 70",-2.50%,2.44
+HPQ,"HP Inc",19.46,19.16,18.84,24.07,23.67,"New Above 50",-34.15%,1.12
+HRL,"Hormel Foods Corp",23.05,24.12,23.47,25.45,24.06,"Below 50",-28.13%,0.86
+HSIC,"Henry Schein Inc",74.25,77.49,76.78,72.14,72.66,"Below 50",-16.84%,0.67
+HST,"Host Marriott Financial Trust",19.48,19.21,19.26,17.45,17.95,"New Above 50",-7.24%,0.96
+HSY,"Hershey Foods Corp",217,214.61,221.6,189.43,194.08,"Below 50",-9.39%,0.68
+HUBB,"Hubbell Inc B",503.2,495.21,487.37,447.83,458.09,"Above 50",-5.73%,0.93
+HUM,"Humana Inc",174.24,197.86,175.28,244.97,245.12,"Below 50",-44.75%,0.71
+HWM,"Howmet Aerospace Inc",241.62,236.12,247.69,201.64,208.95,"Below 50",-9.61%,0.65
+IBKR,"Interactive Brokers",68.68,71.97,68.47,65.92,68.15,"Below 50",-13.26%,1.06
+IBM,"Intl Business Machines",241.39,268.86,247.91,278.67,281.08,"Below 50",-25.70%,0.7
+ICE,"Intercontinental Exchange",156.83,163.6,161,167.39,162.55,"Below 50",-17.17%,1.15
+IDXX,"Idexx Laboratories",575.72,638.83,602.63,635.95,660.39,"Below 50",-25.23%,0.8
+IEX,"Idex Corp",191.63,200.25,196.42,178.51,179.66,"Below 50",-11.75%,1.03
+IFF,"International Flavors & Fragrances",70.71,74.27,72.8,69.33,68.08,"Below 50",-16.27%,1.05
+INCY,"Incyte Corp",92.23,99.6,95.02,90.02,95.84,"Below 50",-17.86%,0.6
+INTC,"Intel Corp",47.18,46.63,45.31,34.56,38.78,"New Above 50",-13.59%,1.15
+INTU,"Intuit Inc",426.86,457.79,443.63,636.45,594.81,"Below 50",-47.54%,0.5
+INVH,"Invitation Homes Inc",24.89,26.18,25.55,28.8,27.72,"Below 50",-30.47%,1.03
+IP,"International Paper Company",36.47,42.07,38.54,44.25,42.63,"Below 50",-35.03%,0.91
+IQV,"Iqvia Holdings Inc",165.64,191.2,170.44,195.75,203.78,"Below 50",-32.95%,0.73
+IR,"Ingersoll Rand Inc",83.65,89.74,86.35,83.04,82.98,"Below 50",-17.15%,0.64
+IRM,"Iron Mountain Inc",100.53,101.3,106.09,96.79,96.35,"Below 50",-12.76%,0.93
+ISRG,"Intuitive Surg Inc",469.98,499.36,486.88,508.17,508.59,"Below 50",-22.17%,0.88
+IT,"Gartner Inc",150.23,177.8,161.12,253.8,221.69,"Below 50",-66.74%,0.85
+ITW,"Illinois Tool Works Inc",266.45,275.94,273.43,259.29,260.94,"Below 50",-12.11%,0.85
+IVZ,"Invesco Limited",24.36,26.09,24.25,23.09,24.7,"Below 50",-17.73%,0.67
+J,"Jacobs Engineering Group Inc",129.97,136.38,132.75,141.47,142.9,"Below 50",-22.84%,0.78
+JBHT,"J B Hunt Transport",209.1,214.85,213.1,172.45,181.34,"Below 50",-11.40%,0.87
+JBL,"Jabil Circuit",283.24,254.73,259.13,224.4,227.78,"Above 50",-0.18%,0.78
+JCI,"Johnson Controls Intl",137.48,131.1,135.68,115.5,118.8,"Above 50",-6.15%,0.53
+JKHY,"Jack Henry & Assoc",157.4,170.49,165.86,169.03,167.18,"Below 50",-18.61%,0.78
+JNJ,"Johnson & Johnson",239.93,235.96,241.38,195.82,207.02,"New Above 50",-4.68%,0.78
+JPM,"JP Morgan Chase & Company",295.42,301.11,291.61,301.72,306.72,"New Above 50",-12.40%,1.08
+KDP,"Keurig Dr Pepper Inc",26.37,28.24,27.93,29.32,27.9,"Below 50",-26.99%,0.87
+KEY,Keycorp,20,21,19.87,19.11,19.6,"Below 50",-14.33%,0.6
+KEYS,"Keysight Technologies Inc",293.12,254.11,290.36,195.73,206.45,"Above 50",-7.53%,1.02
+KHC,"Kraft Heinz Company",21.51,23.63,23.1,25.34,24.76,"New Above 30",-30.95%,0.81
+KIM,"Kimco Realty Corp",22.41,22.25,23.12,21.45,21.5,"Below 50",-6.25%,0.92
+KKR,"KKR & Company LP",88.91,102.72,89.9,125.01,120.63,"Below 50",-42.22%,0.63
+KLAC,"K L A-Tencor Corp",1543.82,1479.22,1474.19,1157.02,1241.96,"Above 50",-8.83%,0.72
+KMB,"Kimberly-Clark Corp",99.36,103.26,102.28,115.38,110.35,"Below 50",-32.46%,0.67
+KMI,"Kinder Morgan Inc",33.98,31.6,33.41,28.36,28.59,"Above 50",-0.82%,1.03
+KO,"Coca-Cola Company",75.25,76.52,77.44,71.17,71.56,"Below 50",-8.23%,0.85
+KR,"Kroger Company",70.36,68.18,71.95,67.53,66.53,"New Below 50",-8.12%,0.81
+KVUE,"Kenvue Inc",17.66,17.97,17.96,18.45,17.42,"Below 50",-29.84%,0.88
+L,"Loews Corp",106.4,107.41,108.61,100.52,103.56,"Below 50",-7.40%,0.75
+LDOS,"Leidos Holdings Inc",158.88,179.33,171.49,179.24,185.04,"Below 50",-22.79%,0.53
+LEN,"Lennar Corp",92.19,109.39,99.51,117.77,118.71,"Below 50",-36.08%,0.76
+LH,"Laboratory Corp of America Holdings",266.02,273.57,271.95,267.53,270.03,"Below 50",-9.43%,0.88
+LHX,"L3Harris Technologies Inc",352.02,353.97,362.23,298.33,310.54,"Below 50",-7.18%,0.93
+LII,"Lennox International",481.68,520.35,507.61,536.97,518,"Below 50",-30.13%,0.66
+LIN,"Linde Plc",492.34,474.76,491.36,457.45,453.68,"New Above 50",-3.59%,0.73
+LLY,"Eli Lilly and Company",916.31,1014.74,972.02,894.7,939.15,"Below 50",-19.19%,0.76
+LMT,"Lockheed Martin Corp",624.2,629.81,646.93,509.11,528.64,"Below 50",-9.80%,0.63
+LNT,"Alliant Energy Corp",69.77,69.37,71.37,66.26,67.34,"Below 50",-4.96%,0.49
+LOW,"Lowe's Companies",236.18,263.89,245.32,246.77,253.03,"Below 50",-19.41%,0.83
+LRCX,"Lam Research Corp",233.45,227.46,223.18,154.64,173.63,"Above 50",-9.05%,0.75
+LULU,"Lululemon Athletica",158.72,177.26,167.51,191.7,181.38,"Below 50",-54.46%,0.77
+LUV,"Southwest Airlines Company",40.19,46.07,42.8,37.08,38.48,"Below 50",-27.07%,0.64
+LVS,"Las Vegas Sands",54.17,56.52,54.59,55.92,58.41,"Below 50",-23.11%,0.94
+LW,"Lamb Weston Holdings Inc",41.79,45.35,43.44,53.17,53.01,"Below 50",-37.69%,0.51
+LYB,"Lyondellbasell Industries NV",77.19,59.42,68.06,53.46,51.69,"Above 70",-0.23%,0.42
+LYV,"Live Nation Entertainment",154.92,152.38,158.09,150.71,151.04,"Below 50",-11.60%,0.67
+MA,"Mastercard Inc",502.76,522.68,508.6,555.56,552.56,"Below 50",-16.45%,0.7
+MAA,"Mid-America Apartment Communities",121.64,132.11,128.75,137.89,134.74,"Below 30",-28.20%,0.69
+MAR,"Marriot Int Cl A",326.79,330.64,327.84,291.03,298.41,"Below 50",-11.68%,0.95
+MAS,"Masco Corp",61.52,68.43,63.8,67.45,67.71,"Below 50",-22.31%,0.76
+MCD,"McDonald's Corp",311.7,321.33,323.96,308.47,311.69,"New Above 30",-8.79%,1.14
+MCHP,"Microchip Technology",65.16,72.67,66.65,67.28,66.53,"Below 50",-21.82%,0.73
+MCK,"Mckesson Corp",879.75,904.77,934.86,795.59,824.93,"Below 50",-11.94%,0.85
+MCO,"Moody's Corp",428.05,468.85,449.94,489.16,485.54,"Below 50",-21.73%,0.74
+MDLZ,"Mondelez Intl Inc",57.43,58.51,57.55,60.63,58.65,"Below 50",-19.28%,0.86
+MDT,"Medtronic Inc",87.89,96.2,90.61,94.5,96.17,"New Above 30",-17.34%,1.14
+MET,"Metlife Inc",70.39,74.63,70.69,77.9,77.91,"Below 50",-17.18%,0.58
+META,"Meta Platforms Inc",594.89,647.03,632.66,689.22,676.76,"Below 50",-25.29%,0.98
+MGM,"MGM Resorts International",37.49,35.59,36.43,35.25,35.04,"Above 50",-6.65%,0.78
+MKC,"Mccormick & Company",52.78,64.2,60.6,67.66,66.06,"New Above 20",-36.52%,1.19
+MLM,"Martin Marietta Materials",589.42,641.98,608.83,613.75,628.35,"Below 50",-17.10%,0.78
+MMM,"3M Company",148.05,159.72,152.67,158.35,160.73,"Below 50",-16.55%,0.49
+MNST,"Monster Beverage Corp",73.21,79.73,77.17,70.23,73.08,"Below 50",-16.22%,0.59
+MO,"Altria Group",63.78,65.3,66.77,62.35,62.93,"Below 50",-9.54%,0.78
+MOH,"Molina Healthcare Inc",139.84,158.05,145.5,179.44,166.07,"Below 50",-61.15%,0.54
+MOS,"Mosaic Company",26.19,27.88,27.03,30.17,28.47,"Below 50",-31.49%,0.97
+MPC,"Marathon Petroleum Corp",241.25,202.31,223.94,185.18,190.5,"Above 70",-2.38%,0.68
+MPWR,"Monolithic Power Sys",1118.66,1113.9,1084.67,932.9,994.22,"Above 50",-10.95%,0.55
+MRK,"Merck & Company",119.37,116.07,117.2,95.22,99.85,"New Above 50",-4.61%,0.94
+MRNA,"Moderna Inc",53.54,48.14,53.21,32.85,34.06,"Above 50",-10.09%,0.49
+MRSH,"Marsh & Mclennan Companies Inc",174.2,179.57,177.59,193.33,187.42,"Below 50",-29.76%,1.26
+MS,"Morgan Stanley",165.65,172.35,162.35,160.27,166.97,"Above 50",-14.03%,0.83
+MSCI,"MSCI Inc",530.99,564.21,556.71,563.57,564.22,"Below 50",-15.22%,0.67
+MSFT,"Microsoft Corp",371.04,414.62,396.4,480.19,472.39,"Below 30",-33.20%,0.94
+MSI,"Motorola Solutions",451.01,439.74,466.41,427.02,426.8,"Below 50",-8.37%,1.06
+MTB,"M&T Bank Corp",204.75,216.87,206.8,199.47,202.07,"Below 50",-14.33%,0.61
+MTCH,"Match Group Inc",30.34,31.08,30.93,33.15,33.1,"Below 50",-22.60%,0.37
+MTD,"Mettler-Toledo International",1265.75,1340.45,1247.77,1322.66,1356.67,"Below 50",-17.01%,0.65
+MU,"Micron Technology",382.09,403.88,412.27,236.03,275.35,"Below 50",-18.94%,1.32
+NCLH,"Norwegian Cruise Ord",20.22,21.82,20.68,22.25,22.26,"Below 50",-25.61%,0.69
+NDAQ,"Nasdaq Inc",83.74,88.78,86.65,90.61,90.46,"Below 50",-17.73%,0.69
+NDSN,"Nordson Corp",270.85,279.51,275.35,240.62,248.63,"Below 50",-11.28%,1
+NEE,"Nextera Energy",91.16,89.87,91.84,80.56,83.12,"New Below 50",-4.95%,0.78
+NEM,"Newmont Mining Corp",101.52,117.37,112.7,88.6,97.69,"Below 50",-24.73%,0.77
+NFLX,"Netflix Inc",92.28,87.32,94.83,107.93,102.9,"New Above 50",-31.19%,0.57
+NI,"NiSource Inc",45.68,45.41,46.63,42.72,43.34,"Below 50",-4.75%,0.6
+NKE,"Nike Inc",52.98,60.76,56.25,66.87,65.37,"Below 50",-33.91%,0.85
+NOC,"Northrop Grumman Corp",691.21,704.53,727.86,601.59,623.63,"Below 50",-10.70%,0.66
+NOW,"Servicenow Inc",103.06,114.77,113.34,163.53,153.89,"Below 50",-51.27%,0.84
+NRG,"NRG Energy",151.04,158.78,158.4,159.44,160.91,"Below 50",-20.49%,0.57
+NSC,"Norfolk Southern Corp",282.61,299.58,297.5,285.43,291.3,"Below 50",-11.67%,0.89
+NTAP,"Netapp Inc",105.5,100.79,100.54,109.01,110.24,"Above 50",-16.71%,0.67
+NTRS,"Northern Trust Corp",139.73,144.42,139.69,132.95,136.06,"Below 50",-11.34%,0.85
+NUE,"Nucor Corp",165.17,175.98,168.16,152.59,158.06,"Below 50",-16.11%,0.92
+NVDA,"Nvidia Corp",178.68,184.09,180.6,178.97,183.62,"Below 50",-15.79%,0.83
+NVR,"NVR Inc",6552.2002,7339.45,6810.05,7572.33,7559.4,"Below 50",-23.97%,0.66
+NWS,"News Corp Cl B",27.59,27.95,27.12,30.84,29.94,"New Above 50",-22.46%,0.78
+NWSA,"News Corp Cl A",24.27,24.59,24.13,27.09,26.4,"New Above 50",-23.22%,0.73
+NXPI,"Nxp Semiconductors",197.61,221.84,203.39,220.41,220.38,"Below 50",-22.92%,0.6
+O,"Realty Income Corp",60.06,63.4,64.23,59.36,60.01,"Below 30",-11.59%,0.81
+ODFL,"Old Dominion Freight Line Inc",189.05,188.78,192.67,160.01,160.32,"New Above 50",-14.70%,0.74
+OKE,"Oneok Inc",92.12,82.89,86.52,76.55,75.45,"New Above 70",-11.09%,0.9
+OMC,"Omnicom Group Inc",75.74,77.58,80.35,76.12,77.14,"Below 50",-13.11%,0.73
+ON,"On Semiconductor",63.1,63.41,61.21,55.19,55.45,"Above 50",-14.45%,0.75
+ORCL,"Oracle Corp",146.02,159.59,152.43,219.7,215.86,"Below 50",-57.76%,0.69
+ORLY,"O'Reilly Automotive",91.16,94.22,91.81,96.92,97.63,"Below 50",-16.15%,0.89
+OTIS,"Otis Worldwide Corp",78.7,88.09,85.35,90.05,88.8,"New Above 30",-25.72%,0.89
+OXY,"Occidental Petroleum Corp",61.85,50.23,56.53,45.16,45.5,"Above 70",-0.66%,0.66
+PANW,"Palo Alto Networks Inc",153.22,166.4,161.74,188.95,188.22,"Below 50",-31.48%,0.78
+PAYC,"Paycom Software Inc",119.82,131.73,128.27,185.12,169.63,"Below 50",-55.25%,0.42
+PAYX,"Paychex Inc",93.36,97.67,94.13,121.42,113.6,"Below 50",-42.10%,1.72
+PCAR,"Paccar Inc",116.34,122.13,118.54,105.94,109.08,"Below 50",-11.78%,0.97
+PCG,"Pacific Gas & Electric Company",17.44,17.14,18.23,15.67,16.18,"Below 50",-8.95%,0.63
+PEG,"Public Service Enterprise Group Inc",81.07,82.52,83.23,82.48,81.87,"Below 50",-11.16%,1.16
+PEP,"Pepsico Inc",151.73,158.21,158.93,146.93,149.86,"Below 50",-11.52%,0.76
+PFE,"Pfizer Inc",27.28,26.73,27.02,25.35,25.6,"Above 50",-2.36%,0.89
+PFG,"Principal Financial Group Inc",88.72,91.74,89.85,84.48,86.49,"Below 50",-9.36%,0.47
+PG,"Procter & Gamble Company",143.92,153.73,152.82,152.56,151.03,"New Above 30",-17.67%,0.72
+PGR,"Progressive Corp",202.84,205.94,207.13,229.97,222.36,"Below 50",-30.05%,0.89
+PH,"Parker-Hannifin Corp",921.56,955.85,938.16,819.24,856.44,"Below 50",-10.96%,1.08
+PHM,Pultegroup,118.18,129.67,124.54,123.47,127.06,"Below 50",-18.21%,0.85
+PKG,"Packaging Corp of America",213.36,225.28,219.33,209.09,213.12,"Below 50",-14.49%,0.45
+PLD,"Prologis Inc",130.36,134.63,134.94,121.23,125.9,"Below 50",-9.44%,1.09
+PLTR,"Palantir Technologies Inc Cl A",154.96,150.31,151.48,163.89,167.8,"Above 50",-25.33%,0.78
+PM,"Philip Morris International Inc",165.5,176.53,172.36,166.82,164.32,"Below 50",-13.49%,0.69
+PNC,"PNC Bank",205.95,218.99,207.09,200.83,204.68,"Below 50",-15.57%,0.55
+PNR,"Pentair Ltd",87.61,98.26,91.76,103.98,104.25,"Below 50",-23.12%,1.29
+PNW,"Pinnacle West Capital Corp",97.7,97.28,100.7,91.59,91.86,"Below 50",-6.03%,0.87
+PODD,"Insulet Corp",216,249.31,234.47,295.7,294.49,"New Below 30",-39.13%,1.13
+POOL,"Pool Corp",202.17,237.61,211.57,273.46,262.88,"Below 50",-41.40%,0.79
+PPG,"PPG Industries",106.69,115.12,107.86,108.56,107.29,"Below 50",-20.04%,1.01
+PPL,"PPL Corp",37.16,37.11,38.03,36.07,36.39,"Below 50",-4.93%,0.69
+PRU,"Prudential Financial Inc",95.26,102.33,95.78,105.59,105.81,"Below 50",-20.46%,0.54
+PSA,"Public Storage",267.63,290.75,293.26,285.59,284.59,"New Below 30",-14.48%,0.68
+PSKY,"Paramount Skydance Corporation Cl B",9.23,10.88,10.53,13.74,14.12,"Below 50",-55.75%,0.5
+PSX,"Phillips 66",181.29,156.98,169.03,137.24,141.76,"Above 70",-2.20%,0.68
+PTC,"Ptc Inc",143.56,157.34,155.84,182.8,180.11,"Below 30",-34.65%,0.9
+PWR,"Quanta Services",573.5,524.34,566.03,438.51,456.96,"Above 50",-1.75%,0.83
+PYPL,"Paypal Holdings",44.85,47.13,45.5,62.61,59.34,"Below 50",-43.58%,0.73
+Q,"Qnity Electronics Inc",120.26,108.13,115.56,0,0,"Above 50",-14.47%,0.47
+QCOM,"Qualcomm Inc",130.35,142.98,134.39,159.28,160.47,"Below 50",-36.71%,0.51
+RCL,"Royal Caribbean Cruises Ltd",279.01,300.24,283.84,303.57,300.14,"Below 50",-23.87%,0.53
+REG,"Regency Centers Corp",74.43,75.2,77.39,71.82,72.11,"Below 50",-6.84%,0.73
+REGN,"Regeneron Pharmaceuticals",749.47,763.81,760.05,655.61,692.15,"Below 50",-8.72%,0.88
+RF,"Regions Financial Corp",25.76,28.05,26.46,26.17,26.76,"Below 50",-18.30%,0.91
+RJF,"Raymond James Financial",145.85,158.64,148.91,161.43,162.36,"Below 50",-17.90%,0.66
+RL,"Ralph Lauren Corp",345.93,356.06,346.59,326.34,340.24,"Below 50",-11.11%,0.7
+RMD,"Resmed Inc",226.31,251.3,241.38,259.82,257.92,"Below 50",-22.97%,1.75
+ROK,"Rockwell Automation Inc",360.65,396.07,373.51,368.43,378.08,"Below 50",-17.79%,0.65
+ROL,"Rollins Inc",53.48,59.99,56.44,58.33,58.84,"Below 30",-19.14%,0.83
+ROP,"Roper Industries",346.72,361.2,354.13,466.87,438.02,"Below 50",-41.65%,0.69
+ROST,"Ross Stores Inc",216.03,199.67,209.72,165.42,175.29,"Above 50",-0.35%,1.19
+RSG,"Republic Services",215.55,220.59,224.94,225.11,219.74,"Below 50",-16.70%,0.98
+RTX,"Rtx Corp",195,200.89,203.4,172.88,180.55,"Below 50",-9.09%,0.64
+RVTY,"Revvity Inc",87.84,99.59,90.53,95.45,95.73,"Below 50",-25.75%,0.87
+SBAC,"SBA Communications",165.15,189.14,187.37,202.13,193.22,"Below 30",-32.64%,1.11
+SBUX,"Starbucks Corp",92.7,96.04,97.03,89.65,88.62,"Below 50",-11.56%,0.84
+SCHW,"The Charles Schwab Corp",94.99,97.89,94.51,95.46,96.17,"New Below 50",-11.64%,0.71
+SHW,"Sherwin-Williams Company",321.95,346.88,329.2,344.32,343.46,"Below 50",-15.20%,1.06
+SJM,"J.M. Smucker Company",95.39,106.49,106.64,105.15,105.27,"Below 30",-21.01%,0.66
+SLB,"Slb Limited",51.89,48.94,48.01,39.11,40.62,"Above 50",-1.26%,1.12
+SMCI,"Super Micro Computer",24.05,30.61,29.67,40.5,37.71,"Below 50",-61.43%,1.53
+SNA,"Snap-On Inc",367.62,373.27,371.91,343.37,351.15,"Below 50",-5.77%,0.8
+SNDK,"Sandisk Corp",677.86,593.54,652.47,246.28,313.7,"Above 50",-12.83%,1.1
+SNPS,"Synopsys Inc",410.13,448.76,426.23,489.73,465.2,"Below 50",-37.07%,1.13
+SO,"Southern Company",94.61,92.99,96.58,92.12,91.94,"Below 50",-6.17%,0.63
+SOLV,"Solventum Corporation",64.64,73.79,68.62,74.92,75.26,"New Above 30",-26.71%,0.71
+SPG,"Simon Property Group",181.57,192.2,192.31,179.81,185.15,"New Above 30",-11.48%,0.95
+SPGI,"S&P Global Inc",408.48,458.15,432.63,501.38,491.43,"Below 50",-29.46%,1.28
+SRE,Sempra,95.32,91.59,94.49,86.67,89.62,"Above 50",-2.18%,1
+STE,"Steris Corp",223.38,244.68,228.4,245.12,248.58,"Below 50",-17.09%,0.71
+STLD,"Steel Dynamics Inc",173.47,184.19,180.08,154.66,163.04,"Below 50",-16.79%,0.96
+STT,"State Street Corp",126.92,127.52,124.31,118.09,121.73,"Above 50",-7.39%,0.59
+STX,"Seagate Technology Hldgs Plc",413.22,392.72,393.34,256.46,293.49,"Above 50",-10.14%,0.93
+STZ,"Constellation Brands Inc",151.56,156.13,151.58,151.25,145.45,"New Below 50",-23.03%,0.8
+SW,"Smurfit Westrock Plc",40.67,43.69,41.75,42.27,41.41,"Below 50",-22.75%,0.96
+SWK,"Stanley Black & Decker Inc",71.85,81.25,74.99,74.09,75.53,"Below 50",-23.05%,0.52
+SWKS,"Skyworks Solutions",56.19,57.99,55.79,68.35,66.79,"Below 50",-38.18%,0.64
+SYF,"Synchrony Financial",67.63,71.37,66.92,73.2,74.89,"Below 50",-23.81%,0.85
+SYK,"Stryker Corp",327.65,361.17,355.75,371.87,366.84,"Below 30",-19.07%,0.87
+SYY,"Sysco Corp",82.8,84.48,85.12,79.25,79.73,"Below 50",-9.85%,0.93
+T,"AT&T Inc",28.81,26.89,28.09,26.86,26.5,"Above 50",-3.29%,0.8
+TAP,"Molson Coors Brewing Company",41.27,47.92,44.68,47.89,47.23,"Below 30",-35.01%,0.76
+TDG,"Transdigm Group Inc",1156.49,1314.55,1246.56,1362.79,1317.08,"Below 30",-28.78%,0.86
+TDY,"Teledyne Technologies Inc",625.37,638.44,650.97,559.44,569.84,"Below 50",-9.81%,0.78
+TECH,"Bio-Techne Corp",52.69,60.07,53.69,57.67,59.28,"Below 50",-26.98%,0.67
+TEL,"Te Connectivity Ltd",210.02,220.56,206.73,213.82,223.74,"Below 50",-16.22%,1
+TER,"Teradyne Inc",323.36,286.14,303.86,175.67,202.2,"Above 50",-6.25%,0.86
+TFC,"Truist Financial Corp",45.39,49.61,46.38,46.39,47.39,"Below 50",-19.23%,0.7
+TGT,"Target Corp",116.37,113.45,117.02,100.31,99.76,"Above 50",-7.64%,0.63
+TJX,"TJX Companies",159.74,155.65,157.87,143.5,149.23,"Above 50",-1.81%,0.75
+TKO,"Tko Group Holdings Inc Cl A",193.94,205.58,204.97,192.01,198.56,"Below 50",-14.54%,0.55
+TMO,"Thermo Fisher Scientific Inc",490.77,537.77,492.43,516.18,542.23,"Below 50",-23.79%,0.79
+TMUS,"T-Mobile US",211.36,205.81,214.47,220.96,215.74,"Below 50",-22.47%,0.72
+TPL,"Texas Pacific Land Trust",530.36,442.86,527.65,346.68,351,"Above 50",-3.08%,0.63
+TPR,"Tapestry Inc",146.18,143.29,147.25,116.79,123.28,"New Above 50",-9.75%,0.68
+TRGP,"Targa Resources",245.46,219.55,238.71,181.1,185.43,"Above 50",-1.82%,0.77
+TRMB,"Trimble Navigation",65.87,68.45,67.62,77,76.21,"Below 50",-24.72%,0.73
+TROW,"T Rowe Price Group",89.58,96.06,90.11,101.49,101.54,"Below 50",-24.23%,0.98
+TRV,"The Travelers Companies Inc",290.59,294.44,302.69,279.15,284.69,"Below 50",-7.20%,0.91
+TSCO,"Tractor Supply Company",45.96,51.46,48.77,54.62,54.05,"Below 50",-28.18%,0.66
+TSLA,"Tesla Inc",385.95,411.69,394.64,395.57,420.43,"Below 50",-22.63%,0.91
+TSN,"Tyson Foods",61.45,62.62,61.48,57.04,57.71,"Below 50",-7.47%,0.56
+TT,"Trane Technologies Plc",434,431.32,433.49,422.32,418,"New Above 50",-9.46%,0.64
+TTD,"Trade Desk Inc",21.97,28.12,25.51,48.1,39.63,"Below 50",-75.98%,0.62
+TTWO,"Take-Two Interactive",193.05,214.4,207.72,235.84,236.68,"Below 50",-27.09%,0.96
+TXN,"Texas Instruments",196.77,205.71,196.94,190.41,186.98,"Below 50",-14.94%,0.68
+TXT,"Textron Inc",90.71,94.25,93.5,85.42,87.17,"Below 50",-10.69%,0.71
+TYL,"Tyler Technologies",331.47,364.67,353.18,482.46,451.17,"Below 50",-46.65%,0.71
+UAL,"United Airlines Holdings Inc",92.95,104.46,95.32,99.11,103.4,"Below 50",-22.03%,0.94
+UBER,"Uber Technologies Inc",73.08,76.41,74.81,87.37,86.35,"Below 50",-28.35%,0.61
+UDR,"United Dominion Realty Trust",33.93,36.96,36.15,37.47,36.59,"Below 30",-25.53%,0.83
+UHS,"Universal Health Services",186.72,206.06,193.51,200.38,209.5,"Below 50",-24.20%,0.69
+ULTA,"Ulta Beauty Inc",526.14,643.86,598.61,558.44,581.27,"Below 30",-26.41%,0.71
+UNH,"Unitedhealth Group Inc",270.55,294.13,283.45,313.79,322.08,"Below 50",-55.38%,0.91
+UNP,"Union Pacific Corp",241.33,247.33,249.76,231.98,233.72,"Below 50",-10.00%,0.93
+UPS,"United Parcel Service",98.37,108.39,102.64,97.23,97.42,"Below 50",-19.64%,0.43
+URI,"United Rentals",747.59,840.11,778.75,858.41,875.12,"Below 50",-26.81%,0.74
+USB,"U.S. Bancorp",51.89,55.22,52.61,49.93,51.41,"Below 50",-15.20%,0.79
+V,"Visa Inc",304.91,319.06,311.04,338.42,334.6,"Below 50",-18.80%,0.86
+VICI,"Vici Properties Inc",27.07,28.85,28.78,30.67,29.95,"Below 50",-20.41%,0.7
+VLO,"Valero Energy Corp",234.54,206.23,227.62,170,180.11,"Above 50",-5.32%,0.91
+VLTO,"Veralto Corporation",87.11,94.96,92.13,100.81,100.12,"New Above 30",-20.89%,1.06
+VMC,"Vulcan Materials Company",269.53,295.57,276.51,288.71,294.65,"Below 50",-18.59%,0.75
+VRSK,"Verisk Analytics Inc",185.05,201.6,204.64,241.41,224.02,"Below 50",-42.69%,1.39
+VRSN,"Verisign Inc",251.7,236.15,238.25,258.6,251.44,"Above 50",-18.96%,1.66
+VRTX,"Vertex Pharmaceutic",454.97,468.4,468.98,438.59,437.25,"Below 50",-10.92%,0.82
+VST,"Vistra Energy Corp",151.51,162.51,161.94,181.57,178,"Below 50",-31.08%,0.72
+VTR,"Ventas Inc",82.7,82.68,85.56,73.7,76.5,"Below 50",-6.41%,0.62
+VTRS,"Viatris Inc",13.5,14.26,14.08,11.24,11.9,"Below 50",-18.03%,0.46
+VZ,"Verizon Communications Inc",50.37,46.87,50.48,43.16,43.29,"Above 50",-2.53%,0.8
+WAB,"Wabtec Corp",248.32,244.6,247.48,213.07,216.75,"Above 50",-6.74%,0.95
+WAT,"Waters Corp",302.32,338.51,302.91,338.77,345.91,"Below 50",-27.00%,0.93
+WBD,"Discovery Inc Series A",27.22,27.99,27.75,20.63,23.6,"Below 50",-9.27%,0.85
+WDAY,"Workday Inc",127.07,154.21,137.57,210.75,202.9,"Below 50",-53.96%,0.94
+WDC,"Western Digital Corp",296.14,269.16,279.29,153.39,182.1,"Above 50",-7.35%,0.84
+WEC,"Wisconsin Energy Corp",112.72,113.12,115.37,109.93,110.99,"Below 50",-4.90%,0.68
+WELL,"Welltower Inc",196.73,199.37,205.38,180.14,187.43,"Below 50",-9.10%,0.88
+WFC,"Wells Fargo & Company",80.26,85.16,79.15,84.08,85.72,"Below 50",-17.90%,0.85
+WM,"Waste Management",224.85,231.49,237.11,223.26,221.05,"Below 50",-9.38%,0.82
+WMB,"Williams Companies",73.81,70.15,74.17,62.31,63.44,"Above 50",-3.98%,0.75
+WMT,"Walmart Inc",123.06,123.97,124.3,108.42,111.96,"Below 50",-8.63%,0.77
+WRB,"W.R. Berkley Corp",64.49,69.06,68.61,71.53,71.81,"Below 30",-18.33%,1.13
+WSM,Williams-Sonoma,181.93,201.86,188.63,190.33,194.65,"Below 50",-18.05%,0.64
+WST,"West Pharmaceutical Services",247.02,245.04,243.08,252.83,260.11,"Above 50",-23.37%,0.92
+WTW,"Willis Towers Watson Public Ltd",289.51,304.91,295.1,318.73,321.49,"Below 50",-17.94%,0.88
+WY,"Weyerhaeuser Company",23.65,25.34,23.89,24.76,24.34,"Below 50",-21.32%,0.58
+WYNN,"Wynn Resorts Ltd",101.89,108.96,102.62,114.59,118.49,"Below 50",-24.37%,0.67
+XEL,"XCEL Energy Inc",77.7,79.04,81.07,75.81,77.7,"Below 50",-7.75%,0.64
+XOM,"Exxon Mobil Corp",163.26,147.31,155,122.08,126.1,"New Below 70",-2.52%,0.71
+XYL,"Xylem Inc",121.75,131,123.52,137.57,138.98,"Below 50",-21.08%,0.75
+XYZ,"Block Inc",60.01,59.83,61.85,68.25,67.31,"Below 50",-27.26%,0.43
+YUM,"Yum! Brands",159.16,159.44,160.19,150.48,152.05,"Below 50",-6.04%,0.79
+ZBH,"Zimmer Biomet Holdings",87.64,91.85,92.95,95.16,95.28,"Below 50",-23.42%,0.83
+ZBRA,"Zebra Technologies",208.45,234.55,214.39,277.65,264.62,"Below 50",-40.89%,0.58
+ZTS,"Zoetis Inc Cl A",116.71,123.78,120.79,137.55,131.8,"Below 50",-32.24%,0.69
+"Downloaded from Barchart.com as of 03-26-2026 12:11am CDT"

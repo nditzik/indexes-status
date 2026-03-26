@@ -147,6 +147,20 @@
                 <h3>כל המדדים לאורך זמן</h3>
                 <canvas id="trendAllChart" style="max-height:320px;"></canvas>
             </div>
+            <div class="chart-card" style="margin-bottom:20px;">
+                <h3>יחס NH/NL לאורך זמן — מניות קרובות לשיא מול מניות בירידה חדה</h3>
+                <canvas id="trendNhNlChart" style="max-height:260px;"></canvas>
+                <div class="analysis-box" style="margin-top:12px;">
+                    <strong>מה זה NH/NL?</strong><br>
+                    <b>NH (New High)</b> — מניות הנמצאות בתוך 5% מהשיא השנתי שלהן — מניות חזקות יחסית.<br>
+                    <b>NL (New Low)</b> — מניות שירדו 30% ומעלה מהשיא — מניות בלחץ חמור.<br><br>
+                    <b>פירוש היחס:</b><br>
+                    <span class="pos">מעל 2.0</span> — שוק חזק, הרבה יותר מניות חזקות מחלשות<br>
+                    <span class="warn">1.0 – 2.0</span> — שוק מאוזן, מעקב נדרש<br>
+                    <span class="neg">מתחת ל-1.0</span> — לחץ מכירות רחב, יותר חלשות מחזקות<br><br>
+                    <b>כיצד להשתמש:</b> עקוב אחרי <em>כיוון</em> היחס לאורך ימים — עלייה עקבית = שיפור בריאות השוק גם אם המחירים עדיין נמוכים.
+                </div>
+            </div>
             <div class="tbl-wrap">
                 <table class="history-tbl" id="historyTable">
                     <thead><tr>
@@ -157,6 +171,7 @@
                         <th>RSI&gt;50%</th>
                         <th>קרוב לשיא%</th>
                         <th>Oversold%</th>
+                        <th>NH/NL יחס</th>
                         <th>מניות</th>
                     </tr></thead>
                     <tbody id="historyTableBody"></tbody>
@@ -1163,9 +1178,12 @@ function computeMetrics(data) {
     const strong=data.filter(d=>['Above 50','New Above 50','Above 70','Above 80','New Above 70','New Below 70'].includes(d['RSI Rank'])).length;
     const rsiAbove50=strong;
     const healthScore=Math.round(pct(a200,total)*0.30+pct(golden,total)*0.25+pct(rsiAbove50,total)*0.25+pct(within20,total)*0.20);
+    const nhCount = data.filter(d=>parseFloat(d['52W %/High']||0)>=-5).length;
+    const nlCount = data.filter(d=>parseFloat(d['52W %/High']||0)<=-30).length;
+    const nhNlRatio = nlCount > 0 ? +(nhCount/nlCount).toFixed(2) : nhCount > 0 ? 99 : 0;
     return { total, p200:pct(a200,total), p50:pct(a50,total), p20:pct(a20,total),
              pGolden:pct(golden,total), pRsi50:pct(rsiAbove50,total), pWithin20:pct(within20,total),
-             pOversold:pct(oversold,total), healthScore };
+             pOversold:pct(oversold,total), healthScore, nhCount, nlCount, nhNlRatio };
 }
 
 function addCurrentToHistory() {
@@ -1252,6 +1270,24 @@ function renderHistoryUI() {
             elements:{ point:{radius:4} } }
     });
 
+    // NH/NL chart
+    if (trendCharts['trendNhNlChart']) { trendCharts['trendNhNlChart'].destroy(); delete trendCharts['trendNhNlChart']; }
+    trendCharts['trendNhNlChart'] = new Chart(document.getElementById('trendNhNlChart'), {
+        type:'line',
+        data:{ labels, datasets:[
+            { label:'NH (קרוב לשיא)',  data:historyData.map(h=>h.metrics.nhCount), borderColor:'#38a169', backgroundColor:'#38a16922', fill:true, tension:0.3 },
+            { label:'NL (ירידה חדה)', data:historyData.map(h=>h.metrics.nlCount), borderColor:'#e53e3e', backgroundColor:'#e53e3e22', fill:true, tension:0.3 },
+            { label:'יחס NH/NL',      data:historyData.map(h=>h.metrics.nhNlRatio===99?null:h.metrics.nhNlRatio),
+              borderColor:'#805ad5', borderDash:[5,3], fill:false, tension:0.3, yAxisID:'y2' },
+        ]},
+        options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11}} } },
+            scales:{
+                y:  { beginAtZero:true, position:'right', title:{display:true,text:'מניות'} },
+                y2: { beginAtZero:true, position:'left',  title:{display:true,text:'יחס'}, grid:{drawOnChartArea:false} }
+            },
+            elements:{ point:{radius:4} } }
+    });
+
     document.getElementById('historyTableBody').innerHTML = historyData.map(h=>{
         const m = h.metrics;
         const hc = healthColor(m.healthScore);
@@ -1263,6 +1299,7 @@ function renderHistoryUI() {
             <td>${m.pRsi50}%</td>
             <td>${m.pWithin20}%</td>
             <td>${m.pOversold}%</td>
+            <td style="font-weight:600;color:${m.nhNlRatio>=2?'#38a169':m.nhNlRatio>=1?'#d69e2e':'#e53e3e'}">${m.nhNlRatio===99?'∞':m.nhNlRatio} (${m.nhCount}/${m.nlCount})</td>
             <td>${m.total}</td>
         </tr>`;
     }).join('');
