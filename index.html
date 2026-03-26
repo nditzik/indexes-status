@@ -149,7 +149,7 @@
             </div>
             <div class="chart-card" style="margin-bottom:20px;">
                 <h3>Heatmap שינוי יומי ממוצע לפי סקטור</h3>
-                <div id="sectorHeatmap" style="overflow-x:auto;"></div>
+                <div id="sectorChangeHeatmap" style="overflow-x:auto;"></div>
                 <div style="margin-top:10px;font-size:11px;color:#718096;display:flex;gap:16px;align-items:center;">
                     <span>🟥 ירידה חדה (&lt;-2%)</span>
                     <span>🟧 ירידה (-1% עד -2%)</span>
@@ -157,10 +157,6 @@
                     <span>🟩 עלייה (1%-2%)</span>
                     <span>💚 עלייה חזקה (&gt;2%)</span>
                 </div>
-            </div>
-            <div class="chart-card" style="margin-bottom:20px;">
-                <h3>רוחב שוק לפי סקטור — % מניות מעל 200D MA</h3>
-                <canvas id="trendSectorChart" style="max-height:320px;"></canvas>
             </div>
             <div class="chart-card" style="margin-bottom:20px;">
                 <h3>יחס NH/NL לאורך זמן — מניות קרובות לשיא מול מניות בירידה חדה</h3>
@@ -1327,8 +1323,14 @@ function renderHistoryUI() {
         // כותרת תאריכים
         const hdr = tbl.insertRow(); hdr.insertCell().innerHTML = '<b>סקטור</b>';
         hmDates.forEach(h=>{ const c=hdr.insertCell(); c.style.cssText='text-align:center;padding:4px 8px;font-weight:600;font-size:11px;'; c.textContent=h.date.slice(5); });
-        // שורה לכל סקטור
-        SECS.forEach(sec=>{
+        // מיון סקטורים לפי ממוצע השינוי בכל הימים — גבוה לנמוך
+        const secAvg = sec => {
+            const vals = hmDates.map(h=>h.metrics.sectorChange?h.metrics.sectorChange[sec]:null).filter(v=>v!==null);
+            return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : -999;
+        };
+        const sortedSecs = [...SECS].sort((a,b) => secAvg(b) - secAvg(a));
+
+        sortedSecs.forEach(sec=>{
             const row = tbl.insertRow();
             const lbl = row.insertCell();
             lbl.style.cssText = 'padding:5px 10px;font-weight:600;white-space:nowrap;';
@@ -1340,28 +1342,9 @@ function renderHistoryUI() {
                 cell.textContent = v !== null ? (v>0?'+':'')+v+'%' : '—';
             });
         });
-        document.getElementById('sectorHeatmap').innerHTML = '';
-        document.getElementById('sectorHeatmap').appendChild(tbl);
+        document.getElementById('sectorChangeHeatmap').innerHTML = '';
+        document.getElementById('sectorChangeHeatmap').appendChild(tbl);
     }
-
-    // Sector breadth trend chart
-    const SECTOR_COLORS = { IT:'#3182ce',HC:'#38a169',FIN:'#d69e2e',CD:'#e53e3e',
-        CS:'#805ad5',IND:'#ed8936',COM:'#00b5d8',ENE:'#744210',UTL:'#4a5568',RE:'#9f7aea',MAT:'#48bb78' };
-    if (trendCharts['trendSectorChart']) { trendCharts['trendSectorChart'].destroy(); delete trendCharts['trendSectorChart']; }
-    trendCharts['trendSectorChart'] = new Chart(document.getElementById('trendSectorChart'), {
-        type:'line',
-        data:{ labels, datasets: Object.keys(SECTOR_COLORS).map(sec=>({
-            label: SECTOR_HE[sec],
-            data: historyData.map(h => h.metrics.sectorBreadth ? h.metrics.sectorBreadth[sec] : null),
-            borderColor: SECTOR_COLORS[sec],
-            backgroundColor: 'transparent',
-            borderWidth: 2, tension: 0.3,
-            pointRadius: 4, fill: false
-        }))},
-        options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:10,font:{size:10}} } },
-            scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } },
-            elements:{ point:{radius:4} } }
-    });
 
     // NH/NL chart
     if (trendCharts['trendNhNlChart']) { trendCharts['trendNhNlChart'].destroy(); delete trendCharts['trendNhNlChart']; }
