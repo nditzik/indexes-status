@@ -148,10 +148,6 @@
                 <canvas id="trendAllChart" style="max-height:320px;"></canvas>
             </div>
             <div class="chart-card" style="margin-bottom:20px;">
-                <h3>ממוצע שינוי יומי — שוק כללי</h3>
-                <canvas id="trendAvgChangeChart" style="max-height:220px;"></canvas>
-            </div>
-            <div class="chart-card" style="margin-bottom:20px;">
                 <h3>Heatmap שינוי יומי ממוצע לפי סקטור</h3>
                 <div id="sectorHeatmap" style="overflow-x:auto;"></div>
                 <div style="margin-top:10px;font-size:11px;color:#718096;display:flex;gap:16px;align-items:center;">
@@ -1320,24 +1316,6 @@ function renderHistoryUI() {
         if (v > 0) return `rgba(56,161,105,${0.15 + a * 0.75})`;
         if (v < 0) return `rgba(229,62,62,${0.15 + a * 0.75})`;
         return '#f7fafc';
-    }
-
-    // ממוצע שינוי יומי — קו שוק
-    if (trendCharts['trendAvgChangeChart']) { trendCharts['trendAvgChangeChart'].destroy(); delete trendCharts['trendAvgChangeChart']; }
-    const avgData = historyData.map(h=>h.metrics.avgChange);
-    if (avgData.some(v=>v!==null)) {
-        trendCharts['trendAvgChangeChart'] = new Chart(document.getElementById('trendAvgChangeChart'), {
-            type:'bar',
-            data:{ labels, datasets:[{
-                label:'ממוצע שינוי יומי %',
-                data: avgData,
-                backgroundColor: avgData.map(v=>v===null?'#e2e8f0':v>=0?'rgba(56,161,105,0.7)':'rgba(229,62,62,0.7)'),
-                borderColor:     avgData.map(v=>v===null?'#e2e8f0':v>=0?'#38a169':'#e53e3e'),
-                borderWidth:1
-            }]},
-            options:{ plugins:{ legend:{display:false} },
-                scales:{ y:{ ticks:{ callback:v=>v+'%' } } } }
-        });
     }
 
     // Heatmap סקטורים
