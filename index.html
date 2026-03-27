@@ -441,11 +441,11 @@ const S = {
 const SECTOR_HE = { 'IT':'טכנולוגיה','HC':'בריאות','FIN':'פיננסים','CD':'צריכה מחזורית',
     'CS':'צריכה בסיסית','IND':'תעשייה','COM':'תקשורת','ENE':'אנרגיה',
     'UTL':'תשתיות','RE':'נדל"ן','MAT':'חומרי גלם','?':'אחר' };
-const RSI_APPROX = { 'New Above 20':21,'Below 30':25,'New Above 30':33,'New Below 50':47,
+const RSI_APPROX = { 'New Above 20':21,'Below 30':25,'New Below 30':28,'New Above 30':33,'New Below 50':47,
     'Below 50':42,'New Above 50':53,'Above 50':62,'New Below 70':68,
     'New Above 70':72,'Above 70':75,'Above 80':83 };
 const RSI_GROUP = {
-    oversold:   ['Below 30','New Above 20'],
+    oversold:   ['Below 30','New Below 30','New Above 20'],
     weak:       ['Below 50','New Below 50','New Above 30'],
     strong:     ['Above 50','New Above 50'],
     overbought: ['Above 70','Above 80','New Above 70','New Below 70']
