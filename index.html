@@ -88,6 +88,13 @@
         .history-tbl td { padding: 6px 10px; border-bottom: 1px solid #f0f4f8; }
         .add-history-btn { background: #38a169; color: white; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-top: 8px; }
         .add-history-btn:hover { background: #2f855a; }
+        /* Top/Bottom 10 */
+        .rank-row { display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid #f0f4f8; font-size:13px; }
+        .rank-num { width:22px; font-size:11px; color:#a0aec0; text-align:center; flex-shrink:0; }
+        .rank-score { font-weight:700; width:32px; text-align:center; border-radius:4px; padding:2px 4px; font-size:12px; flex-shrink:0; }
+        .rank-sym { font-weight:700; width:50px; flex-shrink:0; }
+        .rank-name { color:#718096; font-size:11px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .rank-chg { font-size:12px; font-weight:600; width:48px; text-align:left; flex-shrink:0; }
         /* Heatmap */
         .heatmap-wrap { overflow-x: auto; }
         .heatmap-tbl { border-collapse: collapse; font-size: 12px; width: 100%; }
@@ -276,6 +283,24 @@
         <div class="card" id="summaryCard">
             <h3 class="section-title">ניתוח שוק מקיף</h3>
             <div id="marketSummary"></div>
+        </div>
+
+        <!-- Top / Bottom 10 -->
+        <div class="card" id="topBottomCard">
+            <h3 class="section-title">Top 10 / Bottom 10 — ציון מומנטום</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                <div>
+                    <div style="font-weight:700;color:#276749;margin-bottom:8px;font-size:13px;">🔝 10 המניות החזקות ביותר</div>
+                    <div id="top10"></div>
+                </div>
+                <div>
+                    <div style="font-weight:700;color:#e53e3e;margin-bottom:8px;font-size:13px;">🔻 10 המניות החלשות ביותר</div>
+                    <div id="bottom10"></div>
+                </div>
+            </div>
+            <div class="analysis-box" style="margin-top:12px;">
+                <strong>ציון מומנטום (0–100)</strong> — שקלול של: מיקום מעל ממוצעים נעים (30%), RSI (25%), מרחק מהשיא (20%), נפח יחסי RVOL (10%), שינוי יומי (15%).
+            </div>
         </div>
 
         <!-- Watchlist -->
@@ -472,12 +497,14 @@ function pos(t)  { return `<span class="pos">${t}</span>`; }
 function neg(t)  { return `<span class="neg">${t}</span>`; }
 function warn(t) { return `<span class="warn">${t}</span>`; }
 function getMomentumScore(d) {
-    const maComp   = (d.maScore / 4) * 35;
-    const rsiVal   = RSI_APPROX[d['RSI Rank']] || 50;
-    const rsiComp  = Math.max(0, Math.min(25, (rsiVal - 20) / 65 * 25));
-    const w52Comp  = Math.max(0, Math.min(25, (100 + (d['52w'] || 0)) / 100 * 25));
-    const rvolComp = Math.min(15, (d.rvol || 0) / 2 * 15);
-    return Math.round(maComp + rsiComp + w52Comp + rvolComp);
+    const maComp     = (d.maScore / 4) * 30;
+    const rsiVal     = RSI_APPROX[d['RSI Rank']] || 50;
+    const rsiComp    = Math.max(0, Math.min(25, (rsiVal - 20) / 65 * 25));
+    const w52Comp    = Math.max(0, Math.min(20, (100 + (d['52w'] || 0)) / 100 * 20));
+    const rvolComp   = Math.min(10, (d.rvol || 0) / 2 * 10);
+    const chg        = parseFloat(d['%Change'] || 0);
+    const chgComp    = Math.max(0, Math.min(15, (chg + 5) / 10 * 15));
+    return Math.round(maComp + rsiComp + w52Comp + rvolComp + chgComp);
 }
 function momentumColor(s) {
     return s >= 70 ? '#276749' : s >= 50 ? '#38a169' : s >= 35 ? '#ecc94b' : s >= 20 ? '#ed8936' : '#e53e3e';
@@ -682,7 +709,16 @@ function processData() {
                 ${nhCount} קרובות לשיא (≤5%-) מול ${nlCount} ירדו מעל 30%.<br>
                 ${parseFloat(nhNlRatio) >= 2 ? '🟢 שוק חזק' : parseFloat(nhNlRatio) >= 1 ? '🟡 מאוזן' : parseFloat(nhNlRatio) > 0 ? '🔴 לחץ מכירות' : '🔴 אין מניות חזקות'}
             </p>
-        </div>`;
+        </div>
+        ${advancing > 0 || declining > 0 ? `
+        <div class="stat-card ${advancing > declining ? 'green' : 'red'}">
+            <h3>עולות / יורדות</h3>
+            <p style="font-size:20px">${advancing}/${declining}</p>
+            <p style="font-size:11px;color:#718096;margin:4px 0 0;line-height:1.4">
+                יחס ${declining > 0 ? (advancing/declining).toFixed(2) : '∞'}<br>
+                ${advancing > declining*1.5 ? '🟢 יום עלייה רחב' : declining > advancing*1.5 ? '🔴 יום ירידה רחב' : '🟡 מאוזן'}
+            </p>
+        </div>` : ''}`;
 
     document.getElementById('dashboard').style.display = 'block';
     document.getElementById('historySection').style.display = 'block';
@@ -700,6 +736,7 @@ function processData() {
     renderRvolCharts(tableData, sectorsSorted, sectors);
     renderSetupScreener();
     generateAllAnalysis();
+    renderTopBottom();
     sortKey='maScore'; sortAsc=false;
     renderTable();
 }
@@ -904,6 +941,31 @@ function generateAllAnalysis() {
 
     // ── 8. Market Summary ──
     generateMarketSummary();
+}
+
+function renderTopBottom() {
+    if (!tableData.length) return;
+    const sorted = [...tableData].sort((a,b) => b.momentumScore - a.momentumScore);
+    const top10    = sorted.slice(0, 10);
+    const bottom10 = sorted.slice(-10).reverse();
+
+    function rowHtml(d, i, isTop) {
+        const chg = parseFloat(d['%Change'] || 0);
+        const chgStr = isNaN(chg) ? '—' : (chg > 0 ? '+' : '') + chg.toFixed(2) + '%';
+        const chgColor = chg > 0 ? '#38a169' : chg < 0 ? '#e53e3e' : '#718096';
+        const sc = d.momentumScore;
+        const scColor = momentumColor(sc);
+        return `<div class="rank-row">
+            <span class="rank-num">${i+1}</span>
+            <span class="rank-score" style="background:${scColor}22;color:${scColor}">${sc}</span>
+            <span class="rank-sym">${d['Symbol']}</span>
+            <span class="rank-name">${d['Name']||''}</span>
+            <span class="rank-chg" style="color:${chgColor}">${chgStr}</span>
+        </div>`;
+    }
+
+    document.getElementById('top10').innerHTML    = top10.map((d,i)=>rowHtml(d,i,true)).join('');
+    document.getElementById('bottom10').innerHTML = bottom10.map((d,i)=>rowHtml(d,i,false)).join('');
 }
 
 function generateMarketSummary() {
