@@ -646,6 +646,9 @@ function processData() {
     const nhCount  = nearHigh;
     const nlCount  = tableData.filter(d=>d['52w']<=-30).length;
     const nhNlRatio = nlCount > 0 ? (nhCount / nlCount).toFixed(2) : nhCount > 0 ? '∞' : '0';
+    const allChg   = tableData.map(d=>parseFloat(d['%Change']||0)).filter(v=>!isNaN(v)&&v!==0);
+    const advancing = allChg.filter(v=>v>0).length;
+    const declining = allChg.filter(v=>v<0).length;
     const within20 = tableData.filter(d=>d['52w']>=-20).length;
     const rsiC = g => tableData.filter(d=>d.rsiGroup===g).length;
     const oversold=rsiC('oversold'),weak=rsiC('weak'),strong=rsiC('strong'),overbought=rsiC('overbought');
