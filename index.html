@@ -7,7 +7,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { box-sizing: border-box; }
-        body { font-family: system-ui, -apple-system, sans-serif; background: #f0f4f8; margin: 0; padding: 20px; color: #2d3748; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f0f4f8 url('דשבורד.png') no-repeat center center fixed; background-size: cover; margin: 0; padding: 20px; color: #2d3748; }
+        body::before { content:''; position:fixed; inset:0; background:rgba(240,244,248,0.82); z-index:0; pointer-events:none; }
+        body > * { position: relative; z-index: 1; }
         .container { max-width: 1200px; margin: auto; }
         .header { background: linear-gradient(135deg, #1a365d, #2b6cb0); color: white; padding: 25px 30px; border-radius: 14px; margin-bottom: 20px; text-align: center; }
         .header h1 { margin: 0 0 5px; font-size: 24px; }
