@@ -35,7 +35,7 @@
         .stat-card.orange { border-top-color: #ed8936; }
         .stat-card.green  { border-top-color: #38a169; }
         .stat-card.gold   { border-top-color: #d69e2e; }
-        .stat-card h3 { margin: 0; font-size: 11px; color: #a0aec0; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+        .stat-card h3 { margin: 0; font-size: 11px; color: #e2e8f0; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
         .stat-card p  { margin: 8px 0 0; font-size: 24px; font-weight: 700; color: #fff; }
         /* Charts */
         .section-title { font-size: 15px; font-weight: 700; color: #e2e8f0; margin: 0 0 14px; padding-bottom: 8px; border-bottom: 2px solid rgba(255,255,255,0.15); }
@@ -1484,17 +1484,17 @@ function renderHistoryUI() {
     document.getElementById('historyStats').innerHTML = `
         <div class="stat-card" style="min-width:160px;border-top-color:#e53e3e">
             <h3>Distribution Days</h3><p style="font-size:22px">${distDays}</p>
-            <p style="font-size:11px;color:#a0aec0;margin:4px 0 0">ימי ירידה עם נפח גבוה</p>
+            <p style="font-size:11px;color:#e2e8f0;margin:4px 0 0">ימי ירידה עם נפח גבוה</p>
         </div>
         <div class="stat-card" style="min-width:160px;border-top-color:${healthSlope>=0?'#38a169':'#e53e3e'}">
             <h3>שיפוע ציון בריאות</h3>
             <p style="font-size:22px;color:${healthSlope>=0?'#38a169':'#e53e3e'}">${healthSlope!==null?(healthSlope>0?'+':'')+healthSlope:'—'}</p>
-            <p style="font-size:11px;color:#a0aec0;margin:4px 0 0">נקודות ליום (${historyData.length} ימים)</p>
+            <p style="font-size:11px;color:#e2e8f0;margin:4px 0 0">נקודות ליום (${historyData.length} ימים)</p>
         </div>
         <div class="stat-card" style="min-width:160px;border-top-color:${p200Dod>=0?'#38a169':'#e53e3e'}">
             <h3>קצב שיפוי (200D MA)</h3>
             <p style="font-size:22px;color:${p200Dod>=0?'#38a169':'#e53e3e'}">${p200Dod!==null?(p200Dod>0?'+':'')+p200Dod+'%':'—'}</p>
-            <p style="font-size:11px;color:#a0aec0;margin:4px 0 0">שינוי יומי % מעל 200D MA</p>
+            <p style="font-size:11px;color:#e2e8f0;margin:4px 0 0">שינוי יומי % מעל 200D MA</p>
         </div>`;
     document.getElementById('historyCharts').style.display = 'block';
 
