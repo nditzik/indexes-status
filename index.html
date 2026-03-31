@@ -61,7 +61,7 @@
         /* Table */
         .filter-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; align-items: center; }
         .filter-row select, .filter-row input[type=text] { padding: 7px 10px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; font-size: 13px; background: rgba(255,255,255,0.12); color: #e2e8f0; backdrop-filter: blur(8px); }
-        .filter-row label { font-size: 13px; color: #4a5568; display: flex; align-items: center; gap: 6px; }
+        .filter-row label { font-size: 13px; color: #e2e8f0; display: flex; align-items: center; gap: 6px; }
         .tbl-wrap { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
         th { background: rgba(255,255,255,0.12); padding: 10px 12px; text-align: right; cursor: pointer; user-select: none; color: #e2e8f0; font-weight: 600; white-space: nowrap; }
@@ -71,22 +71,22 @@
         .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
         .score-bar { display: inline-flex; gap: 3px; }
         .score-dot { width: 10px; height: 10px; border-radius: 50%; }
-        #tableInfo { font-size: 13px; color: #718096; margin-bottom: 8px; }
+        #tableInfo { font-size: 13px; color: #a0aec0; margin-bottom: 8px; }
         .export-btn { float: left; }
-        .scatter-note { text-align: center; font-size: 12px; color: #718096; margin-top: 8px; }
+        .scatter-note { text-align: center; font-size: 12px; color: #a0aec0; margin-top: 8px; }
         /* Opportunity stock tags */
         .opp-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
         .opp-tag { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px; font-size: 12px; min-width: 110px; }
         .opp-tag.hot { border-color: #ed8936; border-width: 2px; }
         .opp-tag .sym { font-weight: 700; font-size: 13px; display: block; }
-        .opp-tag .meta { color: #718096; font-size: 11px; }
+        .opp-tag .meta { color: #a0aec0; font-size: 11px; }
         /* History */
         .history-section { margin-top: 20px; }
         .trend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
         @media (max-width: 750px) { .trend-grid { grid-template-columns: 1fr; } }
         .history-tbl { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
-        .history-tbl th { background: #edf2f7; padding: 7px 10px; text-align: right; font-weight: 600; color: #4a5568; }
-        .history-tbl td { padding: 6px 10px; border-bottom: 1px solid #f0f4f8; }
+        .history-tbl th { background: rgba(255,255,255,0.12); padding: 7px 10px; text-align: right; font-weight: 600; color: #e2e8f0; }
+        .history-tbl td { padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.07); color: #e2e8f0; }
         .add-history-btn { background: #38a169; color: white; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-top: 8px; }
         .add-history-btn:hover { background: #2f855a; }
         /* Top/Bottom 10 */
@@ -94,18 +94,18 @@
         .rank-num { width:22px; font-size:11px; color:#a0aec0; text-align:center; flex-shrink:0; }
         .rank-score { font-weight:700; width:32px; text-align:center; border-radius:4px; padding:2px 4px; font-size:12px; flex-shrink:0; }
         .rank-sym { font-weight:700; width:50px; flex-shrink:0; }
-        .rank-name { color:#718096; font-size:11px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .rank-name { color:#a0aec0; font-size:11px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .rank-chg { font-size:12px; font-weight:600; width:48px; text-align:left; flex-shrink:0; }
         /* Heatmap */
         .heatmap-wrap { overflow-x: auto; }
         .heatmap-tbl { border-collapse: collapse; font-size: 12px; width: 100%; }
-        .heatmap-tbl th { background: #edf2f7; padding: 8px 12px; text-align: center; font-weight: 600; color: #4a5568; white-space: nowrap; }
+        .heatmap-tbl th { background: rgba(255,255,255,0.12); padding: 8px 12px; text-align: center; font-weight: 600; color: #e2e8f0; white-space: nowrap; }
         .heatmap-tbl th.left { text-align: right; }
         .heatmap-tbl td { padding: 7px 12px; text-align: center; font-weight: 600; font-size: 12px; border: 1px solid #e2e8f0; }
-        .heatmap-tbl td.sector-name { text-align: right; background: #f7fafc; font-weight: 600; color: #4a5568; white-space: nowrap; }
+        .heatmap-tbl td.sector-name { text-align: right; background: rgba(255,255,255,0.08); font-weight: 600; color: #e2e8f0; white-space: nowrap; }
         /* Setup screener */
         .setup-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .setup-tbl th { background: #edf2f7; padding: 9px 12px; text-align: right; font-weight: 600; color: #4a5568; }
+        .setup-tbl th { background: rgba(255,255,255,0.12); padding: 9px 12px; text-align: right; font-weight: 600; color: #e2e8f0; }
         .setup-tbl td { padding: 8px 12px; border-bottom: 1px solid #f0f4f8; }
         .momentum-bar { display: inline-block; height: 8px; border-radius: 4px; margin-right: 6px; vertical-align: middle; }
         /* NH/NL */
@@ -129,7 +129,7 @@
         <div style="font-size:12px;color:#38a169;margin-top:6px;" id="autoLoadNote"></div>
         <div id="addHistoryRow" style="display:none;margin-top:8px;">
             <button class="add-history-btn" onclick="addCurrentToHistory()">+ הוסף להיסטוריה</button>
-            <span id="historyStatus" style="margin-right:10px;font-size:12px;color:#718096;"></span>
+            <span id="historyStatus" style="margin-right:10px;font-size:12px;color:#a0aec0;"></span>
         </div>
     </div>
 
@@ -138,7 +138,7 @@
         <h3 class="section-title">ניתוח היסטורי — מגמות לאורך זמן</h3>
         <div class="input-row">
             <input type="file" id="historyFiles" accept=".csv" multiple onchange="processHistoryFiles(event)">
-            <span style="font-size:12px;color:#718096;">בחר מספר קבצי CSV (שמות: watchlist-sp-500-intraday-MM-DD-YYYY.csv)</span>
+            <span style="font-size:12px;color:#a0aec0;">בחר מספר קבצי CSV (שמות: watchlist-sp-500-intraday-MM-DD-YYYY.csv)</span>
         </div>
         <div id="historyCharts" style="display:none;">
             <div class="trend-grid">
@@ -158,7 +158,7 @@
             <div class="chart-card" style="margin-bottom:20px;">
                 <h3>Heatmap שינוי יומי ממוצע לפי סקטור</h3>
                 <div id="sectorChangeHeatmap" style="overflow-x:auto;"></div>
-                <div style="margin-top:10px;font-size:11px;color:#718096;display:flex;gap:16px;align-items:center;">
+                <div style="margin-top:10px;font-size:11px;color:#a0aec0;display:flex;gap:16px;align-items:center;">
                     <span>🟥 ירידה חדה (&lt;-2%)</span>
                     <span>🟧 ירידה (-1% עד -2%)</span>
                     <span>⬜ יציב</span>
@@ -280,7 +280,7 @@
         <!-- Setup Screener -->
         <div class="card">
             <h3 class="section-title">מסנן Setup אידיאלי — מועמדות לריבאונד עם נפח</h3>
-            <p style="font-size:12px;color:#718096;margin:0 0 12px;">RSI חלש/oversold + MA Score ≥ 1 + RVOL &gt; 1.2 · ממוין לפי ציון מתנע</p>
+            <p style="font-size:12px;color:#a0aec0;margin:0 0 12px;">RSI חלש/oversold + MA Score ≥ 1 + RVOL &gt; 1.2 · ממוין לפי ציון מתנע</p>
             <div id="setupScreener"></div>
         </div>
 
@@ -732,7 +732,7 @@ function processData() {
         <div class="stat-card red"><h3>מכירת יתר (RSI&lt;30)</h3><p>${oversold}</p></div>
         <div class="stat-card orange"><h3>ירידה מעל 30%</h3><p>${deepDrop}</p></div>
         <div class="stat-card teal"><h3>יחס NH/NL</h3><p style="font-size:20px">${nhNlRatio}</p>
-            <p style="font-size:11px;color:#718096;margin:4px 0 0;line-height:1.4">
+            <p style="font-size:11px;color:#a0aec0;margin:4px 0 0;line-height:1.4">
                 ${nhCount} קרובות לשיא (≤5%-) מול ${nlCount} ירדו מעל 30%.<br>
                 ${parseFloat(nhNlRatio) >= 2 ? '🟢 שוק חזק' : parseFloat(nhNlRatio) >= 1 ? '🟡 מאוזן' : parseFloat(nhNlRatio) > 0 ? '🔴 לחץ מכירות' : '🔴 אין מניות חזקות'}
             </p>
@@ -741,7 +741,7 @@ function processData() {
         <div class="stat-card ${advancing > declining ? 'green' : 'red'}">
             <h3>עולות / יורדות</h3>
             <p style="font-size:20px">${advancing}/${declining}</p>
-            <p style="font-size:11px;color:#718096;margin:4px 0 0;line-height:1.4">
+            <p style="font-size:11px;color:#a0aec0;margin:4px 0 0;line-height:1.4">
                 יחס ${declining > 0 ? (advancing/declining).toFixed(2) : '∞'}<br>
                 ${advancing > declining*1.5 ? '🟢 יום עלייה רחב' : declining > advancing*1.5 ? '🔴 יום ירידה רחב' : '🟡 מאוזן'}
             </p>
@@ -1056,7 +1056,7 @@ function generateMarketSummary() {
         ${opportunityStocks.length > 0 ? `
         <div style="margin-top:16px;">
             <strong style="font-size:13px;color:#2b6cb0;">מניות בזון ההזדמנויות (${opportunityStocks.length})</strong>
-            <p style="font-size:12px;color:#718096;margin:4px 0 8px;">RSI נמוך + ירידה &gt;15% מהשיא + לפחות ממוצע נע אחד תומך. גבול כתום = RVOL גבוה (&gt;1.2)</p>
+            <p style="font-size:12px;color:#a0aec0;margin:4px 0 8px;">RSI נמוך + ירידה &gt;15% מהשיא + לפחות ממוצע נע אחד תומך. גבול כתום = RVOL גבוה (&gt;1.2)</p>
             <div class="opp-tags">
                 ${opportunityStocks.map(d=>{
                     const rv = d.rvol || 0;
@@ -1247,11 +1247,11 @@ function renderSetupScreener() {
         .slice(0, 30);
 
     if (!setups.length) {
-        document.getElementById('setupScreener').innerHTML = '<p style="color:#718096;font-size:13px;">אין מניות העומדות בקריטריונים כרגע.</p>';
+        document.getElementById('setupScreener').innerHTML = '<p style="color:#a0aec0;font-size:13px;">אין מניות העומדות בקריטריונים כרגע.</p>';
         return;
     }
     document.getElementById('setupScreener').innerHTML = `
-        <div style="margin-bottom:8px;font-size:12px;color:#718096;">נמצאו <strong>${setups.length}</strong> מניות (מציג עד 30)</div>
+        <div style="margin-bottom:8px;font-size:12px;color:#a0aec0;">נמצאו <strong>${setups.length}</strong> מניות (מציג עד 30)</div>
         <div class="tbl-wrap"><table class="setup-tbl">
             <thead><tr>
                 <th>סימול</th><th>שם</th><th>סקטור</th>
