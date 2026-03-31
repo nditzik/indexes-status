@@ -10,9 +10,17 @@
         body { font-family: system-ui, -apple-system, sans-serif; background: #0d1a3a url('דשבורד.png') no-repeat center center fixed; background-size: cover; margin: 0; padding: 20px; color: #e2e8f0; }
         .container { max-width: 1200px; margin: auto; }
         .glass { background: rgba(255,255,255,0.22); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.28); }
-        .header { background: rgba(26,54,93,0.55); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 25px 30px; border-radius: 14px; margin-bottom: 20px; text-align: center; }
-        .header h1 { margin: 0 0 5px; font-size: 24px; }
-        .header p  { margin: 0; opacity: .8; font-size: 14px; }
+        .header { background: rgba(26,54,93,0.55); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 20px 30px 14px; border-radius: 14px; margin-bottom: 20px; text-align: center; }
+        .header h1 { margin: 0 0 4px; font-size: 24px; }
+        .header p  { margin: 0 0 14px; opacity: .8; font-size: 14px; }
+        /* Ticker bar */
+        .ticker-bar { display:none; flex-wrap:wrap; justify-content:center; gap:6px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.15); }
+        .ticker-item { display:flex; flex-direction:column; align-items:center; padding:6px 16px; background:rgba(255,255,255,0.08); border-radius:8px; min-width:100px; }
+        .ticker-label { font-size:10px; color:rgba(255,255,255,0.6); text-transform:uppercase; letter-spacing:.5px; margin-bottom:2px; }
+        .ticker-value { font-size:18px; font-weight:700; color:#fff; }
+        .ticker-value.pos { color:#68d391; }
+        .ticker-value.neg { color:#fc8181; }
+        .ticker-value.warn { color:#faf089; }
         .card { background: rgba(255,255,255,0.22); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.28); border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 24px rgba(0,0,0,.3); }
         .input-row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
         input[type=file] { font-size: 14px; padding: 6px; border: 1px solid #cbd5e0; border-radius: 6px; flex: 1; }
@@ -118,6 +126,28 @@
     <div class="header">
         <h1>דשבורד ניתוח תחתית שוק — איציק</h1>
         <p>S&P 500 · Breadth &amp; Sector Analysis</p>
+        <div class="ticker-bar" id="tickerBar">
+            <div class="ticker-item">
+                <span class="ticker-label">ציון בריאות</span>
+                <span class="ticker-value" id="tkHealth">—</span>
+            </div>
+            <div class="ticker-item">
+                <span class="ticker-label">מעל 200D MA</span>
+                <span class="ticker-value" id="tkP200">—</span>
+            </div>
+            <div class="ticker-item">
+                <span class="ticker-label">שינוי יומי ממוצע</span>
+                <span class="ticker-value" id="tkAvgChange">—</span>
+            </div>
+            <div class="ticker-item">
+                <span class="ticker-label">עולות / יורדות</span>
+                <span class="ticker-value" id="tkAD">—</span>
+            </div>
+            <div class="ticker-item">
+                <span class="ticker-label">תאריך נתונים</span>
+                <span class="ticker-value" style="font-size:13px" id="tkDate">—</span>
+            </div>
+        </div>
     </div>
 
     <div class="card">
@@ -776,6 +806,23 @@ function processData() {
                 ${advancing > declining*1.5 ? '🟢 יום עלייה רחב' : declining > advancing*1.5 ? '🔴 יום ירידה רחב' : '🟡 מאוזן'}
             </p>
         </div>` : ''}`;
+
+    // ── Ticker bar ──
+    const avgChgVal = allChg.length ? +(allChg.reduce((a,b)=>a+b,0)/allChg.length).toFixed(2) : null;
+    const hsCls = healthScore>=60?'pos':healthScore>=35?'warn':'neg';
+    const p200Cls = pct(a200,total)>=50?'pos':pct(a200,total)>=35?'warn':'neg';
+    const acCls = avgChgVal>0?'pos':avgChgVal<0?'neg':'';
+    const adCls = advancing>declining?'pos':declining>advancing?'neg':'warn';
+    document.getElementById('tkHealth').className    = `ticker-value ${hsCls}`;
+    document.getElementById('tkHealth').textContent  = healthScore;
+    document.getElementById('tkP200').className      = `ticker-value ${p200Cls}`;
+    document.getElementById('tkP200').textContent    = pct(a200,total)+'%';
+    document.getElementById('tkAvgChange').className = `ticker-value ${acCls}`;
+    document.getElementById('tkAvgChange').textContent = avgChgVal!==null?(avgChgVal>0?'+':'')+avgChgVal+'%':'—';
+    document.getElementById('tkAD').className        = `ticker-value ${adCls}`;
+    document.getElementById('tkAD').textContent      = advancing+' / '+declining;
+    document.getElementById('tkDate').textContent    = currentDateLabel || '—';
+    document.getElementById('tickerBar').style.display = 'flex';
 
     document.getElementById('dashboard').style.display = 'block';
     document.getElementById('historySection').style.display = 'block';
