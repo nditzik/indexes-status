@@ -147,6 +147,14 @@
                 <span class="ticker-label">תאריך נתונים</span>
                 <span class="ticker-value" style="font-size:13px" id="tkDate">—</span>
             </div>
+            <div class="ticker-item">
+                <span class="ticker-label">🔝 עלה הכי הרבה</span>
+                <span class="ticker-value pos" id="tkTopGainer">—</span>
+            </div>
+            <div class="ticker-item">
+                <span class="ticker-label">🔻 ירד הכי הרבה</span>
+                <span class="ticker-value neg" id="tkTopLoser">—</span>
+            </div>
         </div>
     </div>
 
@@ -822,6 +830,10 @@ function processData() {
     document.getElementById('tkAD').className        = `ticker-value ${adCls}`;
     document.getElementById('tkAD').textContent      = advancing+' / '+declining;
     document.getElementById('tkDate').textContent    = currentDateLabel || '—';
+    const sorted = [...tableData].filter(d=>!isNaN(parseFloat(d['%Change']))).sort((a,b)=>parseFloat(b['%Change'])-parseFloat(a['%Change']));
+    const gainer = sorted[0], loser = sorted[sorted.length-1];
+    document.getElementById('tkTopGainer').textContent = gainer ? `${gainer['Symbol']} ${parseFloat(gainer['%Change'])>0?'+':''}${parseFloat(gainer['%Change']).toFixed(2)}%` : '—';
+    document.getElementById('tkTopLoser').textContent  = loser  ? `${loser['Symbol']} ${parseFloat(loser['%Change']).toFixed(2)}%` : '—';
     document.getElementById('tickerBar').style.display = 'flex';
 
     document.getElementById('dashboard').style.display = 'block';
