@@ -272,7 +272,7 @@
                 <canvas id="rvolHistChart"></canvas>
             </div>
             <div class="chart-card">
-                <h3>% מניות עם RVOL גבוה (&gt;1.2) לפי סקטור</h3>
+                <h3>ממוצע שינוי % מניות עם RVOL גבוה (&gt;1.2) לפי סקטור</h3>
                 <canvas id="rvolSectorChart"></canvas>
             </div>
         </div>
@@ -1221,21 +1221,23 @@ function renderRvolCharts(data, sectorsSorted, sectors) {
         options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
     });
 
-    // By sector
-    const sectorRvol = sectorsSorted.map(sc => {
-        const stocks = data.filter(d=>d.sector===sc && d.rvol > 0);
-        if (!stocks.length) return 0;
-        return +(stocks.filter(d=>d.rvol>1.2).length / stocks.length * 100).toFixed(1);
+    // By sector — ממוצע שינוי % של מניות עם RVOL > 1.2
+    const sectorRvolChange = sectorsSorted.map(sc => {
+        const stocks = data.filter(d=>d.sector===sc && d.rvol>1.2);
+        if (!stocks.length) return null;
+        const changes = stocks.map(d=>parseFloat(d['%Change']||0)).filter(v=>!isNaN(v));
+        return changes.length ? +(changes.reduce((a,b)=>a+b,0)/changes.length).toFixed(2) : null;
     });
     destroyChart('rvolSectorChart');
     charts['rvolSectorChart'] = new Chart(document.getElementById('rvolSectorChart'), {
         type:'bar',
         data:{ labels: sectorsSorted.map(sc=>SECTOR_HE[sc]||sc), datasets:[{
-            data: sectorRvol,
-            backgroundColor: sectorRvol.map(v => v >= 40 ? '#276749' : v >= 20 ? '#38a169' : '#68d391')
+            data: sectorRvolChange,
+            backgroundColor: sectorRvolChange.map(v => v===null ? '#a0aec0' : v >= 0 ? '#38a169' : '#e53e3e')
         }]},
-        options:{ indexAxis:'y', plugins:{ legend:{ display:false } },
-            scales:{ x:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } } }
+        options:{ indexAxis:'y', plugins:{ legend:{ display:false },
+            tooltip:{ callbacks:{ label: c => c.raw===null ? 'אין נתון' : (c.raw>0?'+':'')+c.raw+'%' } } },
+            scales:{ x:{ ticks:{ callback: v => (v>0?'+':'')+v+'%' } } } }
     });
 }
 
