@@ -1403,9 +1403,9 @@ function renderHistoryUI() {
     function heatColor(v) {
         if (v === null) return '#f0f4f8';
         const a = Math.min(Math.abs(v) / 3, 1);
-        if (v > 0) return `rgba(56,161,105,${0.15 + a * 0.75})`;
-        if (v < 0) return `rgba(229,62,62,${0.15 + a * 0.75})`;
-        return '#f7fafc';
+        if (v > 0.05)  return `rgba(56,161,105,${0.15 + a * 0.75})`;
+        if (v < -0.05) return `rgba(229,62,62,${0.15 + a * 0.75})`;
+        return 'rgba(214,158,46,0.7)';
     }
 
     // Heatmap סקטורים — נתון אחרון בלבד
