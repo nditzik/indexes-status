@@ -1271,7 +1271,6 @@ function renderRvolCharts(data, sectorsSorted, sectors) {
             tooltip:{ callbacks:{ label: c => c.raw===null ? 'אין נתון' : (c.raw>0?'+':'')+c.raw+'%' } } },
             scales:{ x:{ ticks:{ callback: v => (v>0?'+':'')+v+'%' } } } }
     });
-}
 
     // ממוצע RVOL לפי סקטור
     const sectorAvgRvol = sectorsSorted.map(sc => {
