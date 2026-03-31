@@ -459,6 +459,13 @@ const SCORE_COLORS = ['#e53e3e','#ed8936','#ecc94b','#68d391','#38a169'];
 
 /* ═══════════ STATE ═══════════ */
 const charts = {};
+
+// ברירות מחדל גלובליות — טקסט לבן לכל הגרפים
+Chart.defaults.color = '#e2e8f0';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.1)';
+Chart.defaults.plugins.legend.labels.color = '#e2e8f0';
+Chart.defaults.scale.ticks.color = '#e2e8f0';
+Chart.defaults.scale.grid.color = 'rgba(255,255,255,0.1)';
 let tableData = [], M = {}, sortKey = 'maScore', sortAsc = false;
 let historyData = [], currentDateLabel = '';
 const trendCharts = {};
