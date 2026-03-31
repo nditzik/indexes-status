@@ -1433,15 +1433,14 @@ function renderHistoryUI() {
 
     // Advance/Decline chart
     if (trendCharts['trendAdChart']) { trendCharts['trendAdChart'].destroy(); delete trendCharts['trendAdChart']; }
-    const adDays = historyData.filter(h=>h.metrics.advancing||h.metrics.declining);
-    if (adDays.length) {
+    if (historyData.length) {
         trendCharts['trendAdChart'] = new Chart(document.getElementById('trendAdChart'), {
             type:'bar',
-            data:{ labels: adDays.map(h=>h.date),
+            data:{ labels: historyData.map(h=>h.date),
                 datasets:[
-                    { label:'עולות', data:adDays.map(h=>h.metrics.advancing||0),
+                    { label:'עולות', data:historyData.map(h=>h.metrics.advancing||0),
                       backgroundColor:'rgba(56,161,105,0.75)', borderColor:'#38a169', borderWidth:1 },
-                    { label:'יורדות', data:adDays.map(h=>-(h.metrics.declining||0)),
+                    { label:'יורדות', data:historyData.map(h=>-(h.metrics.declining||0)),
                       backgroundColor:'rgba(229,62,62,0.75)', borderColor:'#e53e3e', borderWidth:1 },
                 ]},
             options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:'#e2e8f0'} },
