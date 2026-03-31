@@ -827,8 +827,8 @@ function processData() {
     document.getElementById('tkP200').textContent    = pct(a200,total)+'%';
     document.getElementById('tkAvgChange').className = `ticker-value ${acCls}`;
     document.getElementById('tkAvgChange').textContent = avgChgVal!==null?(avgChgVal>0?'+':'')+avgChgVal+'%':'—';
-    document.getElementById('tkAD').className        = `ticker-value ${adCls}`;
-    document.getElementById('tkAD').textContent      = advancing+' / '+declining;
+    document.getElementById('tkAD').className        = 'ticker-value';
+    document.getElementById('tkAD').innerHTML        = `<span style="color:#68d391">${advancing}</span> / <span style="color:#fc8181">${declining}</span>`;
     document.getElementById('tkDate').textContent    = currentDateLabel || '—';
     const sorted = [...tableData].filter(d=>!isNaN(parseFloat(d['%Change']))).sort((a,b)=>parseFloat(b['%Change'])-parseFloat(a['%Change']));
     const gainer = sorted[0], loser = sorted[sorted.length-1];
