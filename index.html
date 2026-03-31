@@ -180,6 +180,10 @@
                     <b>כיצד להשתמש:</b> עקוב אחרי <em>כיוון</em> היחס לאורך ימים — עלייה עקבית = שיפור בריאות השוק גם אם המחירים עדיין נמוכים.
                 </div>
             </div>
+            <div class="chart-card" style="margin-bottom:20px;">
+                <h3>עולות מול יורדות לאורך זמן</h3>
+                <canvas id="trendAdChart" style="max-height:260px;"></canvas>
+            </div>
             <div class="tbl-wrap">
                 <table class="history-tbl" id="historyTable">
                     <thead><tr>
@@ -1426,6 +1430,29 @@ function renderHistoryUI() {
             },
             elements:{ point:{radius:4} } }
     });
+
+    // Advance/Decline chart
+    if (trendCharts['trendAdChart']) { trendCharts['trendAdChart'].destroy(); delete trendCharts['trendAdChart']; }
+    const adDays = historyData.filter(h=>h.metrics.advancing||h.metrics.declining);
+    if (adDays.length) {
+        trendCharts['trendAdChart'] = new Chart(document.getElementById('trendAdChart'), {
+            type:'bar',
+            data:{ labels: adDays.map(h=>h.date),
+                datasets:[
+                    { label:'עולות', data:adDays.map(h=>h.metrics.advancing||0),
+                      backgroundColor:'rgba(56,161,105,0.75)', borderColor:'#38a169', borderWidth:1 },
+                    { label:'יורדות', data:adDays.map(h=>-(h.metrics.declining||0)),
+                      backgroundColor:'rgba(229,62,62,0.75)', borderColor:'#e53e3e', borderWidth:1 },
+                ]},
+            options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:'#e2e8f0'} },
+                        tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${Math.abs(ctx.raw)}` } } },
+                scales:{
+                    x:{ stacked:false, ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} },
+                    y:{ ticks:{ color:'#e2e8f0', callback: v=>Math.abs(v) }, grid:{color:'rgba(255,255,255,0.1)'},
+                        title:{display:true,text:'מניות',color:'#e2e8f0'} }
+                } }
+        });
+    }
 
     document.getElementById('historyTableBody').innerHTML = historyData.map(h=>{
         const m = h.metrics;
