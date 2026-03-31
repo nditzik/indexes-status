@@ -1336,13 +1336,17 @@ function renderHistoryUI() {
     const labels = historyData.map(h=>h.date);
     const get = key => historyData.map(h=>h.metrics[key]);
 
+    const whiteText = { color:'#fff' };
+    const whiteAxis = { ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.1)'}, title:{color:'#e2e8f0'} };
+
     function makeChart(id, datasets, yLabel) {
         if (trendCharts[id]) { trendCharts[id].destroy(); delete trendCharts[id]; }
         trendCharts[id] = new Chart(document.getElementById(id), {
             type:'line',
             data:{ labels, datasets },
-            options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11}} } },
-                scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } },
+            options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:'#e2e8f0'} } },
+                scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%', color:'#e2e8f0' }, grid:{color:'rgba(255,255,255,0.1)'} },
+                         x:{ ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} } },
                 elements:{ line:{tension:0.3}, point:{radius:4} } }
         });
     }
@@ -1366,8 +1370,9 @@ function renderHistoryUI() {
             { label:'RSI>50%',      data:get('pRsi50'),   borderColor:'#38a169', fill:false, tension:0.3 },
             { label:'Oversold%',    data:get('pOversold'),borderColor:'#e53e3e', fill:false, tension:0.3 },
         ]},
-        options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11}} } },
-            scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } },
+        options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:'#e2e8f0'} } },
+            scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%', color:'#e2e8f0' }, grid:{color:'rgba(255,255,255,0.1)'} },
+                     x:{ ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} } },
             elements:{ point:{radius:4} } }
     });
 
@@ -1380,33 +1385,24 @@ function renderHistoryUI() {
         return '#f7fafc';
     }
 
-    // Heatmap סקטורים
+    // Heatmap סקטורים — נתון אחרון בלבד
     const SECS = ['IT','HC','FIN','CD','CS','IND','COM','ENE','UTL','RE','MAT'];
-    const hmDates = historyData.filter(h=>h.metrics.sectorChange && Object.values(h.metrics.sectorChange).some(v=>v!==null));
-    if (hmDates.length) {
+    const lastDay = [...historyData].reverse().find(h=>h.metrics.sectorChange && Object.values(h.metrics.sectorChange).some(v=>v!==null));
+    if (lastDay) {
+        const sc = lastDay.metrics.sectorChange;
+        const sortedSecs = [...SECS].filter(s=>sc[s]!==null).sort((a,b)=>(sc[b]||0)-(sc[a]||0));
         const tbl = document.createElement('table');
-        tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:12px;';
-        // כותרת תאריכים
-        const hdr = tbl.insertRow(); hdr.insertCell().innerHTML = '<b>סקטור</b>';
-        hmDates.forEach(h=>{ const c=hdr.insertCell(); c.style.cssText='text-align:center;padding:4px 8px;font-weight:600;font-size:11px;'; c.textContent=h.date.slice(5); });
-        // מיון סקטורים לפי ממוצע השינוי בכל הימים — גבוה לנמוך
-        const secAvg = sec => {
-            const vals = hmDates.map(h=>h.metrics.sectorChange?h.metrics.sectorChange[sec]:null).filter(v=>v!==null);
-            return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : -999;
-        };
-        const sortedSecs = [...SECS].sort((a,b) => secAvg(b) - secAvg(a));
-
+        tbl.style.cssText = 'border-collapse:collapse;width:100%;font-size:13px;';
         sortedSecs.forEach(sec=>{
+            const v = sc[sec];
             const row = tbl.insertRow();
+            row.style.cssText = `background:${heatColor(v)};border-radius:6px;`;
             const lbl = row.insertCell();
-            lbl.style.cssText = 'padding:5px 10px;font-weight:600;white-space:nowrap;';
+            lbl.style.cssText = 'padding:7px 14px;font-weight:700;color:#fff;white-space:nowrap;';
             lbl.textContent = SECTOR_HE[sec];
-            hmDates.forEach(h=>{
-                const v = h.metrics.sectorChange ? h.metrics.sectorChange[sec] : null;
-                const cell = row.insertCell();
-                cell.style.cssText = `background:${heatColor(v)};text-align:center;padding:5px 8px;border-radius:4px;font-weight:600;`;
-                cell.textContent = v !== null ? (v>0?'+':'')+v+'%' : '—';
-            });
+            const val = row.insertCell();
+            val.style.cssText = `padding:7px 14px;font-weight:700;color:#fff;text-align:left;`;
+            val.textContent = v !== null ? (v>0?'+':'')+v+'%' : '—';
         });
         document.getElementById('sectorChangeHeatmap').innerHTML = '';
         document.getElementById('sectorChangeHeatmap').appendChild(tbl);
@@ -1422,10 +1418,11 @@ function renderHistoryUI() {
             { label:'יחס NH/NL',      data:historyData.map(h=>h.metrics.nhNlRatio===99?null:h.metrics.nhNlRatio),
               borderColor:'#805ad5', borderDash:[5,3], fill:false, tension:0.3, yAxisID:'y2' },
         ]},
-        options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11}} } },
+        options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:'#e2e8f0'} } },
             scales:{
-                y:  { beginAtZero:true, position:'right', title:{display:true,text:'מניות'} },
-                y2: { beginAtZero:true, position:'left',  title:{display:true,text:'יחס'}, grid:{drawOnChartArea:false} }
+                y:  { beginAtZero:true, position:'right', ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.1)'}, title:{display:true,text:'מניות',color:'#e2e8f0'} },
+                y2: { beginAtZero:true, position:'left',  ticks:{color:'#e2e8f0'}, grid:{drawOnChartArea:false}, title:{display:true,text:'יחס',color:'#e2e8f0'} },
+                x:  { ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} }
             },
             elements:{ point:{radius:4} } }
     });
