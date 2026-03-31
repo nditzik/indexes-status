@@ -460,12 +460,24 @@ const SCORE_COLORS = ['#e53e3e','#ed8936','#ecc94b','#68d391','#38a169'];
 /* ═══════════ STATE ═══════════ */
 const charts = {};
 
-// ברירות מחדל גלובליות — טקסט לבן לכל הגרפים
+// פלאגין גלובלי — טקסט לבן לכל הגרפים
 Chart.defaults.color = '#e2e8f0';
-Chart.defaults.borderColor = 'rgba(255,255,255,0.1)';
-Chart.defaults.plugins.legend.labels.color = '#e2e8f0';
-Chart.defaults.scale.ticks.color = '#e2e8f0';
-Chart.defaults.scale.grid.color = 'rgba(255,255,255,0.1)';
+Chart.register({
+    id: 'whiteCharts',
+    beforeInit(chart) {
+        const WHITE = '#e2e8f0', GRID = 'rgba(255,255,255,0.1)';
+        const scales = chart.options.scales || {};
+        Object.values(scales).forEach(s => {
+            s.ticks  = Object.assign({ color: WHITE }, s.ticks);
+            s.grid   = Object.assign({ color: GRID  }, s.grid);
+            if (s.title) s.title = Object.assign({ color: WHITE }, s.title);
+        });
+        const lbl = chart.options.plugins?.legend?.labels;
+        if (lbl) lbl.color = lbl.color || WHITE;
+        else if (chart.options.plugins?.legend)
+            chart.options.plugins.legend.labels = { color: WHITE };
+    }
+});
 let tableData = [], M = {}, sortKey = 'maScore', sortAsc = false;
 let historyData = [], currentDateLabel = '';
 const trendCharts = {};
