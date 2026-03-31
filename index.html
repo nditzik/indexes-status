@@ -10,7 +10,8 @@
         body { font-family: system-ui, -apple-system, sans-serif; background: #0d1a3a url('דשבורד.png') no-repeat center center fixed; background-size: cover; margin: 0; padding: 20px; color: #e2e8f0; }
         .container { max-width: 1200px; margin: auto; }
         .glass { background: rgba(255,255,255,0.22); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.28); }
-        .header { background: rgba(26,54,93,0.55); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 20px 30px 14px; border-radius: 14px; margin-bottom: 20px; text-align: center; }
+        .header { background: rgba(26,54,93,0.55); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 20px 30px 14px; border-radius: 14px; margin-bottom: 20px; position:relative; text-align: center; }
+        .header-logo { position:absolute; right:20px; top:50%; transform:translateY(-50%); height:70px; width:70px; object-fit:cover; border-radius:10px; opacity:0.9; }
         .header h1 { margin: 0 0 4px; font-size: 24px; }
         .header p  { margin: 0 0 14px; opacity: .8; font-size: 14px; }
         /* Ticker bar */
@@ -124,7 +125,8 @@
 <div class="container">
 
     <div class="header">
-        <h1>דשבורד ניתוח תחתית שוק — איציק</h1>
+        <img src="logo.png" class="header-logo" alt="logo">
+        <h1>דשבורד ניתוח שוק — איציק נידם</h1>
         <p>S&P 500 · Breadth &amp; Sector Analysis</p>
         <div class="ticker-bar" id="tickerBar">
             <div class="ticker-item">
