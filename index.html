@@ -140,6 +140,7 @@
             <input type="file" id="historyFiles" accept=".csv" multiple onchange="processHistoryFiles(event)">
             <span style="font-size:12px;color:#a0aec0;">בחר מספר קבצי CSV (שמות: watchlist-sp-500-intraday-MM-DD-YYYY.csv)</span>
         </div>
+        <div id="historyStats" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;"></div>
         <div id="historyCharts" style="display:none;">
             <div class="trend-grid">
                 <div class="chart-card">
@@ -195,6 +196,8 @@
                         <th>קרוב לשיא%</th>
                         <th>Oversold%</th>
                         <th>NH/NL יחס</th>
+                        <th>שינוי ממוצע</th>
+                        <th>RVOL ממוצע</th>
                         <th>מניות</th>
                     </tr></thead>
                     <tbody id="historyTableBody"></tbody>
@@ -277,11 +280,29 @@
             </div>
         </div>
 
+        <!-- Row 6b: RVOL avg per sector -->
+        <div class="chart-card" style="margin-bottom:20px;">
+            <h3>ממוצע RVOL לפי סקטור</h3>
+            <canvas id="rvolAvgSectorChart"></canvas>
+        </div>
+
         <!-- Setup Screener -->
         <div class="card">
             <h3 class="section-title">מסנן Setup אידיאלי — מועמדות לריבאונד עם נפח</h3>
             <p style="font-size:12px;color:#a0aec0;margin:0 0 12px;">RSI חלש/oversold + MA Score ≥ 1 + RVOL &gt; 1.2 · ממוין לפי ציון מתנע</p>
             <div id="setupScreener"></div>
+        </div>
+
+        <!-- Above 200D MA Crossers -->
+        <div class="card">
+            <h3 class="section-title">מניות שחזרו מעל 200D MA — חציה טרייה (עד 5% מעליו)</h3>
+            <div id="above200Screener"></div>
+        </div>
+
+        <!-- Rising Momentum -->
+        <div class="card">
+            <h3 class="section-title">מניות עם מומנטום עולה — Top 10 שינוי יומי (ציון מעל 40)</h3>
+            <div id="momentumRisingScreener"></div>
         </div>
 
         <!-- Market Summary -->
@@ -706,10 +727,11 @@ function processData() {
     );
 
     // Store for analysis
+    const breadthThrust = tableData.filter(d=>d['RSI Rank']==='New Above 30'||d['RSI Rank']==='New Above 50').length;
     M = { total, a20, a50, a150, a200, golden, oversold, weak, strong, overbought,
           nearHigh, deepDrop, within20, rsiAbove50, healthScore, sectors,
           topSector, bottomSector, opportunities, opportunityStocks,
-          nhCount, nlCount, nhNlRatio };
+          nhCount, nlCount, nhNlRatio, breadthThrust };
 
     // Health banner
     const hc = healthColor(healthScore);
@@ -737,6 +759,14 @@ function processData() {
                 ${parseFloat(nhNlRatio) >= 2 ? '🟢 שוק חזק' : parseFloat(nhNlRatio) >= 1 ? '🟡 מאוזן' : parseFloat(nhNlRatio) > 0 ? '🔴 לחץ מכירות' : '🔴 אין מניות חזקות'}
             </p>
         </div>
+        <div class="stat-card" style="border-top-color:#805ad5">
+            <h3>Breadth Thrust</h3>
+            <p style="font-size:20px">${breadthThrust}</p>
+            <p style="font-size:11px;color:#a0aec0;margin:4px 0 0;line-height:1.4">
+                מניות שחצו RSI 30 או 50 כלפי מעלה<br>
+                ${breadthThrust>=30?'🟢 מומנטום עולה':breadthThrust>=15?'🟡 התעוררות':'⚪ מצב רגיל'}
+            </p>
+        </div>
         ${advancing > 0 || declining > 0 ? `
         <div class="stat-card ${advancing > declining ? 'green' : 'red'}">
             <h3>עולות / יורדות</h3>
@@ -762,6 +792,8 @@ function processData() {
     renderHeatmap(sectors, sectorsSorted);
     renderRvolCharts(tableData, sectorsSorted, sectors);
     renderSetupScreener();
+    renderAbove200Screener();
+    renderMomentumRisingScreener();
     generateAllAnalysis();
     renderTopBottom();
     sortKey='maScore'; sortAsc=false;
@@ -1241,7 +1273,87 @@ function renderRvolCharts(data, sectorsSorted, sectors) {
     });
 }
 
+    // ממוצע RVOL לפי סקטור
+    const sectorAvgRvol = sectorsSorted.map(sc => {
+        const ss = data.filter(d=>d.sector===sc && d.rvol>0);
+        if (!ss.length) return null;
+        return +(ss.reduce((s,d)=>s+d.rvol,0)/ss.length).toFixed(2);
+    });
+    destroyChart('rvolAvgSectorChart');
+    charts['rvolAvgSectorChart'] = new Chart(document.getElementById('rvolAvgSectorChart'), {
+        type:'bar',
+        data:{ labels: sectorsSorted.map(sc=>SECTOR_HE[sc]||sc), datasets:[{
+            data: sectorAvgRvol,
+            backgroundColor: sectorAvgRvol.map(v=>v===null?'#a0aec0':v>1.2?'#276749':v>=0.8?'#38a169':'#ecc94b')
+        }]},
+        options:{ indexAxis:'y', plugins:{ legend:{display:false},
+            tooltip:{callbacks:{label:c=>c.raw===null?'אין נתון':'ממוצע RVOL: '+c.raw}} },
+            scales:{ x:{ beginAtZero:true, ticks:{callback:v=>v.toFixed(1)} } } }
+    });
+}
+
 /* ═══════════ SETUP SCREENER ═══════════ */
+function renderAbove200Screener() {
+    const stocks = tableData.filter(d=>{
+        const l=parseFloat(d['Latest']), m=parseFloat(d['200D MA']);
+        return !isNaN(l)&&!isNaN(m)&&m>0&&l>m&&l<m*1.05;
+    }).sort((a,b)=>{
+        const da=parseFloat(a['Latest'])/parseFloat(a['200D MA'])-1;
+        const db=parseFloat(b['Latest'])/parseFloat(b['200D MA'])-1;
+        return da-db;
+    });
+    const el = document.getElementById('above200Screener');
+    if (!stocks.length) { el.innerHTML='<p style="color:#a0aec0;font-size:13px;">אין מניות עם חציה טרייה כרגע.</p>'; return; }
+    el.innerHTML = `<div style="margin-bottom:8px;font-size:12px;color:#a0aec0;">נמצאו <strong>${stocks.length}</strong> מניות (עד 5% מעל 200D MA)</div>
+    <div class="tbl-wrap"><table class="setup-tbl"><thead><tr>
+        <th>סימול</th><th>שם</th><th>סקטור</th><th>RSI</th><th>MA Score</th><th>מרחק מ-200D</th><th>שינוי יומי</th><th>RVOL</th><th>מתנע</th>
+    </tr></thead><tbody>
+    ${stocks.map(d=>{
+        const l=parseFloat(d['Latest']),m=parseFloat(d['200D MA']);
+        const pct200=((l/m-1)*100).toFixed(2);
+        const chg=parseFloat(d['%Change']||0), chgStr=(chg>0?'+':'')+chg.toFixed(2)+'%';
+        const mc=momentumColor(d.momentumScore);
+        return `<tr>
+            <td><strong>${d['Symbol']}</strong></td>
+            <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d['Name']}</td>
+            <td>${SECTOR_HE[d.sector]||d.sector}</td>
+            <td><span class="badge" style="background:${rsiColor(d['RSI Rank'])}22;color:${rsiColor(d['RSI Rank'])}">${d['RSI Rank']}</span></td>
+            <td>${d.maScore}/4</td>
+            <td style="color:#38a169;font-weight:600">+${pct200}%</td>
+            <td style="color:${chg>=0?'#38a169':'#e53e3e'};font-weight:600">${chgStr}</td>
+            <td>${rvolLabel(d.rvol)}</td>
+            <td><strong style="color:${mc}">${d.momentumScore}</strong></td>
+        </tr>`;
+    }).join('')}
+    </tbody></table></div>`;
+}
+
+function renderMomentumRisingScreener() {
+    const stocks = tableData.filter(d=>d.momentumScore>40&&parseFloat(d['%Change']||0)>0)
+        .sort((a,b)=>parseFloat(b['%Change']||0)-parseFloat(a['%Change']||0)).slice(0,10);
+    const el = document.getElementById('momentumRisingScreener');
+    if (!stocks.length) { el.innerHTML='<p style="color:#a0aec0;font-size:13px;">אין מניות העומדות בקריטריונים כרגע.</p>'; return; }
+    el.innerHTML = `<div class="tbl-wrap"><table class="setup-tbl"><thead><tr>
+        <th>#</th><th>סימול</th><th>שם</th><th>סקטור</th><th>שינוי%</th><th>RSI</th><th>MA Score</th><th>RVOL</th><th>מתנע</th>
+    </tr></thead><tbody>
+    ${stocks.map((d,i)=>{
+        const chg=parseFloat(d['%Change']||0), chgStr=(chg>0?'+':'')+chg.toFixed(2)+'%';
+        const mc=momentumColor(d.momentumScore);
+        return `<tr>
+            <td style="color:#a0aec0">${i+1}</td>
+            <td><strong>${d['Symbol']}</strong></td>
+            <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d['Name']}</td>
+            <td>${SECTOR_HE[d.sector]||d.sector}</td>
+            <td style="color:#38a169;font-weight:700">${chgStr}</td>
+            <td><span class="badge" style="background:${rsiColor(d['RSI Rank'])}22;color:${rsiColor(d['RSI Rank'])}">${d['RSI Rank']}</span></td>
+            <td>${d.maScore}/4</td>
+            <td>${rvolLabel(d.rvol)}</td>
+            <td><strong style="color:${mc}">${d.momentumScore}</strong></td>
+        </tr>`;
+    }).join('')}
+    </tbody></table></div>`;
+}
+
 function renderSetupScreener() {
     const setups = tableData
         .filter(d => ['oversold','weak'].includes(d.rsiGroup) && d.maScore >= 1 && d.rvol > 1.2)
@@ -1302,6 +1414,9 @@ function computeMetrics(data) {
         const chs = ss.map(d=>parseFloat(d['%Change']||0)).filter(v=>!isNaN(v)&&v!==0);
         sectorChange[sec] = chs.length ? +(chs.reduce((a,b)=>a+b,0)/chs.length).toFixed(2) : null;
     });
+    const rvolVals = data.map(d=>parseFloat(d['20D RelVol']||0)).filter(v=>v>0);
+    const avgRvol  = rvolVals.length ? +(rvolVals.reduce((a,b)=>a+b,0)/rvolVals.length).toFixed(2) : null;
+    const breadthThrust = data.filter(d=>d['RSI Rank']==='New Above 30'||d['RSI Rank']==='New Above 50').length;
     const allChanges = data.map(d=>parseFloat(d['%Change']||0)).filter(v=>!isNaN(v)&&v!==0);
     const avgChange  = allChanges.length ? +(allChanges.reduce((a,b)=>a+b,0)/allChanges.length).toFixed(2) : null;
     const advancing  = allChanges.filter(v=>v>0).length;
@@ -1309,7 +1424,7 @@ function computeMetrics(data) {
     return { total, p200:pct(a200,total), p50:pct(a50,total), p20:pct(a20,total),
              pGolden:pct(golden,total), pRsi50:pct(rsiAbove50,total), pWithin20:pct(within20,total),
              pOversold:pct(oversold,total), healthScore, nhCount, nlCount, nhNlRatio,
-             sectorBreadth, sectorChange, avgChange, advancing, declining };
+             sectorBreadth, sectorChange, avgChange, advancing, declining, avgRvol, breadthThrust };
 }
 
 function addCurrentToHistory() {
@@ -1356,10 +1471,33 @@ function processHistoryFiles(e) {
 
 function renderHistoryUI() {
     if (historyData.length < 2) return;
-    document.getElementById('historyCharts').style.display = 'block';
 
     const labels = historyData.map(h=>h.date);
     const get = key => historyData.map(h=>h.metrics[key]);
+
+    // ── סטטיסטיקות היסטוריה ──
+    const distDays = historyData.filter(h=>h.metrics.avgChange<0&&h.metrics.avgRvol>1.0).length;
+    let healthSlope=null, p200Dod=null;
+    if (historyData.length>=2) {
+        healthSlope = +((historyData[historyData.length-1].metrics.healthScore - historyData[0].metrics.healthScore)/(historyData.length-1)).toFixed(2);
+        p200Dod = +((historyData[historyData.length-1].metrics.p200 - historyData[historyData.length-2].metrics.p200).toFixed(1));
+    }
+    document.getElementById('historyStats').innerHTML = `
+        <div class="stat-card" style="min-width:160px;border-top-color:#e53e3e">
+            <h3>Distribution Days</h3><p style="font-size:22px">${distDays}</p>
+            <p style="font-size:11px;color:#a0aec0;margin:4px 0 0">ימי ירידה עם נפח גבוה</p>
+        </div>
+        <div class="stat-card" style="min-width:160px;border-top-color:${healthSlope>=0?'#38a169':'#e53e3e'}">
+            <h3>שיפוע ציון בריאות</h3>
+            <p style="font-size:22px;color:${healthSlope>=0?'#38a169':'#e53e3e'}">${healthSlope!==null?(healthSlope>0?'+':'')+healthSlope:'—'}</p>
+            <p style="font-size:11px;color:#a0aec0;margin:4px 0 0">נקודות ליום (${historyData.length} ימים)</p>
+        </div>
+        <div class="stat-card" style="min-width:160px;border-top-color:${p200Dod>=0?'#38a169':'#e53e3e'}">
+            <h3>קצב שיפוי (200D MA)</h3>
+            <p style="font-size:22px;color:${p200Dod>=0?'#38a169':'#e53e3e'}">${p200Dod!==null?(p200Dod>0?'+':'')+p200Dod+'%':'—'}</p>
+            <p style="font-size:11px;color:#a0aec0;margin:4px 0 0">שינוי יומי % מעל 200D MA</p>
+        </div>`;
+    document.getElementById('historyCharts').style.display = 'block';
 
     const whiteText = { color:'#fff' };
     const whiteAxis = { ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.1)'}, title:{color:'#e2e8f0'} };
@@ -1486,6 +1624,8 @@ function renderHistoryUI() {
             <td>${m.pWithin20}%</td>
             <td>${m.pOversold}%</td>
             <td style="font-weight:600;color:${m.nhNlRatio>=2?'#38a169':m.nhNlRatio>=1?'#d69e2e':'#e53e3e'}">${m.nhNlRatio===99?'∞':m.nhNlRatio} (${m.nhCount}/${m.nlCount})</td>
+            <td style="font-weight:600;color:${m.avgChange>0?'#38a169':m.avgChange<0?'#e53e3e':'#a0aec0'}">${m.avgChange!=null?(m.avgChange>0?'+':'')+m.avgChange+'%':'—'}</td>
+            <td style="color:${m.avgRvol>1.2?'#38a169':m.avgRvol>=0.8?'#ecc94b':'#a0aec0'}">${m.avgRvol!=null?m.avgRvol:'—'}</td>
             <td>${m.total}</td>
         </tr>`;
     }).join('');
