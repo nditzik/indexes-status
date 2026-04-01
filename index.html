@@ -194,6 +194,10 @@
                 </div>
             </div>
             <div class="chart-card" style="margin-bottom:20px;">
+                <h3>שינוי ממוצע 20D MA לאורך הימים</h3>
+                <canvas id="trend20dMAChart" style="max-height:240px;"></canvas>
+            </div>
+            <div class="chart-card" style="margin-bottom:20px;">
                 <h3>כל המדדים לאורך זמן</h3>
                 <canvas id="trendAllChart" style="max-height:320px;"></canvas>
             </div>
@@ -332,6 +336,13 @@
             <h3 class="section-title">מסנן Setup אידיאלי — מועמדות לריבאונד עם נפח</h3>
             <p style="font-size:12px;color:#a0aec0;margin:0 0 12px;">RSI חלש/oversold + MA Score ≥ 1 + RVOL &gt; 1.2 · ממוין לפי ציון מתנע</p>
             <div id="setupScreener"></div>
+        </div>
+
+        <!-- חזרה לממוצעים -->
+        <div class="card">
+            <h3 class="section-title">מסנן "חזרה לממוצעים" — מעל 20D MA, מתחת ל-50D MA עם נפח</h3>
+            <p style="font-size:12px;color:#a0aec0;margin:0 0 12px;">Latest &gt; 20D MA AND Latest &lt; 50D MA AND RVOL &gt; 1.0 — מועמדות לריבאונד קצר טווח</p>
+            <div id="ma20screener"></div>
         </div>
 
         <!-- Above 200D MA Crossers -->
@@ -816,7 +827,15 @@ function processData() {
                 יחס ${declining > 0 ? (advancing/declining).toFixed(2) : '∞'}<br>
                 ${advancing > declining*1.5 ? '🟢 יום עלייה רחב' : declining > advancing*1.5 ? '🔴 יום ירידה רחב' : '🟡 מאוזן'}
             </p>
-        </div>` : ''}`;
+        </div>` : ''}
+        <div class="stat-card" style="border-top-color:#319795">
+            <h3>יחס 20D/50D MA</h3>
+            <p style="font-size:20px">${a50 > 0 ? Math.round(a20/a50*100) : 0}%</p>
+            <p style="font-size:11px;color:#a0aec0;margin:4px 0 0;line-height:1.4">
+                מניות מעל 20D מתוך מעל 50D<br>
+                ${a50 > 0 && a20/a50 >= 0.75 ? '🟢 טווח קצר חזק' : a50 > 0 && a20/a50 >= 0.5 ? '🟡 מאוזן' : '🔴 טווח קצר חלש'}
+            </p>
+        </div>`;
 
     // ── Ticker bar ──
     const avgChgVal = allChg.length ? +(allChg.reduce((a,b)=>a+b,0)/allChg.length).toFixed(2) : null;
@@ -854,6 +873,7 @@ function processData() {
     renderHeatmap(sectors, sectorsSorted);
     renderRvolCharts(tableData, sectorsSorted, sectors);
     renderSetupScreener();
+    renderMA20Screener();
     renderAbove200Screener();
     renderMomentumRisingScreener();
     generateAllAnalysis();
@@ -1451,6 +1471,53 @@ function renderSetupScreener() {
         </table></div>`;
 }
 
+function renderMA20Screener() {
+    const stocks = tableData
+        .filter(d => {
+            const latest = parseFloat(d['Latest']);
+            const ma20   = parseFloat(d['20D MA']);
+            const ma50   = parseFloat(d['50D MA']);
+            return !isNaN(latest) && !isNaN(ma20) && !isNaN(ma50) &&
+                   ma20 > 0 && ma50 > 0 &&
+                   latest > ma20 && latest < ma50 && d.rvol > 1.0;
+        })
+        .sort((a,b) => b.momentumScore - a.momentumScore)
+        .slice(0, 30);
+
+    const el = document.getElementById('ma20screener');
+    if (!stocks.length) {
+        el.innerHTML = '<p style="color:#a0aec0;font-size:13px;">אין מניות העומדות בקריטריונים כרגע.</p>';
+        return;
+    }
+    el.innerHTML = `
+        <div style="margin-bottom:8px;font-size:12px;color:#a0aec0;">נמצאו <strong>${stocks.length}</strong> מניות (מציג עד 30) — מחיר מעל 20D MA אך עדיין מתחת ל-50D MA, עם נפח גבוה</div>
+        <div class="tbl-wrap"><table class="setup-tbl">
+            <thead><tr>
+                <th>סימול</th><th>שם</th><th>סקטור</th>
+                <th>מרחק מ-20D MA</th><th>מרחק מ-50D MA</th><th>RVOL</th><th>מתנע</th>
+            </tr></thead>
+            <tbody>
+            ${stocks.map(d => {
+                const latest = parseFloat(d['Latest']);
+                const ma20   = parseFloat(d['20D MA']);
+                const ma50   = parseFloat(d['50D MA']);
+                const dist20 = ((latest - ma20) / ma20 * 100).toFixed(1);
+                const dist50 = ((latest - ma50) / ma50 * 100).toFixed(1);
+                const mc = momentumColor(d.momentumScore);
+                return `<tr>
+                    <td><strong>${d['Symbol']}</strong></td>
+                    <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d['Name']}</td>
+                    <td>${SECTOR_HE[d.sector]||d.sector}</td>
+                    <td style="color:#38a169">+${dist20}%</td>
+                    <td style="color:#e53e3e">${dist50}%</td>
+                    <td>${rvolLabel(d.rvol)}</td>
+                    <td><span class="momentum-bar" style="width:${d.momentumScore/2}px;background:${mc}"></span><strong style="color:${mc}">${d.momentumScore}</strong></td>
+                </tr>`;
+            }).join('')}
+            </tbody>
+        </table></div>`;
+}
+
 /* ═══════════ HISTORY ═══════════ */
 function computeMetrics(data) {
     const total = data.length;
@@ -1584,6 +1651,22 @@ function renderHistoryUI() {
         label:'% מעל 200D MA', data:get('p200'),
         borderColor:'#2b6cb0', backgroundColor:'#2b6cb022', fill:true
     }]);
+
+    // גרף קו 20D MA לאורך הימים
+    if (trendCharts['trend20dMAChart']) { trendCharts['trend20dMAChart'].destroy(); delete trendCharts['trend20dMAChart']; }
+    trendCharts['trend20dMAChart'] = new Chart(document.getElementById('trend20dMAChart'), {
+        type:'line',
+        data:{ labels, datasets:[
+            { label:'% מעל 20D MA', data:get('p20'),
+              borderColor:'#ed8936', backgroundColor:'#ed893622', fill:true, tension:0.3 },
+            { label:'% מעל 50D MA', data:get('p50'),
+              borderColor:'#3182ce', backgroundColor:'#3182ce11', fill:false, tension:0.3, borderDash:[5,3] },
+        ]},
+        options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:'#e2e8f0'} } },
+            scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%', color:'#e2e8f0' }, grid:{color:'rgba(255,255,255,0.1)'} },
+                     x:{ ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} } },
+            elements:{ point:{radius:4} } }
+    });
 
     if (trendCharts['trendAllChart']) { trendCharts['trendAllChart'].destroy(); delete trendCharts['trendAllChart']; }
     trendCharts['trendAllChart'] = new Chart(document.getElementById('trendAllChart'), {
