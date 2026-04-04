@@ -252,8 +252,8 @@
                 <canvas id="trendAdChart" style="max-height:260px;"></canvas>
             </div>
             <div class="chart-card" id="vixChartCard" style="margin-bottom:20px;display:none;">
-                <h3>VIX — מדד הפחד לאורך זמן</h3>
-                <canvas id="trendVixChart" style="max-height:240px;"></canvas>
+                <h3>VIX ומדד הפחד היומי לאורך זמן</h3>
+                <canvas id="trendVixChart" style="max-height:260px;"></canvas>
             </div>
             <div class="tbl-wrap">
                 <table class="history-tbl" id="historyTable">
@@ -666,14 +666,22 @@ function renderFearGreed(m) {
     const score = calcFearGreed(m);
     const { text, color } = fgLabel(score);
     const needlePct = 100 - score; // RTL bar — 0=right(fear), 100=left(greed)
-    const adTotal = (m.advancing||0) + (m.declining||0);
+    const vixColor = m.vix == null ? '#a0aec0' : m.vix < 15 ? '#68d391' : m.vix < 25 ? '#faf089' : '#fc8181';
+    const vixBlock = m.vix != null ? `
+        <div style="display:flex;flex-direction:column;align-items:center;padding:0 20px;border-right:1px solid rgba(255,255,255,0.15);border-left:1px solid rgba(255,255,255,0.15);">
+            <div style="font-size:11px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">VIX כרגע</div>
+            <div style="font-size:48px;font-weight:800;line-height:1;color:${vixColor}">${m.vix.toFixed(2)}</div>
+            <div style="font-size:11px;color:${vixColor};margin-top:4px;">${m.vix<15?'רגיעה':m.vix<25?'ערנות':'פחד גבוה'}</div>
+        </div>` : '';
     document.getElementById('fearGreedBlock').innerHTML = `
         <div class="fg-wrap">
-            <div>
+            <div style="display:flex;flex-direction:column;align-items:center;min-width:110px;">
+                <div style="font-size:11px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">מדד הפחד היומי</div>
                 <div class="fg-score" style="color:${color}">${score}</div>
                 <div class="fg-label" style="color:${color}">${text}</div>
-                <div style="font-size:11px;color:#a0aec0;margin-top:4px;">Fear &amp; Greed מקומי (0–100)</div>
+                <div style="font-size:10px;color:#a0aec0;margin-top:3px;">(0–100)</div>
             </div>
+            ${vixBlock}
             <div class="fg-meter">
                 <div class="fg-bar-bg">
                     <div class="fg-needle" style="left:${needlePct}%"></div>
@@ -684,7 +692,7 @@ function renderFearGreed(m) {
                     RSI&gt;50: ${m.pRsi50||0}% &nbsp;|&nbsp;
                     Oversold: ${m.pOversold||0}% &nbsp;|&nbsp;
                     NH/NL: ${m.nhNlRatio===99?'∞':m.nhNlRatio} &nbsp;|&nbsp;
-                    Thrust: ${m.breadthThrust||0}${m.vix != null ? ` &nbsp;|&nbsp; VIX: <span style="color:${m.vix<15?'#68d391':m.vix<25?'#faf089':'#fc8181'};font-weight:700">${m.vix.toFixed(2)}</span>` : ''}
+                    Thrust: ${m.breadthThrust||0}
                 </div>
             </div>
         </div>`;
@@ -1956,25 +1964,40 @@ function renderHistoryUI() {
         });
     }
 
-    // VIX history chart
+    // Combined VIX + Fear & Greed chart
     if (trendCharts['trendVixChart']) { trendCharts['trendVixChart'].destroy(); delete trendCharts['trendVixChart']; }
     const vixDays = historyData.filter(h => h.metrics.vix != null);
-    if (vixDays.length >= 2) {
+    if (vixDays.length >= 1) {
         document.getElementById('vixChartCard').style.display = 'block';
+        // Use all history days as labels; VIX is null for days without it
+        const allLabels = historyData.map(h => h.date);
+        const fgData    = historyData.map(h => calcFearGreed(h.metrics));
+        const vixData   = historyData.map(h => h.metrics.vix != null ? h.metrics.vix : null);
         trendCharts['trendVixChart'] = new Chart(document.getElementById('trendVixChart'), {
             type: 'line',
-            data: { labels: vixDays.map(h=>h.date),
-                datasets:[{
-                    label:'VIX', data: vixDays.map(h=>h.metrics.vix),
-                    borderColor:'#fc8181', backgroundColor:'rgba(252,129,129,0.15)',
-                    pointRadius:4, pointBackgroundColor:'#fc8181', tension:0.3, fill:true
-                }]},
-            options:{ plugins:{ legend:{ display:false },
-                tooltip:{ callbacks:{ label: ctx=>`VIX: ${ctx.raw.toFixed(2)}` } } },
+            data: { labels: allLabels,
+                datasets:[
+                    { label:'מדד הפחד היומי', data: fgData,
+                      borderColor:'#ecc94b', backgroundColor:'rgba(236,201,75,0.08)',
+                      pointRadius:4, pointBackgroundColor:'#ecc94b', tension:0.3, fill:false,
+                      yAxisID:'yFG' },
+                    { label:'VIX', data: vixData,
+                      borderColor:'#fc8181', backgroundColor:'rgba(252,129,129,0.15)',
+                      pointRadius:4, pointBackgroundColor:'#fc8181', tension:0.3, fill:true,
+                      spanGaps:false, yAxisID:'yVIX' }
+                ]},
+            options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:'#e2e8f0'} },
+                tooltip:{ callbacks:{ label: ctx => ctx.dataset.yAxisID==='yVIX'
+                    ? `VIX: ${ctx.raw != null ? ctx.raw.toFixed(2) : '—'}`
+                    : `מדד פחד: ${ctx.raw}` } } },
                 scales:{
                     x:{ ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} },
-                    y:{ ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.1)'},
-                        title:{display:true,text:'VIX',color:'#e2e8f0'} }
+                    yFG:{ position:'right', min:0, max:100,
+                        ticks:{color:'#ecc94b'}, grid:{color:'rgba(255,255,255,0.06)'},
+                        title:{display:true,text:'מדד פחד (0–100)',color:'#ecc94b'} },
+                    yVIX:{ position:'left',
+                        ticks:{color:'#fc8181'}, grid:{drawOnChartArea:false},
+                        title:{display:true,text:'VIX',color:'#fc8181'} }
                 } }
         });
     }
