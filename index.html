@@ -120,6 +120,19 @@
         .momentum-bar { display: inline-block; height: 8px; border-radius: 4px; margin-right: 6px; vertical-align: middle; }
         /* NH/NL */
         .stat-card.teal { border-top-color: #319795; }
+        /* Fear & Greed */
+        .fg-wrap { background: rgba(255,255,255,0.22); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.28); border-radius: 12px; padding: 18px 24px; display:flex; align-items:center; gap:24px; box-shadow: 0 4px 24px rgba(0,0,0,.3); }
+        .fg-meter { flex:1; max-width:420px; }
+        .fg-bar-bg { height:14px; border-radius:7px; background: linear-gradient(to left, #276749, #38a169, #ecc94b, #ed8936, #e53e3e); position:relative; }
+        .fg-needle { width:4px; height:22px; background:#fff; border-radius:2px; position:absolute; top:-4px; transform:translateX(-50%); box-shadow:0 0 6px rgba(0,0,0,.5); transition: left 0.6s ease; }
+        .fg-labels { display:flex; justify-content:space-between; font-size:10px; color:#a0aec0; margin-top:4px; }
+        .fg-score { font-size:36px; font-weight:800; line-height:1; }
+        .fg-label { font-size:14px; font-weight:600; margin-top:4px; }
+        .fg-detail { font-size:11px; color:#a0aec0; margin-top:6px; line-height:1.6; }
+        /* Changes block */
+        .changes-bar { background: rgba(255,255,255,0.14); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; padding: 10px 18px; display:flex; flex-wrap:wrap; gap:16px; align-items:center; font-size:13px; }
+        .chg-item { display:flex; align-items:center; gap:6px; }
+        .chg-arrow { font-size:16px; font-weight:700; }
     </style>
 </head>
 <body>
@@ -206,7 +219,9 @@
                 <canvas id="trendAllChart" style="max-height:320px;"></canvas>
             </div>
             <div class="chart-card" style="margin-bottom:20px;">
-                <h3>Heatmap שינוי יומי ממוצע לפי סקטור</h3>
+                <h3>Heatmap שבועי — שינוי יומי לפי סקטור לאורך כל הימים</h3>
+                <div id="sectorWeeklyHeatmap" style="overflow-x:auto;margin-bottom:20px;"></div>
+                <h3 style="margin-top:4px;">Heatmap שינוי יומי ממוצע לפי סקטור — יום אחרון</h3>
                 <div id="sectorChangeHeatmap" style="overflow-x:auto;"></div>
                 <div style="margin-top:10px;font-size:11px;color:#a0aec0;display:flex;gap:16px;align-items:center;">
                     <span>🟥 ירידה חדה (&lt;-2%)</span>
@@ -257,7 +272,14 @@
 
     <div id="dashboard" style="display:none;">
 
+        <!-- מה השתנה היום -->
+        <div id="changesBlock" style="display:none;margin-bottom:14px;"></div>
+
         <div class="health-banner" id="healthBanner"></div>
+
+        <!-- Fear & Greed -->
+        <div id="fearGreedBlock" style="margin-bottom:20px;"></div>
+
         <div class="stats-grid" id="statsGrid"></div>
 
         <!-- Row 1 -->
@@ -607,6 +629,50 @@ function getMomentumScore(d) {
     const chgComp    = Math.max(0, Math.min(15, (chg + 5) / 10 * 15));
     return Math.round(maComp + rsiComp + w52Comp + rvolComp + chgComp);
 }
+function calcFearGreed(m) {
+    const adTotal = (m.advancing||0) + (m.declining||0);
+    const adComp       = adTotal > 0 ? (m.advancing / adTotal) * 20 : 10;
+    const rsiComp      = ((m.pRsi50 || 0) / 100) * 20;
+    const nhNlVal      = (m.nhNlRatio === 99 || m.nhNlRatio === '∞') ? 5 : parseFloat(m.nhNlRatio) || 0;
+    const nhNlComp     = Math.min(nhNlVal / 4, 1) * 20;
+    const oversoldComp = Math.max(0, 1 - (m.pOversold || 0) / 35) * 20;
+    const thrustComp   = Math.min((m.breadthThrust || 0) / 60, 1) * 20;
+    return Math.round(adComp + rsiComp + nhNlComp + oversoldComp + thrustComp);
+}
+function fgLabel(s) {
+    if (s <= 20) return { text:'פחד קיצוני', color:'#e53e3e' };
+    if (s <= 40) return { text:'פחד', color:'#ed8936' };
+    if (s <= 60) return { text:'ניטרלי', color:'#ecc94b' };
+    if (s <= 80) return { text:'חמדנות', color:'#38a169' };
+    return { text:'חמדנות קיצונית', color:'#276749' };
+}
+function renderFearGreed(m) {
+    const score = calcFearGreed(m);
+    const { text, color } = fgLabel(score);
+    const needlePct = 100 - score; // RTL bar — 0=right(fear), 100=left(greed)
+    const adTotal = (m.advancing||0) + (m.declining||0);
+    document.getElementById('fearGreedBlock').innerHTML = `
+        <div class="fg-wrap">
+            <div>
+                <div class="fg-score" style="color:${color}">${score}</div>
+                <div class="fg-label" style="color:${color}">${text}</div>
+                <div style="font-size:11px;color:#a0aec0;margin-top:4px;">Fear &amp; Greed מקומי (0–100)</div>
+            </div>
+            <div class="fg-meter">
+                <div class="fg-bar-bg">
+                    <div class="fg-needle" style="left:${needlePct}%"></div>
+                </div>
+                <div class="fg-labels"><span>חמדנות קיצונית</span><span>ניטרלי</span><span>פחד קיצוני</span></div>
+                <div class="fg-detail">
+                    A/D: ${m.advancing||0}↑ / ${m.declining||0}↓ &nbsp;|&nbsp;
+                    RSI&gt;50: ${m.pRsi50||0}% &nbsp;|&nbsp;
+                    Oversold: ${m.pOversold||0}% &nbsp;|&nbsp;
+                    NH/NL: ${m.nhNlRatio===99?'∞':m.nhNlRatio} &nbsp;|&nbsp;
+                    Thrust: ${m.breadthThrust||0}
+                </div>
+            </div>
+        </div>`;
+}
 function momentumColor(s) {
     return s >= 70 ? '#276749' : s >= 50 ? '#38a169' : s >= 35 ? '#ecc94b' : s >= 20 ? '#ed8936' : '#e53e3e';
 }
@@ -787,7 +853,9 @@ function processData() {
     M = { total, a20, a50, a150, a200, golden, oversold, weak, strong, overbought,
           nearHigh, deepDrop, within20, rsiAbove50, healthScore, sectors,
           topSector, bottomSector, opportunities, opportunityStocks,
-          nhCount, nlCount, nhNlRatio, breadthThrust };
+          nhCount, nlCount, nhNlRatio, breadthThrust,
+          advancing, declining,
+          pRsi50: pct(rsiAbove50, total), pOversold: pct(oversold, total) };
 
     // Health banner
     const hc = healthColor(healthScore);
@@ -876,6 +944,8 @@ function processData() {
     updateCharts(a20,a50,a150,a200,total,oversold,weak,strong,overbought,golden,tableData,sectors,sectorsSorted);
     renderHeatmap(sectors, sectorsSorted);
     renderRvolCharts(tableData, sectorsSorted, sectors);
+    renderFearGreed(M);
+    renderChangesBlock();
     renderSetupScreener();
     renderMA20Screener();
     renderAbove200Screener();
@@ -1475,6 +1545,39 @@ function renderSetupScreener() {
         </table></div>`;
 }
 
+function renderChangesBlock() {
+    const el = document.getElementById('changesBlock');
+    if (historyData.length < 1) { el.style.display = 'none'; return; }
+    const prev = historyData[historyData.length - 1].metrics;
+    const cur  = M;
+
+    const deltaHealth  = cur.healthScore - prev.healthScore;
+    const deltaP200    = +(cur.a200 / cur.total * 100 - prev.p200).toFixed(1);
+    const deltaOversold= +((cur.oversold / cur.total * 100) - prev.pOversold).toFixed(1);
+    const crossed200Up = cur.a200 && prev.p200 ? Math.round(Math.max(0, deltaP200) * cur.total / 100) : 0;
+    const crossed200Dn = cur.a200 && prev.p200 ? Math.round(Math.max(0, -deltaP200) * cur.total / 100) : 0;
+    const adPrev = prev.advancing && prev.declining ? (prev.advancing / (prev.advancing + prev.declining) * 100).toFixed(0) : null;
+    const adCur  = (cur.advancing + cur.declining) > 0 ? (cur.advancing / (cur.advancing + cur.declining) * 100).toFixed(0) : null;
+
+    const arrow = (v, good='up') => {
+        if (v === 0) return '<span style="color:#a0aec0">—</span>';
+        const up = v > 0;
+        const isGood = good === 'up' ? up : !up;
+        const color = isGood ? '#68d391' : '#fc8181';
+        return `<span style="color:${color}">${up ? '↑' : '↓'}${Math.abs(v)}</span>`;
+    };
+
+    el.style.display = 'block';
+    el.innerHTML = `<div class="changes-bar">
+        <span style="font-weight:700;color:#e2e8f0;font-size:12px;">שינוי מיום קודם:</span>
+        <span class="chg-item">🎯 ציון בריאות: <strong>${cur.healthScore}</strong> ${arrow(deltaHealth)}</span>
+        ${crossed200Up > 0 ? `<span class="chg-item" style="color:#68d391">⬆ ${crossed200Up} מניות חזרו מעל 200D MA</span>` : ''}
+        ${crossed200Dn > 0 ? `<span class="chg-item" style="color:#fc8181">⬇ ${crossed200Dn} מניות ירדו מתחת 200D MA</span>` : ''}
+        <span class="chg-item">📊 200D MA: ${pct(cur.a200,cur.total)}% ${arrow(deltaP200)}</span>
+        <span class="chg-item">😰 Oversold: ${pct(cur.oversold,cur.total)}% ${arrow(deltaOversold,'down')}</span>
+        ${adCur ? `<span class="chg-item">⚖️ A/D: ${cur.advancing}↑ / ${cur.declining}↓ (${adCur}% עולות)</span>` : ''}
+    </div>`;
+}
 function renderMA20Screener() {
     const stocks = tableData
         .filter(d => {
@@ -1721,6 +1824,51 @@ function renderHistoryUI() {
                      x:{ ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} } },
             elements:{ point:{radius:4} } }
     });
+
+    // Weekly sector heatmap — כל הימים × כל הסקטורים
+    const SECS = ['IT','HC','FIN','CD','CS','IND','COM','ENE','UTL','RE','MAT'];
+    (function renderWeeklyHeatmap() {
+        function heatColor(v) {
+            if (v === null) return 'rgba(255,255,255,0.06)';
+            const a = Math.min(Math.abs(v) / 3, 1);
+            if (v > 0.05)  return `rgba(56,161,105,${0.2 + a * 0.75})`;
+            if (v < -0.05) return `rgba(229,62,62,${0.2 + a * 0.75})`;
+            return 'rgba(214,158,46,0.5)';
+        }
+        const dates = historyData.map(h => h.date);
+        const tbl = document.createElement('table');
+        tbl.style.cssText = 'border-collapse:collapse;font-size:11px;min-width:100%;';
+        // header row
+        const thead = tbl.createTHead();
+        const hrow = thead.insertRow();
+        const th0 = document.createElement('th');
+        th0.textContent = 'סקטור';
+        th0.style.cssText = 'padding:6px 10px;text-align:right;background:rgba(255,255,255,0.1);color:#e2e8f0;font-weight:700;white-space:nowrap;position:sticky;right:0;z-index:1;';
+        hrow.appendChild(th0);
+        dates.forEach(d => {
+            const th = document.createElement('th');
+            th.textContent = d.slice(5); // MM-DD
+            th.style.cssText = 'padding:6px 8px;text-align:center;background:rgba(255,255,255,0.1);color:#e2e8f0;font-weight:600;white-space:nowrap;';
+            hrow.appendChild(th);
+        });
+        // sector rows
+        const tbody = tbl.createTBody();
+        SECS.forEach(sec => {
+            const row = tbody.insertRow();
+            const nameCell = row.insertCell();
+            nameCell.textContent = SECTOR_HE[sec] || sec;
+            nameCell.style.cssText = 'padding:6px 10px;font-weight:700;color:#e2e8f0;white-space:nowrap;background:rgba(255,255,255,0.08);position:sticky;right:0;';
+            historyData.forEach(h => {
+                const v = h.metrics.sectorChange ? h.metrics.sectorChange[sec] : null;
+                const cell = row.insertCell();
+                cell.style.cssText = `padding:6px 8px;text-align:center;font-weight:600;color:#fff;background:${heatColor(v)};`;
+                cell.textContent = v !== null && v !== undefined ? (v > 0 ? '+' : '') + v + '%' : '—';
+            });
+        });
+        const wrap = document.getElementById('sectorWeeklyHeatmap');
+        wrap.innerHTML = '';
+        wrap.appendChild(tbl);
+    })();
 
     // פונקציית צבע לheatmap
     function heatColor(v) {
