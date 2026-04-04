@@ -1835,7 +1835,12 @@ function renderHistoryUI() {
             if (v < -0.05) return `rgba(229,62,62,${0.2 + a * 0.75})`;
             return 'rgba(214,158,46,0.5)';
         }
-        const dates = historyData.map(h => h.date);
+        // הצג רק ימים שיש בהם נתוני שינוי (קבצים עם עמודת %Change)
+        const daysWithChange = historyData.filter(h =>
+            h.metrics.sectorChange && Object.values(h.metrics.sectorChange).some(v => v !== null)
+        );
+        if (!daysWithChange.length) { document.getElementById('sectorWeeklyHeatmap').innerHTML = '<p style="color:#a0aec0;font-size:12px;">אין עדיין נתוני שינוי יומי.</p>'; return; }
+        const dates = daysWithChange.map(h => h.date);
         const tbl = document.createElement('table');
         tbl.style.cssText = 'border-collapse:collapse;font-size:11px;min-width:100%;';
         // header row
@@ -1858,7 +1863,7 @@ function renderHistoryUI() {
             const nameCell = row.insertCell();
             nameCell.textContent = SECTOR_HE[sec] || sec;
             nameCell.style.cssText = 'padding:6px 10px;font-weight:700;color:#e2e8f0;white-space:nowrap;background:rgba(255,255,255,0.08);position:sticky;right:0;';
-            historyData.forEach(h => {
+            daysWithChange.forEach(h => {
                 const v = h.metrics.sectorChange ? h.metrics.sectorChange[sec] : null;
                 const cell = row.insertCell();
                 cell.style.cssText = `padding:6px 8px;text-align:center;font-weight:600;color:#fff;background:${heatColor(v)};`;
@@ -1880,6 +1885,7 @@ function renderHistoryUI() {
     }
 
     // Heatmap סקטורים — נתון אחרון בלבד
+    const SECS = ['IT','HC','FIN','CD','CS','IND','COM','ENE','UTL','RE','MAT'];
     const lastDay = [...historyData].reverse().find(h=>h.metrics.sectorChange && Object.values(h.metrics.sectorChange).some(v=>v!==null));
     if (lastDay) {
         const sc = lastDay.metrics.sectorChange;
