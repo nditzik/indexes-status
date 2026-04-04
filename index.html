@@ -12,14 +12,13 @@
         .glass { background: rgba(255,255,255,0.22); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.28); }
         .header { background: rgba(26,54,93,0.55); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 20px 30px 14px; border-radius: 14px; margin-bottom: 20px; position:relative; text-align: center; }
         .header-logo { position:absolute; right:0; top:0; height:100%; width:220px; object-fit:cover; border-radius:14px; opacity:0.85; }
-        .ticker-bar { padding-right:240px; }
-        .header h1 { margin: 0 0 4px; font-size: 24px; padding-right:240px; }
-        .header p  { margin: 0 0 14px; opacity: .8; font-size: 14px; padding-right:240px; }
+        .header h1 { margin: 0 0 4px; font-size: 24px; padding-right:230px; }
+        .header p  { margin: 0 0 14px; opacity: .8; font-size: 14px; padding-right:230px; }
         /* Ticker bar */
-        .ticker-bar { display:none; flex-wrap:wrap; justify-content:center; gap:6px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.15); }
-        .ticker-item { display:flex; flex-direction:column; align-items:center; padding:6px 16px; background:rgba(255,255,255,0.08); border-radius:8px; min-width:100px; }
-        .ticker-label { font-size:10px; color:rgba(255,255,255,0.6); text-transform:uppercase; letter-spacing:.5px; margin-bottom:2px; }
-        .ticker-value { font-size:18px; font-weight:700; color:#fff; }
+        .ticker-bar { display:none; flex-wrap:nowrap; justify-content:center; gap:5px; padding-top:12px; padding-right:230px; border-top:1px solid rgba(255,255,255,0.15); overflow-x:auto; }
+        .ticker-item { display:flex; flex-direction:column; align-items:center; padding:5px 10px; background:rgba(255,255,255,0.08); border-radius:8px; min-width:80px; }
+        .ticker-label { font-size:9px; color:rgba(255,255,255,0.6); text-transform:uppercase; letter-spacing:.4px; margin-bottom:2px; white-space:nowrap; }
+        .ticker-value { font-size:15px; font-weight:700; color:#fff; white-space:nowrap; }
         .ticker-value.pos { color:#68d391; }
         .ticker-value.neg { color:#fc8181; }
         .ticker-value.warn { color:#faf089; }
@@ -178,26 +177,16 @@
         </div>
     </div>
 
-    <div class="card">
-        <div class="input-row">
-            <input type="file" id="fileInput" accept=".csv" onchange="loadFile(event)">
-            <button class="primary" onclick="processData()">נתח נתונים</button>
-        </div>
-        <textarea id="csvInput" placeholder="או הדבק כאן את תוכן קובץ ה-CSV מ-Barchart..."></textarea>
-        <div style="font-size:12px;color:#38a169;margin-top:6px;" id="autoLoadNote"></div>
-        <div id="addHistoryRow" style="display:none;margin-top:8px;">
-            <button class="add-history-btn" onclick="addCurrentToHistory()">+ הוסף להיסטוריה</button>
-            <span id="historyStatus" style="margin-right:10px;font-size:12px;color:#a0aec0;"></span>
-        </div>
+    <!-- hidden elements referenced by JS -->
+    <textarea id="csvInput" style="display:none;"></textarea>
+    <div id="autoLoadNote" style="display:none;"></div>
+    <div id="addHistoryRow" style="display:none;">
+        <span id="historyStatus"></span>
     </div>
 
     <!-- History section -->
     <div class="card history-section" id="historySection" style="display:none;">
         <h3 class="section-title">ניתוח היסטורי — מגמות לאורך זמן</h3>
-        <div class="input-row">
-            <input type="file" id="historyFiles" accept=".csv" multiple onchange="processHistoryFiles(event)">
-            <span style="font-size:12px;color:#a0aec0;">בחר מספר קבצי CSV (שמות: watchlist-sp-500-intraday-MM-DD-YYYY.csv)</span>
-        </div>
         <div id="historyStats" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;"></div>
         <div id="historyCharts" style="display:none;">
             <div class="trend-grid">
