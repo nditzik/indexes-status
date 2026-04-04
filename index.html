@@ -665,7 +665,7 @@ function fgLabel(s) {
 function renderFearGreed(m) {
     const score = calcFearGreed(m);
     const { text, color } = fgLabel(score);
-    const needlePct = 100 - score; // RTL bar — 0=right(fear), 100=left(greed)
+    const needlePct = score; // 0=left(fear/red), 100=right(greed/green)
     const vixColor = m.vix == null ? '#a0aec0' : m.vix < 15 ? '#68d391' : m.vix < 25 ? '#faf089' : '#fc8181';
     const vixBlock = m.vix != null ? `
         <div style="display:flex;flex-direction:column;align-items:center;padding:0 20px;border-right:1px solid rgba(255,255,255,0.15);border-left:1px solid rgba(255,255,255,0.15);">
@@ -686,7 +686,7 @@ function renderFearGreed(m) {
                 <div class="fg-bar-bg">
                     <div class="fg-needle" style="left:${needlePct}%"></div>
                 </div>
-                <div class="fg-labels"><span>חמדנות קיצונית</span><span>ניטרלי</span><span>פחד קיצוני</span></div>
+                <div class="fg-labels"><span>פחד קיצוני</span><span>ניטרלי</span><span>חמדנות קיצונית</span></div>
                 <div class="fg-detail">
                     A/D: ${m.advancing||0}↑ / ${m.declining||0}↓ &nbsp;|&nbsp;
                     RSI&gt;50: ${m.pRsi50||0}% &nbsp;|&nbsp;
