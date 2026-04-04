@@ -171,6 +171,10 @@
                 <span class="ticker-label">🔻 ירד הכי הרבה</span>
                 <span class="ticker-value neg" id="tkTopLoser">—</span>
             </div>
+            <div class="ticker-item" id="tkVixItem" style="display:none">
+                <span class="ticker-label">VIX פחד שוק</span>
+                <span class="ticker-value" id="tkVix">—</span>
+            </div>
         </div>
     </div>
 
@@ -246,6 +250,10 @@
             <div class="chart-card" style="margin-bottom:20px;">
                 <h3>עולות מול יורדות לאורך זמן</h3>
                 <canvas id="trendAdChart" style="max-height:260px;"></canvas>
+            </div>
+            <div class="chart-card" id="vixChartCard" style="margin-bottom:20px;display:none;">
+                <h3>VIX — מדד הפחד לאורך זמן</h3>
+                <canvas id="trendVixChart" style="max-height:240px;"></canvas>
             </div>
             <div class="tbl-wrap">
                 <table class="history-tbl" id="historyTable">
@@ -576,7 +584,7 @@ Chart.register({
     }
 });
 let tableData = [], M = {}, sortKey = 'maScore', sortAsc = false;
-let historyData = [], currentDateLabel = '';
+let historyData = [], currentDateLabel = '', currentVix = null;
 const trendCharts = {};
 
 /* ═══════════ HELPERS ═══════════ */
@@ -635,7 +643,17 @@ function calcFearGreed(m) {
     const nhNlComp     = Math.min(nhNlVal / 4, 1) * 20;
     const oversoldComp = Math.max(0, 1 - (m.pOversold || 0) / 35) * 20;
     const thrustComp   = Math.min((m.breadthThrust || 0) / 60, 1) * 20;
-    return Math.round(adComp + rsiComp + nhNlComp + oversoldComp + thrustComp);
+    const base = adComp + rsiComp + nhNlComp + oversoldComp + thrustComp;
+    // VIX adjustment: VIX<15 → +5, VIX 15–20 → +2, VIX 20–25 → 0, VIX 25–30 → −5, VIX>30 → −10
+    let vixAdj = 0;
+    if (m.vix != null) {
+        if (m.vix < 15)       vixAdj =  5;
+        else if (m.vix < 20)  vixAdj =  2;
+        else if (m.vix < 25)  vixAdj =  0;
+        else if (m.vix < 30)  vixAdj = -5;
+        else                   vixAdj = -10;
+    }
+    return Math.min(100, Math.max(0, Math.round(base + vixAdj)));
 }
 function fgLabel(s) {
     if (s <= 20) return { text:'פחד קיצוני', color:'#e53e3e' };
@@ -666,7 +684,7 @@ function renderFearGreed(m) {
                     RSI&gt;50: ${m.pRsi50||0}% &nbsp;|&nbsp;
                     Oversold: ${m.pOversold||0}% &nbsp;|&nbsp;
                     NH/NL: ${m.nhNlRatio===99?'∞':m.nhNlRatio} &nbsp;|&nbsp;
-                    Thrust: ${m.breadthThrust||0}
+                    Thrust: ${m.breadthThrust||0}${m.vix != null ? ` &nbsp;|&nbsp; VIX: <span style="color:${m.vix<15?'#68d391':m.vix<25?'#faf089':'#fc8181'};font-weight:700">${m.vix.toFixed(2)}</span>` : ''}
                 </div>
             </div>
         </div>`;
@@ -739,11 +757,13 @@ async function autoLoadHistory(t) {
                     if (date && text.length > 100) {
                         const lines = text.trim().split('\n');
                         const headers = parseCSVLine(lines[0]);
-                        const data = lines.slice(1)
-                            .map(line => { const v=parseCSVLine(line),o={}; headers.forEach((h,i)=>o[h]=v[i]||''); return o; })
-                            .filter(d => /^[A-Z][A-Z0-9.]{0,4}$/.test(d['Symbol']));
+                        const allParsedH = lines.slice(1)
+                            .map(line => { const v=parseCSVLine(line),o={}; headers.forEach((h,i)=>o[h]=v[i]||''); return o; });
+                        const vixRowH = allParsedH.find(d => d['Symbol'] === '$VIX');
+                        const vixH = vixRowH ? parseFloat(vixRowH['Latest']) : null;
+                        const data = allParsedH.filter(d => /^[A-Z][A-Z0-9.]{0,4}$/.test(d['Symbol']));
                         if (data.length && !historyData.find(h => h.date === date))
-                            historyData.push({ date, metrics: computeMetrics(data) });
+                            historyData.push({ date, metrics: computeMetrics(data, vixH) });
                     }
                 })
                 .catch(() => {})
@@ -782,9 +802,11 @@ function processData() {
     if (lines.length < 2) return alert('אנא הדבק נתונים תקינים');
 
     const headers = parseCSVLine(lines[0]);
-    const raw = lines.slice(1)
-        .map(line => { const v=parseCSVLine(line),o={}; headers.forEach((h,i)=>o[h]=v[i]||''); return o; })
-        .filter(d => /^[A-Z][A-Z0-9.]{0,4}$/.test(d['Symbol']));
+    const allParsed = lines.slice(1)
+        .map(line => { const v=parseCSVLine(line),o={}; headers.forEach((h,i)=>o[h]=v[i]||''); return o; });
+    const vixRow = allParsed.find(d => d['Symbol'] === '$VIX');
+    currentVix = vixRow ? parseFloat(vixRow['Latest']) : null;
+    const raw = allParsed.filter(d => /^[A-Z][A-Z0-9.]{0,4}$/.test(d['Symbol']));
 
     if (!raw.length) return alert('לא נמצאו נתונים תקינים');
 
@@ -853,7 +875,8 @@ function processData() {
           topSector, bottomSector, opportunities, opportunityStocks,
           nhCount, nlCount, nhNlRatio, breadthThrust,
           advancing, declining,
-          pRsi50: pct(rsiAbove50, total), pOversold: pct(oversold, total) };
+          pRsi50: pct(rsiAbove50, total), pOversold: pct(oversold, total),
+          vix: currentVix };
 
     // Health banner
     const hc = healthColor(healthScore);
@@ -926,6 +949,12 @@ function processData() {
     const gainer = sorted[0], loser = sorted[sorted.length-1];
     document.getElementById('tkTopGainer').textContent = gainer ? `${gainer['Symbol']} ${parseFloat(gainer['%Change'])>0?'+':''}${parseFloat(gainer['%Change']).toFixed(2)}%` : '—';
     document.getElementById('tkTopLoser').textContent  = loser  ? `${loser['Symbol']} ${parseFloat(loser['%Change']).toFixed(2)}%` : '—';
+    if (currentVix !== null) {
+        const vixCls = currentVix < 15 ? 'pos' : currentVix < 25 ? 'warn' : 'neg';
+        document.getElementById('tkVix').className = `ticker-value ${vixCls}`;
+        document.getElementById('tkVix').textContent = currentVix.toFixed(2);
+        document.getElementById('tkVixItem').style.display = 'flex';
+    }
     document.getElementById('tickerBar').style.display = 'flex';
 
     document.getElementById('dashboard').style.display = 'block';
@@ -1626,7 +1655,7 @@ function renderMA20Screener() {
 }
 
 /* ═══════════ HISTORY ═══════════ */
-function computeMetrics(data) {
+function computeMetrics(data, vixValue) {
     const total = data.length;
     const aboveMA = f => data.filter(d=>{const l=parseFloat(d['Latest']),m=parseFloat(d[f]);return !isNaN(l)&&!isNaN(m)&&m>0&&l>m;}).length;
     const a20=aboveMA('20D MA'),a50=aboveMA('50D MA'),a150=aboveMA('150D MA'),a200=aboveMA('200D MA');
@@ -1664,7 +1693,7 @@ function computeMetrics(data) {
              pGolden:pct(golden,total), pRsi50:pct(rsiAbove50,total), pWithin20:pct(within20,total),
              pOversold:pct(oversold,total), healthScore, nhCount, nlCount, nhNlRatio,
              sectorBreadth, sectorChange, avgChange, advancing, declining, avgRvol, breadthThrust,
-             pScore, avgMAScore };
+             pScore, avgMAScore, vix: vixValue != null ? vixValue : null };
 }
 
 function addCurrentToHistory() {
@@ -1674,7 +1703,7 @@ function addCurrentToHistory() {
         document.getElementById('historyStatus').textContent = `תאריך ${label} כבר קיים בהיסטוריה`;
         return;
     }
-    const metrics = computeMetrics(tableData);
+    const metrics = computeMetrics(tableData, currentVix);
     historyData.push({ date: label, metrics });
     historyData.sort((a,b)=>a.date.localeCompare(b.date));
     document.getElementById('historyStatus').textContent = `נוסף: ${label} (סה"כ ${historyData.length} נקודות)`;
@@ -1693,11 +1722,13 @@ function processHistoryFiles(e) {
             const lines = ev.target.result.trim().split('\n');
             if (lines.length < 2) { loaded++; if(loaded===files.length) renderHistoryUI(); return; }
             const headers = parseCSVLine(lines[0]);
-            const data = lines.slice(1)
-                .map(line=>{const v=parseCSVLine(line),o={};headers.forEach((h,i)=>o[h]=v[i]||'');return o;})
-                .filter(d=>/^[A-Z][A-Z0-9.]{0,4}$/.test(d['Symbol']));
+            const allParsedF = lines.slice(1)
+                .map(line=>{const v=parseCSVLine(line),o={};headers.forEach((h,i)=>o[h]=v[i]||'');return o;});
+            const vixRowF = allParsedF.find(d => d['Symbol'] === '$VIX');
+            const vixF = vixRowF ? parseFloat(vixRowF['Latest']) : null;
+            const data = allParsedF.filter(d=>/^[A-Z][A-Z0-9.]{0,4}$/.test(d['Symbol']));
             if (!historyData.find(h=>h.date===date)) {
-                historyData.push({ date, metrics: computeMetrics(data) });
+                historyData.push({ date, metrics: computeMetrics(data, vixF) });
             }
             loaded++;
             if (loaded === files.length) {
@@ -1921,6 +1952,29 @@ function renderHistoryUI() {
                     x:{ stacked:false, ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} },
                     y:{ ticks:{ color:'#e2e8f0', callback: v=>Math.abs(v) }, grid:{color:'rgba(255,255,255,0.1)'},
                         title:{display:true,text:'מניות',color:'#e2e8f0'} }
+                } }
+        });
+    }
+
+    // VIX history chart
+    if (trendCharts['trendVixChart']) { trendCharts['trendVixChart'].destroy(); delete trendCharts['trendVixChart']; }
+    const vixDays = historyData.filter(h => h.metrics.vix != null);
+    if (vixDays.length >= 2) {
+        document.getElementById('vixChartCard').style.display = 'block';
+        trendCharts['trendVixChart'] = new Chart(document.getElementById('trendVixChart'), {
+            type: 'line',
+            data: { labels: vixDays.map(h=>h.date),
+                datasets:[{
+                    label:'VIX', data: vixDays.map(h=>h.metrics.vix),
+                    borderColor:'#fc8181', backgroundColor:'rgba(252,129,129,0.15)',
+                    pointRadius:4, pointBackgroundColor:'#fc8181', tension:0.3, fill:true
+                }]},
+            options:{ plugins:{ legend:{ display:false },
+                tooltip:{ callbacks:{ label: ctx=>`VIX: ${ctx.raw.toFixed(2)}` } } },
+                scales:{
+                    x:{ ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} },
+                    y:{ ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.1)'},
+                        title:{display:true,text:'VIX',color:'#e2e8f0'} }
                 } }
         });
     }
