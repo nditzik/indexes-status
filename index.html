@@ -1826,8 +1826,8 @@ function renderHistoryUI() {
     });
 
     // Weekly sector heatmap — כל הימים × כל הסקטורים
-    const SECS = ['IT','HC','FIN','CD','CS','IND','COM','ENE','UTL','RE','MAT'];
     (function renderWeeklyHeatmap() {
+        const SECS = ['IT','HC','FIN','CD','CS','IND','COM','ENE','UTL','RE','MAT'];
         function heatColor(v) {
             if (v === null) return 'rgba(255,255,255,0.06)';
             const a = Math.min(Math.abs(v) / 3, 1);
@@ -1880,7 +1880,6 @@ function renderHistoryUI() {
     }
 
     // Heatmap סקטורים — נתון אחרון בלבד
-    const SECS = ['IT','HC','FIN','CD','CS','IND','COM','ENE','UTL','RE','MAT'];
     const lastDay = [...historyData].reverse().find(h=>h.metrics.sectorChange && Object.values(h.metrics.sectorChange).some(v=>v!==null));
     if (lastDay) {
         const sc = lastDay.metrics.sectorChange;
