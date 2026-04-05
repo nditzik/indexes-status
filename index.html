@@ -187,7 +187,7 @@
     <!-- History section -->
     <div class="card history-section" id="historySection" style="display:none;">
         <h3 class="section-title">ניתוח היסטורי — מגמות לאורך זמן</h3>
-        <div id="historyStats" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;"></div>
+        <div id="historyStats" style="display:flex;gap:10px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:16px;padding-bottom:4px;"></div>
         <div id="historyCharts" style="display:none;">
             <div class="trend-grid">
                 <div class="chart-card">
@@ -1753,20 +1753,95 @@ function renderHistoryUI() {
         healthSlope = +((historyData[historyData.length-1].metrics.healthScore - historyData[0].metrics.healthScore)/(historyData.length-1)).toFixed(2);
         p200Dod = +((historyData[historyData.length-1].metrics.p200 - historyData[historyData.length-2].metrics.p200).toFixed(1));
     }
+
+    // רצף ימים עולים/יורדים בציון בריאות
+    let streakCount = 0, streakDir = '';
+    if (historyData.length >= 2) {
+        const scores = historyData.map(h=>h.metrics.healthScore);
+        const last = scores[scores.length-1], prev = scores[scores.length-2];
+        streakDir = last >= prev ? 'up' : 'down';
+        for (let i=scores.length-1; i>=1; i--) {
+            if (streakDir==='up'  && scores[i]>=scores[i-1]) streakCount++;
+            else if (streakDir==='down' && scores[i]<=scores[i-1]) streakCount++;
+            else break;
+        }
+    }
+
+    // מגמת Fear & Greed — 5 ימים אחרונים
+    const fgHistory = historyData.map(h=>calcFearGreed(h.metrics));
+    let fgTrend = null;
+    const fgWindow = Math.min(5, fgHistory.length);
+    if (fgWindow>=2) fgTrend = fgHistory[fgHistory.length-1] - fgHistory[fgHistory.length-fgWindow];
+
+    // VIX ממוצע 5 ימים vs היום
+    const vixDaysAll = historyData.filter(h=>h.metrics.vix!=null);
+    let vixVsAvg = null;
+    if (vixDaysAll.length>=2) {
+        const recentVix = vixDaysAll.slice(-Math.min(5,vixDaysAll.length));
+        const vixAvg = recentVix.slice(0,-1).reduce((a,h)=>a+h.metrics.vix,0) / Math.max(recentVix.length-1,1);
+        vixVsAvg = +(recentVix[recentVix.length-1].metrics.vix - vixAvg).toFixed(2);
+    }
+
+    // סקטור מוביל השבוע — שיפור גדול ביותר ב-p200 לפי סקטור
+    let topSectorWeek = '—', topSectorWeekVal = null;
+    if (historyData.length>=2) {
+        const SECS_W = ['IT','HC','FIN','CD','CS','IND','COM','ENE','UTL','RE','MAT'];
+        const first = historyData[0].metrics.sectorBreadth || {};
+        const last  = historyData[historyData.length-1].metrics.sectorBreadth || {};
+        let best = -Infinity;
+        SECS_W.forEach(s => {
+            if (first[s]!=null && last[s]!=null) {
+                const diff = last[s]-first[s];
+                if (diff>best) { best=diff; topSectorWeek=SECTOR_HE[s]||s; topSectorWeekVal=diff; }
+            }
+        });
+    }
+
+    // % מניות מעל 20D MA — שינוי שבועי
+    let p20WeekDelta = null;
+    if (historyData.length>=2) {
+        p20WeekDelta = +((historyData[historyData.length-1].metrics.p20 - historyData[0].metrics.p20).toFixed(1));
+    }
+
     document.getElementById('historyStats').innerHTML = `
-        <div class="stat-card" style="min-width:160px;border-top-color:#e53e3e">
+        <div class="stat-card" style="min-width:140px;border-top-color:#e53e3e">
             <h3>Distribution Days</h3><p style="font-size:22px">${distDays}</p>
             <p style="font-size:11px;color:#e2e8f0;margin:4px 0 0">ימי ירידה עם נפח גבוה</p>
         </div>
-        <div class="stat-card" style="min-width:160px;border-top-color:${healthSlope>=0?'#38a169':'#e53e3e'}">
+        <div class="stat-card" style="min-width:140px;border-top-color:${healthSlope>=0?'#38a169':'#e53e3e'}">
             <h3>שיפוע ציון בריאות</h3>
             <p style="font-size:22px;color:${healthSlope>=0?'#38a169':'#e53e3e'}">${healthSlope!==null?(healthSlope>0?'+':'')+healthSlope:'—'}</p>
             <p style="font-size:11px;color:#e2e8f0;margin:4px 0 0">נקודות ליום (${historyData.length} ימים)</p>
         </div>
-        <div class="stat-card" style="min-width:160px;border-top-color:${p200Dod>=0?'#38a169':'#e53e3e'}">
+        <div class="stat-card" style="min-width:140px;border-top-color:${p200Dod>=0?'#38a169':'#e53e3e'}">
             <h3>קצב שיפוי (200D MA)</h3>
             <p style="font-size:22px;color:${p200Dod>=0?'#38a169':'#e53e3e'}">${p200Dod!==null?(p200Dod>0?'+':'')+p200Dod+'%':'—'}</p>
             <p style="font-size:11px;color:#e2e8f0;margin:4px 0 0">שינוי יומי % מעל 200D MA</p>
+        </div>
+        <div class="stat-card" style="min-width:140px;border-top-color:${streakDir==='up'?'#38a169':'#e53e3e'}">
+            <h3>רצף ימים</h3>
+            <p style="font-size:22px;color:${streakDir==='up'?'#38a169':'#e53e3e'}">${streakDir==='up'?'▲':'▼'} ${streakCount}</p>
+            <p style="font-size:11px;color:#e2e8f0;margin:4px 0 0">ימים ${streakDir==='up'?'עולים':'יורדים'} ברצף</p>
+        </div>
+        <div class="stat-card" style="min-width:140px;border-top-color:${fgTrend===null?'#3182ce':fgTrend>=0?'#38a169':'#e53e3e'}">
+            <h3>מגמת Fear &amp; Greed</h3>
+            <p style="font-size:22px;color:${fgTrend===null?'#fff':fgTrend>=0?'#38a169':'#e53e3e'}">${fgTrend!==null?(fgTrend>0?'+':'')+fgTrend:'—'}</p>
+            <p style="font-size:11px;color:#e2e8f0;margin:4px 0 0">${fgWindow} ימים אחרונים</p>
+        </div>
+        ${vixDaysAll.length>=2?`<div class="stat-card" style="min-width:140px;border-top-color:${vixVsAvg<=0?'#38a169':'#e53e3e'}">
+            <h3>VIX vs ממוצע 5י׳</h3>
+            <p style="font-size:22px;color:${vixVsAvg<=0?'#38a169':'#e53e3e'}">${vixVsAvg!=null?(vixVsAvg>0?'+':'')+vixVsAvg:'—'}</p>
+            <p style="font-size:11px;color:#e2e8f0;margin:4px 0 0">היום מול ממוצע VIX</p>
+        </div>`:''}
+        <div class="stat-card" style="min-width:140px;border-top-color:${topSectorWeekVal!==null&&topSectorWeekVal>=0?'#38a169':'#3182ce'}">
+            <h3>סקטור מוביל</h3>
+            <p style="font-size:16px;font-weight:700;color:#68d391;margin:8px 0 2px">${topSectorWeek}</p>
+            <p style="font-size:11px;color:#e2e8f0;margin:0">${topSectorWeekVal!==null?(topSectorWeekVal>0?'+':'')+topSectorWeekVal+'%':''} בתקופה</p>
+        </div>
+        <div class="stat-card" style="min-width:140px;border-top-color:${p20WeekDelta!==null&&p20WeekDelta>=0?'#38a169':'#e53e3e'}">
+            <h3>% מעל 20D MA</h3>
+            <p style="font-size:22px;color:${p20WeekDelta!==null&&p20WeekDelta>=0?'#38a169':'#e53e3e'}">${p20WeekDelta!==null?(p20WeekDelta>0?'+':'')+p20WeekDelta+'%':'—'}</p>
+            <p style="font-size:11px;color:#e2e8f0;margin:4px 0 0">שינוי כולל בתקופה</p>
         </div>`;
     document.getElementById('historyCharts').style.display = 'block';
 
