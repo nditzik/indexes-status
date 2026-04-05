@@ -1,5 +1,4 @@
 Symbol,Name,Latest,%Change,"50D MA","20D MA","200D MA","150D MA","RSI Rank","52W %/High","20D RelVol"
-$VIX,"CBOE Volatility Index",23.87,0.00%,21.95,25.8,18.06,18.69,"Below 50",-60.30%,0
 A,"Agilent Technologies",115.48,+0.82%,121.95,113.19,129.77,133.74,"Below 50",-27.95%,0.52
 AAPL,"Apple Inc",255.92,+0.11%,260.36,253.41,249.15,260.83,"New Above 50",-11.33%,0.78
 ABBV,"Abbvie Inc",208.84,-2.86%,221.6,215.52,216.16,223.54,"Below 50",-14.69%,0.69
@@ -503,4 +502,5 @@ YUM,"Yum! Brands",156.09,+1.55%,159.19,157.94,150.83,152.36,"Below 50",-7.85%,0.
 ZBH,"Zimmer Biomet Holdings",90.89,-0.15%,92.08,90.58,95.06,94.61,"Below 50",-20.58%,1.02
 ZBRA,"Zebra Technologies",202.84,-2.14%,228.74,207.2,274.98,260.14,"Below 50",-42.48%,0.73
 ZTS,"Zoetis Inc Cl A",117.94,+0.55%,122.8,117.58,136.07,130.24,"Below 50",-31.52%,0.54
+$VIX,"CBOE Volatility Index",23.87,0.00%,21.95,25.8,18.06,18.69,"Below 50",-60.30%,0
 "Downloaded from Barchart.com as of 04-04-2026 06:23am CDT"
