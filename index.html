@@ -174,6 +174,14 @@
                 <span class="ticker-label">VIX פחד שוק</span>
                 <span class="ticker-value" id="tkVix">—</span>
             </div>
+            <div class="ticker-item" id="tkDxyItem" style="display:none">
+                <span class="ticker-label">DXY דולר</span>
+                <span class="ticker-value" id="tkDxy">—</span>
+            </div>
+            <div class="ticker-item" id="tkTnxItem" style="display:none">
+                <span class="ticker-label">TNX אג"ח 10י'</span>
+                <span class="ticker-value" id="tkTnx">—</span>
+            </div>
         </div>
     </div>
 
@@ -243,6 +251,10 @@
             <div class="chart-card" id="vixChartCard" style="margin-bottom:20px;display:none;">
                 <h3>VIX ומדד הפחד היומי לאורך זמן</h3>
                 <canvas id="trendVixChart" style="max-height:260px;"></canvas>
+            </div>
+            <div class="chart-card" id="dxyTnxChartCard" style="margin-bottom:20px;display:none;">
+                <h3>DXY מדד הדולר ותשואת אג"ח 10 שנים (TNX) לאורך זמן</h3>
+                <canvas id="trendDxyTnxChart" style="max-height:240px;"></canvas>
             </div>
             <div class="tbl-wrap">
                 <table class="history-tbl" id="historyTable">
@@ -573,7 +585,7 @@ Chart.register({
     }
 });
 let tableData = [], M = {}, sortKey = 'maScore', sortAsc = false;
-let historyData = [], currentDateLabel = '', currentVix = null;
+let historyData = [], currentDateLabel = '', currentVix = null, currentDxy = null, currentTnx = null;
 const trendCharts = {};
 
 /* ═══════════ HELPERS ═══════════ */
@@ -758,9 +770,13 @@ async function autoLoadHistory(t) {
                             .map(line => { const v=parseCSVLine(line),o={}; headers.forEach((h,i)=>o[h]=v[i]||''); return o; });
                         const vixRowH = allParsedH.find(d => d['Symbol'] === '$VIX');
                         const vixH = vixRowH ? parseFloat(vixRowH['Latest']) : null;
+                        const dxyRowH = allParsedH.find(d => d['Symbol'] === '$DXY');
+                        const dxyH = dxyRowH ? parseFloat(dxyRowH['Latest']) : null;
+                        const tnxRowH = allParsedH.find(d => d['Symbol'] === '$TNX');
+                        const tnxH = tnxRowH ? parseFloat(tnxRowH['Latest']) : null;
                         const data = allParsedH.filter(d => /^[A-Z][A-Z0-9.]{0,4}$/.test(d['Symbol']));
                         if (data.length && !historyData.find(h => h.date === date))
-                            historyData.push({ date, metrics: computeMetrics(data, vixH) });
+                            historyData.push({ date, metrics: computeMetrics(data, vixH, dxyH, tnxH) });
                     }
                 })
                 .catch(() => {})
@@ -803,6 +819,10 @@ function processData() {
         .map(line => { const v=parseCSVLine(line),o={}; headers.forEach((h,i)=>o[h]=v[i]||''); return o; });
     const vixRow = allParsed.find(d => d['Symbol'] === '$VIX');
     currentVix = vixRow ? parseFloat(vixRow['Latest']) : null;
+    const dxyRow = allParsed.find(d => d['Symbol'] === '$DXY');
+    currentDxy = dxyRow ? parseFloat(dxyRow['Latest']) : null;
+    const tnxRow = allParsed.find(d => d['Symbol'] === '$TNX');
+    currentTnx = tnxRow ? parseFloat(tnxRow['Latest']) : null;
     const raw = allParsed.filter(d => /^[A-Z][A-Z0-9.]{0,4}$/.test(d['Symbol']));
 
     if (!raw.length) return alert('לא נמצאו נתונים תקינים');
@@ -873,7 +893,7 @@ function processData() {
           nhCount, nlCount, nhNlRatio, breadthThrust,
           advancing, declining,
           pRsi50: pct(rsiAbove50, total), pOversold: pct(oversold, total),
-          vix: currentVix };
+          vix: currentVix, dxy: currentDxy, tnx: currentTnx };
 
     // Health banner
     const hc = healthColor(healthScore);
@@ -951,6 +971,20 @@ function processData() {
         document.getElementById('tkVix').className = `ticker-value ${vixCls}`;
         document.getElementById('tkVix').textContent = currentVix.toFixed(2);
         document.getElementById('tkVixItem').style.display = 'flex';
+    }
+    if (currentDxy !== null) {
+        // DXY: strong dollar (>103) = warn for stocks, weak (<98) = pos
+        const dxyCls = currentDxy > 103 ? 'warn' : currentDxy < 98 ? 'pos' : '';
+        document.getElementById('tkDxy').className = `ticker-value ${dxyCls}`;
+        document.getElementById('tkDxy').textContent = currentDxy.toFixed(2);
+        document.getElementById('tkDxyItem').style.display = 'flex';
+    }
+    if (currentTnx !== null) {
+        // TNX: yield >4.5% = warn (pressure on stocks), <3.5% = pos
+        const tnxCls = currentTnx > 4.5 ? 'neg' : currentTnx < 3.5 ? 'pos' : 'warn';
+        document.getElementById('tkTnx').className = `ticker-value ${tnxCls}`;
+        document.getElementById('tkTnx').textContent = currentTnx.toFixed(2) + '%';
+        document.getElementById('tkTnxItem').style.display = 'flex';
     }
     document.getElementById('tickerBar').style.display = 'flex';
 
@@ -1655,7 +1689,7 @@ function renderMA20Screener() {
 }
 
 /* ═══════════ HISTORY ═══════════ */
-function computeMetrics(data, vixValue) {
+function computeMetrics(data, vixValue, dxyValue, tnxValue) {
     const total = data.length;
     const aboveMA = f => data.filter(d=>{const l=parseFloat(d['Latest']),m=parseFloat(d[f]);return !isNaN(l)&&!isNaN(m)&&m>0&&l>m;}).length;
     const a20=aboveMA('20D MA'),a50=aboveMA('50D MA'),a150=aboveMA('150D MA'),a200=aboveMA('200D MA');
@@ -1693,7 +1727,10 @@ function computeMetrics(data, vixValue) {
              pGolden:pct(golden,total), pRsi50:pct(rsiAbove50,total), pWithin20:pct(within20,total),
              pOversold:pct(oversold,total), healthScore, nhCount, nlCount, nhNlRatio,
              sectorBreadth, sectorChange, avgChange, advancing, declining, avgRvol, breadthThrust,
-             pScore, avgMAScore, vix: vixValue != null ? vixValue : null };
+             pScore, avgMAScore,
+             vix: vixValue != null ? vixValue : null,
+             dxy: dxyValue != null ? dxyValue : null,
+             tnx: tnxValue != null ? tnxValue : null };
 }
 
 function addCurrentToHistory() {
@@ -1703,7 +1740,7 @@ function addCurrentToHistory() {
         document.getElementById('historyStatus').textContent = `תאריך ${label} כבר קיים בהיסטוריה`;
         return;
     }
-    const metrics = computeMetrics(tableData, currentVix);
+    const metrics = computeMetrics(tableData, currentVix, currentDxy, currentTnx);
     historyData.push({ date: label, metrics });
     historyData.sort((a,b)=>a.date.localeCompare(b.date));
     document.getElementById('historyStatus').textContent = `נוסף: ${label} (סה"כ ${historyData.length} נקודות)`;
@@ -1726,9 +1763,13 @@ function processHistoryFiles(e) {
                 .map(line=>{const v=parseCSVLine(line),o={};headers.forEach((h,i)=>o[h]=v[i]||'');return o;});
             const vixRowF = allParsedF.find(d => d['Symbol'] === '$VIX');
             const vixF = vixRowF ? parseFloat(vixRowF['Latest']) : null;
+            const dxyRowF = allParsedF.find(d => d['Symbol'] === '$DXY');
+            const dxyF = dxyRowF ? parseFloat(dxyRowF['Latest']) : null;
+            const tnxRowF = allParsedF.find(d => d['Symbol'] === '$TNX');
+            const tnxF = tnxRowF ? parseFloat(tnxRowF['Latest']) : null;
             const data = allParsedF.filter(d=>/^[A-Z][A-Z0-9.]{0,4}$/.test(d['Symbol']));
             if (!historyData.find(h=>h.date===date)) {
-                historyData.push({ date, metrics: computeMetrics(data, vixF) });
+                historyData.push({ date, metrics: computeMetrics(data, vixF, dxyF, tnxF) });
             }
             loaded++;
             if (loaded === files.length) {
@@ -2065,6 +2106,38 @@ function renderHistoryUI() {
                     yVIX:{ position:'left',
                         ticks:{color:'#fc8181'}, grid:{drawOnChartArea:false},
                         title:{display:true,text:'VIX',color:'#fc8181'} }
+                } }
+        });
+    }
+
+    // DXY + TNX history chart
+    if (trendCharts['trendDxyTnxChart']) { trendCharts['trendDxyTnxChart'].destroy(); delete trendCharts['trendDxyTnxChart']; }
+    const macrodays = historyData.filter(h => h.metrics.dxy != null || h.metrics.tnx != null);
+    if (macrodays.length >= 1) {
+        document.getElementById('dxyTnxChartCard').style.display = 'block';
+        const allLabels2 = historyData.map(h => h.date);
+        trendCharts['trendDxyTnxChart'] = new Chart(document.getElementById('trendDxyTnxChart'), {
+            type:'line',
+            data:{ labels: allLabels2, datasets:[
+                { label:'DXY', data: historyData.map(h => h.metrics.dxy ?? null),
+                  borderColor:'#63b3ed', backgroundColor:'rgba(99,179,237,0.1)',
+                  pointRadius:4, pointBackgroundColor:'#63b3ed', tension:0.3, fill:false,
+                  spanGaps:false, yAxisID:'yDXY' },
+                { label:'TNX %', data: historyData.map(h => h.metrics.tnx ?? null),
+                  borderColor:'#f6ad55', backgroundColor:'rgba(246,173,85,0.1)',
+                  pointRadius:4, pointBackgroundColor:'#f6ad55', tension:0.3, fill:false,
+                  spanGaps:false, yAxisID:'yTNX' }
+            ]},
+            options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:'#e2e8f0'} },
+                tooltip:{ callbacks:{ label: ctx => ctx.dataset.yAxisID==='yTNX'
+                    ? `TNX: ${ctx.raw != null ? ctx.raw.toFixed(2)+'%' : '—'}`
+                    : `DXY: ${ctx.raw != null ? ctx.raw.toFixed(2) : '—'}` } } },
+                scales:{
+                    x:{ ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} },
+                    yDXY:{ position:'left', ticks:{color:'#63b3ed'}, grid:{color:'rgba(255,255,255,0.06)'},
+                        title:{display:true,text:'DXY',color:'#63b3ed'} },
+                    yTNX:{ position:'right', ticks:{color:'#f6ad55',callback:v=>v+'%'}, grid:{drawOnChartArea:false},
+                        title:{display:true,text:'TNX %',color:'#f6ad55'} }
                 } }
         });
     }
