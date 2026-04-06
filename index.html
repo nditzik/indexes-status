@@ -249,12 +249,8 @@
                 <canvas id="trendAdChart" style="max-height:260px;"></canvas>
             </div>
             <div class="chart-card" id="vixChartCard" style="margin-bottom:20px;display:none;">
-                <h3>VIX ומדד הפחד היומי לאורך זמן</h3>
-                <canvas id="trendVixChart" style="max-height:260px;"></canvas>
-            </div>
-            <div class="chart-card" id="dxyTnxChartCard" style="margin-bottom:20px;display:none;">
-                <h3>DXY מדד הדולר ותשואת אג"ח 10 שנים (TNX) לאורך זמן</h3>
-                <canvas id="trendDxyTnxChart" style="max-height:240px;"></canvas>
+                <h3>מדד הפחד היומי · VIX · DXY · TNX לאורך זמן</h3>
+                <canvas id="trendVixChart" style="max-height:300px;"></canvas>
             </div>
             <div class="tbl-wrap">
                 <table class="history-tbl" id="historyTable">
@@ -2096,80 +2092,54 @@ function renderHistoryUI() {
         document.getElementById('vixChartCard').style.display = 'block';
         // Use all history days as labels; VIX is null for days without it
         const allLabels = historyData.map(h => h.date);
-        const fgData    = historyData.map(h => calcFearGreed(h.metrics));
-        const vixData   = historyData.map(h => h.metrics.vix != null ? h.metrics.vix : null);
-        const dxyData   = historyData.map(h => h.metrics.dxy != null ? h.metrics.dxy : null);
-        const tnxData   = historyData.map(h => h.metrics.tnx != null ? h.metrics.tnx : null);
+        const fgData  = historyData.map(h => calcFearGreed(h.metrics));
+        const vixData = historyData.map(h => h.metrics.vix ?? null);
+        const dxyData = historyData.map(h => h.metrics.dxy ?? null);
+        const tnxData = historyData.map(h => h.metrics.tnx ?? null);
         trendCharts['trendVixChart'] = new Chart(document.getElementById('trendVixChart'), {
             type: 'line',
             data: { labels: allLabels,
                 datasets:[
-                    { label:'מדד הפחד היומי', data: fgData,
+                    { label:'מדד הפחד (0–100)', data: fgData,
                       borderColor:'#ecc94b', backgroundColor:'rgba(236,201,75,0.08)',
                       pointRadius:4, pointBackgroundColor:'#ecc94b', tension:0.3, fill:false,
-                      yAxisID:'yFG' },
+                      borderWidth:2, yAxisID:'yFG' },
                     { label:'VIX', data: vixData,
-                      borderColor:'#fc8181', backgroundColor:'rgba(252,129,129,0.12)',
+                      borderColor:'#fc8181', backgroundColor:'rgba(252,129,129,0.1)',
                       pointRadius:4, pointBackgroundColor:'#fc8181', tension:0.3, fill:true,
-                      spanGaps:false, yAxisID:'yMacro' },
+                      borderWidth:2, spanGaps:false, yAxisID:'yVIX' },
                     { label:'DXY', data: dxyData,
                       borderColor:'#63b3ed', backgroundColor:'transparent',
                       pointRadius:4, pointBackgroundColor:'#63b3ed', tension:0.3, fill:false,
-                      borderDash:[5,3], spanGaps:false, yAxisID:'yMacro' },
+                      borderWidth:2, borderDash:[6,3], spanGaps:false, yAxisID:'yDXY' },
                     { label:'TNX %', data: tnxData,
                       borderColor:'#f6ad55', backgroundColor:'transparent',
                       pointRadius:4, pointBackgroundColor:'#f6ad55', tension:0.3, fill:false,
-                      borderDash:[3,3], spanGaps:false, yAxisID:'yMacro' }
+                      borderWidth:2, borderDash:[3,3], spanGaps:false, yAxisID:'yTNX' }
                 ]},
             options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:'#e2e8f0'} },
                 tooltip:{ callbacks:{ label: ctx => {
-                    if (ctx.dataset.label==='מדד הפחד היומי') return `מדד פחד: ${ctx.raw}`;
-                    if (ctx.dataset.label==='TNX %') return `TNX: ${ctx.raw != null ? ctx.raw.toFixed(2)+'%' : '—'}`;
-                    return `${ctx.dataset.label}: ${ctx.raw != null ? ctx.raw.toFixed(2) : '—'}`;
+                    if (ctx.dataset.label==='TNX %') return `TNX: ${ctx.raw!=null?ctx.raw.toFixed(2)+'%':'—'}`;
+                    return `${ctx.dataset.label}: ${ctx.raw!=null?ctx.raw.toFixed(2):'—'}`;
                 } } } },
                 scales:{
-                    x:{ ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} },
-                    yFG:{ position:'right', min:0, max:100,
-                        ticks:{color:'#ecc94b'}, grid:{color:'rgba(255,255,255,0.06)'},
-                        title:{display:true,text:'מדד פחד (0–100)',color:'#ecc94b'} },
-                    yMacro:{ position:'left',
-                        ticks:{color:'#a0aec0'}, grid:{drawOnChartArea:false},
-                        title:{display:true,text:'VIX / DXY / TNX',color:'#a0aec0'} }
+                    x:   { ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} },
+                    yFG: { position:'right', min:0, max:100,
+                           ticks:{color:'#ecc94b'}, grid:{color:'rgba(255,255,255,0.06)'},
+                           title:{display:true,text:'מדד פחד',color:'#ecc94b'} },
+                    yVIX:{ position:'left',
+                           ticks:{color:'#fc8181'}, grid:{drawOnChartArea:false},
+                           title:{display:true,text:'VIX',color:'#fc8181'} },
+                    yDXY:{ position:'left', offset:true,
+                           ticks:{color:'#63b3ed'}, grid:{drawOnChartArea:false},
+                           title:{display:true,text:'DXY',color:'#63b3ed'} },
+                    yTNX:{ position:'right', offset:true,
+                           ticks:{color:'#f6ad55',callback:v=>v+'%'}, grid:{drawOnChartArea:false},
+                           title:{display:true,text:'TNX',color:'#f6ad55'} }
                 } }
         });
     }
 
-    // DXY + TNX history chart
-    if (trendCharts['trendDxyTnxChart']) { trendCharts['trendDxyTnxChart'].destroy(); delete trendCharts['trendDxyTnxChart']; }
-    const macrodays = historyData.filter(h => h.metrics.dxy != null || h.metrics.tnx != null);
-    if (macrodays.length >= 1) {
-        document.getElementById('dxyTnxChartCard').style.display = 'block';
-        const allLabels2 = historyData.map(h => h.date);
-        trendCharts['trendDxyTnxChart'] = new Chart(document.getElementById('trendDxyTnxChart'), {
-            type:'line',
-            data:{ labels: allLabels2, datasets:[
-                { label:'DXY', data: historyData.map(h => h.metrics.dxy ?? null),
-                  borderColor:'#63b3ed', backgroundColor:'rgba(99,179,237,0.1)',
-                  pointRadius:4, pointBackgroundColor:'#63b3ed', tension:0.3, fill:false,
-                  spanGaps:false, yAxisID:'yDXY' },
-                { label:'TNX %', data: historyData.map(h => h.metrics.tnx ?? null),
-                  borderColor:'#f6ad55', backgroundColor:'rgba(246,173,85,0.1)',
-                  pointRadius:4, pointBackgroundColor:'#f6ad55', tension:0.3, fill:false,
-                  spanGaps:false, yAxisID:'yTNX' }
-            ]},
-            options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:'#e2e8f0'} },
-                tooltip:{ callbacks:{ label: ctx => ctx.dataset.yAxisID==='yTNX'
-                    ? `TNX: ${ctx.raw != null ? ctx.raw.toFixed(2)+'%' : '—'}`
-                    : `DXY: ${ctx.raw != null ? ctx.raw.toFixed(2) : '—'}` } } },
-                scales:{
-                    x:{ ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} },
-                    yDXY:{ position:'left', ticks:{color:'#63b3ed'}, grid:{color:'rgba(255,255,255,0.06)'},
-                        title:{display:true,text:'DXY',color:'#63b3ed'} },
-                    yTNX:{ position:'right', ticks:{color:'#f6ad55',callback:v=>v+'%'}, grid:{drawOnChartArea:false},
-                        title:{display:true,text:'TNX %',color:'#f6ad55'} }
-                } }
-        });
-    }
 
     document.getElementById('historyTableBody').innerHTML = historyData.map(h=>{
         const m = h.metrics;
