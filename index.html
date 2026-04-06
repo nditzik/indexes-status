@@ -645,7 +645,7 @@ function calcFearGreed(m) {
     const oversoldComp = Math.max(0, 1 - (m.pOversold || 0) / 35) * 20;
     const thrustComp   = Math.min((m.breadthThrust || 0) / 60, 1) * 20;
     const base = adComp + rsiComp + nhNlComp + oversoldComp + thrustComp;
-    // VIX adjustment: VIX<15 → +5, VIX 15–20 → +2, VIX 20–25 → 0, VIX 25–30 → −5, VIX>30 → −10
+    // VIX: <15→+5, 15–20→+2, 20–25→0, 25–30→−5, >30→−10
     let vixAdj = 0;
     if (m.vix != null) {
         if (m.vix < 15)       vixAdj =  5;
@@ -654,7 +654,24 @@ function calcFearGreed(m) {
         else if (m.vix < 30)  vixAdj = -5;
         else                   vixAdj = -10;
     }
-    return Math.min(100, Math.max(0, Math.round(base + vixAdj)));
+    // TNX (תשואת אג"ח): <3.5→+3, 3.5–4→+1, 4–4.5→0, 4.5–5→−3, >5→−6
+    let tnxAdj = 0;
+    if (m.tnx != null) {
+        if (m.tnx < 3.5)      tnxAdj =  3;
+        else if (m.tnx < 4.0) tnxAdj =  1;
+        else if (m.tnx < 4.5) tnxAdj =  0;
+        else if (m.tnx < 5.0) tnxAdj = -3;
+        else                   tnxAdj = -6;
+    }
+    // DXY (מדד הדולר): <98→+3, 98–101→0, 101–104→−2, >104→−5
+    let dxyAdj = 0;
+    if (m.dxy != null) {
+        if (m.dxy < 98)       dxyAdj =  3;
+        else if (m.dxy < 101) dxyAdj =  0;
+        else if (m.dxy < 104) dxyAdj = -2;
+        else                   dxyAdj = -5;
+    }
+    return Math.min(100, Math.max(0, Math.round(base + vixAdj + tnxAdj + dxyAdj)));
 }
 function fgLabel(s) {
     if (s <= 20) return { text:'פחד קיצוני', color:'#e53e3e' };
@@ -693,7 +710,7 @@ function renderFearGreed(m) {
                     RSI&gt;50: ${m.pRsi50||0}% &nbsp;|&nbsp;
                     Oversold: ${m.pOversold||0}% &nbsp;|&nbsp;
                     NH/NL: ${m.nhNlRatio===99?'∞':m.nhNlRatio} &nbsp;|&nbsp;
-                    Thrust: ${m.breadthThrust||0}
+                    Thrust: ${m.breadthThrust||0}${m.tnx != null ? ` &nbsp;|&nbsp; TNX: <span style="color:${m.tnx<3.5?'#68d391':m.tnx<4.5?'#faf089':'#fc8181'};font-weight:700">${m.tnx.toFixed(2)}%</span>` : ''}${m.dxy != null ? ` &nbsp;|&nbsp; DXY: <span style="color:${m.dxy<98?'#68d391':m.dxy<104?'#faf089':'#fc8181'};font-weight:700">${m.dxy.toFixed(2)}</span>` : ''}
                 </div>
             </div>
         </div>`;
@@ -2081,6 +2098,8 @@ function renderHistoryUI() {
         const allLabels = historyData.map(h => h.date);
         const fgData    = historyData.map(h => calcFearGreed(h.metrics));
         const vixData   = historyData.map(h => h.metrics.vix != null ? h.metrics.vix : null);
+        const dxyData   = historyData.map(h => h.metrics.dxy != null ? h.metrics.dxy : null);
+        const tnxData   = historyData.map(h => h.metrics.tnx != null ? h.metrics.tnx : null);
         trendCharts['trendVixChart'] = new Chart(document.getElementById('trendVixChart'), {
             type: 'line',
             data: { labels: allLabels,
@@ -2090,22 +2109,32 @@ function renderHistoryUI() {
                       pointRadius:4, pointBackgroundColor:'#ecc94b', tension:0.3, fill:false,
                       yAxisID:'yFG' },
                     { label:'VIX', data: vixData,
-                      borderColor:'#fc8181', backgroundColor:'rgba(252,129,129,0.15)',
+                      borderColor:'#fc8181', backgroundColor:'rgba(252,129,129,0.12)',
                       pointRadius:4, pointBackgroundColor:'#fc8181', tension:0.3, fill:true,
-                      spanGaps:false, yAxisID:'yVIX' }
+                      spanGaps:false, yAxisID:'yMacro' },
+                    { label:'DXY', data: dxyData,
+                      borderColor:'#63b3ed', backgroundColor:'transparent',
+                      pointRadius:4, pointBackgroundColor:'#63b3ed', tension:0.3, fill:false,
+                      borderDash:[5,3], spanGaps:false, yAxisID:'yMacro' },
+                    { label:'TNX %', data: tnxData,
+                      borderColor:'#f6ad55', backgroundColor:'transparent',
+                      pointRadius:4, pointBackgroundColor:'#f6ad55', tension:0.3, fill:false,
+                      borderDash:[3,3], spanGaps:false, yAxisID:'yMacro' }
                 ]},
             options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:'#e2e8f0'} },
-                tooltip:{ callbacks:{ label: ctx => ctx.dataset.yAxisID==='yVIX'
-                    ? `VIX: ${ctx.raw != null ? ctx.raw.toFixed(2) : '—'}`
-                    : `מדד פחד: ${ctx.raw}` } } },
+                tooltip:{ callbacks:{ label: ctx => {
+                    if (ctx.dataset.label==='מדד הפחד היומי') return `מדד פחד: ${ctx.raw}`;
+                    if (ctx.dataset.label==='TNX %') return `TNX: ${ctx.raw != null ? ctx.raw.toFixed(2)+'%' : '—'}`;
+                    return `${ctx.dataset.label}: ${ctx.raw != null ? ctx.raw.toFixed(2) : '—'}`;
+                } } } },
                 scales:{
                     x:{ ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} },
                     yFG:{ position:'right', min:0, max:100,
                         ticks:{color:'#ecc94b'}, grid:{color:'rgba(255,255,255,0.06)'},
                         title:{display:true,text:'מדד פחד (0–100)',color:'#ecc94b'} },
-                    yVIX:{ position:'left',
-                        ticks:{color:'#fc8181'}, grid:{drawOnChartArea:false},
-                        title:{display:true,text:'VIX',color:'#fc8181'} }
+                    yMacro:{ position:'left',
+                        ticks:{color:'#a0aec0'}, grid:{drawOnChartArea:false},
+                        title:{display:true,text:'VIX / DXY / TNX',color:'#a0aec0'} }
                 } }
         });
     }
