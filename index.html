@@ -132,6 +132,17 @@
         .changes-bar { background: rgba(255,255,255,0.14); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; padding: 10px 18px; display:flex; flex-wrap:wrap; gap:16px; align-items:center; font-size:13px; }
         .chg-item { display:flex; align-items:center; gap:6px; }
         .chg-arrow { font-size:16px; font-weight:700; }
+        /* AI Summary */
+        .ai-summary-text { line-height: 1.9; font-size: 14px; color: #cbd5e0; }
+        .ai-summary-text h3 { font-size: 17px; color: #fff; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 2px solid rgba(255,255,255,0.15); }
+        .ai-summary-text h4 { font-size: 14px; color: #90cdf4; margin: 18px 0 6px; font-weight: 700; }
+        .ai-summary-text strong { color: #fefcbf; }
+        .ai-summary-text em { color: #fbd38d; font-style: normal; }
+        .ai-summary-text ul { margin: 6px 0 10px; padding-right: 22px; }
+        .ai-summary-text li { margin-bottom: 5px; }
+        .ai-summary-text p { margin: 8px 0; }
+        .ai-key-panel { background: rgba(0,0,0,0.35); border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; border: 1px solid rgba(255,255,255,0.12); }
+        .ai-key-input { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; padding: 7px 10px; color: #e2e8f0; font-size: 13px; width: 340px; max-width: 100%; font-family: monospace; }
     </style>
 </head>
 <body>
@@ -190,6 +201,31 @@
     <div id="autoLoadNote" style="display:none;"></div>
     <div id="addHistoryRow" style="display:none;">
         <span id="historyStatus"></span>
+    </div>
+
+    <!-- AI Daily Summary Card -->
+    <div class="card" id="aiSummaryCard" style="display:none; margin-bottom:20px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+            <h3 class="section-title" style="margin:0;">🤖 סיכום יומי AI — ניתוח שוק בעברית</h3>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <button class="secondary" onclick="generateDailySummary()" id="aiRefreshBtn" style="font-size:12px; padding:6px 14px;">🔄 עדכן</button>
+                <button class="secondary" onclick="toggleApiKeyPanel()" style="font-size:12px; padding:6px 14px;">⚙️ API Key</button>
+            </div>
+        </div>
+        <div id="apiKeyPanel" style="display:none;">
+            <div class="ai-key-panel">
+                <p style="margin:0 0 10px; color:#a0aec0; font-size:13px;">מפתח Anthropic API — נשמר בדפדפן בלבד, לא עובר לשום שרת חיצוני</p>
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <input type="password" id="apiKeyInput" class="ai-key-input" placeholder="sk-ant-api03-...">
+                    <button class="primary" onclick="saveApiKey()" style="font-size:13px; padding:7px 16px;">שמור</button>
+                    <button class="secondary" onclick="clearApiKey()" style="font-size:12px; padding:7px 12px;">מחק</button>
+                </div>
+                <p id="apiKeyStatus" style="margin:8px 0 0; font-size:12px; color:#68d391; min-height:18px;"></p>
+            </div>
+        </div>
+        <div id="aiSummaryContent">
+            <p style="color:#a0aec0; text-align:center; padding:20px;">ממתין לנתונים...</p>
+        </div>
     </div>
 
     <!-- History section -->
@@ -1044,6 +1080,7 @@ function processData() {
     renderTopBottom();
     sortKey='maScore'; sortAsc=false;
     renderTable();
+    generateDailySummary();
 }
 
 /* ═══════════ CHARTS ═══════════ */
@@ -2276,6 +2313,223 @@ function renderHistoryUI() {
 }
 
 setTimeout(autoLoadData, 300);
+
+/* ═══════════ AI DAILY SUMMARY ═══════════ */
+function toggleApiKeyPanel() {
+    const p = document.getElementById('apiKeyPanel');
+    const isHidden = p.style.display === 'none';
+    p.style.display = isHidden ? 'block' : 'none';
+    if (isHidden) {
+        const saved = localStorage.getItem('anthropic_api_key') || '';
+        document.getElementById('apiKeyInput').value = saved;
+        document.getElementById('apiKeyStatus').textContent = saved ? '✓ מפתח שמור' : '';
+    }
+}
+
+function saveApiKey() {
+    const val = document.getElementById('apiKeyInput').value.trim();
+    if (!val) return;
+    localStorage.setItem('anthropic_api_key', val);
+    document.getElementById('apiKeyStatus').textContent = '✓ נשמר בהצלחה';
+    setTimeout(() => { document.getElementById('apiKeyPanel').style.display = 'none'; }, 1200);
+}
+
+function clearApiKey() {
+    localStorage.removeItem('anthropic_api_key');
+    document.getElementById('apiKeyInput').value = '';
+    document.getElementById('apiKeyStatus').textContent = 'המפתח נמחק';
+}
+
+function buildMarketPrompt() {
+    const total = M.total;
+    const r = (n, d) => d > 0 ? Math.round(n / d * 100) : 0;
+
+    const allChgArr = tableData.map(d => parseFloat(d['%Change'] || 0)).filter(v => !isNaN(v) && v !== 0);
+    const avgChange = allChgArr.length ? (allChgArr.reduce((a, b) => a + b, 0) / allChgArr.length).toFixed(2) : null;
+    const avgChangeStr = avgChange !== null ? (parseFloat(avgChange) > 0 ? '+' : '') + avgChange + '%' : 'N/A';
+
+    const sectorLines = Object.entries(M.sectors).map(([sc, sd]) => {
+        const he = SECTOR_HE[sc] || sc;
+        const p200 = r(sd.above200, sd.total);
+        const secChg = tableData.filter(d => d.sector === sc)
+            .map(d => parseFloat(d['%Change'] || 0)).filter(v => !isNaN(v) && v !== 0);
+        const avgSec = secChg.length ? (secChg.reduce((a, b) => a + b, 0) / secChg.length).toFixed(2) : null;
+        const avgSecStr = avgSec !== null ? (parseFloat(avgSec) > 0 ? '+' : '') + avgSec + '%' : 'N/A';
+        return `  • ${he}: ${p200}% מעל 200D MA (${sd.above200}/${sd.total}), שינוי יומי: ${avgSecStr}`;
+    }).join('\n');
+
+    const sortedMom = [...tableData].sort((a, b) => b.momentumScore - a.momentumScore);
+    const topMom = sortedMom.slice(0, 5).map(s => `${s.Symbol}(${s.momentumScore})`).join(', ');
+    const botMom = sortedMom.slice(-5).reverse().map(s => `${s.Symbol}(${s.momentumScore})`).join(', ');
+
+    const sortedChg = [...tableData].filter(d => !isNaN(parseFloat(d['%Change']))).sort((a, b) => parseFloat(b['%Change']) - parseFloat(a['%Change']));
+    const topGainers = sortedChg.slice(0, 3).map(s => `${s.Symbol}(${parseFloat(s['%Change']).toFixed(1)}%)`).join(', ');
+    const topLosers = sortedChg.slice(-3).reverse().map(s => `${s.Symbol}(${parseFloat(s['%Change']).toFixed(1)}%)`).join(', ');
+
+    const histLines = historyData.length > 1
+        ? historyData.slice(-5).map(h => `    ${h.date}: ציון ${h.metrics.healthScore}, 200D ${h.metrics.p200}%, NH/NL ${h.metrics.nhNlRatio}`).join('\n')
+        : '  (אין נתונים היסטוריים)';
+
+    const macroLines = [
+        M.vix != null ? `- VIX (מדד פחד): ${M.vix}` : '',
+        M.dxy != null ? `- DXY (דולר אמריקאי): ${M.dxy}` : '',
+        M.tnx != null ? `- TNX (אג"ח 10 שנים): ${M.tnx}%` : ''
+    ].filter(Boolean).join('\n');
+
+    return `אתה אנליסט שוק מנוסה המתמחה ב-S&P 500. לפניך נתוני רוחב שוק עדכניים מ-${currentDateLabel || 'תאריך לא ידוע'}. כתוב סיכום ניתוח יומי מקצועי בעברית.
+
+## נתוני רוחב שוק (${total} מניות):
+- ציון בריאות שוק: ${M.healthScore}/100
+- מניות מעל 200D MA: ${r(M.a200, total)}% (${M.a200}/${total})
+- מניות מעל 150D MA: ${r(M.a150, total)}%
+- מניות מעל 50D MA: ${r(M.a50, total)}%
+- מניות מעל 20D MA: ${r(M.a20, total)}%
+- Golden Cross (50>200): ${r(M.golden, total)}%
+- RSI מעל 50: ${M.pRsi50}%
+- RSI מכירת יתר (<30): ${M.pOversold}%
+- NH (קרוב לשיא ≤5%): ${M.nhCount} מניות
+- NL (ירידה ≥30% מהשיא): ${M.nlCount} מניות
+- יחס NH/NL: ${M.nhNlRatio}
+- שינוי יומי ממוצע: ${avgChangeStr}
+- עולות/יורדות: ${M.advancing}/${M.declining}
+- Breadth Thrust: ${M.breadthThrust} מניות חצו RSI 30/50 כלפי מעלה
+${macroLines ? macroLines + '\n' : ''}
+## ביצועי סקטורים:
+${sectorLines}
+
+## מניות בולטות היום:
+- עלו הכי הרבה: ${topGainers}
+- ירדו הכי הרבה: ${topLosers}
+- חזקות ביותר (מומנטום): ${topMom}
+- חלשות ביותר (מומנטום): ${botMom}
+
+## מגמה היסטורית (5 ימים אחרונים):
+${histLines}
+
+## הוראות לכתיבת הסיכום:
+כתוב דוח ניתוח בעברית עם המבנה הבא:
+
+1. **כותרת + אות כיוון** — משפט אחד שמסכם מצב השוק (השתמש ב-🟢 לשוק חזק, 🟡 לניטרלי, 🔴 לשוק חלש)
+2. **תמונת מצב כללית** — 3-4 משפטים על מצב השוק הכולל עם הנתונים המספריים
+3. **ניתוח סקטורים** — אילו סקטורים חזקים/חלשים ומה המשמעות
+4. **נקודות חיוביות** — מה חיובי בנתונים (2-3 נקודות בולט)
+5. **נקודות לתשומת לב** — מה מדאיג או דורש מעקב (2-3 נקודות בולט)
+6. **מסקנה ופעולה מוצעת** — המלצה קצרה ומעשית למשקיע
+
+היה ספציפי, השתמש במספרים מהנתונים, וכתוב בסגנון מקצועי ובהיר.`;
+}
+
+function mdInline(t) {
+    return t
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+}
+
+function formatAiSummary(text) {
+    const lines = text.split('\n');
+    let html = '';
+    let inList = false;
+
+    for (const line of lines) {
+        const t = line.trim();
+        if (!t) {
+            if (inList) { html += '</ul>'; inList = false; }
+            continue;
+        }
+        if (t.startsWith('### ')) {
+            if (inList) { html += '</ul>'; inList = false; }
+            html += `<h3>${mdInline(t.slice(4))}</h3>`;
+        } else if (t.startsWith('## ')) {
+            if (inList) { html += '</ul>'; inList = false; }
+            html += `<h4>${mdInline(t.slice(3))}</h4>`;
+        } else if (/^\d+\.\s+\*\*/.test(t)) {
+            if (inList) { html += '</ul>'; inList = false; }
+            const m = t.match(/^(\d+)\.\s+\*\*([^*]+)\*\*\s*(.*)/);
+            if (m) {
+                html += `<h4 style="margin-top:18px;">${m[1]}. <strong>${m[2]}</strong></h4>`;
+                if (m[3]) html += `<p>${mdInline(m[3])}</p>`;
+            } else {
+                html += `<p>${mdInline(t)}</p>`;
+            }
+        } else if (t.startsWith('- ') || t.startsWith('• ')) {
+            if (!inList) { html += '<ul>'; inList = true; }
+            html += `<li>${mdInline(t.slice(2))}</li>`;
+        } else {
+            if (inList) { html += '</ul>'; inList = false; }
+            html += `<p>${mdInline(t)}</p>`;
+        }
+    }
+    if (inList) html += '</ul>';
+    return `<div class="ai-summary-text">${html}</div>`;
+}
+
+async function generateDailySummary() {
+    const card = document.getElementById('aiSummaryCard');
+    card.style.display = 'block';
+
+    const apiKey = localStorage.getItem('anthropic_api_key') || '';
+    if (!apiKey) {
+        document.getElementById('aiSummaryContent').innerHTML = `
+            <div style="text-align:center;padding:24px;color:#a0aec0;">
+                <p style="font-size:15px;margin-bottom:12px;">🔑 נדרש מפתח Anthropic API להפעלת הסיכום האוטומטי</p>
+                <button class="primary" onclick="toggleApiKeyPanel()" style="font-size:13px;">הגדר מפתח API</button>
+            </div>`;
+        return;
+    }
+
+    const btn = document.getElementById('aiRefreshBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ מנתח...'; }
+
+    document.getElementById('aiSummaryContent').innerHTML = `
+        <div style="text-align:center;padding:32px;color:#a0aec0;">
+            <div style="font-size:28px;margin-bottom:12px;">🤖</div>
+            <p style="font-size:14px;">Claude מנתח את נתוני השוק...</p>
+        </div>`;
+
+    try {
+        const prompt = buildMarketPrompt();
+        const resp = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01',
+                'anthropic-dangerous-direct-browser-access': 'true'
+            },
+            body: JSON.stringify({
+                model: 'claude-opus-4-6',
+                max_tokens: 2048,
+                messages: [{ role: 'user', content: prompt }]
+            })
+        });
+
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({ error: { message: resp.statusText } }));
+            const msg = err.error?.message || resp.statusText;
+            if (resp.status === 401) {
+                localStorage.removeItem('anthropic_api_key');
+                throw new Error('מפתח API לא תקין — נמחק. לחץ "API Key" כדי להגדיר מחדש.');
+            }
+            throw new Error(msg);
+        }
+
+        const data = await resp.json();
+        const text = data.content?.[0]?.text || '';
+        if (!text) throw new Error('לא התקבלה תשובה מה-API');
+
+        document.getElementById('aiSummaryContent').innerHTML =
+            `<div style="font-size:11px;color:#718096;text-align:left;margin-bottom:8px;">עודכן: ${new Date().toLocaleTimeString('he-IL')} · claude-opus-4-6</div>` +
+            formatAiSummary(text);
+
+    } catch (e) {
+        document.getElementById('aiSummaryContent').innerHTML = `
+            <div style="padding:14px;background:rgba(229,62,62,0.1);border-radius:8px;border-right:3px solid #e53e3e;">
+                <p style="color:#fc8181;margin:0;font-size:14px;">❌ שגיאה: ${e.message}</p>
+            </div>`;
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '🔄 עדכן'; }
+    }
+}
 </script>
 </body>
 </html>
