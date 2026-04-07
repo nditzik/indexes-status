@@ -195,7 +195,7 @@
     <!-- History section -->
     <div class="card history-section" id="historySection" style="display:none;">
         <h3 class="section-title">ניתוח היסטורי — מגמות לאורך זמן</h3>
-        <div id="historyStats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;"></div>
+        <div id="historyStats" style="display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:16px;padding-bottom:4px;"></div>
 
         <!-- 1. מפת חום מצטברת סקטורים -->
         <div id="sectorCumHeatmapCard" class="chart-card" style="margin-bottom:20px;display:none;">
@@ -353,6 +353,11 @@
             <h3 class="section-title">מטריצת רוטציה סקטוריאלית — % מניות מעל כל ממוצע נע</h3>
             <div class="heatmap-wrap"><div id="sectorHeatmap"></div></div>
             <div class="analysis-box" id="analysisHeatmap" style="margin-top:12px;"></div>
+            <!-- מפת חום ציוני MA לפי סקטור -->
+            <div id="sectorMaScoreHeatmapWrap" style="margin-top:20px;display:none;">
+                <h3 class="section-title" style="margin-bottom:12px;">התפלגות ציוני MA לפי סקטור</h3>
+                <div id="sectorMaScoreHeatmap" style="overflow-x:auto;"></div>
+            </div>
         </div>
 
         <!-- Row 6: RVOL Analysis -->
@@ -1027,6 +1032,7 @@ function processData() {
 
     updateCharts(a20,a50,a150,a200,total,oversold,weak,strong,overbought,golden,tableData,sectors,sectorsSorted);
     renderHeatmap(sectors, sectorsSorted);
+    renderSectorMaHeatmap();
     renderRvolCharts(tableData, sectorsSorted, sectors);
     renderFearGreed(M);
     renderChangesBlock();
@@ -1807,6 +1813,57 @@ function processHistoryFiles(e) {
     });
 }
 
+function renderSectorMaHeatmap() {
+    const wrap = document.getElementById('sectorMaScoreHeatmapWrap');
+    const el   = document.getElementById('sectorMaScoreHeatmap');
+    if (!tableData.length) { wrap.style.display='none'; return; }
+
+    const allSectors = Object.keys(SECTOR_HE).filter(k=>k!=='?');
+    const activeSectors = allSectors.filter(s => tableData.some(d=>d.sector===s));
+    if (!activeSectors.length) { wrap.style.display='none'; return; }
+
+    // צבעים לפי ציון
+    const scoreColors = ['#e53e3e','#ed8936','#ecc94b','#68d391','#38a169'];
+    const scores = [4,3,2,1,0];
+
+    // כותרת
+    let html = `<table style="border-collapse:collapse;width:100%;font-size:12px;direction:rtl;">
+        <thead><tr>
+            <th style="padding:8px 12px;background:rgba(255,255,255,0.12);color:#e2e8f0;text-align:right;min-width:100px;">סקטור</th>
+            ${scores.map(s=>`<th style="padding:8px 12px;background:${scoreColors[s]};color:#fff;text-align:center;min-width:70px;">${s}/4</th>`).join('')}
+            <th style="padding:8px 12px;background:rgba(255,255,255,0.12);color:#e2e8f0;text-align:center;">סה"כ</th>
+        </tr></thead><tbody>`;
+
+    // מיון לפי % ציון 4 (מהחזק לחלש)
+    activeSectors.sort((a,b) => {
+        const pct4 = sec => { const ss=tableData.filter(d=>d.sector===sec); return ss.length ? ss.filter(d=>d.maScore===4).length/ss.length : 0; };
+        return pct4(b)-pct4(a);
+    });
+
+    activeSectors.forEach(sec => {
+        const stocks = tableData.filter(d=>d.sector===sec);
+        const n = stocks.length;
+        const counts = scores.map(s => stocks.filter(d=>d.maScore===s).length);
+        const pcts   = counts.map(c => n ? Math.round(c/n*100) : 0);
+        html += `<tr>
+            <td style="padding:7px 12px;color:#e2e8f0;font-weight:600;background:rgba(255,255,255,0.06);text-align:right;">${SECTOR_HE[sec]||sec}</td>
+            ${scores.map((s,i)=>{
+                const alpha = pcts[i]/100;
+                const bg = scoreColors[s].replace('#','');
+                const r=parseInt(bg.slice(0,2),16), g=parseInt(bg.slice(2,4),16), b2=parseInt(bg.slice(4,6),16);
+                const cellBg = pcts[i]>0 ? `rgba(${r},${g},${b2},${0.15+alpha*0.7})` : 'rgba(255,255,255,0.04)';
+                const textCol = pcts[i]>40 ? '#fff' : '#e2e8f0';
+                return `<td style="padding:7px 12px;text-align:center;background:${cellBg};color:${textCol};font-weight:${pcts[i]>0?'600':'400'};">${pcts[i]>0?pcts[i]+'%':'—'}</td>`;
+            }).join('')}
+            <td style="padding:7px 12px;text-align:center;color:#a0aec0;font-size:11px;">${n}</td>
+        </tr>`;
+    });
+
+    html += '</tbody></table>';
+    el.innerHTML = html;
+    wrap.style.display = 'block';
+}
+
 function renderSectorCumHeatmap() {
     const card = document.getElementById('sectorCumHeatmapCard');
     const wrap = document.getElementById('sectorCumHeatmap');
@@ -1934,46 +1991,24 @@ function renderHistoryUI() {
         p20WeekDelta = +((historyData[historyData.length-1].metrics.p20 - historyData[0].metrics.p20).toFixed(1));
     }
 
-    document.getElementById('historyStats').innerHTML = `
-        <div class="stat-card" style="min-width:140px;border-top-color:#e53e3e">
-            <h3>Distribution Days</h3><p style="font-size:22px">${distDays}</p>
-            <p style="font-size:11px;color:#e2e8f0;margin:4px 0 0">ימי ירידה עם נפח גבוה</p>
-        </div>
-        <div class="stat-card" style="min-width:140px;border-top-color:${healthSlope>=0?'#38a169':'#e53e3e'}">
-            <h3>שיפוע ציון בריאות</h3>
-            <p style="font-size:22px;color:${healthSlope>=0?'#38a169':'#e53e3e'}">${healthSlope!==null?(healthSlope>0?'+':'')+healthSlope:'—'}</p>
-            <p style="font-size:11px;color:#e2e8f0;margin:4px 0 0">נקודות ליום (${historyData.length} ימים)</p>
-        </div>
-        <div class="stat-card" style="min-width:140px;border-top-color:${p200Dod>=0?'#38a169':'#e53e3e'}">
-            <h3>קצב שיפוי (200D MA)</h3>
-            <p style="font-size:22px;color:${p200Dod>=0?'#38a169':'#e53e3e'}">${p200Dod!==null?(p200Dod>0?'+':'')+p200Dod+'%':'—'}</p>
-            <p style="font-size:11px;color:#e2e8f0;margin:4px 0 0">שינוי יומי % מעל 200D MA</p>
-        </div>
-        <div class="stat-card" style="min-width:140px;border-top-color:${streakDir==='up'?'#38a169':'#e53e3e'}">
-            <h3>רצף ימים</h3>
-            <p style="font-size:22px;color:${streakDir==='up'?'#38a169':'#e53e3e'}">${streakDir==='up'?'▲':'▼'} ${streakCount}</p>
-            <p style="font-size:11px;color:#e2e8f0;margin:4px 0 0">ימים ${streakDir==='up'?'עולים':'יורדים'} ברצף</p>
-        </div>
-        <div class="stat-card" style="min-width:140px;border-top-color:${fgTrend===null?'#3182ce':fgTrend>=0?'#38a169':'#e53e3e'}">
-            <h3>מגמת Fear &amp; Greed</h3>
-            <p style="font-size:22px;color:${fgTrend===null?'#fff':fgTrend>=0?'#38a169':'#e53e3e'}">${fgTrend!==null?(fgTrend>0?'+':'')+fgTrend:'—'}</p>
-            <p style="font-size:11px;color:#e2e8f0;margin:4px 0 0">${fgWindow} ימים אחרונים</p>
-        </div>
-        ${vixDaysAll.length>=2?`<div class="stat-card" style="min-width:140px;border-top-color:${vixVsAvg<=0?'#38a169':'#e53e3e'}">
-            <h3>VIX vs ממוצע 5י׳</h3>
-            <p style="font-size:22px;color:${vixVsAvg<=0?'#38a169':'#e53e3e'}">${vixVsAvg!=null?(vixVsAvg>0?'+':'')+vixVsAvg:'—'}</p>
-            <p style="font-size:11px;color:#e2e8f0;margin:4px 0 0">היום מול ממוצע VIX</p>
-        </div>`:''}
-        <div class="stat-card" style="min-width:140px;border-top-color:${topSectorWeekVal!==null&&topSectorWeekVal>=0?'#38a169':'#3182ce'}">
-            <h3>סקטור מוביל</h3>
-            <p style="font-size:16px;font-weight:700;color:#68d391;margin:8px 0 2px">${topSectorWeek}</p>
-            <p style="font-size:11px;color:#e2e8f0;margin:0">${topSectorWeekVal!==null?(topSectorWeekVal>0?'+':'')+topSectorWeekVal+'%':''} בתקופה</p>
-        </div>
-        <div class="stat-card" style="min-width:140px;border-top-color:${p20WeekDelta!==null&&p20WeekDelta>=0?'#38a169':'#e53e3e'}">
-            <h3>% מעל 20D MA</h3>
-            <p style="font-size:22px;color:${p20WeekDelta!==null&&p20WeekDelta>=0?'#38a169':'#e53e3e'}">${p20WeekDelta!==null?(p20WeekDelta>0?'+':'')+p20WeekDelta+'%':'—'}</p>
-            <p style="font-size:11px;color:#e2e8f0;margin:4px 0 0">שינוי כולל בתקופה</p>
-        </div>`;
+    const sc = (content, sub, color) =>
+        `<div class="stat-card" style="min-width:110px;max-width:130px;flex:1;padding:10px 8px;border-top-color:${color}">
+            <h3 style="font-size:10px">${content}</h3>
+            <p style="font-size:18px;margin:6px 0 0;color:${color==='#3182ce'?'#fff':color}">${sub}</p>
+         </div>`;
+
+    document.getElementById('historyStats').innerHTML =
+        sc('Distribution Days', distDays, '#e53e3e') +
+        sc('שיפוע ציון בריאות', healthSlope!==null?(healthSlope>0?'+':'')+healthSlope:'—', healthSlope>=0?'#38a169':'#e53e3e') +
+        sc('קצב שיפוי 200D MA', p200Dod!==null?(p200Dod>0?'+':'')+p200Dod+'%':'—', p200Dod>=0?'#38a169':'#e53e3e') +
+        sc('רצף ימים', (streakDir==='up'?'▲':'▼')+' '+streakCount, streakDir==='up'?'#38a169':'#e53e3e') +
+        sc('מגמת F&G', fgTrend!==null?(fgTrend>0?'+':'')+fgTrend:'—', fgTrend===null?'#3182ce':fgTrend>=0?'#38a169':'#e53e3e') +
+        (vixDaysAll.length>=2 ? sc('VIX vs ממוצע 5י', vixVsAvg!=null?(vixVsAvg>0?'+':'')+vixVsAvg:'—', vixVsAvg<=0?'#38a169':'#e53e3e') : '') +
+        `<div class="stat-card" style="min-width:110px;max-width:130px;flex:1;padding:10px 8px;border-top-color:${topSectorWeekVal!==null&&topSectorWeekVal>=0?'#38a169':'#3182ce'}">
+            <h3 style="font-size:10px">סקטור מוביל</h3>
+            <p style="font-size:13px;font-weight:700;color:#68d391;margin:6px 0 0">${topSectorWeek}</p>
+         </div>` +
+        sc('% מעל 20D MA', p20WeekDelta!==null?(p20WeekDelta>0?'+':'')+p20WeekDelta+'%':'—', p20WeekDelta>=0?'#38a169':'#e53e3e');
     document.getElementById('historyCharts').style.display = 'block';
 
     // ── מפת חום מצטברת סקטורים ──
