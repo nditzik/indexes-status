@@ -214,9 +214,9 @@
         </div>
         <div id="apiKeyPanel" style="display:none;">
             <div class="ai-key-panel">
-                <p style="margin:0 0 10px; color:#a0aec0; font-size:13px;">מפתח Gemini API — חינמי מ-aistudio.google.com · נשמר בדפדפן בלבד</p>
+                <p style="margin:0 0 10px; color:#a0aec0; font-size:13px;">מפתח Groq API — חינמי מ-console.groq.com · נשמר בדפדפן בלבד</p>
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    <input type="password" id="apiKeyInput" class="ai-key-input" placeholder="AIza...">
+                    <input type="password" id="apiKeyInput" class="ai-key-input" placeholder="gsk_...">
                     <button class="primary" onclick="saveApiKey()" style="font-size:13px; padding:7px 16px;">שמור</button>
                     <button class="secondary" onclick="clearApiKey()" style="font-size:12px; padding:7px 12px;">מחק</button>
                 </div>
@@ -2471,8 +2471,8 @@ async function generateDailySummary() {
     if (!apiKey) {
         document.getElementById('aiSummaryContent').innerHTML = `
             <div style="text-align:center;padding:24px;color:#a0aec0;">
-                <p style="font-size:15px;margin-bottom:12px;">🔑 נדרש מפתח Gemini API להפעלת הסיכום האוטומטי</p>
-                <p style="font-size:12px;margin-bottom:14px;">השג מפתח חינמי ב-<strong style="color:#90cdf4;">aistudio.google.com</strong> ← Get API Key</p>
+                <p style="font-size:15px;margin-bottom:12px;">🔑 נדרש מפתח Groq API להפעלת הסיכום האוטומטי</p>
+                <p style="font-size:12px;margin-bottom:14px;">השג מפתח חינמי ב-<strong style="color:#90cdf4;">console.groq.com</strong> ← API Keys</p>
                 <button class="primary" onclick="toggleApiKeyPanel()" style="font-size:13px;">הגדר מפתח API</button>
             </div>`;
         return;
@@ -2484,25 +2484,29 @@ async function generateDailySummary() {
     document.getElementById('aiSummaryContent').innerHTML = `
         <div style="text-align:center;padding:32px;color:#a0aec0;">
             <div style="font-size:28px;margin-bottom:12px;">🤖</div>
-            <p style="font-size:14px;">Gemini מנתח את נתוני השוק...</p>
+            <p style="font-size:14px;">Groq מנתח את נתוני השוק...</p>
         </div>`;
 
     try {
         const prompt = buildMarketPrompt();
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-        const resp = await fetch(url, {
+        const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { maxOutputTokens: 2048, temperature: 0.4 }
+                model: 'llama-3.3-70b-versatile',
+                messages: [{ role: 'user', content: prompt }],
+                max_tokens: 2048,
+                temperature: 0.4
             })
         });
 
         if (!resp.ok) {
             const err = await resp.json().catch(() => ({ error: { message: resp.statusText } }));
             const msg = err.error?.message || resp.statusText;
-            if (resp.status === 400 || resp.status === 403) {
+            if (resp.status === 401) {
                 localStorage.removeItem('gemini_api_key');
                 throw new Error('מפתח API לא תקין — נמחק. לחץ "API Key" כדי להגדיר מחדש.');
             }
@@ -2510,11 +2514,11 @@ async function generateDailySummary() {
         }
 
         const data = await resp.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const text = data.choices?.[0]?.message?.content || '';
         if (!text) throw new Error('לא התקבלה תשובה מה-API');
 
         document.getElementById('aiSummaryContent').innerHTML =
-            `<div style="font-size:11px;color:#718096;text-align:left;margin-bottom:8px;">עודכן: ${new Date().toLocaleTimeString('he-IL')} · Gemini 2.0 Flash</div>` +
+            `<div style="font-size:11px;color:#718096;text-align:left;margin-bottom:8px;">עודכן: ${new Date().toLocaleTimeString('he-IL')} · Groq · llama-3.3-70b</div>` +
             formatAiSummary(text);
 
     } catch (e) {
