@@ -2489,7 +2489,7 @@ async function generateDailySummary() {
 
     try {
         const prompt = buildMarketPrompt();
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
         const resp = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2514,7 +2514,7 @@ async function generateDailySummary() {
         if (!text) throw new Error('לא התקבלה תשובה מה-API');
 
         document.getElementById('aiSummaryContent').innerHTML =
-            `<div style="font-size:11px;color:#718096;text-align:left;margin-bottom:8px;">עודכן: ${new Date().toLocaleTimeString('he-IL')} · Gemini 1.5 Flash</div>` +
+            `<div style="font-size:11px;color:#718096;text-align:left;margin-bottom:8px;">עודכן: ${new Date().toLocaleTimeString('he-IL')} · Gemini 2.0 Flash</div>` +
             formatAiSummary(text);
 
     } catch (e) {
