@@ -196,6 +196,13 @@
     <div class="card history-section" id="historySection" style="display:none;">
         <h3 class="section-title">ניתוח היסטורי — מגמות לאורך זמן</h3>
         <div id="historyStats" style="display:flex;gap:10px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:16px;padding-bottom:4px;"></div>
+        <!-- מפת חום מצטברת סקטורים -->
+        <div id="sectorCumHeatmapCard" class="chart-card" style="margin-bottom:20px;display:none;">
+            <h3>מפת חום סקטורים — ביצועים מצטברים מתחילת המדידה</h3>
+            <div id="sectorCumHeatmap" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:12px 0;"></div>
+            <div id="sectorCumHeatmapDate" style="text-align:center;font-size:11px;color:#a0aec0;margin-top:4px;"></div>
+        </div>
+
         <div id="historyCharts" style="display:none;">
             <div class="trend-grid">
                 <div class="chart-card">
@@ -1794,6 +1801,70 @@ function processHistoryFiles(e) {
     });
 }
 
+function renderSectorCumHeatmap() {
+    const card = document.getElementById('sectorCumHeatmapCard');
+    const wrap = document.getElementById('sectorCumHeatmap');
+    const dateEl = document.getElementById('sectorCumHeatmapDate');
+    if (!historyData.length) { card.style.display='none'; return; }
+
+    // צבור sectorChange לכל יום — סכום מצטבר
+    const allSectors = Object.keys(SECTOR_HE).filter(k => k !== '?');
+    const cumulative = {}; // sec → total %
+    allSectors.forEach(s => cumulative[s] = 0);
+
+    historyData.forEach(h => {
+        const sc = h.metrics.sectorChange || {};
+        allSectors.forEach(s => {
+            if (sc[s] != null) cumulative[s] += sc[s];
+        });
+    });
+
+    // סנן סקטורים שאין להם נתונים כלל
+    const activeSectors = allSectors.filter(s => historyData.some(h => (h.metrics.sectorChange||{})[s] != null));
+    if (!activeSectors.length) { card.style.display='none'; return; }
+
+    // מיון מהחזק לחלש
+    activeSectors.sort((a,b) => cumulative[b] - cumulative[a]);
+
+    const maxAbs = Math.max(...activeSectors.map(s => Math.abs(cumulative[s])), 0.01);
+
+    wrap.innerHTML = activeSectors.map(s => {
+        const val = cumulative[s];
+        const pct = val.toFixed(2);
+        const sign = val >= 0 ? '+' : '';
+        // צבע: ירוק חזק → ירוק חלש → צהוב → אדום חלש → אדום חזק
+        let bg;
+        const ratio = Math.abs(val) / maxAbs;
+        if (val >= 0) {
+            const g = Math.round(120 + ratio * 100);
+            const r = Math.round(20 + (1-ratio) * 60);
+            bg = `rgb(${r},${g},60)`;
+        } else {
+            const r = Math.round(150 + ratio * 90);
+            const g = Math.round(20 + (1-ratio) * 50);
+            bg = `rgb(${r},${g},40)`;
+        }
+        const textCol = ratio > 0.3 ? '#fff' : '#e2e8f0';
+        return `<div style="
+            background:${bg};
+            border-radius:10px;
+            padding:14px 16px;
+            min-width:100px;
+            text-align:center;
+            box-shadow:0 2px 8px rgba(0,0,0,0.3);
+            display:flex;flex-direction:column;gap:4px;
+            color:${textCol};">
+            <div style="font-size:13px;font-weight:700;">${SECTOR_HE[s]||s}</div>
+            <div style="font-size:20px;font-weight:800;">${sign}${pct}%</div>
+        </div>`;
+    }).join('');
+
+    const startDate = historyData[0].date;
+    const endDate   = historyData[historyData.length-1].date;
+    dateEl.textContent = `תחילת מדידה: ${startDate} | סיום: ${endDate} | ${historyData.length} ימי מסחר`;
+    card.style.display = 'block';
+}
+
 function renderHistoryUI() {
     if (historyData.length < 2) return;
 
@@ -1898,6 +1969,9 @@ function renderHistoryUI() {
             <p style="font-size:11px;color:#e2e8f0;margin:4px 0 0">שינוי כולל בתקופה</p>
         </div>`;
     document.getElementById('historyCharts').style.display = 'block';
+
+    // ── מפת חום מצטברת סקטורים ──
+    renderSectorCumHeatmap();
 
     const whiteText = { color:'#fff' };
     const whiteAxis = { ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.1)'}, title:{color:'#e2e8f0'} };
