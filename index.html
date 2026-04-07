@@ -220,6 +220,21 @@
                 <h3>יישור ממוצעים לאורך זמן — התפלגות ציוני MA (0–4)</h3>
                 <canvas id="trendMAStackChart" style="max-height:280px;"></canvas>
             </div>
+            <!-- 5. יחס NH/NL -->
+            <div class="chart-card" style="margin-bottom:20px;">
+                <h3>יחס NH/NL לאורך זמן — מניות קרובות לשיא מול מניות בירידה חדה</h3>
+                <canvas id="trendNhNlChart" style="max-height:260px;"></canvas>
+                <div class="analysis-box" style="margin-top:12px;">
+                    <strong>מה זה NH/NL?</strong><br>
+                    <b>NH (New High)</b> — מניות הנמצאות בתוך 5% מהשיא השנתי שלהן — מניות חזקות יחסית.<br>
+                    <b>NL (New Low)</b> — מניות שירדו 30% ומעלה מהשיא — מניות בלחץ חמור.<br><br>
+                    <b>פירוש היחס:</b><br>
+                    <span class="pos">מעל 2.0</span> — שוק חזק, הרבה יותר מניות חזקות מחלשות<br>
+                    <span class="warn">1.0 – 2.0</span> — שוק מאוזן, מעקב נדרש<br>
+                    <span class="neg">מתחת ל-1.0</span> — לחץ מכירות רחב, יותר חלשות מחזקות<br><br>
+                    <b>כיצד להשתמש:</b> עקוב אחרי <em>כיוון</em> היחס לאורך ימים — עלייה עקבית = שיפור בריאות השוק גם אם המחירים עדיין נמוכים.
+                </div>
+            </div>
             <!-- שאר הגרפים ללא שינוי -->
             <div class="trend-grid">
                 <div class="chart-card">
@@ -244,20 +259,6 @@
                     <span>⬜ יציב</span>
                     <span>🟩 עלייה (1%-2%)</span>
                     <span>💚 עלייה חזקה (&gt;2%)</span>
-                </div>
-            </div>
-            <div class="chart-card" style="margin-bottom:20px;">
-                <h3>יחס NH/NL לאורך זמן — מניות קרובות לשיא מול מניות בירידה חדה</h3>
-                <canvas id="trendNhNlChart" style="max-height:260px;"></canvas>
-                <div class="analysis-box" style="margin-top:12px;">
-                    <strong>מה זה NH/NL?</strong><br>
-                    <b>NH (New High)</b> — מניות הנמצאות בתוך 5% מהשיא השנתי שלהן — מניות חזקות יחסית.<br>
-                    <b>NL (New Low)</b> — מניות שירדו 30% ומעלה מהשיא — מניות בלחץ חמור.<br><br>
-                    <b>פירוש היחס:</b><br>
-                    <span class="pos">מעל 2.0</span> — שוק חזק, הרבה יותר מניות חזקות מחלשות<br>
-                    <span class="warn">1.0 – 2.0</span> — שוק מאוזן, מעקב נדרש<br>
-                    <span class="neg">מתחת ל-1.0</span> — לחץ מכירות רחב, יותר חלשות מחזקות<br><br>
-                    <b>כיצד להשתמש:</b> עקוב אחרי <em>כיוון</em> היחס לאורך ימים — עלייה עקבית = שיפור בריאות השוק גם אם המחירים עדיין נמוכים.
                 </div>
             </div>
             <div class="chart-card" style="margin-bottom:20px;">
