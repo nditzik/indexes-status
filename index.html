@@ -214,9 +214,9 @@
         </div>
         <div id="apiKeyPanel" style="display:none;">
             <div class="ai-key-panel">
-                <p style="margin:0 0 10px; color:#a0aec0; font-size:13px;">מפתח Anthropic API — נשמר בדפדפן בלבד, לא עובר לשום שרת חיצוני</p>
+                <p style="margin:0 0 10px; color:#a0aec0; font-size:13px;">מפתח Gemini API — חינמי מ-aistudio.google.com · נשמר בדפדפן בלבד</p>
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    <input type="password" id="apiKeyInput" class="ai-key-input" placeholder="sk-ant-api03-...">
+                    <input type="password" id="apiKeyInput" class="ai-key-input" placeholder="AIza...">
                     <button class="primary" onclick="saveApiKey()" style="font-size:13px; padding:7px 16px;">שמור</button>
                     <button class="secondary" onclick="clearApiKey()" style="font-size:12px; padding:7px 12px;">מחק</button>
                 </div>
@@ -2320,7 +2320,7 @@ function toggleApiKeyPanel() {
     const isHidden = p.style.display === 'none';
     p.style.display = isHidden ? 'block' : 'none';
     if (isHidden) {
-        const saved = localStorage.getItem('anthropic_api_key') || '';
+        const saved = localStorage.getItem('gemini_api_key') || '';
         document.getElementById('apiKeyInput').value = saved;
         document.getElementById('apiKeyStatus').textContent = saved ? '✓ מפתח שמור' : '';
     }
@@ -2329,13 +2329,13 @@ function toggleApiKeyPanel() {
 function saveApiKey() {
     const val = document.getElementById('apiKeyInput').value.trim();
     if (!val) return;
-    localStorage.setItem('anthropic_api_key', val);
+    localStorage.setItem('gemini_api_key', val);
     document.getElementById('apiKeyStatus').textContent = '✓ נשמר בהצלחה';
     setTimeout(() => { document.getElementById('apiKeyPanel').style.display = 'none'; }, 1200);
 }
 
 function clearApiKey() {
-    localStorage.removeItem('anthropic_api_key');
+    localStorage.removeItem('gemini_api_key');
     document.getElementById('apiKeyInput').value = '';
     document.getElementById('apiKeyStatus').textContent = 'המפתח נמחק';
 }
@@ -2467,11 +2467,12 @@ async function generateDailySummary() {
     const card = document.getElementById('aiSummaryCard');
     card.style.display = 'block';
 
-    const apiKey = localStorage.getItem('anthropic_api_key') || '';
+    const apiKey = localStorage.getItem('gemini_api_key') || '';
     if (!apiKey) {
         document.getElementById('aiSummaryContent').innerHTML = `
             <div style="text-align:center;padding:24px;color:#a0aec0;">
-                <p style="font-size:15px;margin-bottom:12px;">🔑 נדרש מפתח Anthropic API להפעלת הסיכום האוטומטי</p>
+                <p style="font-size:15px;margin-bottom:12px;">🔑 נדרש מפתח Gemini API להפעלת הסיכום האוטומטי</p>
+                <p style="font-size:12px;margin-bottom:14px;">השג מפתח חינמי ב-<strong style="color:#90cdf4;">aistudio.google.com</strong> ← Get API Key</p>
                 <button class="primary" onclick="toggleApiKeyPanel()" style="font-size:13px;">הגדר מפתח API</button>
             </div>`;
         return;
@@ -2483,42 +2484,37 @@ async function generateDailySummary() {
     document.getElementById('aiSummaryContent').innerHTML = `
         <div style="text-align:center;padding:32px;color:#a0aec0;">
             <div style="font-size:28px;margin-bottom:12px;">🤖</div>
-            <p style="font-size:14px;">Claude מנתח את נתוני השוק...</p>
+            <p style="font-size:14px;">Gemini מנתח את נתוני השוק...</p>
         </div>`;
 
     try {
         const prompt = buildMarketPrompt();
-        const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const resp = await fetch(url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: 'claude-opus-4-6',
-                max_tokens: 2048,
-                messages: [{ role: 'user', content: prompt }]
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { maxOutputTokens: 2048, temperature: 0.4 }
             })
         });
 
         if (!resp.ok) {
             const err = await resp.json().catch(() => ({ error: { message: resp.statusText } }));
             const msg = err.error?.message || resp.statusText;
-            if (resp.status === 401) {
-                localStorage.removeItem('anthropic_api_key');
+            if (resp.status === 400 || resp.status === 403) {
+                localStorage.removeItem('gemini_api_key');
                 throw new Error('מפתח API לא תקין — נמחק. לחץ "API Key" כדי להגדיר מחדש.');
             }
             throw new Error(msg);
         }
 
         const data = await resp.json();
-        const text = data.content?.[0]?.text || '';
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
         if (!text) throw new Error('לא התקבלה תשובה מה-API');
 
         document.getElementById('aiSummaryContent').innerHTML =
-            `<div style="font-size:11px;color:#718096;text-align:left;margin-bottom:8px;">עודכן: ${new Date().toLocaleTimeString('he-IL')} · claude-opus-4-6</div>` +
+            `<div style="font-size:11px;color:#718096;text-align:left;margin-bottom:8px;">עודכן: ${new Date().toLocaleTimeString('he-IL')} · Gemini 1.5 Flash</div>` +
             formatAiSummary(text);
 
     } catch (e) {
