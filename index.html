@@ -195,15 +195,32 @@
     <!-- History section -->
     <div class="card history-section" id="historySection" style="display:none;">
         <h3 class="section-title">ניתוח היסטורי — מגמות לאורך זמן</h3>
-        <div id="historyStats" style="display:flex;gap:10px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:16px;padding-bottom:4px;"></div>
-        <!-- מפת חום מצטברת סקטורים -->
+        <div id="historyStats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;"></div>
+
+        <!-- 1. מפת חום מצטברת סקטורים -->
         <div id="sectorCumHeatmapCard" class="chart-card" style="margin-bottom:20px;display:none;">
             <h3>מפת חום סקטורים — ביצועים מצטברים מתחילת המדידה</h3>
             <div id="sectorCumHeatmap" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:12px 0;"></div>
-            <div id="sectorCumHeatmapDate" style="text-align:center;font-size:11px;color:#a0aec0;margin-top:4px;"></div>
+            <div id="sectorCumHeatmapDate" style="text-align:center;font-size:13px;color:#fff;font-weight:600;margin-top:8px;"></div>
         </div>
 
         <div id="historyCharts" style="display:none;">
+            <!-- 2. מדד הפחד היומי -->
+            <div class="chart-card" id="vixChartCard" style="margin-bottom:20px;display:none;">
+                <h3>מדד הפחד היומי · VIX · DXY · TNX לאורך זמן</h3>
+                <canvas id="trendVixChart" style="max-height:300px;"></canvas>
+            </div>
+            <!-- 3. שינוי ממוצע 20D MA -->
+            <div class="chart-card" style="margin-bottom:20px;">
+                <h3>שינוי ממוצע 20D MA לאורך הימים</h3>
+                <canvas id="trend20dMAChart" style="max-height:240px;"></canvas>
+            </div>
+            <!-- 4. יישור ממוצעים -->
+            <div class="chart-card" style="margin-bottom:20px;">
+                <h3>יישור ממוצעים לאורך זמן — התפלגות ציוני MA (0–4)</h3>
+                <canvas id="trendMAStackChart" style="max-height:280px;"></canvas>
+            </div>
+            <!-- שאר הגרפים ללא שינוי -->
             <div class="trend-grid">
                 <div class="chart-card">
                     <h3>ציון בריאות שוק לאורך זמן</h3>
@@ -213,14 +230,6 @@
                     <h3>רוחב שוק — % מעל 200D MA</h3>
                     <canvas id="trendBreadthChart"></canvas>
                 </div>
-            </div>
-            <div class="chart-card" style="margin-bottom:20px;">
-                <h3>שינוי ממוצע 20D MA לאורך הימים</h3>
-                <canvas id="trend20dMAChart" style="max-height:240px;"></canvas>
-            </div>
-            <div class="chart-card" style="margin-bottom:20px;">
-                <h3>יישור ממוצעים לאורך זמן — התפלגות ציוני MA (0–4)</h3>
-                <canvas id="trendMAStackChart" style="max-height:280px;"></canvas>
             </div>
             <div class="chart-card" style="margin-bottom:20px;">
                 <h3>כל המדדים לאורך זמן</h3>
@@ -254,10 +263,6 @@
             <div class="chart-card" style="margin-bottom:20px;">
                 <h3>עולות מול יורדות לאורך זמן</h3>
                 <canvas id="trendAdChart" style="max-height:260px;"></canvas>
-            </div>
-            <div class="chart-card" id="vixChartCard" style="margin-bottom:20px;display:none;">
-                <h3>מדד הפחד היומי · VIX · DXY · TNX לאורך זמן</h3>
-                <canvas id="trendVixChart" style="max-height:300px;"></canvas>
             </div>
             <div class="tbl-wrap">
                 <table class="history-tbl" id="historyTable">
