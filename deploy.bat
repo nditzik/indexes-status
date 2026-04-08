@@ -1,21 +1,35 @@
 @echo off
 cd /d "%~dp0"
 
-:: Copy latest Barchart CSV from Downloads to data/data.txt + archive
-for /f "delims=" %%f in ('dir /b /od "%USERPROFILE%\Downloads\watchlist-sp-500-intraday-*.csv" 2^>nul') do set LATEST=%%f
-if defined LATEST (
-    copy /Y "%USERPROFILE%\Downloads\%LATEST%" "%~dp0data\data.txt"
-    copy /Y "%USERPROFILE%\Downloads\%LATEST%" "%~dp0data\%LATEST%"
-    echo Copied: %LATEST%
-    :: Update index.json
-    python -c "import json,os; f='%~dp0data\\index.json'; idx=json.load(open(f)) if os.path.exists(f) else []; idx.append('%LATEST%') if '%LATEST%' not in idx else None; idx.sort(); json.dump(idx,open(f,'w'),indent=2); print('index.json updated:',len(idx),'files')"
-) else (
-    echo No Barchart CSV found in Downloads
+echo.
+echo === מעדכן דשבורד... ===
+echo.
+
+:: מצא את ה-CSV החדש ביותר בתיקיית data
+for /f "delims=" %%f in ('dir /b /od "%~dp0data\watchlist-sp-500-intraday-*.csv" 2^>nul') do set LATEST=%%f
+
+if not defined LATEST (
+    echo [שגיאה] לא נמצא קובץ CSV בתיקיית data\
+    pause
+    exit /b 1
 )
 
-git add -A
-git commit -m "Update dashboard %date% %time%"
+echo נמצא: %LATEST%
+
+:: עדכן data.txt
+copy /Y "%~dp0data\%LATEST%" "%~dp0data\data.txt" >nul
+echo [OK] data.txt עודכן
+
+:: עדכן index.json
+python -c "import json,os; f=r'%~dp0data\index.json'; idx=json.load(open(f)) if os.path.exists(f) else []; idx.append('%LATEST%') if '%LATEST%' not in idx else None; idx.sort(); json.dump(idx,open(f,'w'),indent=2); print('[OK] index.json -',len(idx),'קבצים')"
+
+:: Git push
+git add data\data.txt data\index.json "data\%LATEST%"
+git commit -m "Update %LATEST%"
 git push
+
 echo.
-echo Done! https://nditzik.github.io/indexes-status/
+echo [OK] הדשבורד עודכן!
+echo      https://nditzik.github.io/indexes-status/
+echo.
 pause
