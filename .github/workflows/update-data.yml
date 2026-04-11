@@ -1,0 +1,40 @@
+name: Update data.txt and index.json
+
+on:
+  push:
+    paths:
+      - 'data/watchlist-sp-500-intraday-*.csv'
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update data.txt and index.json
+        run: |
+          # מצא את ה-CSV החדש ביותר
+          LATEST=$(ls data/watchlist-sp-500-intraday-*.csv | sort | tail -1)
+          echo "Latest: $LATEST"
+
+          # עדכן data.txt
+          cp "$LATEST" data/data.txt
+
+          # עדכן index.json
+          python3 -c "
+          import json, glob, os
+          files = sorted([os.path.basename(f) for f in glob.glob('data/watchlist-sp-500-intraday-*.csv')])
+          with open('data/index.json', 'w') as f:
+              json.dump(files, f, indent=2)
+          print('index.json updated:', len(files), 'files')
+          "
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/data.txt data/index.json
+          git diff --staged --quiet || git commit -m "Auto-update data.txt + index.json"
+          git push
