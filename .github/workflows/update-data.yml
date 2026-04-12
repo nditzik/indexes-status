@@ -38,3 +38,106 @@ jobs:
           git add data/data.txt data/index.json
           git diff --staged --quiet || git commit -m "Auto-update data.txt + index.json"
           git push
+
+      - name: Send email — stocks above 200D MA
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          python3 << 'EOF'
+          import csv, json, os, urllib.request, io
+
+          # קרא את ה-CSV
+          with open('data/data.txt', encoding='utf-8') as f:
+              reader = csv.DictReader(f)
+              rows = list(reader)
+
+          # סנן מניות 0-5% מעל 200D MA
+          results = []
+          for row in rows:
+              sym = row.get('Symbol','').strip()
+              if not sym or not sym.replace('.','').isalnum() or not sym[0].isupper():
+                  continue
+              try:
+                  latest = float(row.get('Latest', 0))
+                  ma200  = float(row.get('200D MA', 0))
+                  chg    = row.get('%Change','').strip()
+              except:
+                  continue
+              if ma200 <= 0 or latest <= 0:
+                  continue
+              dist = (latest / ma200 - 1) * 100
+              if 0 <= dist <= 5:
+                  results.append({
+                      'sym': sym,
+                      'name': row.get('Name','').strip('"'),
+                      'latest': latest,
+                      'ma200': ma200,
+                      'dist': round(dist, 2),
+                      'chg': chg
+                  })
+
+          results.sort(key=lambda x: x['dist'])
+
+          # תאריך מהקובץ
+          import glob
+          files = sorted(glob.glob('data/watchlist-sp-500-intraday-*.csv'))
+          date_label = files[-1].replace('data/watchlist-sp-500-intraday-','').replace('.csv','') if files else 'לא ידוע'
+
+          # בנה טבלת HTML
+          rows_html = ''
+          for i, s in enumerate(results):
+              bg = '#f7fafc' if i % 2 == 0 else '#fff'
+              chg_color = '#276749' if '+' in s['chg'] else '#c53030'
+              warning = ' ⚠️' if abs(float(s['chg'].replace('%','').replace('+','') or 0)) > 10 else ''
+              rows_html += f"""<tr style="background:{bg};">
+                <td style="padding:7px 10px;font-weight:700;color:#2b6cb0;">{s['sym']}</td>
+                <td style="padding:7px 10px;">{s['name']}{warning}</td>
+                <td style="padding:7px 10px;text-align:center;">{s['latest']}</td>
+                <td style="padding:7px 10px;text-align:center;">{s['ma200']}</td>
+                <td style="padding:7px 10px;text-align:center;color:#276749;font-weight:600;">+{s['dist']}%</td>
+                <td style="padding:7px 10px;text-align:center;color:{chg_color};">{s['chg']}</td>
+              </tr>"""
+
+          html = f"""<html dir="rtl" lang="he"><body style="font-family:Arial,sans-serif;background:#f4f6f9;padding:20px;color:#1a202c;">
+          <div style="max-width:720px;margin:auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.1);">
+            <div style="background:#1a365d;padding:20px 28px;color:#fff;">
+              <h2 style="margin:0;font-size:20px;">📈 מניות שחצו מעל 200D MA</h2>
+              <p style="margin:6px 0 0;opacity:0.8;font-size:13px;">יום המסחר: {date_label} · S&P 500 · {len(results)} מניות (0–5% מעל)</p>
+            </div>
+            <div style="padding:20px 28px;">
+              <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead><tr style="background:#2d3748;color:#fff;">
+                  <th style="padding:9px 10px;text-align:right;">סימול</th>
+                  <th style="padding:9px 10px;text-align:right;">שם</th>
+                  <th style="padding:9px 10px;text-align:center;">מחיר</th>
+                  <th style="padding:9px 10px;text-align:center;">200D MA</th>
+                  <th style="padding:9px 10px;text-align:center;">מרחק</th>
+                  <th style="padding:9px 10px;text-align:center;">שינוי יומי</th>
+                </tr></thead>
+                <tbody>{rows_html}</tbody>
+              </table>
+            </div>
+            <div style="background:#f7fafc;padding:12px 28px;border-top:1px solid #e2e8f0;font-size:11px;color:#718096;text-align:center;">
+              נוצר אוטומטית · S&P 500 Dashboard · nditzik
+            </div>
+          </div></body></html>"""
+
+          # שלח דרך Resend
+          payload = json.dumps({
+              "from": "S&P Dashboard <onboarding@resend.dev>",
+              "to": ["nditzik@gmail.com"],
+              "subject": f"📈 מניות מעל 200D MA — {date_label}",
+              "html": html
+          }).encode()
+
+          req = urllib.request.Request(
+              'https://api.resend.com/emails',
+              data=payload,
+              headers={
+                  'Authorization': f'Bearer {os.environ["RESEND_API_KEY"]}',
+                  'Content-Type': 'application/json'
+              }
+          )
+          with urllib.request.urlopen(req) as resp:
+              print('Email sent:', resp.read().decode())
+          EOF
