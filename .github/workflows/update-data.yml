@@ -125,7 +125,7 @@ jobs:
 
           # שלח דרך Resend
           payload = json.dumps({
-              "from": "S&P Dashboard <onboarding@resend.dev>",
+              "from": "onboarding@resend.dev",
               "to": ["nditzik@gmail.com"],
               "subject": f"📈 מניות מעל 200D MA — {date_label}",
               "html": html
