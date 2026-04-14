@@ -96,8 +96,8 @@ jobs:
           def summary_table():
               items = [
                   ("ציון בריאות שוק", f"{health}/100", "#3182ce"),
-                  ("מעל 200D MA", f"{round(above200/total*100,1)}% ({above200}/{total})", "#38a169" if above200/total>0.5 else "#e53e3e"),
-                  ("Golden Cross", f"{round(golden/total*100,1)}%", "#d69e2e"),
+                  ("מעל 200D MA", f"{round(above200/total*100,1) if total else 0}% ({above200}/{total})", "#38a169" if total and above200/total>0.5 else "#e53e3e"),
+                  ("Golden Cross", f"{round(golden/total*100,1) if total else 0}%", "#d69e2e"),
                   ("עולות / יורדות", f"{advancing} / {declining}", "#38a169" if advancing>declining else "#e53e3e"),
                   ("NH / NL יחס", f"{nh} / {nl} = {ratio}", "#38a169" if nl==0 or nh/nl>=2 else "#e53e3e"),
               ]
