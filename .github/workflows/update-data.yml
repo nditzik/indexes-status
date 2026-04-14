@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'data/watchlist-sp-500-intraday-*.csv'
+  workflow_dispatch:
 
 jobs:
   update:
