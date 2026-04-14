@@ -42,7 +42,7 @@ jobs:
 
       - name: Send email — stocks above 200D MA
         env:
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
         run: |
           python3 << 'EOF'
           import csv, json, os, urllib.request, io
