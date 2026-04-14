@@ -123,23 +123,24 @@ jobs:
             </div>
           </div></body></html>"""
 
-          # שלח דרך Resend
-          payload = json.dumps({
-              "from": "onboarding@resend.dev",
-              "to": ["nditzik@gmail.com"],
-              "subject": f"📈 מניות מעל 200D MA — {date_label}",
-              "html": html
-          }).encode()
-
-          api_key = os.environ.get("RESEND_API_KEY", "")
+          # שלח דרך Brevo
+          api_key = os.environ.get("BREVO_API_KEY", "")
           print(f"API key present: {bool(api_key)}, length: {len(api_key)}")
 
+          payload = json.dumps({
+              "sender": {"name": "S&P Dashboard", "email": "nditzik@gmail.com"},
+              "to": [{"email": "nditzik@gmail.com"}],
+              "subject": f"📈 מניות מעל 200D MA — {date_label}",
+              "htmlContent": html
+          }).encode()
+
           req = urllib.request.Request(
-              'https://api.resend.com/emails',
+              'https://api.brevo.com/v3/smtp/email',
               data=payload,
               headers={
-                  'Authorization': f'Bearer {api_key}',
-                  'Content-Type': 'application/json'
+                  'api-key': api_key,
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
               }
           )
           try:
