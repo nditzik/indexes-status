@@ -1,12 +1,15 @@
 import csv, json, os, urllib.request, glob, io
 
 # קרא את ה-CSV
-with open('data/data.txt', encoding='utf-8') as f:
+with open('data/data.txt', encoding='utf-8-sig', newline='') as f:
     content = f.read()
+content = content.replace('\r\n', '\n').replace('\r', '\n')
 print(f"data.txt size: {len(content)} chars")
 reader = csv.DictReader(io.StringIO(content))
 all_rows = list(reader)
 print(f"Total rows: {len(all_rows)}")
+if all_rows:
+    print(f"First symbol: '{list(all_rows[0].values())[0]}', headers: {list(all_rows[0].keys())[:4]}")
 
 # סנן רק מניות תקינות
 stocks = []
