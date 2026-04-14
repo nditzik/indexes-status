@@ -130,14 +130,22 @@ jobs:
               "html": html
           }).encode()
 
+          api_key = os.environ.get("RESEND_API_KEY", "")
+          print(f"API key present: {bool(api_key)}, length: {len(api_key)}")
+
           req = urllib.request.Request(
               'https://api.resend.com/emails',
               data=payload,
               headers={
-                  'Authorization': f'Bearer {os.environ["RESEND_API_KEY"]}',
+                  'Authorization': f'Bearer {api_key}',
                   'Content-Type': 'application/json'
               }
           )
-          with urllib.request.urlopen(req) as resp:
-              print('Email sent:', resp.read().decode())
+          try:
+              with urllib.request.urlopen(req) as resp:
+                  print('Email sent:', resp.read().decode())
+          except urllib.error.HTTPError as e:
+              print(f'HTTP Error {e.code}: {e.reason}')
+              print('Response body:', e.read().decode())
+              raise
           EOF
