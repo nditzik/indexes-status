@@ -18,13 +18,13 @@ for row in all_rows:
     if not sym or not sym.replace('.','').isalnum() or not sym[0].isupper():
         continue
     try:
-        latest = float(row.get('Latest', 0) or 0)
-        ma200  = float(row.get('200D MA', 0) or 0)
-        ma50   = float(row.get('50D MA', 0) or 0)
-        rvol   = float(row.get('20D RelVol', 0) or 0)
+        latest = float(row.get('Latest', '0').replace('%','').replace('+','') or 0)
+        ma200  = float(row.get('200D MA', '0').replace('%','') or 0)
+        ma50   = float(row.get('50D MA', '0').replace('%','') or 0)
+        rvol   = float(row.get('20D RelVol', '0').replace('%','') or 0)
         chg    = row.get('%Change','').strip()
         rsi    = row.get('RSI Rank','').strip()
-        w52    = float(row.get('52W %/High', 0) or 0)
+        w52    = float(row.get('52W %/High', '0').replace('%','') or 0)
     except:
         continue
     if latest <= 0:
