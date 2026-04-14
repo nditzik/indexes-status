@@ -49,8 +49,15 @@ jobs:
 
           # קרא את ה-CSV
           with open('data/data.txt', encoding='utf-8') as f:
-              reader = csv.DictReader(f)
-              all_rows = list(reader)
+              content = f.read()
+          print(f"data.txt size: {len(content)} chars")
+          import io
+          reader = csv.DictReader(io.StringIO(content))
+          all_rows = list(reader)
+          print(f"Total rows: {len(all_rows)}")
+          if all_rows:
+              print(f"Headers: {list(all_rows[0].keys())[:5]}")
+              print(f"First row sample: Symbol={all_rows[0].get('Symbol')}, Latest={all_rows[0].get('Latest')}, 200D MA={all_rows[0].get('200D MA')}")
 
           # סנן רק מניות תקינות
           stocks = []
