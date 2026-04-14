@@ -38,7 +38,7 @@ for row in all_rows:
     ])
     stocks.append({
         'sym': sym, 'name': row.get('Name','').strip('"'),
-        'latest': latest, 'ma200': ma200, 'ma50': ma50, 'ma20': ma20,
+        'latest': latest, 'ma200': ma200, 'ma150': ma150, 'ma50': ma50, 'ma20': ma20,
         'rvol': rvol, 'chg': chg, 'rsi': rsi,
         'w52': w52, 'dist200': dist200, 'ma_score': ma_score
     })
@@ -52,7 +52,7 @@ date_label = files[-1].replace('data/watchlist-sp-500-intraday-','').replace('.c
 # ── נתוני שוק כלליים ──
 total     = len(stocks)
 above200  = sum(1 for s in stocks if s['dist200'] is not None and s['dist200'] > 0)
-above150  = sum(1 for s in stocks if s['ma150'] > 0 and s['latest'] > s['ma150']) if stocks and 'ma150' not in stocks[0] else sum(1 for s in stocks if float(s.get('ma150',0) or 0) > 0 and s['latest'] > float(s.get('ma150',0) or 0))
+above150  = sum(1 for s in stocks if s['ma150'] > 0 and s['latest'] > s['ma150'])
 above50   = sum(1 for s in stocks if s['ma50'] > 0 and s['latest'] > s['ma50'])
 above20   = sum(1 for s in stocks if s['ma20'] > 0 and s['latest'] > s['ma20'])
 golden    = sum(1 for s in stocks if s['ma50'] > 0 and s['ma200'] > 0 and s['ma50'] > s['ma200'])
