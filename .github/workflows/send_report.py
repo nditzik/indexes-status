@@ -226,16 +226,18 @@ html = f"""<!DOCTYPE html>
 
   <!-- כותרת -->
   <div style="background:#1a365d;padding:22px 28px;color:#fff;border-radius:12px 12px 0 0;">
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div>
-        <h2 style="margin:0 0 6px;font-size:22px;">&#x1F4CA; דוח שוק יומי — S&amp;P 500</h2>
-        <p style="margin:0;opacity:0.8;font-size:13px;">יום המסחר: {date_label} &middot; {total} מניות</p>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
-        <img src="https://nditzik.github.io/indexes-status/logo.png" alt="Logo" style="height:96px;width:auto;border-radius:8px;">
-        <a href="https://nditzik.github.io/indexes-status/" style="color:#faf089;font-weight:700;font-size:15px;text-decoration:none;border:2px solid #faf089;padding:6px 14px;border-radius:6px;white-space:nowrap;">פתח דשבורד ←</a>
-      </div>
-    </div>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+      <tr>
+        <td style="vertical-align:middle;">
+          <h2 style="margin:0 0 6px;font-size:22px;color:#fff;">&#x1F4CA; דוח שוק יומי — S&amp;P 500</h2>
+          <p style="margin:0;opacity:0.8;font-size:13px;color:#fff;">יום המסחר: {date_label} &middot; {total} מניות</p>
+        </td>
+        <td style="vertical-align:middle;text-align:right;width:130px;">
+          <img src="https://nditzik.github.io/indexes-status/logo.png" alt="Logo" style="height:70px;width:auto;border-radius:6px;display:block;margin-bottom:8px;margin-right:0;margin-left:auto;"><br>
+          <a href="https://nditzik.github.io/indexes-status/" style="color:#faf089;font-weight:700;font-size:12px;text-decoration:none;border:2px solid #faf089;padding:4px 10px;border-radius:5px;white-space:nowrap;">פתח דשבורד ←</a>
+        </td>
+      </tr>
+    </table>
   </div>
 
   <!-- נתונים כלליים -->
