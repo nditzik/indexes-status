@@ -270,7 +270,8 @@ payload = json.dumps({
     "to": [
         {"email": "nditzik@gmail.com"},
         {"email": "eddie@teco.org.il"},
-        {"email": "yakiryona3@gmail.com"}
+        {"email": "yakiryona3@gmail.com"},
+        {"email": "ofeknidam@gmail.com"}
     ],
     "subject": f"📊 דוח שוק יומי S&P 500 — {date_label}",
     "htmlContent": html
