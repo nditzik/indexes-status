@@ -63,7 +63,7 @@ nl        = sum(1 for s in stocks if s['w52'] <= -30)
 oversold  = sum(1 for s in stocks if s['rsi'] in ('Below 30','New Below 30'))
 rsi_above50 = sum(1 for s in stocks if s['rsi'] in ('Above 50','New Above 50','Above 70','New Above 70'))
 ratio     = f"{nh/nl:.2f}" if nl > 0 else "∞"
-health    = round((above200/total*100)*0.30 + (golden/total*100)*0.25 + (rsi_above50/total*100)*0.25 + (nh/total*100)*0.20) if total else 0
+health    = round((above200/total*100)*0.30 + (golden/total*100)*0.25 + (rsi_above50/total*100)*0.25 + (above20/total*100)*0.20) if total else 0
 
 def pct(n): return f"{round(n/total*100,1) if total else 0}%"
 
