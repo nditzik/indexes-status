@@ -226,11 +226,14 @@ html = f"""<!DOCTYPE html>
 
   <!-- כותרת -->
   <div style="background:#1a365d;padding:22px 28px;color:#fff;border-radius:12px 12px 0 0;">
-    <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;">
-      <img src="https://nditzik.github.io/indexes-status/logo.png" alt="Logo" style="height:48px;width:auto;border-radius:6px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
       <h2 style="margin:0;font-size:22px;">&#x1F4CA; דוח שוק יומי — S&amp;P 500</h2>
+      <img src="https://nditzik.github.io/indexes-status/logo.png" alt="Logo" style="height:96px;width:auto;border-radius:8px;">
     </div>
-    <p style="margin:0;opacity:0.8;font-size:13px;">יום המסחר: {date_label} &middot; {total} מניות &middot; <a href="https://nditzik.github.io/indexes-status/" style="color:#90cdf4;text-decoration:none;">פתח דשבורד ←</a></p>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <p style="margin:0;opacity:0.8;font-size:13px;">יום המסחר: {date_label} &middot; {total} מניות</p>
+      <a href="https://nditzik.github.io/indexes-status/" style="color:#faf089;font-weight:700;font-size:15px;text-decoration:none;border:2px solid #faf089;padding:6px 14px;border-radius:6px;">פתח דשבורד ←</a>
+    </div>
   </div>
 
   <!-- נתונים כלליים -->
