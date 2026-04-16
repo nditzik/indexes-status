@@ -2340,7 +2340,7 @@ function clearApiKey() {
     document.getElementById('apiKeyStatus').textContent = 'המפתח נמחק';
 }
 
-function buildMarketPrompt() {
+function buildMarketPrompt(earnings = []) {
     const total = M.total;
     const r = (n, d) => d > 0 ? Math.round(n / d * 100) : 0;
 
@@ -2396,6 +2396,9 @@ function buildMarketPrompt() {
 ${macroLines ? macroLines + '\n' : ''}
 ## ביצועי סקטורים:
 ${sectorLines}
+
+## דוחות כספיים היום (${currentDateLabel || 'תאריך לא ידוע'}):
+${earnings.length ? earnings.join('\n') : '  (לא נמצאו דוחות של חברות S&P 500 היום — ייתכן שאין מסחר או שהנתון לא זמין)'}
 
 ## מניות בולטות היום:
 - עלו הכי הרבה: ${topGainers}
@@ -2468,6 +2471,33 @@ function formatAiSummary(text) {
     return `<div class="ai-summary-text">${html}</div>`;
 }
 
+async function fetchEarningsToday() {
+    const dateStr = currentDateLabel || new Date().toISOString().split('T')[0];
+    const url = `https://api.nasdaq.com/api/calendar/earnings?date=${dateStr}`;
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const sp500Set = new Set(tableData.map(d => d.Symbol));
+    for (const fetchUrl of [url, proxyUrl]) {
+        try {
+            const resp = await fetch(fetchUrl, {
+                headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
+                signal: AbortSignal.timeout(6000)
+            });
+            if (!resp.ok) continue;
+            const json = await resp.json();
+            const rows = json?.data?.rows || [];
+            const filtered = rows.filter(r => sp500Set.has(r.symbol));
+            if (!filtered.length) return [];
+            return filtered.map(r => {
+                const timing = r.time === 'time-pre-market' ? 'לפני פתיחה' :
+                               r.time === 'time-after-hours' ? 'אחרי סגירה' : 'במסחר';
+                const eps = r.eps_est ? `, EPS צפוי: $${r.eps_est}` : '';
+                return `  • ${r.symbol} — ${r.name || ''} (${timing}${eps})`;
+            });
+        } catch(e) { continue; }
+    }
+    return [];
+}
+
 async function generateDailySummary() {
     const card = document.getElementById('aiSummaryCard');
     card.style.display = 'block';
@@ -2493,7 +2523,8 @@ async function generateDailySummary() {
         </div>`;
 
     try {
-        const prompt = buildMarketPrompt();
+        const earnings = await fetchEarningsToday();
+        const prompt = buildMarketPrompt(earnings);
         const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
