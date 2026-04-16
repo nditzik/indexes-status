@@ -2340,7 +2340,7 @@ function clearApiKey() {
     document.getElementById('apiKeyStatus').textContent = 'המפתח נמחק';
 }
 
-function buildMarketPrompt(earnings = []) {
+function buildMarketPrompt(earnings = { today: [], upcoming: [] }) {
     const total = M.total;
     const r = (n, d) => d > 0 ? Math.round(n / d * 100) : 0;
 
@@ -2397,8 +2397,10 @@ ${macroLines ? macroLines + '\n' : ''}
 ## ביצועי סקטורים:
 ${sectorLines}
 
-## דוחות כספיים היום (${currentDateLabel || 'תאריך לא ידוע'}):
-${earnings.length ? earnings.join('\n') : '  (לא נמצאו דוחות של חברות S&P 500 היום — ייתכן שאין מסחר או שהנתון לא זמין)'}
+## דוחות כספיים — היום (${currentDateLabel || ''}):
+${earnings.today.length ? earnings.today.join('\n') : '  אין דוחות של חברות S&P 500 היום'}
+## דוחות כספיים — השבוע הקרוב:
+${earnings.upcoming.length ? earnings.upcoming.slice(0,20).join('\n') : '  אין נתונים על דוחות קרובים'}
 
 ## מניות בולטות היום:
 - עלו הכי הרבה: ${topGainers}
@@ -2471,31 +2473,43 @@ function formatAiSummary(text) {
     return `<div class="ai-summary-text">${html}</div>`;
 }
 
-async function fetchEarningsToday() {
-    const dateStr = currentDateLabel || new Date().toISOString().split('T')[0];
-    const url = `https://api.nasdaq.com/api/calendar/earnings?date=${dateStr}`;
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+async function fetchEarningsWeek() {
     const sp500Set = new Set(tableData.map(d => d.Symbol));
-    for (const fetchUrl of [url, proxyUrl]) {
-        try {
-            const resp = await fetch(fetchUrl, {
-                headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
-                signal: AbortSignal.timeout(6000)
-            });
-            if (!resp.ok) continue;
-            const json = await resp.json();
-            const rows = json?.data?.rows || [];
-            const filtered = rows.filter(r => sp500Set.has(r.symbol));
-            if (!filtered.length) return [];
-            return filtered.map(r => {
-                const timing = r.time === 'time-pre-market' ? 'לפני פתיחה' :
-                               r.time === 'time-after-hours' ? 'אחרי סגירה' : 'במסחר';
-                const eps = r.eps_est ? `, EPS צפוי: $${r.eps_est}` : '';
-                return `  • ${r.symbol} — ${r.name || ''} (${timing}${eps})`;
-            });
-        } catch(e) { continue; }
+    const base = currentDateLabel ? new Date(currentDateLabel) : new Date();
+    const results = { today: [], upcoming: [] };
+
+    for (let offset = 0; offset <= 4; offset++) {
+        const d = new Date(base);
+        d.setDate(d.getDate() + offset);
+        const dateStr = d.toISOString().split('T')[0];
+        const nasdaqUrl = `https://api.nasdaq.com/api/calendar/earnings?date=${dateStr}`;
+        const proxies = [
+            `https://corsproxy.io/?${encodeURIComponent(nasdaqUrl)}`,
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(nasdaqUrl)}`
+        ];
+        for (const fetchUrl of proxies) {
+            try {
+                const ctrl = new AbortController();
+                const timer = setTimeout(() => ctrl.abort(), 7000);
+                const resp = await fetch(fetchUrl, { headers: { 'Accept': 'application/json' }, signal: ctrl.signal });
+                clearTimeout(timer);
+                if (!resp.ok) continue;
+                const json = await resp.json();
+                const rows = (json?.data?.rows || []).filter(r => sp500Set.has(r.symbol));
+                if (!rows.length) break;
+                const mapped = rows.map(r => {
+                    const timing = r.time === 'time-pre-market' ? 'לפני פתיחה' :
+                                   r.time === 'time-after-hours' ? 'אחרי סגירה' : 'במסחר';
+                    const eps = r.eps_est ? ` | EPS צפוי: $${r.eps_est}` : '';
+                    return `  • ${r.symbol} — ${r.name || ''} (${timing}${eps})`;
+                });
+                if (offset === 0) results.today = mapped;
+                else results.upcoming.push(...mapped.map(s => `  [${dateStr}] ${s.trim()}`));
+                break;
+            } catch(e) { continue; }
+        }
     }
-    return [];
+    return results;
 }
 
 async function generateDailySummary() {
@@ -2523,7 +2537,7 @@ async function generateDailySummary() {
         </div>`;
 
     try {
-        const earnings = await fetchEarningsToday();
+        const earnings = await fetchEarningsWeek();
         const prompt = buildMarketPrompt(earnings);
         const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
