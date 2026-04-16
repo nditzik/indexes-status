@@ -240,6 +240,11 @@ html = f"""<!DOCTYPE html>
     </table>
   </div>
 
+  <!-- אזהרה -->
+  <div style="background:#fff5f5;padding:10px 20px;text-align:right;direction:rtl;border-bottom:1px solid #fed7d7;">
+    <p style="margin:0;color:#c53030;font-size:13px;font-weight:600;">⚠️ המידע הוכן על ידי איציק נידם המלך ונועד אך ורק לשימוש אישי. מי שיעביר יהיה לו עסק עם עורכי דין ויוסר מהתפוצה.</p>
+  </div>
+
   <!-- נתונים כלליים -->
   <div style="background:#fff;padding:20px 28px;margin-bottom:16px;border-radius:0 0 12px 12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
     <h3 style="margin:0 0 14px;font-size:16px;color:#1a365d;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">&#x1F4CA; נתוני רוחב שוק</h3>
