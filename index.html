@@ -408,12 +408,6 @@
             </div>
         </div>
 
-        <!-- Row 6b: RVOL avg per sector -->
-        <div class="chart-card" style="margin-bottom:20px;">
-            <h3>ממוצע RVOL לפי סקטור</h3>
-            <canvas id="rvolAvgSectorChart" style="max-height:280px;"></canvas>
-        </div>
-
         <!-- Setup Screener -->
         <div class="card">
             <h3 class="section-title">מסנן Setup אידיאלי — מועמדות לריבאונד עם נפח</h3>
@@ -1555,26 +1549,6 @@ function renderRvolCharts(data, sectorsSorted, sectors) {
             scales:{ x:{ ticks:{ callback: v => (v>0?'+':'')+v+'%' } } } }
     });
 
-    // ממוצע RVOL לפי סקטור
-    const sectorAvgRvol = sectorsSorted.map(sc => {
-        const ss = data.filter(d=>d.sector===sc && d.rvol>0);
-        if (!ss.length) return null;
-        return +(ss.reduce((s,d)=>s+d.rvol,0)/ss.length).toFixed(2);
-    });
-    destroyChart('rvolAvgSectorChart');
-    charts['rvolAvgSectorChart'] = new Chart(document.getElementById('rvolAvgSectorChart'), {
-        type:'bar',
-        data:{ labels: sectorsSorted.map(sc=>SECTOR_HE[sc]||sc), datasets:[{
-            data: sectorAvgRvol,
-            backgroundColor: sectorAvgRvol.map(v=>v===null?'#a0aec0':v>1.2?'#276749':v>=0.8?'#38a169':'#ecc94b')
-        }]},
-        options:{ indexAxis:'y', plugins:{ legend:{display:false},
-            tooltip:{callbacks:{label:c=>c.raw===null?'אין נתון':'ממוצע RVOL: '+c.raw}} },
-            scales:{
-                x:{ beginAtZero:true, ticks:{color:'#e2e8f0',font:{size:11},callback:v=>v.toFixed(1)}, grid:{color:'rgba(255,255,255,0.08)'} },
-                y:{ ticks:{color:'#e2e8f0',font:{size:11}}, grid:{color:'rgba(255,255,255,0.06)'} }
-            } }
-    });
 }
 
 /* ═══════════ SETUP SCREENER ═══════════ */
