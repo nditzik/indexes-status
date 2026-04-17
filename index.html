@@ -233,13 +233,6 @@
         <h3 class="section-title">ניתוח היסטורי — מגמות לאורך זמן</h3>
         <div id="historyStats" style="display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:16px;padding-bottom:4px;"></div>
 
-        <!-- 1. מפת חום מצטברת סקטורים -->
-        <div id="sectorCumHeatmapCard" class="chart-card" style="margin-bottom:20px;display:none;">
-            <h3>מפת חום סקטורים — ביצועים מצטברים מתחילת המדידה</h3>
-            <div id="sectorCumHeatmap" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:12px 0;"></div>
-            <div id="sectorCumHeatmapDate" style="text-align:center;font-size:13px;color:#fff;font-weight:600;margin-top:8px;"></div>
-        </div>
-
         <div id="historyCharts" style="display:none;">
             <!-- 2. מדד הפחד היומי -->
             <div class="chart-card" id="vixChartCard" style="margin-bottom:20px;display:none;">
@@ -285,17 +278,6 @@
             <div class="chart-card" style="margin-bottom:20px;">
                 <h3>כל המדדים לאורך זמן</h3>
                 <canvas id="trendAllChart" style="max-height:320px;"></canvas>
-            </div>
-            <div class="chart-card" style="margin-bottom:20px;">
-                <h3>Heatmap שבועי — שינוי יומי לפי סקטור לאורך כל הימים</h3>
-                <div id="sectorWeeklyHeatmap" style="overflow-x:auto;"></div>
-                <div style="margin-top:10px;font-size:11px;color:#a0aec0;display:flex;gap:16px;align-items:center;">
-                    <span>🟥 ירידה חדה (&lt;-2%)</span>
-                    <span>🟧 ירידה (-1% עד -2%)</span>
-                    <span>⬜ יציב</span>
-                    <span>🟩 עלייה (1%-2%)</span>
-                    <span>💚 עלייה חזקה (&gt;2%)</span>
-                </div>
             </div>
             <div class="chart-card" style="margin-bottom:20px;">
                 <h3>עולות מול יורדות לאורך זמן</h3>
@@ -362,18 +344,11 @@
             </div>
         </div>
 
-        <!-- Row 3 -->
-        <div class="charts-2col">
-            <div class="chart-card">
-                <h3>בריאות סקטורים — % מניות מעל 200D MA</h3>
-                <canvas id="sectorChart"></canvas>
-                <div class="analysis-box" id="analysisSector"></div>
-            </div>
-            <div class="chart-card">
-                <h3>ציון יישור ממוצעים (0–4 MAs)</h3>
-                <canvas id="alignChart"></canvas>
-                <div class="analysis-box" id="analysisAlign"></div>
-            </div>
+        <!-- Row 3: MA Alignment (sector chart moved into unified heatmap below) -->
+        <div class="chart-card" style="margin-bottom:20px;">
+            <h3>ציון יישור ממוצעים (0–4 MAs)</h3>
+            <canvas id="alignChart" style="max-height:260px;"></canvas>
+            <div class="analysis-box" id="analysisAlign"></div>
         </div>
 
         <!-- Row 4: Scatter -->
@@ -384,15 +359,44 @@
             <div class="analysis-box" id="analysisScatter"></div>
         </div>
 
-        <!-- Row 5: Sector Heatmap -->
+        <!-- Row 5: Unified Sector Heatmap (Current / Daily Changes / Cumulative) -->
         <div class="card">
-            <h3 class="section-title">מטריצת רוטציה סקטוריאלית — % מניות מעל כל ממוצע נע</h3>
-            <div class="heatmap-wrap"><div id="sectorHeatmap"></div></div>
-            <div class="analysis-box" id="analysisHeatmap" style="margin-top:12px;"></div>
-            <!-- מפת חום ציוני MA לפי סקטור -->
-            <div id="sectorMaScoreHeatmapWrap" style="margin-top:20px;display:none;">
-                <h3 class="section-title" style="margin-bottom:12px;">התפלגות ציוני MA לפי סקטור</h3>
-                <div id="sectorMaScoreHeatmap" style="overflow-x:auto;"></div>
+            <h3 class="section-title">מפות סקטורים</h3>
+            <div class="sector-tabs" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+                <button type="button" class="sector-tab active" data-tab="current" onclick="switchSectorTab('current')"
+                    style="background:#3182ce;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">
+                    נוכחי — % מעל ממוצעים נעים
+                </button>
+                <button type="button" class="sector-tab" data-tab="weekly" onclick="switchSectorTab('weekly')"
+                    style="background:rgba(255,255,255,0.1);color:#e2e8f0;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">
+                    שינוי יומי לאורך זמן
+                </button>
+                <button type="button" class="sector-tab" data-tab="cumulative" onclick="switchSectorTab('cumulative')"
+                    style="background:rgba(255,255,255,0.1);color:#e2e8f0;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">
+                    ביצועים מצטברים
+                </button>
+            </div>
+            <div id="sectorTabCurrent" class="sector-tab-panel">
+                <div class="heatmap-wrap"><div id="sectorHeatmap"></div></div>
+                <div class="analysis-box" id="analysisHeatmap" style="margin-top:12px;"></div>
+                <div id="sectorMaScoreHeatmapWrap" style="margin-top:20px;display:none;">
+                    <h3 class="section-title" style="margin-bottom:12px;">התפלגות ציוני MA לפי סקטור</h3>
+                    <div id="sectorMaScoreHeatmap" style="overflow-x:auto;"></div>
+                </div>
+            </div>
+            <div id="sectorTabWeekly" class="sector-tab-panel" style="display:none;">
+                <div id="sectorWeeklyHeatmap" style="overflow-x:auto;"></div>
+                <div style="margin-top:10px;font-size:11px;color:#a0aec0;display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+                    <span>🟥 ירידה חדה (&lt;-2%)</span>
+                    <span>🟧 ירידה (-1% עד -2%)</span>
+                    <span>⬜ יציב</span>
+                    <span>🟩 עלייה (1%-2%)</span>
+                    <span>💚 עלייה חזקה (&gt;2%)</span>
+                </div>
+            </div>
+            <div id="sectorTabCumulative" class="sector-tab-panel" style="display:none;">
+                <div id="sectorCumHeatmap" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:12px 0;"></div>
+                <div id="sectorCumHeatmapDate" style="text-align:center;font-size:13px;color:#fff;font-weight:600;margin-top:8px;"></div>
             </div>
         </div>
 
@@ -403,15 +407,9 @@
                 <canvas id="rvolHistChart"></canvas>
             </div>
             <div class="chart-card">
-                <h3>ממוצע שינוי % מניות עם RVOL גבוה (&gt;1.2) לפי סקטור</h3>
-                <canvas id="rvolSectorChart"></canvas>
+                <h3>RVOL ממוצע לפי סקטור &amp; שינוי % למניות RVOL&gt;1.2</h3>
+                <canvas id="rvolSectorChart" style="max-height:360px;"></canvas>
             </div>
-        </div>
-
-        <!-- Row 6b: RVOL avg per sector -->
-        <div class="chart-card" style="margin-bottom:20px;">
-            <h3>ממוצע RVOL לפי סקטור</h3>
-            <canvas id="rvolAvgSectorChart" style="max-height:280px;"></canvas>
         </div>
 
         <!-- Setup Screener -->
@@ -1123,17 +1121,6 @@ function updateCharts(a20,a50,a150,a200,total,oversold,weak,strong,overbought,go
         scales:{x:{beginAtZero:true,max:total}}}
     });
 
-    destroyChart('sectorChart');
-    charts['sectorChart'] = new Chart(document.getElementById('sectorChart'),{
-        type:'bar',
-        data:{labels:sectorsSorted.map(sc=>SECTOR_HE[sc]||sc),
-        datasets:[{data:sectorsSorted.map(sc=>+(sectors[sc].above200/sectors[sc].total*100).toFixed(1)),
-        backgroundColor:sectorsSorted.map(sc=>{const p=sectors[sc].above200/sectors[sc].total;return p>=0.6?'#38a169':p>=0.4?'#ecc94b':'#e53e3e';})}]},
-        options:{indexAxis:'y',plugins:{legend:{display:false},
-        tooltip:{callbacks:{label:c=>`${c.raw}% (${sectors[sectorsSorted[c.dataIndex]].above200}/${sectors[sectorsSorted[c.dataIndex]].total})`}}},
-        scales:{x:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}}
-    });
-
     const scores=[0,0,0,0,0];
     data.forEach(d=>scores[d.maScore]++);
     destroyChart('alignChart');
@@ -1462,6 +1449,22 @@ function exportCSV() {
 }
 
 /* ═══════════ SECTOR HEATMAP ═══════════ */
+function switchSectorTab(tab) {
+    const panels = { current: 'sectorTabCurrent', weekly: 'sectorTabWeekly', cumulative: 'sectorTabCumulative' };
+    Object.entries(panels).forEach(([k, id]) => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = k === tab ? 'block' : 'none';
+    });
+    document.querySelectorAll('.sector-tab').forEach(btn => {
+        const active = btn.dataset.tab === tab;
+        btn.style.background = active ? '#3182ce' : 'rgba(255,255,255,0.1)';
+        btn.style.color = active ? '#fff' : '#e2e8f0';
+        btn.classList.toggle('active', active);
+    });
+    if (tab === 'weekly' && typeof renderSectorWeeklyHeatmap === 'function') renderSectorWeeklyHeatmap();
+    if (tab === 'cumulative' && typeof renderSectorCumHeatmap === 'function') renderSectorCumHeatmap();
+}
+
 function renderHeatmap(sectors, sectorsSorted) {
     const MAs = ['20D MA','50D MA','150D MA','200D MA'];
     const labels = ['20D','50D','150D','200D'];
@@ -1536,7 +1539,11 @@ function renderRvolCharts(data, sectorsSorted, sectors) {
         options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
     });
 
-    // By sector — ממוצע שינוי % של מניות עם RVOL > 1.2
+    // Combined: avg RVOL per sector (bars, x-bottom) + avg % change for RVOL>1.2 (line, x-top)
+    const sectorAvgRvol = sectorsSorted.map(sc => {
+        const ss = data.filter(d=>d.sector===sc && d.rvol>0);
+        return ss.length ? +(ss.reduce((s,d)=>s+d.rvol,0)/ss.length).toFixed(2) : null;
+    });
     const sectorRvolChange = sectorsSorted.map(sc => {
         const stocks = data.filter(d=>d.sector===sc && d.rvol>1.2);
         if (!stocks.length) return null;
@@ -1546,34 +1553,44 @@ function renderRvolCharts(data, sectorsSorted, sectors) {
     destroyChart('rvolSectorChart');
     charts['rvolSectorChart'] = new Chart(document.getElementById('rvolSectorChart'), {
         type:'bar',
-        data:{ labels: sectorsSorted.map(sc=>SECTOR_HE[sc]||sc), datasets:[{
-            data: sectorRvolChange,
-            backgroundColor: sectorRvolChange.map(v => v===null ? '#a0aec0' : v >= 0 ? '#38a169' : '#e53e3e')
-        }]},
-        options:{ indexAxis:'y', plugins:{ legend:{ display:false },
-            tooltip:{ callbacks:{ label: c => c.raw===null ? 'אין נתון' : (c.raw>0?'+':'')+c.raw+'%' } } },
-            scales:{ x:{ ticks:{ callback: v => (v>0?'+':'')+v+'%' } } } }
-    });
-
-    // ממוצע RVOL לפי סקטור
-    const sectorAvgRvol = sectorsSorted.map(sc => {
-        const ss = data.filter(d=>d.sector===sc && d.rvol>0);
-        if (!ss.length) return null;
-        return +(ss.reduce((s,d)=>s+d.rvol,0)/ss.length).toFixed(2);
-    });
-    destroyChart('rvolAvgSectorChart');
-    charts['rvolAvgSectorChart'] = new Chart(document.getElementById('rvolAvgSectorChart'), {
-        type:'bar',
-        data:{ labels: sectorsSorted.map(sc=>SECTOR_HE[sc]||sc), datasets:[{
-            data: sectorAvgRvol,
-            backgroundColor: sectorAvgRvol.map(v=>v===null?'#a0aec0':v>1.2?'#276749':v>=0.8?'#38a169':'#ecc94b')
-        }]},
-        options:{ indexAxis:'y', plugins:{ legend:{display:false},
-            tooltip:{callbacks:{label:c=>c.raw===null?'אין נתון':'ממוצע RVOL: '+c.raw}} },
+        data:{
+            labels: sectorsSorted.map(sc=>SECTOR_HE[sc]||sc),
+            datasets:[
+                {
+                    label:'RVOL ממוצע',
+                    data: sectorAvgRvol,
+                    backgroundColor: sectorAvgRvol.map(v=>v===null?'#a0aec0':v>1.2?'#276749':v>=0.8?'#38a169':'#ecc94b'),
+                    xAxisID:'x', order:2
+                },
+                {
+                    label:'שינוי % (RVOL>1.2)',
+                    type:'line',
+                    data: sectorRvolChange,
+                    borderColor:'#63b3ed',
+                    backgroundColor:'#63b3ed',
+                    pointBackgroundColor: sectorRvolChange.map(v => v===null ? '#a0aec0' : v >= 0 ? '#38a169' : '#e53e3e'),
+                    pointBorderColor:'#fff', pointBorderWidth:2, pointRadius:5,
+                    borderWidth:2, tension:0.3, xAxisID:'x2', order:1
+                }
+            ]
+        },
+        options:{
+            indexAxis:'y',
+            plugins:{
+                legend:{position:'top',labels:{color:'#e2e8f0',font:{size:11},boxWidth:12}},
+                tooltip:{callbacks:{label:c=>{
+                    if (c.raw === null) return c.dataset.label + ': אין נתון';
+                    return c.datasetIndex === 0 ? 'RVOL ממוצע: ' + c.raw : 'שינוי ממוצע: ' + (c.raw>0?'+':'') + c.raw + '%';
+                }}}
+            },
             scales:{
-                x:{ beginAtZero:true, ticks:{color:'#e2e8f0',font:{size:11},callback:v=>v.toFixed(1)}, grid:{color:'rgba(255,255,255,0.08)'} },
+                x:{ position:'bottom', beginAtZero:true, title:{display:true,text:'RVOL ממוצע',color:'#a0aec0',font:{size:11}},
+                    ticks:{color:'#e2e8f0',font:{size:11},callback:v=>v.toFixed(1)}, grid:{color:'rgba(255,255,255,0.08)'} },
+                x2:{ position:'top', title:{display:true,text:'שינוי % (RVOL>1.2)',color:'#a0aec0',font:{size:11}},
+                    ticks:{color:'#63b3ed',font:{size:11},callback:v=>(v>0?'+':'')+v+'%'}, grid:{display:false} },
                 y:{ ticks:{color:'#e2e8f0',font:{size:11}}, grid:{color:'rgba(255,255,255,0.06)'} }
-            } }
+            }
+        }
     });
 }
 
@@ -1901,11 +1918,62 @@ function renderSectorMaHeatmap() {
     wrap.style.display = 'block';
 }
 
+function renderSectorWeeklyHeatmap() {
+    const wrap = document.getElementById('sectorWeeklyHeatmap');
+    if (!wrap) return;
+    if (!historyData || !historyData.length) {
+        wrap.innerHTML = '<p style="color:#a0aec0;font-size:13px;padding:20px;text-align:center;">אין נתונים היסטוריים — יש צורך ביותר מיום אחד של מדידה.</p>';
+        return;
+    }
+    const SECS = ['IT','HC','FIN','CD','CS','IND','COM','ENE','UTL','RE','MAT'];
+    function heatColor(v) {
+        if (v === null || v === undefined) return 'rgba(255,255,255,0.06)';
+        const a = Math.min(Math.abs(v) / 3, 1);
+        if (v > 0.05)  return `rgba(56,161,105,${0.2 + a * 0.75})`;
+        if (v < -0.05) return `rgba(229,62,62,${0.2 + a * 0.75})`;
+        return 'rgba(214,158,46,0.5)';
+    }
+    const daysWithChange = historyData.filter(h =>
+        h.metrics.sectorChange && Object.values(h.metrics.sectorChange).some(v => v !== null)
+    );
+    if (!daysWithChange.length) { wrap.innerHTML = '<p style="color:#a0aec0;font-size:12px;padding:20px;text-align:center;">אין עדיין נתוני שינוי יומי.</p>'; return; }
+    const dates = daysWithChange.map(h => h.date);
+    const tbl = document.createElement('table');
+    tbl.style.cssText = 'border-collapse:collapse;font-size:11px;min-width:100%;';
+    const thead = tbl.createTHead();
+    const hrow = thead.insertRow();
+    const th0 = document.createElement('th');
+    th0.textContent = 'סקטור';
+    th0.style.cssText = 'padding:6px 10px;text-align:right;background:rgba(255,255,255,0.1);color:#e2e8f0;font-weight:700;white-space:nowrap;position:sticky;right:0;z-index:1;';
+    hrow.appendChild(th0);
+    dates.forEach(d => {
+        const th = document.createElement('th');
+        th.textContent = d.slice(5);
+        th.style.cssText = 'padding:6px 8px;text-align:center;background:rgba(255,255,255,0.1);color:#e2e8f0;font-weight:600;white-space:nowrap;';
+        hrow.appendChild(th);
+    });
+    const tbody = tbl.createTBody();
+    SECS.forEach(sec => {
+        const row = tbody.insertRow();
+        const nameCell = row.insertCell();
+        nameCell.textContent = SECTOR_HE[sec] || sec;
+        nameCell.style.cssText = 'padding:6px 10px;font-weight:700;color:#e2e8f0;white-space:nowrap;background:rgba(255,255,255,0.08);position:sticky;right:0;';
+        daysWithChange.forEach(h => {
+            const v = h.metrics.sectorChange ? h.metrics.sectorChange[sec] : null;
+            const cell = row.insertCell();
+            cell.style.cssText = `padding:6px 8px;text-align:center;font-weight:600;color:#fff;background:${heatColor(v)};`;
+            cell.textContent = v !== null && v !== undefined ? (v > 0 ? '+' : '') + v + '%' : '—';
+        });
+    });
+    wrap.innerHTML = '';
+    wrap.appendChild(tbl);
+}
+
 function renderSectorCumHeatmap() {
-    const card = document.getElementById('sectorCumHeatmapCard');
     const wrap = document.getElementById('sectorCumHeatmap');
     const dateEl = document.getElementById('sectorCumHeatmapDate');
-    if (!historyData.length) { card.style.display='none'; return; }
+    if (!wrap) return;
+    if (!historyData.length) { wrap.innerHTML = '<p style="color:#a0aec0;font-size:13px;padding:20px;text-align:center;">אין נתונים היסטוריים — יש צורך ביותר מיום אחד של מדידה.</p>'; if (dateEl) dateEl.textContent=''; return; }
 
     // צבור sectorChange לכל יום — סכום מצטבר
     const allSectors = Object.keys(SECTOR_HE).filter(k => k !== '?');
@@ -1921,7 +1989,7 @@ function renderSectorCumHeatmap() {
 
     // סנן סקטורים שאין להם נתונים כלל
     const activeSectors = allSectors.filter(s => historyData.some(h => (h.metrics.sectorChange||{})[s] != null));
-    if (!activeSectors.length) { card.style.display='none'; return; }
+    if (!activeSectors.length) { wrap.innerHTML = '<p style="color:#a0aec0;font-size:13px;padding:20px;text-align:center;">אין נתוני שינוי לפי סקטור.</p>'; if (dateEl) dateEl.textContent=''; return; }
 
     // מיון מהחזק לחלש
     activeSectors.sort((a,b) => cumulative[b] - cumulative[a]);
@@ -1961,8 +2029,7 @@ function renderSectorCumHeatmap() {
 
     const startDate = historyData[0].date;
     const endDate   = historyData[historyData.length-1].date;
-    dateEl.textContent = `תחילת מדידה: ${startDate} | סיום: ${endDate} | ${historyData.length} ימי מסחר`;
-    card.style.display = 'block';
+    if (dateEl) dateEl.textContent = `תחילת מדידה: ${startDate} | סיום: ${endDate} | ${historyData.length} ימי מסחר`;
 }
 
 function renderHistoryUI() {
@@ -2137,64 +2204,8 @@ function renderHistoryUI() {
             elements:{ point:{radius:4} } }
     });
 
-    // Weekly sector heatmap — כל הימים × כל הסקטורים
-    (function renderWeeklyHeatmap() {
-        const SECS = ['IT','HC','FIN','CD','CS','IND','COM','ENE','UTL','RE','MAT'];
-        function heatColor(v) {
-            if (v === null) return 'rgba(255,255,255,0.06)';
-            const a = Math.min(Math.abs(v) / 3, 1);
-            if (v > 0.05)  return `rgba(56,161,105,${0.2 + a * 0.75})`;
-            if (v < -0.05) return `rgba(229,62,62,${0.2 + a * 0.75})`;
-            return 'rgba(214,158,46,0.5)';
-        }
-        // הצג רק ימים שיש בהם נתוני שינוי (קבצים עם עמודת %Change)
-        const daysWithChange = historyData.filter(h =>
-            h.metrics.sectorChange && Object.values(h.metrics.sectorChange).some(v => v !== null)
-        );
-        if (!daysWithChange.length) { document.getElementById('sectorWeeklyHeatmap').innerHTML = '<p style="color:#a0aec0;font-size:12px;">אין עדיין נתוני שינוי יומי.</p>'; return; }
-        const dates = daysWithChange.map(h => h.date);
-        const tbl = document.createElement('table');
-        tbl.style.cssText = 'border-collapse:collapse;font-size:11px;min-width:100%;';
-        // header row
-        const thead = tbl.createTHead();
-        const hrow = thead.insertRow();
-        const th0 = document.createElement('th');
-        th0.textContent = 'סקטור';
-        th0.style.cssText = 'padding:6px 10px;text-align:right;background:rgba(255,255,255,0.1);color:#e2e8f0;font-weight:700;white-space:nowrap;position:sticky;right:0;z-index:1;';
-        hrow.appendChild(th0);
-        dates.forEach(d => {
-            const th = document.createElement('th');
-            th.textContent = d.slice(5); // MM-DD
-            th.style.cssText = 'padding:6px 8px;text-align:center;background:rgba(255,255,255,0.1);color:#e2e8f0;font-weight:600;white-space:nowrap;';
-            hrow.appendChild(th);
-        });
-        // sector rows
-        const tbody = tbl.createTBody();
-        SECS.forEach(sec => {
-            const row = tbody.insertRow();
-            const nameCell = row.insertCell();
-            nameCell.textContent = SECTOR_HE[sec] || sec;
-            nameCell.style.cssText = 'padding:6px 10px;font-weight:700;color:#e2e8f0;white-space:nowrap;background:rgba(255,255,255,0.08);position:sticky;right:0;';
-            daysWithChange.forEach(h => {
-                const v = h.metrics.sectorChange ? h.metrics.sectorChange[sec] : null;
-                const cell = row.insertCell();
-                cell.style.cssText = `padding:6px 8px;text-align:center;font-weight:600;color:#fff;background:${heatColor(v)};`;
-                cell.textContent = v !== null && v !== undefined ? (v > 0 ? '+' : '') + v + '%' : '—';
-            });
-        });
-        const wrap = document.getElementById('sectorWeeklyHeatmap');
-        wrap.innerHTML = '';
-        wrap.appendChild(tbl);
-    })();
-
-    // פונקציית צבע לheatmap
-    function heatColor(v) {
-        if (v === null) return '#f0f4f8';
-        const a = Math.min(Math.abs(v) / 3, 1);
-        if (v > 0.05)  return `rgba(56,161,105,${0.15 + a * 0.75})`;
-        if (v < -0.05) return `rgba(229,62,62,${0.15 + a * 0.75})`;
-        return 'rgba(214,158,46,0.7)';
-    }
+    // Weekly sector heatmap — re-rendered on demand via tab switch
+    renderSectorWeeklyHeatmap();
 
     // NH/NL chart
     if (trendCharts['trendNhNlChart']) { trendCharts['trendNhNlChart'].destroy(); delete trendCharts['trendNhNlChart']; }
