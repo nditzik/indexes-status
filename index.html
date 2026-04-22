@@ -287,14 +287,14 @@
                 <canvas id="trendAllChart" style="max-height:320px;"></canvas>
             </div>
             <div class="chart-card" style="margin-bottom:20px;">
-                <h3>Heatmap שבועי — שינוי יומי לפי סקטור לאורך כל הימים</h3>
+                <h3>Heatmap שבועי — ממוצע שינוי יומי לפי סקטור (כל 5 ימי מסחר)</h3>
                 <div id="sectorWeeklyHeatmap" style="overflow-x:auto;"></div>
                 <div style="margin-top:10px;font-size:11px;color:#a0aec0;display:flex;gap:16px;align-items:center;">
-                    <span>🟥 ירידה חדה (&lt;-2%)</span>
-                    <span>🟧 ירידה (-1% עד -2%)</span>
+                    <span>🟥 ירידה חזקה (&lt;-1%)</span>
+                    <span>🟧 ירידה קלה (-0.3% עד -1%)</span>
                     <span>⬜ יציב</span>
-                    <span>🟩 עלייה (1%-2%)</span>
-                    <span>💚 עלייה חזקה (&gt;2%)</span>
+                    <span>🟩 עלייה קלה (0.3%-1%)</span>
+                    <span>💚 עלייה חזקה (&gt;1%)</span>
                 </div>
             </div>
             <div class="chart-card" style="margin-bottom:20px;">
@@ -929,8 +929,10 @@ function processData() {
         if(!isNaN(l)&&!isNaN(m)&&m>0&&l>m) sectors[sc].above200++;
     });
     const sectorsSorted = Object.keys(sectors).sort((a,b)=>(sectors[b].above200/sectors[b].total)-(sectors[a].above200/sectors[a].total));
-    const topSector    = sectorsSorted[0];
-    const bottomSector = sectorsSorted[sectorsSorted.length-1];
+    // For top/bottom sector selection: exclude '?' (unmapped) and tiny sectors (<5 stocks) to avoid noise
+    const rankableSectors = sectorsSorted.filter(sc => sc !== '?' && sectors[sc].total >= 5);
+    const topSector    = rankableSectors[0] || sectorsSorted[0];
+    const bottomSector = rankableSectors[rankableSectors.length-1] || sectorsSorted[sectorsSorted.length-1];
 
     // Opportunity stocks: RSI approx < 40, 52W% < -15%, MA score >= 1
     const opportunityStocks = tableData.filter(d =>
@@ -2121,38 +2123,55 @@ function renderHistoryUI() {
             if (v < -0.05) return `rgba(229,62,62,${0.2 + a * 0.75})`;
             return 'rgba(214,158,46,0.5)';
         }
-        // הצג רק ימים שיש בהם נתוני שינוי (קבצים עם עמודת %Change)
+        // רק ימים עם נתוני שינוי
         const daysWithChange = historyData.filter(h =>
             h.metrics.sectorChange && Object.values(h.metrics.sectorChange).some(v => v !== null)
         );
         if (!daysWithChange.length) { document.getElementById('sectorWeeklyHeatmap').innerHTML = '<p style="color:#a0aec0;font-size:12px;">אין עדיין נתוני שינוי יומי.</p>'; return; }
-        const dates = daysWithChange.map(h => h.date);
+
+        // קיבוץ ל"שבועות מסחר" (כל 5 ימי מסחר רציפים), עם ממוצע שינוי יומי לכל סקטור
+        const weeks = [];
+        for (let i = 0; i < daysWithChange.length; i += 5) {
+            const chunk = daysWithChange.slice(i, i + 5);
+            if (!chunk.length) continue;
+            const avg = {};
+            SECS.forEach(sec => {
+                const vals = chunk.map(h => h.metrics.sectorChange ? h.metrics.sectorChange[sec] : null)
+                                  .filter(v => v !== null && v !== undefined);
+                avg[sec] = vals.length ? +(vals.reduce((a,b)=>a+b,0) / vals.length).toFixed(2) : null;
+            });
+            weeks.push({
+                start: chunk[0].date,
+                end: chunk[chunk.length - 1].date,
+                avg
+            });
+        }
+
         const tbl = document.createElement('table');
-        tbl.style.cssText = 'border-collapse:collapse;font-size:11px;min-width:100%;';
-        // header row
+        tbl.style.cssText = 'border-collapse:collapse;font-size:12px;min-width:100%;';
         const thead = tbl.createTHead();
         const hrow = thead.insertRow();
         const th0 = document.createElement('th');
         th0.textContent = 'סקטור';
-        th0.style.cssText = 'padding:6px 10px;text-align:right;background:rgba(255,255,255,0.1);color:#e2e8f0;font-weight:700;white-space:nowrap;position:sticky;right:0;z-index:1;';
+        th0.style.cssText = 'padding:8px 12px;text-align:right;background:rgba(255,255,255,0.1);color:#e2e8f0;font-weight:700;white-space:nowrap;position:sticky;right:0;z-index:1;';
         hrow.appendChild(th0);
-        dates.forEach(d => {
+        weeks.forEach((w, i) => {
             const th = document.createElement('th');
-            th.textContent = d.slice(5); // MM-DD
-            th.style.cssText = 'padding:6px 8px;text-align:center;background:rgba(255,255,255,0.1);color:#e2e8f0;font-weight:600;white-space:nowrap;';
+            const s = w.start.slice(5), e = w.end.slice(5);
+            th.innerHTML = `שבוע ${i+1}<br><span style="font-size:10px;color:#a0aec0;">${s}→${e}</span>`;
+            th.style.cssText = 'padding:8px 14px;text-align:center;background:rgba(255,255,255,0.1);color:#e2e8f0;font-weight:600;white-space:nowrap;min-width:100px;';
             hrow.appendChild(th);
         });
-        // sector rows
         const tbody = tbl.createTBody();
         SECS.forEach(sec => {
             const row = tbody.insertRow();
             const nameCell = row.insertCell();
             nameCell.textContent = SECTOR_HE[sec] || sec;
-            nameCell.style.cssText = 'padding:6px 10px;font-weight:700;color:#e2e8f0;white-space:nowrap;background:rgba(255,255,255,0.08);position:sticky;right:0;';
-            daysWithChange.forEach(h => {
-                const v = h.metrics.sectorChange ? h.metrics.sectorChange[sec] : null;
+            nameCell.style.cssText = 'padding:8px 12px;font-weight:700;color:#e2e8f0;white-space:nowrap;background:rgba(255,255,255,0.08);position:sticky;right:0;';
+            weeks.forEach(w => {
+                const v = w.avg[sec];
                 const cell = row.insertCell();
-                cell.style.cssText = `padding:6px 8px;text-align:center;font-weight:600;color:#fff;background:${heatColor(v)};`;
+                cell.style.cssText = `padding:10px 14px;text-align:center;font-weight:700;font-size:13px;color:#fff;background:${heatColor(v)};`;
                 cell.textContent = v !== null && v !== undefined ? (v > 0 ? '+' : '') + v + '%' : '—';
             });
         });
@@ -2317,20 +2336,25 @@ function clearApiKey() {
 function buildMarketPrompt(earnings = { today: [], upcoming: [] }) {
     const total = M.total;
     const r = (n, d) => d > 0 ? Math.round(n / d * 100) : 0;
+    const sign = v => v > 0 ? '+' : '';
+    const fmt = v => v === null || v === undefined || isNaN(v) ? '—' : sign(v) + (+v).toFixed(2);
 
     const allChgArr = tableData.map(d => parseFloat(d['%Change'] || 0)).filter(v => !isNaN(v) && v !== 0);
-    const avgChange = allChgArr.length ? (allChgArr.reduce((a, b) => a + b, 0) / allChgArr.length).toFixed(2) : null;
-    const avgChangeStr = avgChange !== null ? (parseFloat(avgChange) > 0 ? '+' : '') + avgChange + '%' : 'N/A';
+    const avgChange = allChgArr.length ? +(allChgArr.reduce((a, b) => a + b, 0) / allChgArr.length).toFixed(2) : null;
+    const avgChangeStr = avgChange !== null ? sign(avgChange) + avgChange + '%' : 'N/A';
 
-    const sectorLines = Object.entries(M.sectors).map(([sc, sd]) => {
-        const he = SECTOR_HE[sc] || sc;
-        const p200 = r(sd.above200, sd.total);
-        const secChg = tableData.filter(d => d.sector === sc)
-            .map(d => parseFloat(d['%Change'] || 0)).filter(v => !isNaN(v) && v !== 0);
-        const avgSec = secChg.length ? (secChg.reduce((a, b) => a + b, 0) / secChg.length).toFixed(2) : null;
-        const avgSecStr = avgSec !== null ? (parseFloat(avgSec) > 0 ? '+' : '') + avgSec + '%' : 'N/A';
-        return `  • ${he}: ${p200}% מעל 200D MA (${sd.above200}/${sd.total}), שינוי יומי: ${avgSecStr}`;
-    }).join('\n');
+    const sectorLines = Object.entries(M.sectors)
+        .filter(([sc]) => sc !== '?')
+        .sort(([a], [b], _) => (M.sectors[b].above200/M.sectors[b].total) - (M.sectors[a].above200/M.sectors[a].total))
+        .map(([sc, sd]) => {
+            const he = SECTOR_HE[sc] || sc;
+            const p200 = r(sd.above200, sd.total);
+            const secChg = tableData.filter(d => d.sector === sc)
+                .map(d => parseFloat(d['%Change'] || 0)).filter(v => !isNaN(v) && v !== 0);
+            const avgSec = secChg.length ? +(secChg.reduce((a, b) => a + b, 0) / secChg.length).toFixed(2) : null;
+            const avgSecStr = avgSec !== null ? sign(avgSec) + avgSec + '%' : 'N/A';
+            return `  • ${he}: ${p200}% מעל 200D MA (${sd.above200}/${sd.total}), שינוי יומי ממוצע: ${avgSecStr}`;
+        }).join('\n');
 
     const sortedMom = [...tableData].sort((a, b) => b.momentumScore - a.momentumScore);
     const topMom = sortedMom.slice(0, 5).map(s => `${s.Symbol}(${s.momentumScore})`).join(', ');
@@ -2340,9 +2364,63 @@ function buildMarketPrompt(earnings = { today: [], upcoming: [] }) {
     const topGainers = sortedChg.slice(0, 3).map(s => `${s.Symbol}(${parseFloat(s['%Change']).toFixed(1)}%)`).join(', ');
     const topLosers = sortedChg.slice(-3).reverse().map(s => `${s.Symbol}(${parseFloat(s['%Change']).toFixed(1)}%)`).join(', ');
 
-    const histLines = historyData.length > 1
-        ? historyData.slice(-5).map(h => `    ${h.date}: ציון ${h.metrics.healthScore}, 200D ${h.metrics.p200}%, NH/NL ${h.metrics.nhNlRatio}`).join('\n')
+    // ── היסטוריה מפורטת ──
+    const H = historyData || [];
+    const prev = H.length >= 2 ? H[H.length - 2].metrics : null;
+    const week = H.length >= 6 ? H[H.length - 6].metrics : (H.length >= 2 ? H[0].metrics : null);
+    const start = H.length >= 2 ? H[0].metrics : null;
+    const startDate = H.length ? H[0].date : null;
+    const weekDate = H.length >= 6 ? H[H.length - 6].date : (H.length ? H[0].date : null);
+
+    const deltaLine = (label, cur, baseline) => {
+        if (baseline === undefined || baseline === null || cur === undefined || cur === null) return '';
+        const d = +(cur - baseline).toFixed(2);
+        const arrow = d > 0 ? '↑' : d < 0 ? '↓' : '→';
+        return `${label}: ${cur} (${arrow} ${sign(d)}${d} מ-${baseline})`;
+    };
+
+    const dodSection = prev ? [
+        deltaLine('ציון בריאות', M.healthScore, prev.healthScore),
+        deltaLine('% מעל 200D MA', r(M.a200,total), prev.p200),
+        deltaLine('% מעל 20D MA', r(M.a20,total), prev.p20),
+        deltaLine('Golden Cross %', r(M.golden,total), prev.pGolden),
+        deltaLine('RSI>50 %', M.pRsi50, prev.pRsi50),
+        deltaLine('NH/NL יחס', M.nhNlRatio, prev.nhNlRatio)
+    ].filter(Boolean).map(s => '  • ' + s).join('\n') : '  (אין נתון מאתמול)';
+
+    const wowSection = week && weekDate !== currentDateLabel ? [
+        deltaLine(`ציון בריאות (מ-${weekDate})`, M.healthScore, week.healthScore),
+        deltaLine('% מעל 200D MA', r(M.a200,total), week.p200),
+        deltaLine('% מעל 50D MA', r(M.a50,total), week.p50),
+        deltaLine('NH/NL יחס', M.nhNlRatio, week.nhNlRatio)
+    ].filter(Boolean).map(s => '  • ' + s).join('\n') : '  (היסטוריה מוגבלת)';
+
+    const startSection = start && startDate !== currentDateLabel ? [
+        deltaLine(`ציון בריאות (מתחילת מדידה ${startDate})`, M.healthScore, start.healthScore),
+        deltaLine('% מעל 200D MA', r(M.a200,total), start.p200),
+        deltaLine('NH/NL יחס', M.nhNlRatio, start.nhNlRatio)
+    ].filter(Boolean).map(s => '  • ' + s).join('\n') : '';
+
+    const histTable = H.length > 1
+        ? H.slice(-10).map(h => `    ${h.date}: בריאות=${h.metrics.healthScore}, 200D=${h.metrics.p200}%, 50D=${h.metrics.p50}%, NH/NL=${h.metrics.nhNlRatio}, שינוי ממוצע=${fmt(h.metrics.avgChange)}%`).join('\n')
         : '  (אין נתונים היסטוריים)';
+
+    // שינוי סקטורי מצטבר מאז תחילת מדידה
+    const cumBySec = {};
+    H.forEach(h => {
+        const sc = h.metrics.sectorChange || {};
+        Object.entries(sc).forEach(([s, v]) => {
+            if (v == null) return;
+            if (!(s in cumBySec)) cumBySec[s] = 0;
+            cumBySec[s] += v;
+        });
+    });
+    const cumSectorLines = Object.keys(cumBySec).length
+        ? Object.entries(cumBySec)
+            .sort((a,b) => b[1] - a[1])
+            .map(([s,v]) => `  • ${SECTOR_HE[s]||s}: ${sign(v)}${v.toFixed(2)}%`)
+            .join('\n')
+        : '  (אין נתוני סקטורים היסטוריים)';
 
     const macroLines = [
         M.vix != null ? `- VIX (מדד פחד): ${M.vix}` : '',
@@ -2350,57 +2428,107 @@ function buildMarketPrompt(earnings = { today: [], upcoming: [] }) {
         M.tnx != null ? `- TNX (אג"ח 10 שנים): ${M.tnx}%` : ''
     ].filter(Boolean).join('\n');
 
-    return `אתה אנליסט שוק מנוסה המתמחה ב-S&P 500. לפניך נתוני רוחב שוק עדכניים מ-${currentDateLabel || 'תאריך לא ידוע'}. כתוב סיכום ניתוח יומי מקצועי בעברית.
+    return `אתה אנליסט שוק בכיר המתמחה ב-S&P 500. כתוב דוח ניתוח שוק יומי מקצועי בעברית, בסטייל של בית השקעות גדול, מבוסס על הנתונים שלפניך **בהקשר ההיסטורי**. תאריך: ${currentDateLabel || 'לא ידוע'}.
 
-## נתוני רוחב שוק (${total} מניות):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## נתוני שוק — נכון להיום (${total} מניות):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - ציון בריאות שוק: ${M.healthScore}/100
-- מניות מעל 200D MA: ${r(M.a200, total)}% (${M.a200}/${total})
-- מניות מעל 150D MA: ${r(M.a150, total)}%
-- מניות מעל 50D MA: ${r(M.a50, total)}%
-- מניות מעל 20D MA: ${r(M.a20, total)}%
+- % מעל 200D MA: ${r(M.a200, total)}% (${M.a200}/${total})
+- % מעל 150D MA: ${r(M.a150, total)}%
+- % מעל 50D MA: ${r(M.a50, total)}%
+- % מעל 20D MA: ${r(M.a20, total)}%
 - Golden Cross (50>200): ${r(M.golden, total)}%
-- RSI מעל 50: ${M.pRsi50}%
-- RSI מכירת יתר (<30): ${M.pOversold}%
-- NH (קרוב לשיא ≤5%): ${M.nhCount} מניות
-- NL (ירידה ≥30% מהשיא): ${M.nlCount} מניות
-- יחס NH/NL: ${M.nhNlRatio}
-- שינוי יומי ממוצע: ${avgChangeStr}
-- עולות/יורדות: ${M.advancing}/${M.declining}
+- RSI>50: ${M.pRsi50}% | RSI<30 (oversold): ${M.pOversold}%
+- NH (≤5% מהשיא): ${M.nhCount} | NL (≥30% ירידה): ${M.nlCount} | יחס: ${M.nhNlRatio}
+- שינוי יומי ממוצע: ${avgChangeStr} | עולות/יורדות: ${M.advancing}/${M.declining}
 - Breadth Thrust: ${M.breadthThrust} מניות חצו RSI 30/50 כלפי מעלה
-${macroLines ? macroLines + '\n' : ''}
-## ביצועי סקטורים:
+${macroLines || ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## דלתא מאתמול (Day over Day):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${dodSection}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## דלתא משבוע אחרון (Week over Week):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${wowSection}
+
+${startSection ? `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## דלתא מתחילת המדידה:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${startSection}
+` : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## מגמה היסטורית (${H.length} ימי מסחר אחרונים):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${histTable}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## ביצועי סקטורים — היום (ממוין מחזק לחלש):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${sectorLines}
 
-## דוחות כספיים — היום (${currentDateLabel || ''}):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## ביצועי סקטורים — מצטבר מתחילת המדידה:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${cumSectorLines}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## דוחות כספיים:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+היום (${currentDateLabel || ''}):
 ${earnings.today.length ? earnings.today.join('\n') : '  אין דוחות של חברות S&P 500 היום'}
-## דוחות כספיים — השבוע הקרוב:
+
+השבוע הקרוב:
 ${earnings.upcoming.length ? earnings.upcoming.slice(0,20).join('\n') : '  אין נתונים על דוחות קרובים'}
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ## מניות בולטות היום:
-- עלו הכי הרבה: ${topGainers}
-- ירדו הכי הרבה: ${topLosers}
-- חזקות ביותר (מומנטום): ${topMom}
-- חלשות ביותר (מומנטום): ${botMom}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- עליות גדולות: ${topGainers}
+- ירידות גדולות: ${topLosers}
+- מומנטום גבוה: ${topMom}
+- מומנטום חלש: ${botMom}
 
-## מגמה היסטורית (5 ימים אחרונים):
-${histLines}
+═══════════════════════════════
+## הוראות כתיבה:
+═══════════════════════════════
+כתוב דוח מקצועי של **בית השקעות** בעברית. אל תחזור על המספרים — **תנתח אותם**. בכל סעיף חובה להתייחס להיסטוריה (DoD, WoW, מאז תחילת מדידה) ולזהות שינויי מגמה. המבנה:
 
-## הוראות לכתיבת הסיכום:
-אתה אנליסט בכיר. המשימה שלך היא לא לחזור על המספרים אלא לנתח אותם בהקשר רחב. כתוב דוח בעברית עם המבנה הבא:
+1. **🎯 כותרת + אות כיוון** (משפט אחד): 🟢/🟡/🔴 + המניע המרכזי של היום (דוחות? מאקרו? רוטציה סקטוריאלית?)
 
-1. **כותרת + אות כיוון** — משפט אחד שמסכם מצב השוק (🟢 חזק / 🟡 ניטרלי / 🔴 חלש), עם ציון המניע העיקרי של היום
+2. **📊 תמונת שוק + דינמיקה היסטורית** (3-4 משפטים):
+   - מה המצב היום לעומת אתמול ולעומת שבוע אחרון?
+   - האם ציון הבריאות במומנטום חיובי/שלילי? לכמה זמן?
+   - האם יש דיברגנציה בין המדדים (למשל 20D עולה אבל 200D יורד = חולשה בעומק)?
 
-2. **הקשר מאקרו** — שלב את הנתונים עם מה שאתה יודע על הסביבה הנוכחית: מדיניות הפד, ריבית, אינפלציה, מלחמות מכס, מתחים גיאופוליטיים. הסבר *למה* השוק נמצא במצבו — לא רק *מה* הנתונים אומרים
+3. **🏛️ הקשר מאקרו** (2-3 משפטים): קשר את הנתונים לסביבה הנוכחית — פד, ריבית, דולר, מכסים, גיאופוליטיקה. מה בסביבה המאקרו מסביר את הדינמיקה שאתה רואה?
 
-3. **עונת דוחות** — אילו חברות גדולות מה-S&P 500 דיווחו לאחרונה או עומדות לדווח בקרוב (TSLA, NVDA, AAPL, META, AMZN, MSFT, GOOGL וכו')? כיצד הדוחות משפיעים על הסקטורים שאנחנו רואים בנתונים?
+4. **📈 עונת דוחות** (2-3 משפטים): אילו מבין חברות ה-Magnificent 7 + FAANG + דוחות השבוע משפיעים על מה שאתה רואה? השווה בין תגובת השוק לדוחות אחרונים לבין מה שצפוי.
 
-4. **ניתוח סקטורים בהקשר** — לא רק מי חזק/חלש, אלא *מדוע* — קשר לריבית, דולר, מחירי אנרגיה, AI, מכסים
+5. **🔄 רוטציה סקטוריאלית** (3-4 משפטים):
+   - אילו סקטורים מובילים *היום* מול אילו שהובילו *בממוצע בשבוע האחרון* ו*מצטבר מתחילת המדידה*?
+   - האם יש רוטציה (defensive→cyclical או להיפך)? מה זה מסמן?
+   - ציין בפועל שם סקטור לפי נתונים, לא ניחוש.
 
-5. **אותות חשובים** — 2-3 אותות שדורשים תשומת לב מיוחדת (שינוי מגמה, חריג בנתונים, פער בין סקטורים)
+6. **⚡ אותות חשובים** (2-3 bullet points):
+   - שינוי מגמה מובהק (למשל: "NH/NL עבר מ-0.5 ל-1.8 תוך 3 ימים")
+   - דיברגנציה (Breadth Thrust גבוה אבל RSI>50 נמוך = איתות הפיך לטווח קצר)
+   - חריג בסקטור או מניה
 
-6. **מסקנה אסטרטגית** — המלצה מעשית למשקיע: האם לנצל חולשה? לחכות? להגן על תיק? התייחס לאופק זמן של 2-4 שבועות
+7. **🎯 מסקנה אסטרטגית + המלצה** (3-4 משפטים):
+   - הערכה ל-2-4 שבועות קדימה
+   - פעולה קונקרטית: להגדיל חשיפה? להקטין? לרוטציה לאיזה סקטור? לצאת לכספית?
+   - סיכונים עיקריים שצריך לעקוב
 
-כתוב בסגנון אנליסט מקצועי — תובנות, לא תיאור. השתמש במספרים מהנתונים כעדות לטיעונים שלך.`;
+**כללים חמורים:**
+- חובה להשתמש במספרים מהנתונים כעדות
+- חובה להתייחס לפחות פעמיים לדלתאות (DoD/WoW/מצטבר)
+- אל תמציא נתונים שלא מופיעים למעלה
+- אורך מקסימלי: ~450 מילים
+- כתוב כמו אנליסט שחיי מהשורה התחתונה — ישיר, מקצועי, עם מסקנה ברורה`;
 }
 
 function mdInline(t) {
