@@ -2017,9 +2017,9 @@ function renderHistoryUI() {
         sc('רצף ימים', (streakDir==='up'?'▲':'▼')+' '+streakCount, streakDir==='up'?'#38a169':'#e53e3e') +
         sc('מגמת F&G', fgTrend!==null?(fgTrend>0?'+':'')+fgTrend:'—', fgTrend===null?'#3182ce':fgTrend>=0?'#38a169':'#e53e3e') +
         (vixDaysAll.length>=2 ? sc('VIX vs ממוצע 5י', vixVsAvg!=null?(vixVsAvg>0?'+':'')+vixVsAvg:'—', vixVsAvg<=0?'#38a169':'#e53e3e') : '') +
-        `<div class="stat-card" style="min-width:110px;max-width:130px;flex:1;padding:10px 8px;border-top-color:${topSectorWeekVal!==null&&topSectorWeekVal>=0?'#38a169':'#3182ce'}">
-            <h3 style="font-size:10px">סקטור מוביל</h3>
-            <p style="font-size:13px;font-weight:700;color:#68d391;margin:6px 0 0">${topSectorWeek}</p>
+        `<div class="stat-card" style="min-width:110px;max-width:130px;flex:1;padding:10px 8px;border-top-color:${topSectorWeekVal!==null&&topSectorWeekVal>=0?'#38a169':'#3182ce'}" title="הסקטור עם העלייה הגדולה ביותר ב-% מעל 200D MA מתחילת המדידה">
+            <h3 style="font-size:10px">סקטור משתפר ביותר</h3>
+            <p style="font-size:13px;font-weight:700;color:#68d391;margin:6px 0 0">${topSectorWeek}${topSectorWeekVal!==null?` <span style="font-size:11px;opacity:0.85">(${topSectorWeekVal>=0?'+':''}${topSectorWeekVal})</span>`:''}</p>
          </div>` +
         sc('% מעל 20D MA', p20WeekDelta!==null?(p20WeekDelta>0?'+':'')+p20WeekDelta+'%':'—', p20WeekDelta>=0?'#38a169':'#e53e3e');
     document.getElementById('historyCharts').style.display = 'block';
