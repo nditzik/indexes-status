@@ -136,6 +136,337 @@
         .container { max-width: 1240px; margin: auto; }
         .glass { background: var(--bg-1); border: 1px solid var(--border); }
 
+        /* ═══════════════════════════════════════════════════════════
+           APP SHELL — Phase 1 · sidebar + topbar + footer ticker
+           ═══════════════════════════════════════════════════════════ */
+        :root {
+            --sidebar-w: 220px;
+            --sidebar-w-collapsed: 64px;
+            --topbar-h: 72px;
+            --footer-h: 40px;
+        }
+        .app-shell {
+            min-height: 100vh;
+            display: block;
+        }
+        /* Sidebar — fixed to the visual LEFT regardless of RTL */
+        .sidebar {
+            position: fixed;
+            top: 0; bottom: 0; left: 0;
+            width: var(--sidebar-w);
+            background: var(--bg-1);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 40;
+            transition: width .18s ease;
+        }
+        .sidebar.collapsed { width: var(--sidebar-w-collapsed); }
+        .sidebar-brand {
+            height: var(--topbar-h);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 18px;
+            border-bottom: 1px solid var(--border);
+        }
+        .sidebar-brand-logo {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent), #6b46ff);
+            display: grid; place-items: center;
+            color: #fff; font-weight: 700; font-size: 14px;
+            flex-shrink: 0;
+        }
+        .sidebar-brand-text {
+            font-size: 13px; font-weight: 600; color: var(--text);
+            letter-spacing: 0.02em;
+            white-space: nowrap; overflow: hidden;
+        }
+        .sidebar.collapsed .sidebar-brand-text { display: none; }
+        .sidebar-nav {
+            flex: 1;
+            padding: 12px 10px;
+            display: flex; flex-direction: column; gap: 2px;
+            overflow-y: auto;
+        }
+        .nav-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 12px;
+            border-radius: var(--radius);
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid transparent;
+            background: transparent;
+            text-align: right;
+            width: 100%;
+            font-family: inherit;
+            transition: background .15s ease, color .15s ease, border-color .15s ease;
+        }
+        .nav-item:hover { background: var(--bg-2); color: var(--text); }
+        .nav-item.active {
+            background: var(--bg-2);
+            color: var(--text);
+            border-color: var(--border-strong);
+        }
+        .nav-item.active .nav-icon { color: var(--accent); }
+        .nav-icon {
+            width: 18px; height: 18px;
+            flex-shrink: 0;
+            color: var(--text-dim);
+            transition: color .15s ease;
+        }
+        .nav-item:hover .nav-icon { color: var(--text-muted); }
+        .sidebar.collapsed .nav-label { display: none; }
+        .sidebar.collapsed .nav-item { justify-content: center; padding: 10px 0; }
+        .sidebar-foot {
+            padding: 10px;
+            border-top: 1px solid var(--border);
+        }
+        .collapse-btn {
+            display: flex; align-items: center; gap: 10px;
+            width: 100%;
+            padding: 10px 12px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: var(--radius);
+            color: var(--text-muted);
+            font-size: 12px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+        .collapse-btn:hover { background: var(--bg-2); color: var(--text); }
+        .sidebar.collapsed .collapse-btn { justify-content: center; padding: 10px 0; }
+        .sidebar.collapsed .collapse-btn .nav-label { display: none; }
+
+        /* App main area — offset by sidebar width */
+        .app-main {
+            padding-left: var(--sidebar-w);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: padding-left .18s ease;
+        }
+        .sidebar.collapsed ~ .app-main { padding-left: var(--sidebar-w-collapsed); }
+
+        /* Topbar */
+        .topbar {
+            position: sticky; top: 0;
+            height: var(--topbar-h);
+            display: grid;
+            grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) auto auto;
+            align-items: center;
+            gap: 20px;
+            padding: 0 28px;
+            background: var(--bg-0);
+            border-bottom: 1px solid var(--border);
+            z-index: 30;
+        }
+        .topbar-title {
+            display: flex; flex-direction: column; gap: 2px; min-width: 0;
+        }
+        .topbar-title h1 {
+            margin: 0;
+            font-size: 22px; font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--text);
+            white-space: nowrap;
+        }
+        .topbar-title p {
+            margin: 0;
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .topbar-search {
+            position: relative;
+            max-width: 520px;
+            width: 100%;
+            justify-self: center;
+        }
+        .topbar-search input {
+            width: 100%;
+            height: 40px;
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 0 44px 0 60px;
+            color: var(--text);
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color .15s ease, background .15s ease;
+        }
+        .topbar-search input:focus {
+            border-color: var(--border-strong);
+            background: var(--bg-1);
+        }
+        .topbar-search input::placeholder { color: var(--text-dim); }
+        .topbar-search .search-icon {
+            position: absolute;
+            right: 14px; top: 50%;
+            transform: translateY(-50%);
+            width: 16px; height: 16px;
+            color: var(--text-dim);
+            pointer-events: none;
+        }
+        .topbar-search .kbd {
+            position: absolute;
+            left: 12px; top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: var(--text-dim);
+            background: var(--bg-3);
+            padding: 3px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.04em;
+        }
+        .market-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .market-status .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--pos);
+            box-shadow: 0 0 0 3px rgba(16,185,129,.15);
+            flex-shrink: 0;
+        }
+        .market-status.closed .dot { background: var(--neg); box-shadow: 0 0 0 3px rgba(239,68,68,.15); }
+        .market-status .label { color: var(--text); font-weight: 500; }
+        .market-status .date  { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .theme-segment {
+            display: inline-flex;
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 3px;
+            gap: 2px;
+            margin-right: 8px;
+        }
+        .theme-segment button {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 12px;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background .15s ease, color .15s ease;
+        }
+        .theme-segment button:hover { color: var(--text); }
+        .theme-segment button.active {
+            background: var(--bg-1);
+            color: var(--text);
+            box-shadow: 0 0 0 1px var(--border);
+        }
+        .theme-segment svg { width: 14px; height: 14px; }
+        .icon-btn {
+            width: 36px; height: 36px;
+            display: grid; place-items: center;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color .15s ease, border-color .15s ease, background .15s ease;
+        }
+        .icon-btn:hover { color: var(--text); border-color: var(--border-strong); background: var(--bg-2); }
+        .icon-btn svg { width: 16px; height: 16px; }
+
+        /* Content area */
+        .app-content {
+            flex: 1;
+            padding: 24px 28px;
+            min-width: 0;
+        }
+        .app-content .container { max-width: 1400px; }
+
+        /* Tab views — only one active at a time */
+        .tab-view { display: none; }
+        .tab-view.active { display: block; }
+        .tab-placeholder {
+            padding: 60px 28px;
+            text-align: center;
+            color: var(--text-muted);
+            background: var(--bg-1);
+            border: 1px dashed var(--border-strong);
+            border-radius: var(--radius-lg);
+            max-width: 640px;
+            margin: 40px auto;
+        }
+        .tab-placeholder h2 {
+            margin: 0 0 8px;
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--text);
+        }
+        .tab-placeholder p { margin: 0; font-size: 13px; }
+
+        /* Index ticker footer */
+        .index-ticker {
+            position: sticky; bottom: 0;
+            height: var(--footer-h);
+            display: flex;
+            align-items: center;
+            gap: 48px;
+            padding: 0 28px;
+            background: var(--bg-1);
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: nowrap;
+            z-index: 20;
+        }
+        .index-ticker .ix-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .index-ticker .ix-name { color: var(--text-muted); font-weight: 500; letter-spacing: 0.04em; }
+        .index-ticker .ix-value { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+        .index-ticker .ix-change { font-variant-numeric: tabular-nums; }
+        .index-ticker .ix-change.pos { color: var(--pos); }
+        .index-ticker .ix-change.neg { color: var(--neg); }
+
+        /* Hide the OLD centered header — topbar replaces it.
+           The ticker-bar inside stays (JS still writes to its IDs). */
+        .app-content .header h1,
+        .app-content .header p,
+        .app-content .header .header-logo,
+        .app-content .header > .theme-toggle { display: none; }
+        .app-content .header {
+            padding: 14px 20px;
+            margin-bottom: 18px;
+        }
+
+        /* Responsive */
+        @media (max-width: 960px) {
+            .sidebar { width: var(--sidebar-w-collapsed); }
+            .sidebar .nav-label, .sidebar .sidebar-brand-text, .sidebar .collapse-btn .nav-label { display: none; }
+            .sidebar .nav-item, .sidebar .collapse-btn { justify-content: center; padding: 10px 0; }
+            .app-main { padding-left: var(--sidebar-w-collapsed); }
+            .topbar { grid-template-columns: 1fr; gap: 8px; height: auto; padding: 12px 16px; }
+            .topbar-search { justify-self: stretch; }
+            .topbar-title h1 { font-size: 18px; }
+        }
+
         /* ─── Header ─── */
         .header {
             background: var(--bg-1);
@@ -368,10 +699,105 @@
     <style>html.light-pre body { background: #fafaf9 !important; color: #1a1a1c !important; }</style>
 </head>
 <body>
+
+<div class="app-shell">
+
+    <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+    <aside class="sidebar" id="appSidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-logo">N</div>
+            <div class="sidebar-brand-text">Market Desk</div>
+        </div>
+        <nav class="sidebar-nav" id="sidebarNav">
+            <button class="nav-item active" data-tab="overview" type="button">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V21H3z"/><path d="M9 21V12h6v9"/></svg>
+                <span class="nav-label">סקירה</span>
+            </button>
+            <button class="nav-item" data-tab="market" type="button">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-5"/></svg>
+                <span class="nav-label">שוק</span>
+            </button>
+            <button class="nav-item" data-tab="sectors" type="button">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                <span class="nav-label">סקטורים</span>
+            </button>
+            <button class="nav-item" data-tab="stocks" type="button">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                <span class="nav-label">מניות</span>
+            </button>
+            <button class="nav-item" data-tab="favorites" type="button">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.3 17 14 18.2 21 12 17.8 5.8 21 7 14 2 9.3 9 8.5 12 2"/></svg>
+                <span class="nav-label">מועדפים</span>
+            </button>
+            <button class="nav-item" data-tab="screeners" type="button">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                <span class="nav-label">סינונים</span>
+            </button>
+            <button class="nav-item" data-tab="alerts" type="button">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+                <span class="nav-label">התראות</span>
+            </button>
+            <button class="nav-item" data-tab="reports" type="button">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+                <span class="nav-label">דוחות</span>
+            </button>
+        </nav>
+        <div class="sidebar-foot">
+            <button class="collapse-btn" id="collapseBtn" type="button">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+                <span class="nav-label">צמצם</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- ═══════════════════ MAIN ═══════════════════ -->
+    <div class="app-main">
+
+        <!-- TOPBAR -->
+        <header class="topbar">
+            <div class="topbar-title">
+                <h1 id="pageTitle">סקירת שוק</h1>
+                <p id="pageSubtitle">תמונת מצב כללית של השוק האמריקאי</p>
+            </div>
+            <div class="topbar-search">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input id="globalSearch" type="text" placeholder="חיפוש מניה, סקטור, מדד..." autocomplete="off">
+                <span class="kbd">⌘K</span>
+            </div>
+            <div class="market-status" id="marketStatus">
+                <span class="dot"></span>
+                <span class="label">טוען...</span>
+                <span class="date" id="marketDate">—</span>
+            </div>
+            <div class="topbar-actions">
+                <div class="theme-segment" role="group" aria-label="ערכת נושא">
+                    <button id="themeBtnLight" type="button" title="בהיר">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+                        <span>בהיר</span>
+                    </button>
+                    <button id="themeBtnDark" type="button" class="active" title="כהה">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                        <span>כהה</span>
+                    </button>
+                </div>
+                <button class="icon-btn" id="notifBtn" title="התראות" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+                </button>
+                <button class="icon-btn" id="settingsBtn" title="הגדרות" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- CONTENT -->
+        <main class="app-content">
+
+        <!-- tab: overview (default — wraps all existing content) -->
+        <section class="tab-view active" data-tab-view="overview">
 <div class="container">
 
     <div class="header">
-        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme" title="החלף מצב תצוגה">
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme" title="החלף מצב תצוגה" style="display:none">
             <svg id="themeIconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
             <svg id="themeIconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
         </button>
@@ -750,6 +1176,165 @@
 
     </div>
 </div>
+        </section><!-- /tab: overview -->
+
+        <!-- placeholder tabs (wired up in later phases) -->
+        <section class="tab-view" data-tab-view="market">
+            <div class="tab-placeholder">
+                <h2>שוק — Market Internals</h2>
+                <p>בשלב הבא: breadth, RSI, Golden Cross, align, scatter, 52W, RVOL.</p>
+            </div>
+        </section>
+        <section class="tab-view" data-tab-view="sectors">
+            <div class="tab-placeholder">
+                <h2>סקטורים — Sector Analysis</h2>
+                <p>בשלב הבא: מפת חום מצטברת, שבועית, וביצועי MA לפי סקטור.</p>
+            </div>
+        </section>
+        <section class="tab-view" data-tab-view="stocks">
+            <div class="tab-placeholder">
+                <h2>מניות — All Stocks</h2>
+                <p>בשלב הבא: טבלת כל המניות + פילטרים.</p>
+            </div>
+        </section>
+        <section class="tab-view" data-tab-view="favorites">
+            <div class="tab-placeholder">
+                <h2>מועדפים — Watchlist</h2>
+                <p>בשלב הבא: רשימת המעקב האישית.</p>
+            </div>
+        </section>
+        <section class="tab-view" data-tab-view="screeners">
+            <div class="tab-placeholder">
+                <h2>סינונים — Screeners</h2>
+                <p>בשלב הבא: Setup, MA20, Above 200, Momentum, Rebound, Smart Track.</p>
+            </div>
+        </section>
+        <section class="tab-view" data-tab-view="alerts">
+            <div class="tab-placeholder">
+                <h2>התראות — Alerts</h2>
+                <p>בשלב הבא: מה השתנה היום, Signal Watch, Breadth Thrust.</p>
+            </div>
+        </section>
+        <section class="tab-view" data-tab-view="reports">
+            <div class="tab-placeholder">
+                <h2>דוחות — Historical Reports</h2>
+                <p>בשלב הבא: טבלת היסטוריה, גרפי trend, סיכום AI.</p>
+            </div>
+        </section>
+
+        </main><!-- /app-content -->
+
+        <!-- FOOTER: Index ticker (Phase 1 placeholders — wired in later phase) -->
+        <footer class="index-ticker" id="indexTicker">
+            <div class="ix-item"><span class="ix-name">S&amp;P 500</span><span class="ix-value" id="ixSPX">—</span><span class="ix-change" id="ixSPXChg">—</span></div>
+            <div class="ix-item"><span class="ix-name">NASDAQ</span><span class="ix-value" id="ixIXIC">—</span><span class="ix-change" id="ixIXICChg">—</span></div>
+            <div class="ix-item"><span class="ix-name">DOW</span><span class="ix-value" id="ixDJI">—</span><span class="ix-change" id="ixDJIChg">—</span></div>
+            <div class="ix-item"><span class="ix-name">RUSSELL 2000</span><span class="ix-value" id="ixRUT">—</span><span class="ix-change" id="ixRUTChg">—</span></div>
+        </footer>
+
+    </div><!-- /app-main -->
+</div><!-- /app-shell -->
+
+<script>
+/* ═══════════ APP SHELL ROUTER · Phase 1 ═══════════ */
+(function initShell() {
+    const navBtns = document.querySelectorAll('#sidebarNav .nav-item');
+    const views   = document.querySelectorAll('.tab-view');
+    const title   = document.getElementById('pageTitle');
+    const subtitle= document.getElementById('pageSubtitle');
+
+    const META = {
+        overview:  { t: 'סקירת שוק',       s: 'תמונת מצב כללית של השוק האמריקאי' },
+        market:    { t: 'שוק',              s: 'Market Internals · רוחב, מומנטום, יישור' },
+        sectors:   { t: 'סקטורים',          s: 'Sector Rotation · רוטציה והשוואת ביצועים' },
+        stocks:    { t: 'מניות',            s: 'כל מניות ה-S&P 500 עם פילטרים' },
+        favorites: { t: 'מועדפים',          s: 'רשימת המעקב האישית' },
+        screeners: { t: 'סינונים',          s: 'Screeners · Setup, MA, Momentum, Rebound' },
+        alerts:    { t: 'התראות',           s: 'שינויים יומיים, Signal Watch, Breadth Thrust' },
+        reports:   { t: 'דוחות',            s: 'Historical Reports · מגמות לאורך זמן' },
+    };
+
+    function activate(tab) {
+        navBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+        views.forEach(v => v.classList.toggle('active', v.dataset.tabView === tab));
+        const m = META[tab] || META.overview;
+        title.textContent = m.t;
+        subtitle.textContent = m.s;
+        try { localStorage.setItem('activeTab', tab); } catch(e) {}
+        window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+
+    navBtns.forEach(b => b.addEventListener('click', () => activate(b.dataset.tab)));
+
+    // Restore last tab
+    try {
+        const saved = localStorage.getItem('activeTab');
+        if (saved && META[saved]) activate(saved);
+    } catch(e) {}
+
+    // Sidebar collapse
+    const sidebar = document.getElementById('appSidebar');
+    const collapseBtn = document.getElementById('collapseBtn');
+    try {
+        if (localStorage.getItem('sidebarCollapsed') === '1') sidebar.classList.add('collapsed');
+    } catch(e) {}
+    collapseBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        try { localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed') ? '1' : '0'); } catch(e) {}
+    });
+
+    // Cmd/Ctrl+K → focus search
+    document.addEventListener('keydown', e => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            document.getElementById('globalSearch').focus();
+        }
+    });
+
+    // Market status · basic US equity session (9:30–16:00 ET, weekdays)
+    function updateMarketStatus() {
+        const el = document.getElementById('marketStatus');
+        const dateEl = document.getElementById('marketDate');
+        if (!el) return;
+        const now = new Date();
+        // Convert to ET by using toLocaleString — crude but OK
+        const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+        const day = et.getDay(); // 0 Sun, 6 Sat
+        const mins = et.getHours() * 60 + et.getMinutes();
+        const open = day >= 1 && day <= 5 && mins >= 570 && mins < 960;
+        el.classList.toggle('closed', !open);
+        el.querySelector('.label').textContent = open ? 'שוק פתוח' : 'שוק סגור';
+        const dd = String(et.getDate()).padStart(2,'0');
+        const mm = String(et.getMonth()+1).padStart(2,'0');
+        const yyyy = et.getFullYear();
+        const hh = String(et.getHours()).padStart(2,'0');
+        const mi = String(et.getMinutes()).padStart(2,'0');
+        dateEl.textContent = `${dd}/${mm}/${yyyy} ${hh}:${mi} ET`;
+    }
+    updateMarketStatus();
+    setInterval(updateMarketStatus, 30000);
+
+    // Theme segmented control — mirrors existing #themeToggle logic
+    const btnLight = document.getElementById('themeBtnLight');
+    const btnDark  = document.getElementById('themeBtnDark');
+    function syncThemeButtons() {
+        const light = document.body.classList.contains('light');
+        btnLight.classList.toggle('active', light);
+        btnDark.classList.toggle('active', !light);
+    }
+    function setTheme(light) {
+        const hidden = document.getElementById('themeToggle');
+        // Delegate to existing toggle logic by clicking it if state differs
+        if (light !== document.body.classList.contains('light')) hidden.click();
+        syncThemeButtons();
+    }
+    btnLight.addEventListener('click', () => setTheme(true));
+    btnDark .addEventListener('click', () => setTheme(false));
+    // Observe body class changes (theme toggle from other code paths)
+    new MutationObserver(syncThemeButtons).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    syncThemeButtons();
+})();
+</script>
 
 <script>
 /* ═══════════ THEME TOGGLE ═══════════ */
