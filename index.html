@@ -32,6 +32,39 @@
             --info-bg: rgba(58,122,254,.08);
             --radius: 8px;
             --radius-lg: 10px;
+            --shadow-hover: 0 0 0 1px var(--border-strong);
+            --chart-text: #e7e7ea;
+            --chart-grid: rgba(255,255,255,0.07);
+            --chart-grid-light: rgba(255,255,255,0.04);
+            --chart-tooltip-bg: #16161a;
+            --chart-tooltip-border: #2a2a2f;
+        }
+        body.light {
+            --bg-0: #fafaf9;
+            --bg-1: #ffffff;
+            --bg-2: #f4f4f3;
+            --bg-3: #ebebea;
+            --border: #e8e8e6;
+            --border-strong: #d4d4d2;
+            --text: #1a1a1c;
+            --text-muted: #6b6b70;
+            --text-dim: #9a9a9e;
+            --accent: #2563eb;
+            --accent-dim: #dbeafe;
+            --pos: #059669;
+            --pos-bg: rgba(5,150,105,.08);
+            --neg: #dc2626;
+            --neg-bg: rgba(220,38,38,.08);
+            --warn: #d97706;
+            --warn-bg: rgba(217,119,6,.08);
+            --info: #2563eb;
+            --info-bg: rgba(37,99,235,.08);
+            --shadow-hover: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px var(--border-strong);
+            --chart-text: #3a3a3e;
+            --chart-grid: rgba(0,0,0,0.07);
+            --chart-grid-light: rgba(0,0,0,0.04);
+            --chart-tooltip-bg: #ffffff;
+            --chart-tooltip-border: #d4d4d2;
         }
 
         * { box-sizing: border-box; }
@@ -48,7 +81,58 @@
             line-height: 1.5;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            transition: background-color .18s ease, color .18s ease;
         }
+        body, .card, .stat-card, .chart-card, .health-banner, .fg-wrap,
+        .ticker-item, .opp-tag, th, td, .filter-row select, .filter-row input,
+        input[type=file], textarea, button, .summary-box, .analysis-box,
+        .signal-watch, .heatmap-tbl td, .history-tbl th, .history-tbl td,
+        .section-group-label, .theme-toggle {
+            transition: background-color .18s ease, color .18s ease,
+                        border-color .18s ease, box-shadow .18s ease;
+        }
+
+        /* ─── Section group labels (above card groups) ─── */
+        .section-group-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            margin: 28px 4px 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-group-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+        .section-group-label:first-of-type { margin-top: 8px; }
+
+        /* ─── Theme toggle (top-right of header) ─── */
+        .theme-toggle {
+            position: absolute;
+            top: 18px;
+            left: 18px;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: var(--bg-2);
+            border: 1px solid var(--border-strong);
+            color: var(--text-muted);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            line-height: 1;
+            padding: 0;
+        }
+        .theme-toggle:hover { color: var(--text); border-color: var(--text-muted); }
+        .theme-toggle svg { width: 15px; height: 15px; }
         .container { max-width: 1240px; margin: auto; }
         .glass { background: var(--bg-1); border: 1px solid var(--border); }
 
@@ -94,15 +178,27 @@
         button.secondary:hover { background: var(--bg-3); }
         textarea { width: 100%; height: 80px; border-radius: var(--radius); border: 1px solid var(--border-strong); background: var(--bg-2); color: var(--text); padding: 10px; font-size: 12px; font-family: 'JetBrains Mono', monospace; resize: vertical; }
 
-        /* ─── Health banner ─── */
+        /* ─── Health banner (primary anchor) ─── */
         .health-banner {
-            display: flex; align-items: center; gap: 24px;
+            display: flex; align-items: center; gap: 28px;
             background: var(--bg-1);
-            border: 1px solid var(--border);
+            border: 1px solid var(--border-strong);
             border-radius: var(--radius-lg);
-            padding: 22px 28px;
-            margin-bottom: 20px;
+            padding: 26px 32px;
+            margin-bottom: 16px;
+            position: relative;
         }
+        .health-banner::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius-lg);
+            background: linear-gradient(135deg, var(--accent-dim) 0%, transparent 40%);
+            opacity: 0.25;
+            pointer-events: none;
+        }
+        body.light .health-banner::before { opacity: 0.5; }
+        .health-banner > * { position: relative; z-index: 1; }
         .score-circle {
             width: 88px; height: 88px; border-radius: 50%;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -114,7 +210,7 @@
         .score-desc h2 { margin: 0 0 4px; font-size: 17px; font-weight: 600; color: var(--text); }
         .score-desc p  { margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.6; }
 
-        /* ─── Stats grid ─── */
+        /* ─── Stats grid (two-tier hierarchy) ─── */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 10px; margin-bottom: 20px; }
         .stat-card {
             background: var(--bg-1);
@@ -123,12 +219,16 @@
             border-radius: var(--radius);
             text-align: center;
             border-top: 2px solid var(--accent);
+            cursor: default;
         }
+        .stat-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-hover); }
         .stat-card.red    { border-top-color: var(--neg); }
         .stat-card.orange { border-top-color: var(--warn); }
         .stat-card.green  { border-top-color: var(--pos); }
         .stat-card.gold   { border-top-color: var(--warn); }
         .stat-card.teal   { border-top-color: var(--info); }
+        .stat-card.primary { padding: 16px 18px; background: var(--bg-1); border-color: var(--border-strong); }
+        .stat-card.primary p { font-size: 26px; }
         .stat-card h3 { margin: 0; font-size: 10px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
         .stat-card p  { margin: 8px 0 0; font-size: 22px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 
@@ -141,6 +241,7 @@
         }
         .charts-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
         .chart-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; }
+        .chart-card:hover { border-color: var(--border-strong); }
         .chart-card h3 { margin: 0 0 14px; font-size: 11px; color: var(--text-muted); font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.06em; }
         @media (max-width: 750px) { .charts-2col { grid-template-columns: 1fr; } }
 
@@ -255,11 +356,25 @@
         /* ─── Selection ─── */
         ::selection { background: var(--accent-dim); color: var(--text); }
     </style>
+    <script>
+        // FOUC-safe theme init — runs before body paints
+        (function() {
+            try {
+                var t = localStorage.getItem('dashboard-theme');
+                if (t === 'light') document.documentElement.classList.add('light-pre');
+            } catch(e) {}
+        })();
+    </script>
+    <style>html.light-pre body { background: #fafaf9 !important; color: #1a1a1c !important; }</style>
 </head>
 <body>
 <div class="container">
 
     <div class="header">
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme" title="החלף מצב תצוגה">
+            <svg id="themeIconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg id="themeIconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        </button>
         <img src="logo.png?v=3" class="header-logo" alt="logo">
         <h1>דשבורד ניתוח שוק — איציק נידם</h1>
         <p>S&P 500 · Breadth &amp; Sector Analysis</p>
@@ -325,17 +440,17 @@
         </div>
         <div id="apiKeyPanel" style="display:none;">
             <div class="ai-key-panel">
-                <p style="margin:0 0 10px; color:#a0aec0; font-size:13px;">מפתח Groq API — חינמי מ-console.groq.com · נשמר בדפדפן בלבד</p>
+                <p style="margin:0 0 10px; color:var(--text-muted); font-size:13px;">מפתח Groq API — חינמי מ-console.groq.com · נשמר בדפדפן בלבד</p>
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                     <input type="password" id="apiKeyInput" class="ai-key-input" placeholder="gsk_...">
                     <button class="primary" onclick="saveApiKey()" style="font-size:13px; padding:7px 16px;">שמור</button>
                     <button class="secondary" onclick="clearApiKey()" style="font-size:12px; padding:7px 12px;">מחק</button>
                 </div>
-                <p id="apiKeyStatus" style="margin:8px 0 0; font-size:12px; color:#68d391; min-height:18px;"></p>
+                <p id="apiKeyStatus" style="margin:8px 0 0; font-size:12px; color:var(--pos); min-height:18px;"></p>
             </div>
         </div>
         <div id="aiSummaryContent">
-            <p style="color:#a0aec0; text-align:center; padding:20px;">ממתין לנתונים...</p>
+            <p style="color:var(--text-muted); text-align:center; padding:20px;">ממתין לנתונים...</p>
         </div>
     </div>
 
@@ -400,7 +515,7 @@
             <div class="chart-card" style="margin-bottom:20px;">
                 <h3>Heatmap שבועי — ממוצע שינוי יומי לפי סקטור (כל 5 ימי מסחר)</h3>
                 <div id="sectorWeeklyHeatmap" style="overflow-x:auto;"></div>
-                <div style="margin-top:10px;font-size:11px;color:#a0aec0;display:flex;gap:16px;align-items:center;">
+                <div style="margin-top:10px;font-size:11px;color:var(--text-muted);display:flex;gap:16px;align-items:center;">
                     <span>🟥 ירידה חזקה (&lt;-1%)</span>
                     <span>🟧 ירידה קלה (-0.3% עד -1%)</span>
                     <span>⬜ יציב</span>
@@ -438,12 +553,15 @@
         <!-- מה השתנה היום -->
         <div id="changesBlock" style="display:none;margin-bottom:14px;"></div>
 
+        <div class="section-group-label">Market Snapshot · סקירת שוק</div>
         <div class="health-banner" id="healthBanner"></div>
 
         <!-- Fear & Greed -->
         <div id="fearGreedBlock" style="margin-bottom:20px;"></div>
 
         <div class="stats-grid" id="statsGrid"></div>
+
+        <div class="section-group-label">Market Internals · אינטרנלים</div>
 
         <!-- Row 1 -->
         <div class="charts-2col">
@@ -495,6 +613,8 @@
             <div class="analysis-box" id="analysisScatter"></div>
         </div>
 
+        <div class="section-group-label">Sector Rotation · רוטציה סקטוריאלית</div>
+
         <!-- Row 5: Sector Heatmap -->
         <div class="card">
             <h3 class="section-title">מטריצת רוטציה סקטוריאלית — % מניות מעל כל ממוצע נע</h3>
@@ -519,17 +639,19 @@
             </div>
         </div>
 
+        <div class="section-group-label">Market Movers · מסננים וסט-אפים</div>
+
         <!-- Setup Screener -->
         <div class="card">
             <h3 class="section-title">מסנן Setup אידיאלי — מועמדות לריבאונד עם נפח</h3>
-            <p style="font-size:12px;color:#a0aec0;margin:0 0 12px;">RSI חלש/oversold + MA Score ≥ 1 + RVOL &gt; 1.2 · ממוין לפי ציון מתנע</p>
+            <p style="font-size:12px;color:var(--text-muted);margin:0 0 12px;">RSI חלש/oversold + MA Score ≥ 1 + RVOL &gt; 1.2 · ממוין לפי ציון מתנע</p>
             <div id="setupScreener"></div>
         </div>
 
         <!-- חזרה לממוצעים -->
         <div class="card">
             <h3 class="section-title">מסנן "חזרה לממוצעים" — מעל 20D MA, מתחת ל-50D MA עם נפח</h3>
-            <p style="font-size:12px;color:#a0aec0;margin:0 0 12px;">Latest &gt; 20D MA AND Latest &lt; 50D MA AND RVOL &gt; 1.0 — מועמדות לריבאונד קצר טווח</p>
+            <p style="font-size:12px;color:var(--text-muted);margin:0 0 12px;">Latest &gt; 20D MA AND Latest &lt; 50D MA AND RVOL &gt; 1.0 — מועמדות לריבאונד קצר טווח</p>
             <div id="ma20screener"></div>
         </div>
 
@@ -544,6 +666,8 @@
             <h3 class="section-title">מניות עם מומנטום עולה — Top 10 שינוי יומי (ציון מעל 40)</h3>
             <div id="momentumRisingScreener"></div>
         </div>
+
+        <div class="section-group-label">Analysis &amp; Summary · ניתוח וסיכום</div>
 
         <!-- Market Summary -->
         <div class="card" id="summaryCard">
@@ -568,6 +692,8 @@
                 <strong>ציון מומנטום (0–100)</strong> — שקלול של: מיקום מעל ממוצעים נעים (30%), RSI (25%), מרחק מהשיא (20%), נפח יחסי RVOL (10%), שינוי יומי (15%).
             </div>
         </div>
+
+        <div class="section-group-label">Stocks · טבלת מניות</div>
 
         <!-- Watchlist -->
         <div class="card">
@@ -626,6 +752,48 @@
 </div>
 
 <script>
+/* ═══════════ THEME TOGGLE ═══════════ */
+(function initTheme() {
+    const saved = (function(){ try { return localStorage.getItem('dashboard-theme'); } catch(e) { return null; }})();
+    if (saved === 'light') document.body.classList.add('light');
+    document.documentElement.classList.remove('light-pre');
+    function applyIcons() {
+        const light = document.body.classList.contains('light');
+        const moon = document.getElementById('themeIconMoon');
+        const sun  = document.getElementById('themeIconSun');
+        if (moon && sun) {
+            moon.style.display = light ? 'none'  : 'block';
+            sun.style.display  = light ? 'block' : 'none';
+        }
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        applyIcons();
+        const btn = document.getElementById('themeToggle');
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+            document.body.classList.toggle('light');
+            const now = document.body.classList.contains('light') ? 'light' : 'dark';
+            try { localStorage.setItem('dashboard-theme', now); } catch(e) {}
+            applyIcons();
+            // Re-render charts with theme-aware colors
+            if (typeof processData === 'function' &&
+                document.getElementById('csvInput') &&
+                document.getElementById('csvInput').value) {
+                try { processData(); } catch(e) {}
+            }
+        });
+    });
+})();
+
+/* Theme-aware chart color helper */
+const CH = {
+    get text()     { const s=getComputedStyle(document.body); return s.getPropertyValue('--chart-text').trim()||'#e7e7ea'; },
+    get grid()     { const s=getComputedStyle(document.body); return s.getPropertyValue('--chart-grid').trim()||'rgba(255,255,255,0.07)'; },
+    get gridLight(){ const s=getComputedStyle(document.body); return s.getPropertyValue('--chart-grid-light').trim()||'rgba(255,255,255,0.04)'; },
+    get tipBg()    { const s=getComputedStyle(document.body); return s.getPropertyValue('--chart-tooltip-bg').trim()||'#16161a'; },
+    get tipBorder(){ const s=getComputedStyle(document.body); return s.getPropertyValue('--chart-tooltip-border').trim()||'#2a2a2f'; },
+};
+
 /* ═══════════ SECTOR MAP (loaded from data/sectors.json) ═══════════ */
 let S = {};
 let SECTOR_HE = { 'IT':'טכנולוגיה','HC':'בריאות','FIN':'פיננסים','CD':'צריכה מחזורית',
@@ -654,17 +822,39 @@ const SCORE_COLORS = ['#e53e3e','#ed8936','#ecc94b','#68d391','#38a169'];
 /* ═══════════ STATE ═══════════ */
 const charts = {};
 
-// פלאגין גלובלי — טקסט לבן לכל הגרפים
-Chart.defaults.color = '#e2e8f0';
+// פלאגין גלובלי — טקסט ורשת לפי ערכת הצבעים הנוכחית
+Chart.defaults.color = CH.text;
+Chart.defaults.plugins = Chart.defaults.plugins || {};
+Chart.defaults.plugins.tooltip = Object.assign({
+    backgroundColor: CH.tipBg,
+    borderColor: CH.tipBorder,
+    borderWidth: 1,
+    titleColor: CH.text,
+    bodyColor: CH.text,
+    padding: 10,
+    displayColors: true,
+    boxPadding: 4,
+    cornerRadius: 6,
+    titleFont: { weight: '600', size: 12 },
+    bodyFont: { size: 12 },
+}, Chart.defaults.plugins.tooltip || {});
 Chart.register({
-    id: 'whiteCharts',
+    id: 'themedCharts',
     beforeInit(chart) {
-        const WHITE = '#e2e8f0', GRID = 'rgba(255,255,255,0.1)';
+        Chart.defaults.color = CH.text;
+        chart.options.plugins = chart.options.plugins || {};
+        chart.options.plugins.tooltip = Object.assign({
+            backgroundColor: CH.tipBg,
+            borderColor: CH.tipBorder,
+            borderWidth: 1,
+            titleColor: CH.text,
+            bodyColor: CH.text,
+        }, chart.options.plugins.tooltip || {});
         const scales = chart.options.scales || {};
         Object.values(scales).forEach(s => {
-            s.ticks  = Object.assign({ color: WHITE }, s.ticks);
-            s.grid   = Object.assign({ color: GRID  }, s.grid);
-            if (s.title) s.title = Object.assign({ color: WHITE }, s.title);
+            s.ticks  = Object.assign({ color: CH.text }, s.ticks);
+            s.grid   = Object.assign({ color: CH.grid }, s.grid);
+            if (s.title) s.title = Object.assign({ color: CH.text }, s.title);
         });
         const lbl = chart.options.plugins?.legend?.labels;
         if (lbl) lbl.color = lbl.color || WHITE;
@@ -772,20 +962,20 @@ function renderFearGreed(m) {
     const score = calcFearGreed(m);
     const { text, color } = fgLabel(score);
     const needlePct = score; // 0=left(fear/red), 100=right(greed/green)
-    const vixColor = m.vix == null ? '#a0aec0' : m.vix < 15 ? '#68d391' : m.vix < 25 ? '#faf089' : '#fc8181';
+    const vixColor = m.vix == null ? 'var(--text-muted)' : m.vix < 15 ? 'var(--pos)' : m.vix < 25 ? 'var(--warn)' : 'var(--neg)';
     const vixBlock = m.vix != null ? `
-        <div style="display:flex;flex-direction:column;align-items:center;padding:0 20px;border-right:1px solid rgba(255,255,255,0.15);border-left:1px solid rgba(255,255,255,0.15);">
-            <div style="font-size:11px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">VIX כרגע</div>
+        <div style="display:flex;flex-direction:column;align-items:center;padding:0 20px;border-right:1px solid var(--border);border-left:1px solid var(--border);">
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">VIX כרגע</div>
             <div style="font-size:48px;font-weight:800;line-height:1;color:${vixColor}">${m.vix.toFixed(2)}</div>
             <div style="font-size:11px;color:${vixColor};margin-top:4px;">${m.vix<15?'רגיעה':m.vix<25?'ערנות':'פחד גבוה'}</div>
         </div>` : '';
     document.getElementById('fearGreedBlock').innerHTML = `
         <div class="fg-wrap">
             <div style="display:flex;flex-direction:column;align-items:center;min-width:110px;">
-                <div style="font-size:11px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">מדד הפחד היומי</div>
+                <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">מדד הפחד היומי</div>
                 <div class="fg-score" style="color:${color}">${score}</div>
                 <div class="fg-label" style="color:${color}">${text}</div>
-                <div style="font-size:10px;color:#a0aec0;margin-top:3px;">(0–100)</div>
+                <div style="font-size:10px;color:var(--text-muted);margin-top:3px;">(0–100)</div>
             </div>
             ${vixBlock}
             <div class="fg-meter">
@@ -798,7 +988,7 @@ function renderFearGreed(m) {
                     RSI&gt;50: ${m.pRsi50||0}% &nbsp;|&nbsp;
                     Oversold: ${m.pOversold||0}% &nbsp;|&nbsp;
                     NH/NL: ${m.nhNlRatio===99?'∞':m.nhNlRatio} &nbsp;|&nbsp;
-                    Thrust: ${m.breadthThrust||0}${m.tnx != null ? ` &nbsp;|&nbsp; TNX: <span style="color:${m.tnx<3.5?'#68d391':m.tnx<4.5?'#faf089':'#fc8181'};font-weight:700">${m.tnx.toFixed(2)}%</span>` : ''}${m.dxy != null ? ` &nbsp;|&nbsp; DXY: <span style="color:${m.dxy<98?'#68d391':m.dxy<104?'#faf089':'#fc8181'};font-weight:700">${m.dxy.toFixed(2)}</span>` : ''}
+                    Thrust: ${m.breadthThrust||0}${m.tnx != null ? ` &nbsp;|&nbsp; TNX: <span style="color:${m.tnx<3.5?'var(--pos)':m.tnx<4.5?'var(--warn)':'var(--neg)'};font-weight:700">${m.tnx.toFixed(2)}%</span>` : ''}${m.dxy != null ? ` &nbsp;|&nbsp; DXY: <span style="color:${m.dxy<98?'var(--pos)':m.dxy<104?'var(--warn)':'var(--neg)'};font-weight:700">${m.dxy.toFixed(2)}</span>` : ''}
                 </div>
             </div>
         </div>`;
@@ -1021,16 +1211,16 @@ function processData() {
         </div>`;
 
     document.getElementById('statsGrid').innerHTML = `
+        <div class="stat-card primary"><h3>מעל 200D MA</h3><p>${pct(a200,total)}%</p></div>
+        <div class="stat-card primary gold"><h3>Golden Cross</h3><p>${pct(golden,total)}%</p></div>
         <div class="stat-card"><h3>מעל 20D MA</h3><p>${pct(a20,total)}%</p></div>
         <div class="stat-card"><h3>מעל 50D MA</h3><p>${pct(a50,total)}%</p></div>
         <div class="stat-card"><h3>מעל 150D MA</h3><p>${pct(a150,total)}%</p></div>
-        <div class="stat-card"><h3>מעל 200D MA</h3><p>${pct(a200,total)}%</p></div>
-        <div class="stat-card gold"><h3>Golden Cross</h3><p>${pct(golden,total)}%</p></div>
         <div class="stat-card green"><h3>קרוב לשיא (≤5%-)</h3><p>${nearHigh}</p></div>
         <div class="stat-card red"><h3>מכירת יתר (RSI&lt;30)</h3><p>${oversold}</p></div>
         <div class="stat-card orange"><h3>ירידה מעל 30%</h3><p>${deepDrop}</p></div>
-        <div class="stat-card teal"><h3>יחס NH/NL</h3><p style="font-size:20px">${nhNlRatio===99?'∞':nhNlRatio}</p>
-            <p style="font-size:11px;color:#a0aec0;margin:4px 0 0;line-height:1.4">
+        <div class="stat-card primary teal"><h3>יחס NH/NL</h3><p style="font-size:20px">${nhNlRatio===99?'∞':nhNlRatio}</p>
+            <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;line-height:1.4">
                 ${nhCount} קרובות לשיא (≤5%-) מול ${nlCount} ירדו מעל 30%.<br>
                 ${nhNlRatio >= 2 ? '🟢 שוק חזק' : nhNlRatio >= 1 ? '🟡 מאוזן' : nhNlRatio > 0 ? '🔴 לחץ מכירות' : '🔴 אין מניות חזקות'}
             </p>
@@ -1038,7 +1228,7 @@ function processData() {
         <div class="stat-card" style="border-top-color:#805ad5">
             <h3>Breadth Thrust</h3>
             <p style="font-size:20px">${breadthThrust}</p>
-            <p style="font-size:11px;color:#a0aec0;margin:4px 0 0;line-height:1.4">
+            <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;line-height:1.4">
                 מניות שחצו RSI 30 או 50 כלפי מעלה<br>
                 ${breadthThrust>=30?'🟢 מומנטום עולה':breadthThrust>=15?'🟡 התעוררות':'⚪ מצב רגיל'}
             </p>
@@ -1047,7 +1237,7 @@ function processData() {
         <div class="stat-card ${advancing > declining ? 'green' : 'red'}">
             <h3>עולות / יורדות</h3>
             <p style="font-size:20px">${advancing}/${declining}</p>
-            <p style="font-size:11px;color:#a0aec0;margin:4px 0 0;line-height:1.4">
+            <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;line-height:1.4">
                 יחס ${declining > 0 ? (advancing/declining).toFixed(2) : '∞'}<br>
                 ${advancing > declining*1.5 ? '🟢 יום עלייה רחב' : declining > advancing*1.5 ? '🔴 יום ירידה רחב' : '🟡 מאוזן'}
             </p>
@@ -1055,7 +1245,7 @@ function processData() {
         <div class="stat-card" style="border-top-color:#319795">
             <h3>יחס 20D/50D MA</h3>
             <p style="font-size:20px">${a50 > 0 ? Math.round(a20/a50*100) : 0}%</p>
-            <p style="font-size:11px;color:#a0aec0;margin:4px 0 0;line-height:1.4">
+            <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;line-height:1.4">
                 מניות מעל 20D מתוך מעל 50D<br>
                 ${a50 > 0 && a20/a50 >= 0.75 ? '🟢 טווח קצר חזק' : a50 > 0 && a20/a50 >= 0.5 ? '🟡 מאוזן' : '🔴 טווח קצר חלש'}
             </p>
@@ -1074,7 +1264,7 @@ function processData() {
     document.getElementById('tkAvgChange').className = `ticker-value ${acCls}`;
     document.getElementById('tkAvgChange').textContent = avgChgVal!==null?(avgChgVal>0?'+':'')+avgChgVal+'%':'—';
     document.getElementById('tkAD').className        = 'ticker-value';
-    document.getElementById('tkAD').innerHTML        = `<span style="color:#68d391">${advancing}</span> / <span style="color:#fc8181">${declining}</span>`;
+    document.getElementById('tkAD').innerHTML        = `<span style="color:var(--pos)">${advancing}</span> / <span style="color:var(--neg)">${declining}</span>`;
     document.getElementById('tkDate').textContent    = currentDateLabel || '—';
     const sorted = [...tableData].filter(d=>!isNaN(parseFloat(d['%Change']))).sort((a,b)=>parseFloat(b['%Change'])-parseFloat(a['%Change']));
     const gainer = sorted[0], loser = sorted[sorted.length-1];
@@ -1418,7 +1608,7 @@ function generateMarketSummary() {
         ${opportunityStocks.length > 0 ? `
         <div style="margin-top:16px;">
             <strong style="font-size:13px;color:#2b6cb0;">מניות בזון ההזדמנויות (${opportunityStocks.length})</strong>
-            <p style="font-size:12px;color:#a0aec0;margin:4px 0 8px;">RSI נמוך + ירידה &gt;15% מהשיא + לפחות ממוצע נע אחד תומך. גבול כתום = RVOL גבוה (&gt;1.2)</p>
+            <p style="font-size:12px;color:var(--text-muted);margin:4px 0 8px;">RSI נמוך + ירידה &gt;15% מהשיא + לפחות ממוצע נע אחד תומך. גבול כתום = RVOL גבוה (&gt;1.2)</p>
             <div class="opp-tags">
                 ${opportunityStocks.map(d=>{
                     const rv = d.rvol || 0;
@@ -1474,7 +1664,7 @@ function renderTable() {
 
     document.getElementById('tableInfo').textContent=`מציג ${rows.length} מניות מתוך ${tableData.length}`;
     document.getElementById('tableBody').innerHTML = rows.map(d=>{
-        const scoreHtml='<span class="score-bar">'+[0,1,2,3].map(i=>`<span class="score-dot" style="background:${i<d.maScore?SCORE_COLORS[d.maScore]:'#e2e8f0'}"></span>`).join('')+'</span>';
+        const scoreHtml='<span class="score-bar">'+[0,1,2,3].map(i=>`<span class="score-dot" style="background:${i<d.maScore?SCORE_COLORS[d.maScore]:'var(--border-strong)'}"></span>`).join('')+'</span>';
         const badge=`<span class="badge" style="background:${rsiColor(d['RSI Rank'])}22;color:${rsiColor(d['RSI Rank'])}">${d['RSI Rank']}</span>`;
         const d200 = d.dist200!==null?(d.dist200>0?'+':'')+d.dist200.toFixed(1)+'%':'—';
         const c200 = d.dist200===null?'':d.dist200>=0?'color:#276749':'color:#c53030';
@@ -1513,12 +1703,25 @@ function renderHeatmap(sectors, sectorsSorted) {
     const MAs = ['20D MA','50D MA','150D MA','200D MA'];
     const labels = ['20D','50D','150D','200D'];
 
+    // Theme-aware gradient: deep red (weak) → amber (neutral) → deep green (strong)
+    // Uses rgba overlay so background respects theme surface
     function cellStyle(pct) {
-        const r = pct < 40 ? 229 : pct < 70 ? Math.round(229 - (pct-40)/30*191) : 38;
-        const g = pct < 40 ? Math.round(83 + (pct/40)*84)  : pct < 70 ? 167 : 161;
-        const b = pct < 40 ? 62  : pct < 70 ? 60 : 57;
-        const textColor = (pct > 30 && pct < 70) ? '#2d3748' : 'white';
-        return `background:rgb(${r},${g},${b});color:${textColor}`;
+        // Map 0..100 to a continuous strength scale centered at 50
+        // 0 = deep red, 50 = amber/neutral, 100 = deep green
+        let r, g, b, alpha;
+        if (pct < 50) {
+            // Red side: stronger red at low pct
+            const t = (50 - pct) / 50; // 0 at 50, 1 at 0
+            r = 239; g = Math.round(68 + (1-t) * 110); b = 68;
+            alpha = 0.22 + Math.pow(t, 0.7) * 0.72;
+        } else {
+            // Green side: stronger green at high pct
+            const t = (pct - 50) / 50; // 0 at 50, 1 at 100
+            r = Math.round(16 + (1-t) * 180); g = Math.round(185 - (1-t) * 27); b = Math.round(129 - (1-t) * 70);
+            alpha = 0.22 + Math.pow(t, 0.7) * 0.72;
+        }
+        const textColor = alpha > 0.55 ? '#fff' : 'var(--text)';
+        return `background:rgba(${r},${g},${b},${alpha.toFixed(3)});color:${textColor};font-weight:600;font-variant-numeric:tabular-nums;`;
     }
 
     let html = `<table class="heatmap-tbl"><thead><tr>
@@ -1527,7 +1730,7 @@ function renderHeatmap(sectors, sectorsSorted) {
         <th>ממוצע</th>
     </tr></thead><tbody>`;
 
-    sectorsSorted.forEach(sc => {
+    sectorsSorted.forEach((sc, rank) => {
         const stocks = tableData.filter(d => d.sector === sc);
         const n = stocks.length;
         const pcts = MAs.map(ma => {
@@ -1535,8 +1738,13 @@ function renderHeatmap(sectors, sectorsSorted) {
             return +(above/n*100).toFixed(0);
         });
         const avg = Math.round(pcts.reduce((a,b)=>a+b,0)/4);
+        const rankMark = rank === 0
+            ? '<span style="color:var(--pos);font-size:10px;margin-left:6px;">↑</span>'
+            : rank === sectorsSorted.length-1
+                ? '<span style="color:var(--neg);font-size:10px;margin-left:6px;">↓</span>'
+                : '';
         html += `<tr>
-            <td class="sector-name">${SECTOR_HE[sc]||sc} <small style="color:#a0aec0">(${n})</small></td>
+            <td class="sector-name">${SECTOR_HE[sc]||sc}${rankMark} <small style="color:var(--text-muted)">(${n})</small></td>
             ${pcts.map(p=>`<td style="${cellStyle(p)}">${p}%</td>`).join('')}
             <td style="${cellStyle(avg)};font-size:13px">${avg}%</td>
         </tr>`;
@@ -1615,8 +1823,8 @@ function renderAbove200Screener() {
         return da-db;
     });
     const el = document.getElementById('above200Screener');
-    if (!stocks.length) { el.innerHTML='<p style="color:#a0aec0;font-size:13px;">אין מניות עם חציה טרייה כרגע.</p>'; return; }
-    el.innerHTML = `<div style="margin-bottom:8px;font-size:12px;color:#a0aec0;">נמצאו <strong>${stocks.length}</strong> מניות (עד 5% מעל 200D MA)</div>
+    if (!stocks.length) { el.innerHTML='<p style="color:var(--text-muted);font-size:13px;">אין מניות עם חציה טרייה כרגע.</p>'; return; }
+    el.innerHTML = `<div style="margin-bottom:8px;font-size:12px;color:var(--text-muted);">נמצאו <strong>${stocks.length}</strong> מניות (עד 5% מעל 200D MA)</div>
     <div class="tbl-wrap"><table class="setup-tbl"><thead><tr>
         <th>סימול</th><th>שם</th><th>סקטור</th><th>RSI</th><th>MA Score</th><th>מרחק מ-200D</th><th>שינוי יומי</th><th>RVOL</th><th>מתנע</th>
     </tr></thead><tbody>
@@ -1644,7 +1852,7 @@ function renderMomentumRisingScreener() {
     const stocks = tableData.filter(d=>d.momentumScore>40&&parseFloat(d['%Change']||0)>0)
         .sort((a,b)=>parseFloat(b['%Change']||0)-parseFloat(a['%Change']||0)).slice(0,10);
     const el = document.getElementById('momentumRisingScreener');
-    if (!stocks.length) { el.innerHTML='<p style="color:#a0aec0;font-size:13px;">אין מניות העומדות בקריטריונים כרגע.</p>'; return; }
+    if (!stocks.length) { el.innerHTML='<p style="color:var(--text-muted);font-size:13px;">אין מניות העומדות בקריטריונים כרגע.</p>'; return; }
     el.innerHTML = `<div class="tbl-wrap"><table class="setup-tbl"><thead><tr>
         <th>#</th><th>סימול</th><th>שם</th><th>סקטור</th><th>שינוי%</th><th>RSI</th><th>MA Score</th><th>RVOL</th><th>מתנע</th>
     </tr></thead><tbody>
@@ -1652,7 +1860,7 @@ function renderMomentumRisingScreener() {
         const chg=parseFloat(d['%Change']||0), chgStr=(chg>0?'+':'')+chg.toFixed(2)+'%';
         const mc=momentumColor(d.momentumScore);
         return `<tr>
-            <td style="color:#a0aec0">${i+1}</td>
+            <td style="color:var(--text-muted)">${i+1}</td>
             <td><strong>${d['Symbol']}</strong></td>
             <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d['Name']}</td>
             <td>${SECTOR_HE[d.sector]||d.sector}</td>
@@ -1673,11 +1881,11 @@ function renderSetupScreener() {
         .slice(0, 30);
 
     if (!setups.length) {
-        document.getElementById('setupScreener').innerHTML = '<p style="color:#a0aec0;font-size:13px;">אין מניות העומדות בקריטריונים כרגע.</p>';
+        document.getElementById('setupScreener').innerHTML = '<p style="color:var(--text-muted);font-size:13px;">אין מניות העומדות בקריטריונים כרגע.</p>';
         return;
     }
     document.getElementById('setupScreener').innerHTML = `
-        <div style="margin-bottom:8px;font-size:12px;color:#a0aec0;">נמצאו <strong>${setups.length}</strong> מניות (מציג עד 30)</div>
+        <div style="margin-bottom:8px;font-size:12px;color:var(--text-muted);">נמצאו <strong>${setups.length}</strong> מניות (מציג עד 30)</div>
         <div class="tbl-wrap"><table class="setup-tbl">
             <thead><tr>
                 <th>סימול</th><th>שם</th><th>סקטור</th>
@@ -1719,19 +1927,19 @@ function renderChangesBlock() {
     const adCur  = (cur.advancing + cur.declining) > 0 ? (cur.advancing / (cur.advancing + cur.declining) * 100).toFixed(0) : null;
 
     const arrow = (v, good='up') => {
-        if (v === 0) return '<span style="color:#a0aec0">—</span>';
+        if (v === 0) return '<span style="color:var(--text-muted)">—</span>';
         const up = v > 0;
         const isGood = good === 'up' ? up : !up;
-        const color = isGood ? '#68d391' : '#fc8181';
+        const color = isGood ? 'var(--pos)' : 'var(--neg)';
         return `<span style="color:${color}">${up ? '↑' : '↓'}${Math.abs(v)}</span>`;
     };
 
     el.style.display = 'block';
     el.innerHTML = `<div class="changes-bar">
-        <span style="font-weight:700;color:#e2e8f0;font-size:12px;">שינוי מיום קודם:</span>
+        <span style="font-weight:600;color:var(--text);font-size:12px;">שינוי מיום קודם:</span>
         <span class="chg-item">🎯 ציון בריאות: <strong>${cur.healthScore}</strong> ${arrow(deltaHealth)}</span>
-        ${crossed200Up > 0 ? `<span class="chg-item" style="color:#68d391">⬆ ${crossed200Up} מניות חזרו מעל 200D MA</span>` : ''}
-        ${crossed200Dn > 0 ? `<span class="chg-item" style="color:#fc8181">⬇ ${crossed200Dn} מניות ירדו מתחת 200D MA</span>` : ''}
+        ${crossed200Up > 0 ? `<span class="chg-item" style="color:var(--pos)">⬆ ${crossed200Up} מניות חזרו מעל 200D MA</span>` : ''}
+        ${crossed200Dn > 0 ? `<span class="chg-item" style="color:var(--neg)">⬇ ${crossed200Dn} מניות ירדו מתחת 200D MA</span>` : ''}
         <span class="chg-item">📊 200D MA: ${pct(cur.a200,cur.total)}% ${arrow(deltaP200)}</span>
         <span class="chg-item">😰 Oversold: ${pct(cur.oversold,cur.total)}% ${arrow(deltaOversold,'down')}</span>
         ${adCur ? `<span class="chg-item">⚖️ A/D: ${cur.advancing}↑ / ${cur.declining}↓ (${adCur}% עולות)</span>` : ''}
@@ -1752,11 +1960,11 @@ function renderMA20Screener() {
 
     const el = document.getElementById('ma20screener');
     if (!stocks.length) {
-        el.innerHTML = '<p style="color:#a0aec0;font-size:13px;">אין מניות העומדות בקריטריונים כרגע.</p>';
+        el.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">אין מניות העומדות בקריטריונים כרגע.</p>';
         return;
     }
     el.innerHTML = `
-        <div style="margin-bottom:8px;font-size:12px;color:#a0aec0;">נמצאו <strong>${stocks.length}</strong> מניות (מציג עד 30) — מחיר מעל 20D MA אך עדיין מתחת ל-50D MA, עם נפח גבוה</div>
+        <div style="margin-bottom:8px;font-size:12px;color:var(--text-muted);">נמצאו <strong>${stocks.length}</strong> מניות (מציג עד 30) — מחיר מעל 20D MA אך עדיין מתחת ל-50D MA, עם נפח גבוה</div>
         <div class="tbl-wrap"><table class="setup-tbl">
             <thead><tr>
                 <th>סימול</th><th>שם</th><th>סקטור</th>
@@ -1774,8 +1982,8 @@ function renderMA20Screener() {
                     <td><strong>${d['Symbol']}</strong></td>
                     <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d['Name']}</td>
                     <td>${SECTOR_HE[d.sector]||d.sector}</td>
-                    <td style="color:#38a169">+${dist20}%</td>
-                    <td style="color:#e53e3e">${dist50}%</td>
+                    <td style="color:var(--pos)">+${dist20}%</td>
+                    <td style="color:var(--neg)">${dist50}%</td>
                     <td>${rvolLabel(d.rvol)}</td>
                     <td><span class="momentum-bar" style="width:${d.momentumScore/2}px;background:${mc}"></span><strong style="color:${mc}">${d.momentumScore}</strong></td>
                 </tr>`;
@@ -1885,16 +2093,16 @@ function renderSectorMaHeatmap() {
     const activeSectors = allSectors.filter(s => tableData.some(d=>d.sector===s));
     if (!activeSectors.length) { wrap.style.display='none'; return; }
 
-    // צבעים לפי ציון
-    const scoreColors = ['#e53e3e','#ed8936','#ecc94b','#68d391','#38a169'];
+    // RGB components of theme-aligned score colors (neg/warn/mid/pos/pos-deep)
+    const scoreRGB  = [[239,68,68],[245,158,11],[234,179,8],[16,185,129],[5,150,105]];
     const scores = [4,3,2,1,0];
 
     // כותרת
     let html = `<table style="border-collapse:collapse;width:100%;font-size:12px;direction:rtl;">
         <thead><tr>
-            <th style="padding:8px 12px;background:rgba(255,255,255,0.12);color:#e2e8f0;text-align:right;min-width:100px;">סקטור</th>
-            ${scores.map(s=>`<th style="padding:8px 12px;background:${scoreColors[s]};color:#fff;text-align:center;min-width:70px;">${s}/4</th>`).join('')}
-            <th style="padding:8px 12px;background:rgba(255,255,255,0.12);color:#e2e8f0;text-align:center;">סה"כ</th>
+            <th style="padding:8px 12px;background:var(--bg-2);color:var(--text-muted);text-align:right;min-width:100px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;font-size:11px;">סקטור</th>
+            ${scores.map(s=>{const rgb=scoreRGB[s];return `<th style="padding:8px 12px;background:rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.8);color:#fff;text-align:center;min-width:70px;font-weight:600;">${s}/4</th>`;}).join('')}
+            <th style="padding:8px 12px;background:var(--bg-2);color:var(--text-muted);text-align:center;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;font-size:11px;">סה"כ</th>
         </tr></thead><tbody>`;
 
     // מיון לפי % ציון 4 (מהחזק לחלש)
@@ -1903,22 +2111,24 @@ function renderSectorMaHeatmap() {
         return pct4(b)-pct4(a);
     });
 
-    activeSectors.forEach(sec => {
+    activeSectors.forEach((sec, rank) => {
         const stocks = tableData.filter(d=>d.sector===sec);
         const n = stocks.length;
         const counts = scores.map(s => stocks.filter(d=>d.maScore===s).length);
         const pcts   = counts.map(c => n ? Math.round(c/n*100) : 0);
+        const rankBadge = rank < 3 ? `<span style="color:var(--text-muted);font-size:10px;font-weight:500;margin-left:6px;">#${rank+1}</span>` : '';
         html += `<tr>
-            <td style="padding:7px 12px;color:#e2e8f0;font-weight:600;background:rgba(255,255,255,0.06);text-align:right;">${SECTOR_HE[sec]||sec}</td>
+            <td style="padding:7px 12px;color:var(--text);font-weight:600;background:var(--bg-2);text-align:right;">${SECTOR_HE[sec]||sec}${rankBadge}</td>
             ${scores.map((s,i)=>{
                 const alpha = pcts[i]/100;
-                const bg = scoreColors[s].replace('#','');
-                const r=parseInt(bg.slice(0,2),16), g=parseInt(bg.slice(2,4),16), b2=parseInt(bg.slice(4,6),16);
-                const cellBg = pcts[i]>0 ? `rgba(${r},${g},${b2},${0.15+alpha*0.7})` : 'rgba(255,255,255,0.04)';
-                const textCol = pcts[i]>40 ? '#fff' : '#e2e8f0';
+                const [r,g,b2] = scoreRGB[s];
+                // nonlinear ramp — stronger cells stand out more
+                const strength = 0.12 + Math.pow(alpha, 0.7) * 0.78;
+                const cellBg = pcts[i]>0 ? `rgba(${r},${g},${b2},${strength.toFixed(3)})` : 'var(--bg-2)';
+                const textCol = pcts[i]>55 ? '#fff' : 'var(--text)';
                 return `<td style="padding:7px 12px;text-align:center;background:${cellBg};color:${textCol};font-weight:${pcts[i]>0?'600':'400'};">${pcts[i]>0?pcts[i]+'%':'—'}</td>`;
             }).join('')}
-            <td style="padding:7px 12px;text-align:center;color:#a0aec0;font-size:11px;">${n}</td>
+            <td style="padding:7px 12px;text-align:center;color:var(--text-muted);font-size:11px;">${n}</td>
         </tr>`;
     });
 
@@ -1954,34 +2164,31 @@ function renderSectorCumHeatmap() {
 
     const maxAbs = Math.max(...activeSectors.map(s => Math.abs(cumulative[s])), 0.01);
 
-    wrap.innerHTML = activeSectors.map(s => {
+    wrap.innerHTML = activeSectors.map((s, rank) => {
         const val = cumulative[s];
         const pct = val.toFixed(2);
         const sign = val >= 0 ? '+' : '';
-        // צבע: ירוק חזק → ירוק חלש → צהוב → אדום חלש → אדום חזק
-        let bg;
         const ratio = Math.abs(val) / maxAbs;
-        if (val >= 0) {
-            const g = Math.round(120 + ratio * 100);
-            const r = Math.round(20 + (1-ratio) * 60);
-            bg = `rgb(${r},${g},60)`;
-        } else {
-            const r = Math.round(150 + ratio * 90);
-            const g = Math.round(20 + (1-ratio) * 50);
-            bg = `rgb(${r},${g},40)`;
-        }
-        const textCol = ratio > 0.3 ? '#fff' : '#e2e8f0';
+        // nonlinear strength — extremes pop harder, middle stays muted
+        const strength = Math.pow(ratio, 0.6);
+        const alpha = 0.18 + strength * 0.78;
+        const bg = val >= 0
+            ? `rgba(16,185,129,${alpha.toFixed(3)})`
+            : `rgba(239,68,68,${alpha.toFixed(3)})`;
+        const textCol = strength > 0.35 ? '#fff' : 'var(--text)';
+        const arrow = rank === 0 ? '↑' : rank === activeSectors.length-1 ? '↓' : '';
         return `<div style="
             background:${bg};
+            border:1px solid var(--border-strong);
             border-radius:10px;
             padding:14px 16px;
-            min-width:100px;
+            min-width:104px;
             text-align:center;
-            box-shadow:0 2px 8px rgba(0,0,0,0.3);
             display:flex;flex-direction:column;gap:4px;
             color:${textCol};">
-            <div style="font-size:13px;font-weight:700;">${SECTOR_HE[s]||s}</div>
-            <div style="font-size:20px;font-weight:800;">${sign}${pct}%</div>
+            <div style="font-size:10px;font-weight:500;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;">#${rank+1} ${arrow}</div>
+            <div style="font-size:13px;font-weight:600;">${SECTOR_HE[s]||s}</div>
+            <div style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;">${sign}${pct}%</div>
         </div>`;
     }).join('');
 
@@ -2054,40 +2261,41 @@ function renderHistoryUI() {
         p20WeekDelta = +((historyData[historyData.length-1].metrics.p20 - historyData[0].metrics.p20).toFixed(1));
     }
 
+    const POS='var(--pos)', NEG='var(--neg)', INFO='var(--accent)';
     const sc = (content, sub, color) =>
         `<div class="stat-card" style="min-width:110px;max-width:130px;flex:1;padding:10px 8px;border-top-color:${color}">
             <h3 style="font-size:10px">${content}</h3>
-            <p style="font-size:18px;margin:6px 0 0;color:${color==='#3182ce'?'#fff':color}">${sub}</p>
+            <p style="font-size:18px;margin:6px 0 0;color:${color}">${sub}</p>
          </div>`;
 
     document.getElementById('historyStats').innerHTML =
-        sc('Distribution Days', distDays, '#e53e3e') +
-        sc('שיפוע ציון בריאות', healthSlope!==null?(healthSlope>0?'+':'')+healthSlope:'—', healthSlope>=0?'#38a169':'#e53e3e') +
-        sc('קצב שיפוי 200D MA', p200Dod!==null?(p200Dod>0?'+':'')+p200Dod+'%':'—', p200Dod>=0?'#38a169':'#e53e3e') +
-        sc('רצף ימים', (streakDir==='up'?'▲':'▼')+' '+streakCount, streakDir==='up'?'#38a169':'#e53e3e') +
-        sc('מגמת F&G', fgTrend!==null?(fgTrend>0?'+':'')+fgTrend:'—', fgTrend===null?'#3182ce':fgTrend>=0?'#38a169':'#e53e3e') +
-        (vixDaysAll.length>=2 ? sc('VIX vs ממוצע 5י', vixVsAvg!=null?(vixVsAvg>0?'+':'')+vixVsAvg:'—', vixVsAvg<=0?'#38a169':'#e53e3e') : '') +
-        `<div class="stat-card" style="min-width:110px;max-width:130px;flex:1;padding:10px 8px;border-top-color:${topSectorWeekVal!==null&&topSectorWeekVal>=0?'#38a169':'#3182ce'}" title="הסקטור עם העלייה הגדולה ביותר ב-% מעל 200D MA מתחילת המדידה">
+        sc('Distribution Days', distDays, NEG) +
+        sc('שיפוע ציון בריאות', healthSlope!==null?(healthSlope>0?'+':'')+healthSlope:'—', healthSlope>=0?POS:NEG) +
+        sc('קצב שיפוי 200D MA', p200Dod!==null?(p200Dod>0?'+':'')+p200Dod+'%':'—', p200Dod>=0?POS:NEG) +
+        sc('רצף ימים', (streakDir==='up'?'▲':'▼')+' '+streakCount, streakDir==='up'?POS:NEG) +
+        sc('מגמת F&G', fgTrend!==null?(fgTrend>0?'+':'')+fgTrend:'—', fgTrend===null?INFO:fgTrend>=0?POS:NEG) +
+        (vixDaysAll.length>=2 ? sc('VIX vs ממוצע 5י', vixVsAvg!=null?(vixVsAvg>0?'+':'')+vixVsAvg:'—', vixVsAvg<=0?POS:NEG) : '') +
+        `<div class="stat-card" style="min-width:110px;max-width:130px;flex:1;padding:10px 8px;border-top-color:${topSectorWeekVal!==null&&topSectorWeekVal>=0?POS:INFO}" title="הסקטור עם העלייה הגדולה ביותר ב-% מעל 200D MA מתחילת המדידה">
             <h3 style="font-size:10px">סקטור משתפר ביותר</h3>
-            <p style="font-size:13px;font-weight:700;color:#68d391;margin:6px 0 0">${topSectorWeek}${topSectorWeekVal!==null?` <span style="font-size:11px;opacity:0.85">(${topSectorWeekVal>=0?'+':''}${topSectorWeekVal})</span>`:''}</p>
+            <p style="font-size:13px;font-weight:700;color:${POS};margin:6px 0 0">${topSectorWeek}${topSectorWeekVal!==null?` <span style="font-size:11px;opacity:0.85">(${topSectorWeekVal>=0?'+':''}${topSectorWeekVal})</span>`:''}</p>
          </div>` +
-        sc('% מעל 20D MA', p20WeekDelta!==null?(p20WeekDelta>0?'+':'')+p20WeekDelta+'%':'—', p20WeekDelta>=0?'#38a169':'#e53e3e');
+        sc('% מעל 20D MA', p20WeekDelta!==null?(p20WeekDelta>0?'+':'')+p20WeekDelta+'%':'—', p20WeekDelta>=0?POS:NEG);
     document.getElementById('historyCharts').style.display = 'block';
 
     // ── מפת חום מצטברת סקטורים ──
     renderSectorCumHeatmap();
 
     const whiteText = { color:'#fff' };
-    const whiteAxis = { ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.1)'}, title:{color:'#e2e8f0'} };
+    const whiteAxis = { ticks:{color:CH.text}, grid:{color:CH.grid}, title:{color:CH.text} };
 
     function makeChart(id, datasets, yLabel) {
         if (trendCharts[id]) { trendCharts[id].destroy(); delete trendCharts[id]; }
         trendCharts[id] = new Chart(document.getElementById(id), {
             type:'line',
             data:{ labels, datasets },
-            options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:'#e2e8f0'} } },
-                scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%', color:'#e2e8f0' }, grid:{color:'rgba(255,255,255,0.1)'} },
-                         x:{ ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} } },
+            options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:CH.text} } },
+                scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%', color:CH.text }, grid:{color:CH.grid} },
+                         x:{ ticks:{color:CH.text}, grid:{color:CH.gridLight} } },
                 elements:{ line:{tension:0.3}, point:{radius:4} } }
         });
     }
@@ -2112,9 +2320,9 @@ function renderHistoryUI() {
             { label:'% מעל 50D MA', data:get('p50'),
               borderColor:'#3182ce', backgroundColor:'#3182ce11', fill:false, tension:0.3, borderDash:[5,3] },
         ]},
-        options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:'#e2e8f0'} } },
-            scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%', color:'#e2e8f0' }, grid:{color:'rgba(255,255,255,0.1)'} },
-                     x:{ ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} } },
+        options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:CH.text} } },
+            scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%', color:CH.text }, grid:{color:CH.grid} },
+                     x:{ ticks:{color:CH.text}, grid:{color:CH.gridLight} } },
             elements:{ point:{radius:4} } }
     });
 
@@ -2134,11 +2342,11 @@ function renderHistoryUI() {
             { label:'ציון 0/4 — חלש',   data:historyData.map(h=>(h.metrics.pScore||[])[0]||0),
               borderColor:'#e53e3e', backgroundColor:'rgba(229,62,62,0.6)', fill:true, tension:0.3 },
         ]},
-        options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:'#e2e8f0'} },
+        options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:CH.text} },
                     tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${ctx.raw}%` } } },
             scales:{
-                y:{ stacked:true, beginAtZero:true, max:100, ticks:{ callback:v=>v+'%', color:'#e2e8f0' }, grid:{color:'rgba(255,255,255,0.1)'} },
-                x:{ ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} }
+                y:{ stacked:true, beginAtZero:true, max:100, ticks:{ callback:v=>v+'%', color:CH.text }, grid:{color:CH.grid} },
+                x:{ ticks:{color:CH.text}, grid:{color:CH.gridLight} }
             },
             elements:{ point:{radius:4} } }
     });
@@ -2154,12 +2362,12 @@ function renderHistoryUI() {
             { label:'ממוצע ציון MA (×25)', data:historyData.map(h=>+((h.metrics.avgMAScore||0)*25).toFixed(1)),
               borderColor:'#b794f4', fill:false, tension:0.3, borderDash:[4,3] },
         ]},
-        options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:'#e2e8f0'} },
+        options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:CH.text} },
                     tooltip:{ callbacks:{ label: ctx => ctx.datasetIndex===4
                         ? `ממוצע ציון MA: ${(ctx.raw/25).toFixed(2)}/4`
                         : `${ctx.dataset.label}: ${ctx.raw}%` } } },
-            scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%', color:'#e2e8f0' }, grid:{color:'rgba(255,255,255,0.1)'} },
-                     x:{ ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} } },
+            scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%', color:CH.text }, grid:{color:CH.grid} },
+                     x:{ ticks:{color:CH.text}, grid:{color:CH.gridLight} } },
             elements:{ point:{radius:4} } }
     });
 
@@ -2167,17 +2375,22 @@ function renderHistoryUI() {
     (function renderWeeklyHeatmap() {
         const SECS = ['IT','HC','FIN','CD','CS','IND','COM','ENE','UTL','RE','MAT'];
         function heatColor(v) {
-            if (v === null) return 'rgba(255,255,255,0.06)';
-            const a = Math.min(Math.abs(v) / 3, 1);
-            if (v > 0.05)  return `rgba(56,161,105,${0.2 + a * 0.75})`;
-            if (v < -0.05) return `rgba(229,62,62,${0.2 + a * 0.75})`;
-            return 'rgba(214,158,46,0.5)';
+            if (v === null || v === undefined) return 'var(--bg-2)';
+            const a = Math.min(Math.abs(v) / 2, 1);
+            const strength = 0.15 + Math.pow(a, 0.65) * 0.82;
+            if (v > 0.05)  return `rgba(16,185,129,${strength.toFixed(3)})`;
+            if (v < -0.05) return `rgba(239,68,68,${strength.toFixed(3)})`;
+            return 'rgba(245,158,11,0.35)';
+        }
+        function heatTextColor(v) {
+            if (v === null || v === undefined) return 'var(--text-muted)';
+            return Math.abs(v) > 0.8 ? '#fff' : 'var(--text)';
         }
         // רק ימים עם נתוני שינוי
         const daysWithChange = historyData.filter(h =>
             h.metrics.sectorChange && Object.values(h.metrics.sectorChange).some(v => v !== null)
         );
-        if (!daysWithChange.length) { document.getElementById('sectorWeeklyHeatmap').innerHTML = '<p style="color:#a0aec0;font-size:12px;">אין עדיין נתוני שינוי יומי.</p>'; return; }
+        if (!daysWithChange.length) { document.getElementById('sectorWeeklyHeatmap').innerHTML = '<p style="color:var(--text-muted);font-size:12px;">אין עדיין נתוני שינוי יומי.</p>'; return; }
 
         // קיבוץ ל"שבועות מסחר" (כל 5 ימי מסחר רציפים), עם ממוצע שינוי יומי לכל סקטור
         const weeks = [];
@@ -2203,13 +2416,13 @@ function renderHistoryUI() {
         const hrow = thead.insertRow();
         const th0 = document.createElement('th');
         th0.textContent = 'סקטור';
-        th0.style.cssText = 'padding:8px 12px;text-align:right;background:rgba(255,255,255,0.1);color:#e2e8f0;font-weight:700;white-space:nowrap;position:sticky;right:0;z-index:1;';
+        th0.style.cssText = 'padding:8px 12px;text-align:right;background:var(--bg-2);color:var(--text-muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;position:sticky;right:0;z-index:1;border-bottom:1px solid var(--border);';
         hrow.appendChild(th0);
         weeks.forEach((w, i) => {
             const th = document.createElement('th');
             const s = w.start.slice(5), e = w.end.slice(5);
-            th.innerHTML = `שבוע ${i+1}<br><span style="font-size:10px;color:#a0aec0;">${s}→${e}</span>`;
-            th.style.cssText = 'padding:8px 14px;text-align:center;background:rgba(255,255,255,0.1);color:#e2e8f0;font-weight:600;white-space:nowrap;min-width:100px;';
+            th.innerHTML = `שבוע ${i+1}<br><span style="font-size:10px;color:var(--text-dim);font-weight:400;">${s}→${e}</span>`;
+            th.style.cssText = 'padding:8px 14px;text-align:center;background:var(--bg-2);color:var(--text-muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;min-width:100px;border-bottom:1px solid var(--border);';
             hrow.appendChild(th);
         });
         const tbody = tbl.createTBody();
@@ -2217,11 +2430,11 @@ function renderHistoryUI() {
             const row = tbody.insertRow();
             const nameCell = row.insertCell();
             nameCell.textContent = SECTOR_HE[sec] || sec;
-            nameCell.style.cssText = 'padding:8px 12px;font-weight:700;color:#e2e8f0;white-space:nowrap;background:rgba(255,255,255,0.08);position:sticky;right:0;';
+            nameCell.style.cssText = 'padding:8px 12px;font-weight:600;color:var(--text);white-space:nowrap;background:var(--bg-2);position:sticky;right:0;border-bottom:1px solid var(--border);';
             weeks.forEach(w => {
                 const v = w.avg[sec];
                 const cell = row.insertCell();
-                cell.style.cssText = `padding:10px 14px;text-align:center;font-weight:700;font-size:13px;color:#fff;background:${heatColor(v)};`;
+                cell.style.cssText = `padding:10px 14px;text-align:center;font-weight:600;font-size:13px;color:${heatTextColor(v)};background:${heatColor(v)};font-variant-numeric:tabular-nums;border-bottom:1px solid var(--border);`;
                 cell.textContent = v !== null && v !== undefined ? (v > 0 ? '+' : '') + v + '%' : '—';
             });
         });
@@ -2240,11 +2453,11 @@ function renderHistoryUI() {
             { label:'יחס NH/NL',      data:historyData.map(h=>h.metrics.nhNlRatio===99?null:h.metrics.nhNlRatio),
               borderColor:'#805ad5', borderDash:[5,3], fill:false, tension:0.3, yAxisID:'y2' },
         ]},
-        options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:'#e2e8f0'} } },
+        options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:CH.text} } },
             scales:{
-                y:  { beginAtZero:true, position:'right', ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.1)'}, title:{display:true,text:'מניות',color:'#e2e8f0'} },
-                y2: { beginAtZero:true, position:'left',  ticks:{color:'#e2e8f0'}, grid:{drawOnChartArea:false}, title:{display:true,text:'יחס',color:'#e2e8f0'} },
-                x:  { ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} }
+                y:  { beginAtZero:true, position:'right', ticks:{color:CH.text}, grid:{color:CH.grid}, title:{display:true,text:'מניות',color:CH.text} },
+                y2: { beginAtZero:true, position:'left',  ticks:{color:CH.text}, grid:{drawOnChartArea:false}, title:{display:true,text:'יחס',color:CH.text} },
+                x:  { ticks:{color:CH.text}, grid:{color:CH.gridLight} }
             },
             elements:{ point:{radius:4} } }
     });
@@ -2261,12 +2474,12 @@ function renderHistoryUI() {
                     { label:'יורדות', data:historyData.map(h=>-(h.metrics.declining||0)),
                       backgroundColor:'rgba(229,62,62,0.75)', borderColor:'#e53e3e', borderWidth:1 },
                 ]},
-            options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:'#e2e8f0'} },
+            options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:CH.text} },
                         tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${Math.abs(ctx.raw)}` } } },
                 scales:{
-                    x:{ stacked:false, ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} },
-                    y:{ ticks:{ color:'#e2e8f0', callback: v=>Math.abs(v) }, grid:{color:'rgba(255,255,255,0.1)'},
-                        title:{display:true,text:'מניות',color:'#e2e8f0'} }
+                    x:{ stacked:false, ticks:{color:CH.text}, grid:{color:CH.gridLight} },
+                    y:{ ticks:{ color:CH.text, callback: v=>Math.abs(v) }, grid:{color:CH.grid},
+                        title:{display:true,text:'מניות',color:CH.text} }
                 } }
         });
     }
@@ -2291,9 +2504,9 @@ function renderHistoryUI() {
                       pointRadius:4, pointBackgroundColor:'#ecc94b', tension:0.3, fill:false,
                       borderWidth:2, yAxisID:'yFG' },
                     { label:'VIX', data: vixData,
-                      borderColor:'#fc8181', backgroundColor:'rgba(252,129,129,0.1)',
-                      pointRadius:4, pointBackgroundColor:'#fc8181', tension:0.3, fill:true,
-                      borderWidth:2, spanGaps:false, yAxisID:'yVIX' },
+                      borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,0.035)',
+                      pointRadius:3, pointBackgroundColor:'#ef4444', tension:0.3, fill:true,
+                      borderWidth:2.2, spanGaps:false, yAxisID:'yVIX' },
                     { label:'DXY', data: dxyData,
                       borderColor:'#63b3ed', backgroundColor:'transparent',
                       pointRadius:4, pointBackgroundColor:'#63b3ed', tension:0.3, fill:false,
@@ -2303,25 +2516,25 @@ function renderHistoryUI() {
                       pointRadius:4, pointBackgroundColor:'#f6ad55', tension:0.3, fill:false,
                       borderWidth:2, borderDash:[3,3], spanGaps:false, yAxisID:'yTNX' }
                 ]},
-            options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:'#e2e8f0'} },
+            options:{ plugins:{ legend:{ position:'bottom', labels:{boxWidth:12,font:{size:11},color:CH.text} },
                 tooltip:{ callbacks:{ label: ctx => {
                     if (ctx.dataset.label==='TNX %') return `TNX: ${ctx.raw!=null?ctx.raw.toFixed(2)+'%':'—'}`;
                     return `${ctx.dataset.label}: ${ctx.raw!=null?ctx.raw.toFixed(2):'—'}`;
                 } } } },
                 scales:{
-                    x:   { ticks:{color:'#e2e8f0'}, grid:{color:'rgba(255,255,255,0.08)'} },
+                    x:   { ticks:{color:CH.text}, grid:{color:CH.gridLight} },
                     yFG: { position:'right', min:0, max:100,
-                           ticks:{color:'#ecc94b'}, grid:{color:'rgba(255,255,255,0.06)'},
-                           title:{display:true,text:'מדד פחד',color:'#ecc94b'} },
+                           ticks:{color:'#eab308'}, grid:{color:CH.gridLight},
+                           title:{display:true,text:'מדד פחד',color:'#eab308'} },
                     yVIX:{ position:'left',
-                           ticks:{color:'#fc8181'}, grid:{drawOnChartArea:false},
-                           title:{display:true,text:'VIX',color:'#fc8181'} },
+                           ticks:{color:'#ef4444'}, grid:{drawOnChartArea:false},
+                           title:{display:true,text:'VIX',color:'#ef4444'} },
                     yDXY:{ position:'left', offset:true,
-                           ticks:{color:'#63b3ed'}, grid:{drawOnChartArea:false},
-                           title:{display:true,text:'DXY',color:'#63b3ed'} },
+                           ticks:{color:'#3b82f6'}, grid:{drawOnChartArea:false},
+                           title:{display:true,text:'DXY',color:'#3b82f6'} },
                     yTNX:{ position:'right', offset:true,
-                           ticks:{color:'#f6ad55',callback:v=>v+'%'}, grid:{drawOnChartArea:false},
-                           title:{display:true,text:'TNX',color:'#f6ad55'} }
+                           ticks:{color:'#f59e0b',callback:v=>v+'%'}, grid:{drawOnChartArea:false},
+                           title:{display:true,text:'TNX',color:'#f59e0b'} }
                 } }
         });
     }
@@ -2666,7 +2879,7 @@ async function generateDailySummary() {
     const apiKey = localStorage.getItem('gemini_api_key') || '';
     if (!apiKey) {
         document.getElementById('aiSummaryContent').innerHTML = `
-            <div style="text-align:center;padding:24px;color:#a0aec0;">
+            <div style="text-align:center;padding:24px;color:var(--text-muted);">
                 <p style="font-size:15px;margin-bottom:12px;">🔑 נדרש מפתח Groq API להפעלת הסיכום האוטומטי</p>
                 <p style="font-size:12px;margin-bottom:14px;">השג מפתח חינמי ב-<strong style="color:#90cdf4;">console.groq.com</strong> ← API Keys</p>
                 <button class="primary" onclick="toggleApiKeyPanel()" style="font-size:13px;">הגדר מפתח API</button>
@@ -2678,7 +2891,7 @@ async function generateDailySummary() {
     if (btn) { btn.disabled = true; btn.textContent = '⏳ מנתח...'; }
 
     document.getElementById('aiSummaryContent').innerHTML = `
-        <div style="text-align:center;padding:32px;color:#a0aec0;">
+        <div style="text-align:center;padding:32px;color:var(--text-muted);">
             <div style="font-size:28px;margin-bottom:12px;">🤖</div>
             <p style="font-size:14px;">Groq מנתח את נתוני השוק...</p>
         </div>`;
@@ -2721,7 +2934,7 @@ async function generateDailySummary() {
     } catch (e) {
         document.getElementById('aiSummaryContent').innerHTML = `
             <div style="padding:14px;background:rgba(229,62,62,0.1);border-radius:8px;border-right:3px solid #e53e3e;">
-                <p style="color:#fc8181;margin:0;font-size:14px;">❌ שגיאה: ${e.message}</p>
+                <p style="color:var(--neg);margin:0;font-size:14px;">❌ שגיאה: ${e.message}</p>
             </div>`;
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = '🔄 עדכן'; }
