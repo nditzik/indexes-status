@@ -822,46 +822,25 @@ const SCORE_COLORS = ['#e53e3e','#ed8936','#ecc94b','#68d391','#38a169'];
 /* ═══════════ STATE ═══════════ */
 const charts = {};
 
-// פלאגין גלובלי — טקסט ורשת לפי ערכת הצבעים הנוכחית
+// ─── Chart.js global theme defaults ───
+// Applied once at module load. Theme toggle re-renders charts so runtime
+// updates to Chart.defaults aren't needed.
 Chart.defaults.color = CH.text;
-Chart.defaults.plugins = Chart.defaults.plugins || {};
-Chart.defaults.plugins.tooltip = Object.assign({
-    backgroundColor: CH.tipBg,
-    borderColor: CH.tipBorder,
-    borderWidth: 1,
-    titleColor: CH.text,
-    bodyColor: CH.text,
-    padding: 10,
-    displayColors: true,
-    boxPadding: 4,
-    cornerRadius: 6,
-    titleFont: { weight: '600', size: 12 },
-    bodyFont: { size: 12 },
-}, Chart.defaults.plugins.tooltip || {});
-Chart.register({
-    id: 'themedCharts',
-    beforeInit(chart) {
-        Chart.defaults.color = CH.text;
-        chart.options.plugins = chart.options.plugins || {};
-        chart.options.plugins.tooltip = Object.assign({
-            backgroundColor: CH.tipBg,
-            borderColor: CH.tipBorder,
-            borderWidth: 1,
-            titleColor: CH.text,
-            bodyColor: CH.text,
-        }, chart.options.plugins.tooltip || {});
-        const scales = chart.options.scales || {};
-        Object.values(scales).forEach(s => {
-            s.ticks  = Object.assign({ color: CH.text }, s.ticks);
-            s.grid   = Object.assign({ color: CH.grid }, s.grid);
-            if (s.title) s.title = Object.assign({ color: CH.text }, s.title);
-        });
-        const lbl = chart.options.plugins?.legend?.labels;
-        if (lbl) lbl.color = lbl.color || CH.text;
-        else if (chart.options.plugins?.legend)
-            chart.options.plugins.legend.labels = { color: CH.text };
-    }
-});
+Chart.defaults.borderColor = CH.grid;
+if (Chart.defaults.scale) {
+    Chart.defaults.scale.ticks = Chart.defaults.scale.ticks || {};
+    Chart.defaults.scale.ticks.color = CH.text;
+    Chart.defaults.scale.grid = Chart.defaults.scale.grid || {};
+    Chart.defaults.scale.grid.color = CH.grid;
+}
+Chart.defaults.plugins.tooltip.backgroundColor = CH.tipBg;
+Chart.defaults.plugins.tooltip.borderColor = CH.tipBorder;
+Chart.defaults.plugins.tooltip.borderWidth = 1;
+Chart.defaults.plugins.tooltip.titleColor = CH.text;
+Chart.defaults.plugins.tooltip.bodyColor = CH.text;
+Chart.defaults.plugins.tooltip.padding = 10;
+Chart.defaults.plugins.tooltip.cornerRadius = 6;
+Chart.defaults.plugins.legend.labels.color = CH.text;
 let tableData = [], M = {}, sortKey = 'maScore', sortAsc = false;
 let historyData = [], currentDateLabel = '', currentVix = null, currentDxy = null, currentTnx = null;
 const trendCharts = {};
@@ -2559,11 +2538,9 @@ function renderHistoryUI() {
     }).join('');
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', autoLoadData);
-} else {
-    autoLoadData();
-}
+// Delay until layout + fonts finalize so Chart.js reads real parent
+// dimensions — otherwise canvases lock at the default 300x150.
+setTimeout(autoLoadData, 300);
 
 /* ═══════════ AI DAILY SUMMARY ═══════════ */
 function toggleApiKeyPanel() {
