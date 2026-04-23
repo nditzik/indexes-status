@@ -67,27 +67,15 @@ health    = round((above200/total*100)*0.30 + (golden/total*100)*0.25 + (rsi_abo
 
 def pct(n): return f"{round(n/total*100,1) if total else 0}%"
 
-# ── סקטורים ──
-sectors = {}
-for s in stocks:
-    sc = s.get('sector','?')
-    # נגזור סקטור מהמיפוי
-    pass
-SECTOR_MAP = {
-    'AAPL':'IT','MSFT':'IT','NVDA':'IT','AVGO':'IT','ORCL':'IT','CRM':'IT','AMD':'IT','INTC':'IT','QCOM':'IT','AMAT':'IT','TXN':'IT','ADI':'IT','KLAC':'IT','LRCX':'IT','MCHP':'IT','MU':'IT','IBM':'IT','CSCO':'IT','ADSK':'IT','PANW':'IT','CRWD':'IT','PLTR':'IT','INTU':'IT','NOW':'IT','ADBE':'IT','ANET':'IT','DDOG':'IT','ACN':'IT',
-    'UNH':'HC','LLY':'HC','JNJ':'HC','ABBV':'HC','MRK':'HC','TMO':'HC','ABT':'HC','DHR':'HC','BMY':'HC','AMGN':'HC','GILD':'HC','ISRG':'HC','VRTX':'HC','REGN':'HC','MDT':'HC','SYK':'HC','BSX':'HC','ELV':'HC','HUM':'HC','CVS':'HC','CI':'HC','MCK':'HC','ZBH':'HC','BAX':'HC','BDX':'HC','DGX':'HC','HSIC':'HC','CNC':'HC','HCA':'HC','IQV':'HC',
-    'JPM':'FIN','BAC':'FIN','WFC':'FIN','GS':'FIN','MS':'FIN','BLK':'FIN','AXP':'FIN','SCHW':'FIN','C':'FIN','USB':'FIN','PNC':'FIN','TFC':'FIN','COF':'FIN','MCO':'FIN','SPGI':'FIN','ICE':'FIN','CME':'FIN','CB':'FIN','AFL':'FIN','ALL':'FIN','HIG':'FIN','MET':'FIN','PRU':'FIN','AIG':'FIN','RF':'FIN','KEY':'FIN','FITB':'FIN','WM':'FIN','BEN':'FIN','IVZ':'FIN','AIZ':'FIN','ACGL':'FIN','CINF':'FIN',
-    'AMZN':'CD','TSLA':'CD','HD':'CD','MCD':'CD','NKE':'CD','SBUX':'CD','TGT':'CD','LOW':'CD','TJX':'CD','BKNG':'CD','CMG':'CD','ABNB':'CD','MAR':'CD','HLT':'CD','YUM':'CD','DRI':'CD','EBAY':'CD','ETSY':'CD','DECK':'CD','TKO':'CD',
-    'PG':'CS','KO':'CS','PEP':'CS','COST':'CS','WMT':'CS','PM':'CS','MO':'CS','CL':'CS','KMB':'CS','GIS':'CS','K':'CS','HSY':'CS','SJM':'CS','CAG':'CS','KR':'CS','CHD':'CS',
-    'XOM':'EN','CVX':'EN','COP':'EN','EOG':'EN','SLB':'EN','PXD':'EN','MPC':'EN','VLO':'EN','PSX':'EN','OXY':'EN','DVN':'EN','HAL':'EN','BKR':'EN','APA':'EN','EQT':'EN','AES':'EN','NRG':'EN',
-    'NEE':'UTIL','DUK':'UTIL','SO':'UTIL','D':'UTIL','AEP':'UTIL','EXC':'UTIL','SRE':'UTIL','PEG':'UTIL','ES':'UTIL','AWK':'UTIL',
-    'LIN':'MAT','APD':'MAT','ECL':'MAT','SHW':'MAT','FCX':'MAT','NEM':'MAT','PPG':'MAT','VMC':'MAT','MLM':'MAT','IFF':'MAT','WY':'MAT',
-    'CAT':'IND','DE':'IND','HON':'IND','UPS':'IND','RTX':'IND','LMT':'IND','GE':'IND','MMM':'IND','BA':'IND','NOC':'IND','GD':'IND','EMR':'IND','ETN':'IND','ITW':'IND','PH':'IND','ROK':'IND','IR':'IND','CARR':'IND','NSC':'IND','CSX':'IND','FDX':'IND','MSI':'IND',
-    'GOOGL':'COMM','META':'COMM','NFLX':'COMM','DIS':'COMM','CMCSA':'COMM','T':'COMM','VZ':'COMM','TMUS':'COMM','CHTR':'COMM','EA':'COMM','TTWO':'COMM',
-    'AMT':'RE','PLD':'RE','CCI':'RE','EQIX':'RE','PSA':'RE','O':'RE','WELL':'RE','DLR':'RE','SPG':'RE','AVB':'RE','EQR':'RE',
-    'BRK.B':'FIN','V':'FIN','MA':'FIN','PYPL':'FIN','FIS':'FIN',
-}
-SECTOR_HE = {'IT':'טכנולוגיה','HC':'בריאות','FIN':'פיננסים','CD':'צריכה שיקולית','CS':'צריכה בסיסית','EN':'אנרגיה','UTIL':'תשתיות','MAT':'חומרים','IND':'תעשייה','COMM':'תקשורת','RE':'נדל"ן'}
+# ── סקטורים — מקור אמת יחיד ב-data/sectors.json ──
+try:
+    with open('data/sectors.json', encoding='utf-8') as sf:
+        _sectors = json.load(sf)
+    SECTOR_MAP = _sectors.get('tickers', {})
+    SECTOR_HE  = _sectors.get('codes', {})
+except Exception as _e:
+    print(f"WARN: failed to load sectors.json: {_e}")
+    SECTOR_MAP, SECTOR_HE = {}, {}
 
 sector_data = {}
 for s in stocks:
