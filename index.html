@@ -456,6 +456,344 @@
             margin-bottom: 18px;
         }
 
+        /* ═══════════════════════════════════════════════════════════
+           OVERVIEW v2 — Phase 2 · KPI row, sector grid, alerts, macro
+           ═══════════════════════════════════════════════════════════ */
+        .overview-v2 {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        /* KPI row · 8 compact metric cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(8, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .kpi-card {
+            background: var(--bg-1);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 14px 16px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            position: relative;
+            min-height: 120px;
+            transition: border-color .15s ease;
+        }
+        .kpi-card:hover { border-color: var(--border-strong); }
+        .kpi-card .kpi-label {
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .kpi-card .kpi-sub {
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-top: -2px;
+        }
+        .kpi-card .kpi-value {
+            font-size: 26px;
+            font-weight: 600;
+            line-height: 1.1;
+            letter-spacing: -0.01em;
+            color: var(--text);
+            font-variant-numeric: tabular-nums;
+            margin-top: 2px;
+        }
+        .kpi-card .kpi-value.pos  { color: var(--pos); }
+        .kpi-card .kpi-value.neg  { color: var(--neg); }
+        .kpi-card .kpi-value.warn { color: var(--warn); }
+        .kpi-card .kpi-value.accent { color: var(--accent); }
+        .kpi-card .kpi-value-lg { font-size: 18px; font-weight: 600; letter-spacing: 0; }
+        .kpi-card .kpi-delta {
+            font-size: 11px;
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+            margin-top: 2px;
+        }
+        .kpi-card .kpi-delta.pos { color: var(--pos); }
+        .kpi-card .kpi-delta.neg { color: var(--neg); }
+        .kpi-card .kpi-delta.muted { color: var(--text-muted); }
+        .kpi-card .kpi-spark {
+            margin-top: auto;
+            height: 32px;
+            width: 100%;
+            display: block;
+        }
+
+        /* Body: main column + alerts panel */
+        .overview-v2-body {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 320px;
+            gap: 16px;
+            align-items: start;
+        }
+        .overview-main-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+        /* Sector grid v2 */
+        .panel {
+            background: var(--bg-1);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 18px 20px;
+        }
+        .panel-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 14px;
+            gap: 12px;
+        }
+        .panel-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .panel-sub {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+        .sector-grid-v2 {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .sector-cell {
+            border-radius: 10px;
+            padding: 12px 12px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-height: 100px;
+            position: relative;
+            border: 1px solid transparent;
+            overflow: hidden;
+        }
+        .sector-cell .sec-rank {
+            position: absolute;
+            top: 8px; left: 10px;
+            font-size: 9px;
+            color: rgba(255,255,255,.75);
+            font-weight: 600;
+            letter-spacing: 0.04em;
+        }
+        body.light .sector-cell .sec-rank { color: rgba(0,0,0,.55); }
+        .sector-cell .sec-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
+            margin-top: 2px;
+        }
+        body.light .sector-cell .sec-name { color: #fff; }
+        .sector-cell .sec-value {
+            font-size: 22px;
+            font-weight: 600;
+            color: #fff;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.1;
+        }
+        body.light .sector-cell .sec-value { color: #fff; }
+        .sector-cell .sec-sub {
+            font-size: 10px;
+            color: rgba(255,255,255,.75);
+            font-weight: 500;
+        }
+        body.light .sector-cell .sec-sub { color: rgba(255,255,255,.85); }
+        .sector-cell canvas {
+            width: 100%;
+            height: 26px;
+            margin-top: auto;
+        }
+
+        /* Macro chart with timeframe selector */
+        .macro-card .panel-head { align-items: center; }
+        .tf-selector {
+            display: inline-flex;
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            padding: 2px;
+            gap: 2px;
+        }
+        .tf-selector button {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 500;
+            padding: 5px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: color .12s, background .12s;
+        }
+        .tf-selector button:hover { color: var(--text); }
+        .tf-selector button.active {
+            background: var(--bg-1);
+            color: var(--text);
+            box-shadow: 0 0 0 1px var(--border);
+        }
+        .macro-chart-wrap {
+            height: 280px;
+            position: relative;
+        }
+        .macro-legend {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 10px;
+            font-size: 11px;
+        }
+        .macro-legend .leg-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+            cursor: pointer;
+            user-select: none;
+        }
+        .macro-legend .leg-item.hidden { opacity: .35; }
+        .macro-legend .leg-dot {
+            width: 10px; height: 10px;
+            border-radius: 2px;
+        }
+        .macro-foot {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+        .macro-pill {
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 14px;
+        }
+        .macro-pill .mp-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .macro-pill .mp-row {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-top: 4px;
+        }
+        .macro-pill .mp-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            font-variant-numeric: tabular-nums;
+        }
+        .macro-pill .mp-delta {
+            font-size: 11px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Alerts panel */
+        .alerts-panel-v2 {
+            background: var(--bg-1);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 18px 20px;
+            position: sticky;
+            top: calc(var(--topbar-h) + 20px);
+        }
+        .alerts-panel-v2 .alerts-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+        .alerts-panel-v2 .alerts-clear {
+            font-size: 11px;
+            color: var(--text-muted);
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 4px 10px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .alerts-panel-v2 .alerts-clear:hover { color: var(--text); border-color: var(--border-strong); }
+        .alert-item {
+            display: flex;
+            gap: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            align-items: flex-start;
+        }
+        .alert-item:last-child { border-bottom: none; }
+        .alert-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            margin-top: 6px;
+            flex-shrink: 0;
+            background: var(--text-muted);
+        }
+        .alert-dot.pos { background: var(--pos); }
+        .alert-dot.neg { background: var(--neg); }
+        .alert-dot.warn { background: var(--warn); }
+        .alert-dot.info { background: var(--info); }
+        .alert-body { flex: 1; min-width: 0; }
+        .alert-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text);
+            line-height: 1.4;
+        }
+        .alert-meta {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 3px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Divider above legacy content */
+        .legacy-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 28px 0 16px;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .legacy-divider::before,
+        .legacy-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* Responsive KPI grid */
+        @media (max-width: 1400px) {
+            .kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .sector-grid-v2 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+        @media (max-width: 1100px) {
+            .overview-v2-body { grid-template-columns: 1fr; }
+            .alerts-panel-v2 { position: static; }
+        }
+        @media (max-width: 720px) {
+            .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .sector-grid-v2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
         /* Responsive */
         @media (max-width: 960px) {
             .sidebar { width: var(--sidebar-w-collapsed); }
@@ -794,6 +1132,119 @@
 
         <!-- tab: overview (default — wraps all existing content) -->
         <section class="tab-view active" data-tab-view="overview">
+
+        <!-- ══════════ PHASE 2: NEW OVERVIEW ══════════ -->
+        <div class="overview-v2" id="overviewV2" style="display:none;">
+
+            <!-- KPI row -->
+            <div class="kpi-grid" id="kpiGrid">
+                <div class="kpi-card" id="kpi-state">
+                    <div class="kpi-label">מצב השוק הכללי</div>
+                    <div class="kpi-value kpi-value-lg" id="kpiStateValue">—</div>
+                    <div class="kpi-sub" id="kpiStateSub">&nbsp;</div>
+                    <canvas class="kpi-spark" id="kpiStateSpark"></canvas>
+                </div>
+                <div class="kpi-card" id="kpi-p200">
+                    <div class="kpi-label">מניות מעל MA 200</div>
+                    <div class="kpi-value" id="kpiP200Value">—</div>
+                    <div class="kpi-delta muted" id="kpiP200Delta">&nbsp;</div>
+                    <canvas class="kpi-spark" id="kpiP200Spark"></canvas>
+                </div>
+                <div class="kpi-card" id="kpi-vix">
+                    <div class="kpi-label">VIX</div>
+                    <div class="kpi-value" id="kpiVixValue">—</div>
+                    <div class="kpi-delta muted" id="kpiVixDelta">&nbsp;</div>
+                    <canvas class="kpi-spark" id="kpiVixSpark"></canvas>
+                </div>
+                <div class="kpi-card" id="kpi-health">
+                    <div class="kpi-label">ציון בריאות שוק</div>
+                    <div class="kpi-value" id="kpiHealthValue">—</div>
+                    <div class="kpi-delta muted" id="kpiHealthDelta">&nbsp;</div>
+                    <canvas class="kpi-spark" id="kpiHealthSpark"></canvas>
+                </div>
+                <div class="kpi-card" id="kpi-avgchg">
+                    <div class="kpi-label">שינוי יומי ממוצע</div>
+                    <div class="kpi-value" id="kpiAvgChgValue">—</div>
+                    <div class="kpi-delta muted" id="kpiAvgChgDelta">&nbsp;</div>
+                    <canvas class="kpi-spark" id="kpiAvgChgSpark"></canvas>
+                </div>
+                <div class="kpi-card" id="kpi-nhnl">
+                    <div class="kpi-label">יחס NH/NL</div>
+                    <div class="kpi-value" id="kpiNhNlValue">—</div>
+                    <div class="kpi-delta muted" id="kpiNhNlDelta">&nbsp;</div>
+                    <canvas class="kpi-spark" id="kpiNhNlSpark"></canvas>
+                </div>
+                <div class="kpi-card" id="kpi-fg">
+                    <div class="kpi-label">Fear &amp; Greed</div>
+                    <div class="kpi-value" id="kpiFgValue">—</div>
+                    <div class="kpi-delta muted" id="kpiFgLabel">&nbsp;</div>
+                    <canvas class="kpi-spark" id="kpiFgSpark"></canvas>
+                </div>
+                <div class="kpi-card" id="kpi-streak">
+                    <div class="kpi-label">רצף ימי עלייה</div>
+                    <div class="kpi-value" id="kpiStreakValue">—</div>
+                    <div class="kpi-delta muted" id="kpiStreakSub">&nbsp;</div>
+                    <canvas class="kpi-spark" id="kpiStreakSpark"></canvas>
+                </div>
+            </div>
+
+            <!-- Body: main + alerts -->
+            <div class="overview-v2-body">
+                <div class="overview-main-col">
+
+                    <!-- Sector heatmap grid -->
+                    <div class="panel">
+                        <div class="panel-head">
+                            <div>
+                                <div class="panel-title">מפת חום סקטורים</div>
+                                <div class="panel-sub" id="sectorGridV2Sub">ביצועים מצטברים מתחילת המדידה</div>
+                            </div>
+                            <button class="tf-selector" style="font-size:10px;padding:4px 10px;" onclick="toggleSectorMode()" id="sectorModeBtn">מצטבר</button>
+                        </div>
+                        <div class="sector-grid-v2" id="sectorGridV2"></div>
+                    </div>
+
+                    <!-- Macro chart -->
+                    <div class="panel macro-card">
+                        <div class="panel-head">
+                            <div>
+                                <div class="panel-title">מדדי מאקרו מרכזיים</div>
+                                <div class="panel-sub">VIX · DXY · TNX (10Y)</div>
+                            </div>
+                            <div class="tf-selector" id="macroTfSelector">
+                                <button data-tf="5"  type="button">5D</button>
+                                <button data-tf="22" type="button" class="active">1M</button>
+                                <button data-tf="66" type="button">3M</button>
+                                <button data-tf="0"  type="button">ALL</button>
+                            </div>
+                        </div>
+                        <div class="macro-legend" id="macroLegend">
+                            <span class="leg-item" data-key="vix"><span class="leg-dot" style="background:#fbbf24"></span>VIX</span>
+                            <span class="leg-item" data-key="dxy"><span class="leg-dot" style="background:#60a5fa"></span>DXY</span>
+                            <span class="leg-item" data-key="tnx"><span class="leg-dot" style="background:#f87171"></span>TNX (10Y)</span>
+                        </div>
+                        <div class="macro-chart-wrap">
+                            <canvas id="macroChart"></canvas>
+                        </div>
+                        <div class="macro-foot" id="macroFoot"></div>
+                    </div>
+
+                </div>
+
+                <!-- Alerts panel -->
+                <aside class="alerts-panel-v2" id="alertsPanelV2">
+                    <div class="alerts-head">
+                        <div class="panel-title">התראות חשובות</div>
+                        <button class="alerts-clear" onclick="document.getElementById('alertsList').innerHTML='<div style=\'color:var(--text-dim);font-size:11px;text-align:center;padding:20px 0;\'>אין התראות כרגע</div>'">הצג הכל</button>
+                    </div>
+                    <div id="alertsList"></div>
+                </aside>
+            </div>
+
+        </div>
+
+        <div class="legacy-divider" id="legacyDivider" style="display:none;">תצוגה מורחבת · Legacy Sections</div>
+
 <div class="container">
 
     <div class="header">
@@ -1650,6 +2101,7 @@ async function autoLoadHistory(t) {
                             document.getElementById('historySection').style.display = 'block';
                             renderHistoryUI();
                         }
+                        try { renderOverviewV2(); } catch(e) { console.error('renderOverviewV2 (post-history)', e); }
                     }
                 });
         });
@@ -1882,6 +2334,444 @@ function processData() {
     sortKey='maScore'; sortAsc=false;
     renderTable();
     generateDailySummary();
+    try { renderOverviewV2(); } catch (e) { console.error('renderOverviewV2', e); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   OVERVIEW v2 — Phase 2
+   Renders KPI row, sector grid, macro chart with TF selector,
+   and alerts panel. All derived from `M` + `historyData`.
+   ═══════════════════════════════════════════════════════════════ */
+function drawSparkline(canvas, values, opts) {
+    if (!canvas || !values || !values.length) return;
+    opts = opts || {};
+    const css = getComputedStyle(document.body);
+    const colorPos = (css.getPropertyValue('--pos')||'#10b981').trim();
+    const colorNeg = (css.getPropertyValue('--neg')||'#ef4444').trim();
+    const colorTxt = (css.getPropertyValue('--text-muted')||'#8a8a8f').trim();
+    const stroke = opts.color || (values[values.length-1] >= values[0] ? colorPos : colorNeg);
+    // scale canvas for DPR
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const W = Math.max(40, rect.width), H = Math.max(20, rect.height);
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    const ctx = canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,W,H);
+    const clean = values.map(v => typeof v === 'number' && !isNaN(v) ? v : null);
+    const nums = clean.filter(v => v !== null);
+    if (nums.length < 2) return;
+    const min = Math.min(...nums), max = Math.max(...nums);
+    const range = (max - min) || 1;
+    const pad = 2;
+    const n = clean.length;
+    const xFor = i => pad + (n === 1 ? W/2 : (i / (n-1)) * (W - pad*2));
+    const yFor = v => pad + (1 - (v - min) / range) * (H - pad*2);
+    // area fill
+    if (opts.fill !== false) {
+        ctx.beginPath();
+        let moved = false;
+        clean.forEach((v,i) => {
+            if (v === null) return;
+            const x = xFor(i), y = yFor(v);
+            if (!moved) { ctx.moveTo(x, y); moved = true; } else ctx.lineTo(x, y);
+        });
+        ctx.lineTo(xFor(n-1), H);
+        ctx.lineTo(xFor(0), H);
+        ctx.closePath();
+        const grad = ctx.createLinearGradient(0,0,0,H);
+        grad.addColorStop(0, stroke + '33');
+        grad.addColorStop(1, stroke + '00');
+        ctx.fillStyle = grad; ctx.fill();
+    }
+    // line
+    ctx.beginPath();
+    let moved = false;
+    clean.forEach((v,i) => {
+        if (v === null) return;
+        const x = xFor(i), y = yFor(v);
+        if (!moved) { ctx.moveTo(x, y); moved = true; } else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 1.4;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    // last dot
+    const lastVal = clean[clean.length-1];
+    if (lastVal !== null) {
+        ctx.beginPath();
+        ctx.arc(xFor(n-1), yFor(lastVal), 2.2, 0, Math.PI*2);
+        ctx.fillStyle = stroke;
+        ctx.fill();
+    }
+}
+
+function fmtPct(v, digits) { return (v == null || isNaN(v)) ? '—' : (+v).toFixed(digits == null ? 1 : digits) + '%'; }
+function fmtNum(v, digits) { return (v == null || isNaN(v)) ? '—' : (+v).toFixed(digits == null ? 2 : digits); }
+function fmtDelta(v, unit, digits) {
+    if (v == null || isNaN(v)) return '—';
+    const d = +v, s = d > 0 ? '+' : '';
+    return s + d.toFixed(digits == null ? 2 : digits) + (unit || '');
+}
+function deltaClass(v) { return v > 0 ? 'pos' : v < 0 ? 'neg' : 'muted'; }
+
+function renderOverviewV2() {
+    const root = document.getElementById('overviewV2');
+    if (!root) return;
+    root.style.display = 'flex';
+    const divider = document.getElementById('legacyDivider');
+    if (divider) divider.style.display = 'flex';
+
+    const hist = (typeof historyData !== 'undefined' && Array.isArray(historyData)) ? historyData : [];
+    const series = key => hist.map(h => {
+        const v = h && h.metrics && h.metrics[key];
+        return (typeof v === 'number' && !isNaN(v)) ? v : null;
+    });
+    const prev = (hist.length >= 2) ? hist[hist.length - 2].metrics : null;
+
+    // ── 1. Market state
+    const label = healthLabel(M.healthScore);
+    const color = M.healthScore >= 60 ? 'pos' : M.healthScore >= 35 ? 'warn' : 'neg';
+    const stateEl = document.getElementById('kpiStateValue');
+    stateEl.textContent = label;
+    stateEl.className = 'kpi-value kpi-value-lg ' + color;
+    document.getElementById('kpiStateSub').textContent =
+        M.pRsi50 < 40 ? 'רוחב שוק חלש' :
+        M.pRsi50 > 65 ? 'רוחב שוק חזק' :
+        'רוחב שוק בינוני';
+    drawSparkline(document.getElementById('kpiStateSpark'), series('healthScore'));
+
+    // ── 2. % above 200MA
+    const p200 = pct(M.a200, M.total);
+    const p200Prev = prev ? prev.p200 : null;
+    const p200Delta = p200Prev != null ? +(p200 - p200Prev).toFixed(1) : null;
+    document.getElementById('kpiP200Value').textContent = p200 + '%';
+    document.getElementById('kpiP200Value').className = 'kpi-value ' + (p200 >= 50 ? 'pos' : p200 >= 35 ? 'warn' : 'neg');
+    const p200DeltaEl = document.getElementById('kpiP200Delta');
+    p200DeltaEl.textContent = p200Delta != null ? (fmtDelta(p200Delta, '%', 1) + ' מהשבוע שעבר') : '—';
+    p200DeltaEl.className = 'kpi-delta ' + deltaClass(p200Delta);
+    drawSparkline(document.getElementById('kpiP200Spark'), series('p200'));
+
+    // ── 3. VIX
+    const vix = M.vix;
+    const vixPrev = prev && prev.vix != null ? prev.vix : null;
+    const vixDelta = (vix != null && vixPrev != null) ? +(vix - vixPrev).toFixed(2) : null;
+    const vixDeltaPct = (vixDelta != null && vixPrev) ? +((vixDelta / vixPrev) * 100).toFixed(1) : null;
+    document.getElementById('kpiVixValue').textContent = vix != null ? vix.toFixed(2) : '—';
+    document.getElementById('kpiVixValue').className = 'kpi-value ' +
+        (vix == null ? '' : vix < 15 ? 'pos' : vix < 25 ? 'warn' : 'neg');
+    const vixDEl = document.getElementById('kpiVixDelta');
+    if (vixDelta != null) {
+        vixDEl.textContent = fmtDelta(vixDelta, '', 2) + (vixDeltaPct != null ? ` (${vixDeltaPct>0?'+':''}${vixDeltaPct}%)` : '');
+        // For VIX: rising = bad (neg), falling = good (pos)
+        vixDEl.className = 'kpi-delta ' + (vixDelta > 0 ? 'neg' : vixDelta < 0 ? 'pos' : 'muted');
+    } else { vixDEl.textContent = '—'; vixDEl.className = 'kpi-delta muted'; }
+    drawSparkline(document.getElementById('kpiVixSpark'), series('vix'), { color: '#fbbf24' });
+
+    // ── 4. Health score
+    const hs = M.healthScore;
+    const hsPrev = prev ? prev.healthScore : null;
+    const hsDelta = hsPrev != null ? hs - hsPrev : null;
+    document.getElementById('kpiHealthValue').textContent = hs;
+    document.getElementById('kpiHealthValue').className = 'kpi-value ' +
+        (hs >= 60 ? 'pos' : hs >= 35 ? 'warn' : 'neg');
+    const hsEl = document.getElementById('kpiHealthDelta');
+    hsEl.textContent = hsDelta != null ? fmtDelta(hsDelta, ' נק׳', 0) : '—';
+    hsEl.className = 'kpi-delta ' + deltaClass(hsDelta);
+    drawSparkline(document.getElementById('kpiHealthSpark'), series('healthScore'));
+
+    // ── 5. Average daily change
+    const ac = (typeof M.avgChange !== 'undefined' && M.avgChange != null) ?
+        M.avgChange :
+        (() => {
+            const chs = tableData.map(d=>parseFloat(d['%Change']||0)).filter(v=>!isNaN(v)&&v!==0);
+            return chs.length ? +(chs.reduce((a,b)=>a+b,0)/chs.length).toFixed(2) : null;
+        })();
+    const acPrev = prev && prev.avgChange != null ? prev.avgChange : null;
+    const acDelta = (ac != null && acPrev != null) ? +(ac - acPrev).toFixed(2) : null;
+    document.getElementById('kpiAvgChgValue').textContent = ac != null ? (ac > 0 ? '+' : '') + ac.toFixed(2) + '%' : '—';
+    document.getElementById('kpiAvgChgValue').className = 'kpi-value ' + (ac > 0 ? 'pos' : ac < 0 ? 'neg' : '');
+    const acEl = document.getElementById('kpiAvgChgDelta');
+    acEl.textContent = acDelta != null ? fmtDelta(acDelta, '% מהשבוע שעבר', 2) : '—';
+    acEl.className = 'kpi-delta ' + deltaClass(acDelta);
+    drawSparkline(document.getElementById('kpiAvgChgSpark'), series('avgChange'));
+
+    // ── 6. NH/NL ratio
+    const nhnl = M.nhNlRatio === 99 ? null : M.nhNlRatio;
+    const nhnlPrev = prev && prev.nhNlRatio != null && prev.nhNlRatio !== 99 ? prev.nhNlRatio : null;
+    const nhnlDelta = (nhnl != null && nhnlPrev != null) ? +(nhnl - nhnlPrev).toFixed(2) : null;
+    document.getElementById('kpiNhNlValue').textContent = M.nhNlRatio === 99 ? '∞' : (nhnl != null ? nhnl.toFixed(2) : '—');
+    document.getElementById('kpiNhNlValue').className = 'kpi-value ' +
+        (M.nhNlRatio === 99 || nhnl >= 2 ? 'pos' : nhnl >= 1 ? 'warn' : 'neg');
+    const nhEl = document.getElementById('kpiNhNlDelta');
+    nhEl.textContent = `${M.nhCount||0} חזקות · ${M.nlCount||0} חלשות`;
+    nhEl.className = 'kpi-delta muted';
+    drawSparkline(document.getElementById('kpiNhNlSpark'), series('nhNlRatio').map(v => v === 99 ? null : v));
+
+    // ── 7. Fear & Greed
+    const fg = calcFearGreed(M);
+    const fgL = fgLabel(fg);
+    document.getElementById('kpiFgValue').textContent = fg;
+    document.getElementById('kpiFgValue').className = 'kpi-value ' +
+        (fg >= 60 ? 'pos' : fg >= 40 ? 'warn' : 'neg');
+    document.getElementById('kpiFgLabel').textContent = fgL.text;
+    document.getElementById('kpiFgLabel').className = 'kpi-delta muted';
+    // FG sparkline: compute FG for each history entry that has enough metrics
+    const fgSeries = hist.map(h => {
+        if (!h.metrics) return null;
+        try { return calcFearGreed(h.metrics); } catch(e) { return null; }
+    });
+    drawSparkline(document.getElementById('kpiFgSpark'), fgSeries);
+
+    // ── 8. Streak of up days
+    const chgSeries = series('avgChange');
+    let streak = 0, streakDir = 0;
+    for (let i = chgSeries.length - 1; i >= 0; i--) {
+        const v = chgSeries[i];
+        if (v == null) break;
+        if (streakDir === 0) { streakDir = v > 0 ? 1 : v < 0 ? -1 : 0; if (streakDir === 0) break; streak = 1; }
+        else if ((streakDir > 0 && v > 0) || (streakDir < 0 && v < 0)) streak++;
+        else break;
+    }
+    const streakEl = document.getElementById('kpiStreakValue');
+    streakEl.textContent = streak > 0 ? streak + (streakDir > 0 ? ' ▲' : ' ▼') : '—';
+    streakEl.className = 'kpi-value ' + (streakDir > 0 ? 'pos' : streakDir < 0 ? 'neg' : '');
+    document.getElementById('kpiStreakSub').textContent =
+        streakDir > 0 ? 'ימים עוקבים של עלייה' : streakDir < 0 ? 'ימים עוקבים של ירידה' : 'אין רצף';
+    drawSparkline(document.getElementById('kpiStreakSpark'), chgSeries);
+
+    renderSectorGridV2();
+    renderMacroChart();
+    renderAlertsPanelV2();
+}
+
+/* ═══ Sector grid v2 ═══ */
+let sectorGridMode = 'breadth'; // 'breadth' | 'change'
+function toggleSectorMode() {
+    sectorGridMode = sectorGridMode === 'breadth' ? 'change' : 'breadth';
+    const btn = document.getElementById('sectorModeBtn');
+    if (btn) btn.textContent = sectorGridMode === 'breadth' ? 'מצטבר' : 'יומי';
+    const sub = document.getElementById('sectorGridV2Sub');
+    if (sub) sub.textContent = sectorGridMode === 'breadth'
+        ? 'ביצועים מצטברים מתחילת המדידה'
+        : 'שינוי יומי ממוצע לפי סקטור';
+    renderSectorGridV2();
+}
+function renderSectorGridV2() {
+    const grid = document.getElementById('sectorGridV2');
+    if (!grid) return;
+    const SECS = ['IT','HC','FIN','CD','CS','IND','COM','ENE','UTL','RE','MAT'];
+    const hist = (typeof historyData !== 'undefined' && Array.isArray(historyData)) ? historyData : [];
+    const data = SECS.map(sec => {
+        const curM = M.sectors && M.sectors[sec];
+        const breadth = curM ? Math.round(curM.above200 / curM.total * 100) : null;
+        // change = avg %Change of sector stocks today
+        const secStocks = (tableData || []).filter(d => (S[d['Symbol']]||'?') === sec);
+        const chs = secStocks.map(d => parseFloat(d['%Change']||0)).filter(v => !isNaN(v) && v !== 0);
+        const change = chs.length ? +(chs.reduce((a,b)=>a+b,0)/chs.length).toFixed(2) : null;
+        // sparkline: history of chosen metric
+        const spark = hist.map(h => {
+            const hm = h.metrics;
+            if (!hm) return null;
+            if (sectorGridMode === 'breadth') return hm.sectorBreadth && hm.sectorBreadth[sec] != null ? hm.sectorBreadth[sec] : null;
+            return hm.sectorChange && hm.sectorChange[sec] != null ? hm.sectorChange[sec] : null;
+        });
+        return { sec, breadth, change, spark };
+    }).filter(d => d.breadth != null || d.change != null);
+
+    // Sort by chosen metric
+    data.sort((a, b) => {
+        const va = sectorGridMode === 'breadth' ? a.breadth : a.change;
+        const vb = sectorGridMode === 'breadth' ? b.breadth : b.change;
+        return (vb == null ? -Infinity : vb) - (va == null ? -Infinity : va);
+    });
+
+    grid.innerHTML = data.map((d, i) => {
+        const val = sectorGridMode === 'breadth' ? d.breadth : d.change;
+        const displayVal = sectorGridMode === 'breadth'
+            ? (val != null ? val + '%' : '—')
+            : (val != null ? (val > 0 ? '+' : '') + val.toFixed(2) + '%' : '—');
+        // Color intensity
+        let bg;
+        if (sectorGridMode === 'breadth') {
+            const pct = val || 0;
+            if (pct >= 60)      bg = 'rgba(16,185,129,0.85)';
+            else if (pct >= 45) bg = 'rgba(16,185,129,0.55)';
+            else if (pct >= 30) bg = 'rgba(245,158,11,0.55)';
+            else                bg = 'rgba(239,68,68,0.65)';
+        } else {
+            const v = val || 0;
+            if (v >= 1)        bg = 'rgba(16,185,129,0.85)';
+            else if (v >= 0.2) bg = 'rgba(16,185,129,0.55)';
+            else if (v >= -0.2) bg = 'rgba(107,114,128,0.4)';
+            else if (v >= -1)  bg = 'rgba(239,68,68,0.5)';
+            else               bg = 'rgba(239,68,68,0.75)';
+        }
+        const arrow = i === 0 ? '▲ ' : i === data.length - 1 ? '▼ ' : '';
+        return `<div class="sector-cell" style="background:${bg}">
+            <div class="sec-rank">${arrow}#${i+1}</div>
+            <div class="sec-name">${SECTOR_HE[d.sec]||d.sec}</div>
+            <div class="sec-value">${displayVal}</div>
+            <div class="sec-sub">${sectorGridMode === 'breadth' ? 'מעל MA 200' : 'שינוי יומי ממוצע'}</div>
+            <canvas data-sec="${d.sec}"></canvas>
+        </div>`;
+    }).join('');
+    // draw sparks
+    grid.querySelectorAll('canvas').forEach(c => {
+        const sec = c.dataset.sec;
+        const entry = data.find(d => d.sec === sec);
+        if (entry) drawSparkline(c, entry.spark, { color: 'rgba(255,255,255,0.9)', fill: false });
+    });
+}
+
+/* ═══ Macro chart v2 ═══ */
+let macroChart = null;
+let macroTF = 22;
+const macroVisibility = { vix: true, dxy: true, tnx: true };
+
+function renderMacroChart() {
+    const canvas = document.getElementById('macroChart');
+    if (!canvas) return;
+    const hist = (typeof historyData !== 'undefined' && Array.isArray(historyData)) ? historyData : [];
+    const slice = macroTF > 0 ? hist.slice(-macroTF) : hist;
+    const labels = slice.map(h => h.date);
+    const vix = slice.map(h => h.metrics && h.metrics.vix != null ? h.metrics.vix : null);
+    const dxy = slice.map(h => h.metrics && h.metrics.dxy != null ? h.metrics.dxy : null);
+    const tnx = slice.map(h => h.metrics && h.metrics.tnx != null ? h.metrics.tnx : null);
+
+    const datasets = [];
+    if (macroVisibility.vix) datasets.push({ label:'VIX', data:vix, yAxisID:'yL', borderColor:'#fbbf24', backgroundColor:'rgba(251,191,36,0.1)', tension:0.25, spanGaps:true, pointRadius:0, pointHoverRadius:5, borderWidth:2 });
+    if (macroVisibility.dxy) datasets.push({ label:'DXY', data:dxy, yAxisID:'yM', borderColor:'#60a5fa', backgroundColor:'rgba(96,165,250,0.1)', tension:0.25, spanGaps:true, pointRadius:0, pointHoverRadius:5, borderWidth:2 });
+    if (macroVisibility.tnx) datasets.push({ label:'TNX', data:tnx, yAxisID:'yR', borderColor:'#f87171', backgroundColor:'rgba(248,113,113,0.1)', tension:0.25, spanGaps:true, pointRadius:0, pointHoverRadius:5, borderWidth:2 });
+
+    if (macroChart) macroChart.destroy();
+    macroChart = new Chart(canvas, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.dataset.label + ': ' + (c.parsed.y != null ? c.parsed.y.toFixed(2) : '—') } } },
+            scales: {
+                x: { ticks: { maxTicksLimit: 8, font: { size: 10 } } },
+                yL: { position: 'left',  beginAtZero: false, ticks: { color: '#fbbf24', font: { size: 10 }, callback: v=>v.toFixed(0) }, grid: { drawOnChartArea: true } },
+                yM: { position: 'right', beginAtZero: false, ticks: { color: '#60a5fa', font: { size: 10 }, callback: v=>v.toFixed(0) }, grid: { drawOnChartArea: false } },
+                yR: { position: 'right', beginAtZero: false, ticks: { color: '#f87171', font: { size: 10 }, callback: v=>v.toFixed(1)+'%' }, grid: { drawOnChartArea: false }, offset: true }
+            }
+        }
+    });
+
+    // Macro pills (current value + delta)
+    const last = slice[slice.length - 1];
+    const prev = slice.length >= 2 ? slice[slice.length - 2] : null;
+    const pill = (label, cur, prv, fmt, color) => {
+        if (cur == null) return `<div class="macro-pill"><div class="mp-label">${label}</div><div class="mp-row"><div class="mp-value">—</div></div></div>`;
+        const d = prv != null ? cur - prv : null;
+        const dCls = d == null ? 'muted' : d > 0 ? 'pos' : 'neg';
+        const dPct = (d != null && prv) ? ((d/prv)*100).toFixed(2) : null;
+        // For VIX: rising=bad
+        const invert = label === 'VIX';
+        const vCls = invert ? (d == null ? 'muted' : d > 0 ? 'neg' : 'pos') : dCls;
+        return `<div class="macro-pill">
+            <div class="mp-label" style="color:${color}">${label}</div>
+            <div class="mp-row">
+                <div class="mp-value">${fmt(cur)}</div>
+                ${d != null ? `<div class="mp-delta ${vCls}">${d>0?'+':''}${fmt(d)}${dPct != null ? ' ('+(d>0?'+':'')+dPct+'%)' : ''}</div>` : ''}
+            </div>
+        </div>`;
+    };
+    document.getElementById('macroFoot').innerHTML =
+        pill('VIX', last && last.metrics.vix, prev && prev.metrics.vix, v => v.toFixed(2), '#fbbf24') +
+        pill('DXY', last && last.metrics.dxy, prev && prev.metrics.dxy, v => v.toFixed(2), '#60a5fa') +
+        pill('TNX (10Y)', last && last.metrics.tnx, prev && prev.metrics.tnx, v => v.toFixed(2) + '%', '#f87171');
+}
+
+// Wire TF selector + legend toggles (once)
+(function initMacroControls() {
+    document.addEventListener('click', e => {
+        const tfBtn = e.target.closest('#macroTfSelector button');
+        if (tfBtn) {
+            document.querySelectorAll('#macroTfSelector button').forEach(b => b.classList.remove('active'));
+            tfBtn.classList.add('active');
+            macroTF = parseInt(tfBtn.dataset.tf, 10);
+            renderMacroChart();
+            return;
+        }
+        const legBtn = e.target.closest('#macroLegend .leg-item');
+        if (legBtn) {
+            const k = legBtn.dataset.key;
+            macroVisibility[k] = !macroVisibility[k];
+            legBtn.classList.toggle('hidden', !macroVisibility[k]);
+            renderMacroChart();
+        }
+    });
+})();
+
+/* ═══ Alerts panel v2 ═══ */
+function renderAlertsPanelV2() {
+    const list = document.getElementById('alertsList');
+    if (!list) return;
+    const alerts = [];
+    const now = new Date();
+    const tstamp = d => {
+        const hh = String(d.getHours()).padStart(2,'0');
+        const mi = String(d.getMinutes()).padStart(2,'0');
+        return hh + ':' + mi;
+    };
+    const hist = (typeof historyData !== 'undefined' && Array.isArray(historyData)) ? historyData : [];
+    const prev = hist.length >= 2 ? hist[hist.length - 2].metrics : null;
+
+    // VIX spike
+    if (M.vix != null && prev && prev.vix != null) {
+        const pctChg = (M.vix - prev.vix) / prev.vix * 100;
+        if (pctChg >= 10) alerts.push({ type:'neg', title:`VIX בעליה חדה`, meta:`עלייה של ${pctChg.toFixed(1)}% מעל הממוצע · ${tstamp(now)}` });
+        else if (pctChg <= -10) alerts.push({ type:'pos', title:`VIX בירידה חדה`, meta:`ירידה של ${Math.abs(pctChg).toFixed(1)}% · ${tstamp(now)}` });
+    }
+
+    // Breadth shift
+    if (prev && prev.p200 != null) {
+        const d = pct(M.a200, M.total) - prev.p200;
+        if (Math.abs(d) >= 3) {
+            alerts.push({
+                type: d > 0 ? 'pos' : 'neg',
+                title: `% מניות מתחת ל-MA 200 ${d>0?'עולה':'יורדת'}`,
+                meta: `${pct(M.a200,M.total)}% — מגמה ${d>0?'חיובית':'שלילית'} · ${tstamp(now)}`
+            });
+        }
+    }
+
+    // NH/NL extremes
+    if (M.nhNlRatio === 99) alerts.push({ type:'pos', title:'יחס NH/NL אינסופי', meta:`${M.nhCount} מניות חזקות, 0 חלשות · ${tstamp(now)}` });
+    else if (M.nhNlRatio > 0 && M.nhNlRatio < 0.5) alerts.push({ type:'neg', title:'NH/NL נמוך מאוד', meta:`רק ${M.nhNlRatio.toFixed(2)} — לחץ מכירות רחב · ${tstamp(now)}` });
+
+    // Breadth thrust
+    if (M.breadthThrust >= 30) alerts.push({ type:'pos', title:'Breadth Thrust חזק', meta:`${M.breadthThrust} מניות חוצות RSI · ${tstamp(now)}` });
+
+    // Oversold cluster
+    if (M.pOversold >= 15) alerts.push({ type:'warn', title:'ריבוי מניות ב-Oversold', meta:`${M.pOversold}% מהשוק בתחתית RSI · ${tstamp(now)}` });
+
+    // Health regime change
+    if (prev && prev.healthScore != null) {
+        const d = M.healthScore - prev.healthScore;
+        if (Math.abs(d) >= 10) alerts.push({
+            type: d > 0 ? 'pos' : 'neg',
+            title: `ציון בריאות ${d>0?'משתפר':'מתדרדר'}`,
+            meta: `${d>0?'+':''}${d} נק׳ מאתמול (${M.healthScore}) · ${tstamp(now)}`
+        });
+    }
+
+    if (!alerts.length) {
+        list.innerHTML = '<div style="color:var(--text-dim);font-size:11px;text-align:center;padding:20px 0;">אין התראות חריגות כרגע</div>';
+        return;
+    }
+    list.innerHTML = alerts.slice(0, 6).map(a => `
+        <div class="alert-item">
+            <div class="alert-dot ${a.type}"></div>
+            <div class="alert-body">
+                <div class="alert-title">${a.title}</div>
+                <div class="alert-meta">${a.meta}</div>
+            </div>
+        </div>
+    `).join('');
 }
 
 /* ═══════════ CHARTS ═══════════ */
