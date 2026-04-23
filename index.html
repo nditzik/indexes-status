@@ -857,9 +857,9 @@ Chart.register({
             if (s.title) s.title = Object.assign({ color: CH.text }, s.title);
         });
         const lbl = chart.options.plugins?.legend?.labels;
-        if (lbl) lbl.color = lbl.color || WHITE;
+        if (lbl) lbl.color = lbl.color || CH.text;
         else if (chart.options.plugins?.legend)
-            chart.options.plugins.legend.labels = { color: WHITE };
+            chart.options.plugins.legend.labels = { color: CH.text };
     }
 });
 let tableData = [], M = {}, sortKey = 'maScore', sortAsc = false;
