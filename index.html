@@ -963,6 +963,27 @@
 
         /* ─── History ─── */
         .history-section { margin-top: 20px; }
+
+        .fav-star {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            padding: 2px 4px;
+            color: var(--text-dim);
+            transition: color 0.15s;
+        }
+        .fav-star:hover { color: var(--warn); }
+        .fav-star.on { color: #f5c518; }
+
+        .fav-empty {
+            color: var(--text-muted);
+            font-size: 14px;
+            text-align: center;
+            padding: 40px 20px;
+        }
+        .fav-empty small { color: var(--text-dim); display: block; margin-top: 6px; font-size: 12px; }
         .trend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
         @media (max-width: 750px) { .trend-grid { grid-template-columns: 1fr; } }
         .history-tbl { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
@@ -1455,6 +1476,7 @@
                     <div class="tbl-wrap">
                         <table id="watchTable">
                             <thead><tr>
+                                <th style="width:32px;" title="מועדפים">★</th>
                                 <th onclick="sortTable('Symbol')">סימול ↕</th>
                                 <th onclick="sortTable('Name')">שם ↕</th>
                                 <th onclick="sortTable('sector')">סקטור ↕</th>
@@ -1472,9 +1494,29 @@
             </div>
         </section>
         <section class="tab-view" data-tab-view="favorites">
-            <div class="tab-placeholder">
-                <h2>מועדפים — Watchlist</h2>
-                <p>בשלב הבא: רשימת המעקב האישית.</p>
+            <div class="container">
+                <div class="card">
+                    <h3 class="section-title">רשימת המעקב האישית</h3>
+                    <p style="font-size:12px;color:var(--text-muted);margin:0 0 12px;">לחץ על הכוכב בטבלת "מניות" כדי להוסיף/להסיר. הרשימה נשמרת מקומית בדפדפן.</p>
+                    <div id="favInfo" style="font-size:12px;color:var(--text-muted);margin-bottom:8px;"></div>
+                    <div class="tbl-wrap">
+                        <table id="favTable">
+                            <thead><tr>
+                                <th style="width:32px;">★</th>
+                                <th>סימול</th>
+                                <th>שם</th>
+                                <th>סקטור</th>
+                                <th>MA Score</th>
+                                <th>RSI</th>
+                                <th>52W%</th>
+                                <th>מרחק 200D%</th>
+                                <th>RVOL</th>
+                                <th>מתנע</th>
+                            </tr></thead>
+                            <tbody id="favTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </section>
         <section class="tab-view" data-tab-view="screeners">
@@ -1904,6 +1946,17 @@ Chart.defaults.plugins.tooltip.padding = 10;
 Chart.defaults.plugins.tooltip.cornerRadius = 6;
 Chart.defaults.plugins.legend.labels.color = CH.text;
 let tableData = [], M = {}, sortKey = 'maScore', sortAsc = false;
+const favoriteSymbols = new Set(
+    (() => { try { return JSON.parse(localStorage.getItem('favoriteSymbols') || '[]'); } catch(e) { return []; } })()
+);
+function toggleFavorite(sym) {
+    if (favoriteSymbols.has(sym)) favoriteSymbols.delete(sym);
+    else favoriteSymbols.add(sym);
+    try { localStorage.setItem('favoriteSymbols', JSON.stringify([...favoriteSymbols])); } catch(e) {}
+    try { renderTable(); } catch(e) {}
+    try { renderFavorites(); } catch(e) {}
+}
+window.toggleFavorite = toggleFavorite;
 let historyData = [], currentDateLabel = '', currentVix = null, currentDxy = null, currentTnx = null;
 const trendCharts = {};
 
@@ -2362,6 +2415,7 @@ function processData() {
     renderTable();
     generateDailySummary();
     try { renderOverviewV2(); } catch (e) { console.error('renderOverviewV2', e); }
+    try { renderFavorites(); } catch (e) { console.error('renderFavorites', e); }
     try { if (window.updateMarketStatus) window.updateMarketStatus(); } catch(e) {}
 }
 
@@ -3177,7 +3231,10 @@ function renderTable() {
         const d200 = d.dist200!==null?(d.dist200>0?'+':'')+d.dist200.toFixed(1)+'%':'—';
         const c200 = d.dist200===null?'':d.dist200>=0?'color:#276749':'color:#c53030';
         const c52w = d['52w']>=-10?'color:#276749':d['52w']<=-25?'color:#c53030':'color:#c05621';
+        const isFav = favoriteSymbols.has(d['Symbol']);
+        const star = `<button class="fav-star ${isFav?'on':''}" onclick="toggleFavorite('${d['Symbol']}')" title="${isFav?'הסר ממועדפים':'הוסף למועדפים'}" type="button">${isFav?'★':'☆'}</button>`;
         return `<tr>
+            <td>${star}</td>
             <td><strong>${d['Symbol']}</strong></td>
             <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">${d['Name']}</td>
             <td>${SECTOR_HE[d.sector]||d.sector}</td>
@@ -3191,15 +3248,49 @@ function renderTable() {
     }).join('');
 }
 
+function renderFavorites() {
+    const body = document.getElementById('favTableBody');
+    const info = document.getElementById('favInfo');
+    if (!body) return;
+    const favs = tableData.filter(d => favoriteSymbols.has(d['Symbol']));
+    if (info) info.textContent = favs.length ? `${favs.length} מניות במעקב` : '';
+    if (!favs.length) {
+        body.innerHTML = `<tr><td colspan="10"><div class="fav-empty">אין מניות ברשימת המועדפים.<small>עבור לטאב "מניות" ולחץ על ☆ ליד מניה כדי להוסיף.</small></div></td></tr>`;
+        return;
+    }
+    favs.sort((a,b) => b.momentumScore - a.momentumScore);
+    body.innerHTML = favs.map(d => {
+        const scoreHtml = '<span class="score-bar">'+[0,1,2,3].map(i=>`<span class="score-dot" style="background:${i<d.maScore?SCORE_COLORS[d.maScore]:'var(--border-strong)'}"></span>`).join('')+'</span>';
+        const badge = `<span class="badge" style="background:${rsiColor(d['RSI Rank'])}22;color:${rsiColor(d['RSI Rank'])}">${d['RSI Rank']}</span>`;
+        const d200 = d.dist200!==null?(d.dist200>0?'+':'')+d.dist200.toFixed(1)+'%':'—';
+        const c200 = d.dist200===null?'':d.dist200>=0?'color:#276749':'color:#c53030';
+        const c52w = d['52w']>=-10?'color:#276749':d['52w']<=-25?'color:#c53030':'color:#c05621';
+        return `<tr>
+            <td><button class="fav-star on" onclick="toggleFavorite('${d['Symbol']}')" title="הסר ממועדפים" type="button">★</button></td>
+            <td><strong>${d['Symbol']}</strong></td>
+            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">${d['Name']}</td>
+            <td>${SECTOR_HE[d.sector]||d.sector}</td>
+            <td>${scoreHtml} <small>${d.maScore}/4</small></td>
+            <td>${badge}</td>
+            <td style="${c52w}">${d['52w'].toFixed(1)}%</td>
+            <td style="${c200}">${d200}</td>
+            <td>${rvolLabel(d.rvol)}</td>
+            <td><span class="momentum-bar" style="width:${d.momentumScore/2}px;background:${momentumColor(d.momentumScore)};"></span><span style="color:${momentumColor(d.momentumScore)};font-weight:600">${d.momentumScore}</span></td>
+        </tr>`;
+    }).join('');
+}
+window.renderFavorites = renderFavorites;
+
 function exportCSV() {
     const rows=[...document.getElementById('tableBody').querySelectorAll('tr')];
     const lines=[['Symbol','Name','Sector','MA Score','RSI Rank','52W %','Dist 200D %','RVOL'].join(',')];
     rows.forEach(tr=>{
         const c=[...tr.querySelectorAll('td')];
-        if(c.length<8) return;
-        lines.push([c[0].textContent.trim(),'"'+c[1].textContent.trim()+'"',c[2].textContent.trim(),
-            c[3].textContent.replace(/[^\d/]/g,'').trim(),c[4].textContent.trim(),
-            c[5].textContent.trim(),c[6].textContent.trim(),c[7].textContent.replace(/[^\d.]/g,'').trim()].join(','));
+        if(c.length<9) return;
+        // c[0] is the star column — skip it
+        lines.push([c[1].textContent.trim(),'"'+c[2].textContent.trim()+'"',c[3].textContent.trim(),
+            c[4].textContent.replace(/[^\d/]/g,'').trim(),c[5].textContent.trim(),
+            c[6].textContent.trim(),c[7].textContent.trim(),c[8].textContent.replace(/[^\d.]/g,'').trim()].join(','));
     });
     const a=document.createElement('a');
     a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8;'}));
