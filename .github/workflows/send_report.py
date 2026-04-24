@@ -263,12 +263,13 @@ c_score = combined()
 #  Classification — state / risk / bias
 # ═══════════════════════════════════════════════════
 def classify_combined(s):
+    # Labels match the dashboard's MCC classification
     if s is None:      return ('—','—','—','neutral')
-    if s >= 80:        return ('שורי מאומת חזק',   'נמוך',   'לונגים רחבים',              'bullish')
-    if s >= 65:        return ('אישור חיובי',      'בינוני', 'לונגים סלקטיביים',          'constructive')
-    if s >= 45:        return ('מעורב ללא יתרון',  'בינוני', 'סלקטיבי / מאוזן',            'neutral')
-    if s >= 30:        return ('זהירות / סטייה',   'גבוה',   'הפחת חשיפה',                 'caution')
-    return              ('דפנסיבי / סיכון גבוה', 'גבוה',   'מזומן / הגנתי',             'riskoff')
+    if s >= 80:        return ('שורי',        'נמוך',      'חשיפה רחבה',        'bullish')
+    if s >= 65:        return ('חיובי זהיר', 'בינוני',    'להתמקד בחזקות',     'constructive')
+    if s >= 45:        return ('ניטרלי',      'בינוני',    'לבחור בקפידה',     'neutral')
+    if s >= 30:        return ('זהירות',       'גבוה',      'להקטין חשיפה',    'caution')
+    return              ('סיכון גבוה',        'גבוה מאוד','להגן / מזומן',     'riskoff')
 
 state_label, risk_level, bias_text, state_key = classify_combined(c_score)
 STATE_COLORS = {
@@ -284,55 +285,49 @@ accent = STATE_COLORS.get(state_key, '#64748b')
 #  Section 1 narrative — 1-2 sentences, trader tone
 # ═══════════════════════════════════════════════════
 def narrative():
-    # Pick a lead sentence based on state, then add one qualifying sentence
-    lead = ''
+    """
+    Two short sentences in plain Hebrew:
+      lead = what's happening now
+      tail = the main tension or confirmation — what to actually watch
+    Avoid jargon. Speak in concrete everyday terms.
+    """
+    # Lead — describe current state in plain language (no 'אבל' — tail will add tension)
     if state_key == 'bullish':
-        lead = 'שוק חזק ורחב'
+        lead = 'השוק במגמה עולה חזקה ורוב המניות משתתפות'
     elif state_key == 'constructive':
-        lead = 'שוק חיובי'
+        lead = 'השוק במגמה חיובית'
     elif state_key == 'neutral':
-        lead = 'שוק ללא כיוון ברור'
+        lead = 'השוק ללא כיוון ברור — נע בצדדים'
     elif state_key == 'caution':
-        lead = 'שוק נחלש'
+        lead = 'השוק נחלש ויש סימני לחץ על המחירים'
     else:  # riskoff
-        lead = 'לחץ מכירות רחב בשוק'
+        lead = 'השוק בירידה רחבה — לחץ המכירות חזק'
 
-    # Qualifier — what it means / what to watch
-    tail = ''
-    if state_key in ('bullish','constructive'):
-        if len(last25) >= 5 and dist_days >= 3:
-            tail = 'אבל יש לחץ מכירות — סלקטיביות'
-        elif f_score is not None and f_score < 45:
-            tail = 'אבל Flow לא מאשר — זהירות'
-        elif flow and flow['pc_p'] is not None and flow['pc_p'] > 1.2:
-            tail = 'אבל הגנות מוגברות — לא לרדוף'
-        elif vix is not None and vix > 22:
-            tail = 'אבל תנודתיות עולה — לא להתפזר'
-        elif f_score is not None and f_score >= 65:
-            tail = 'Flow מאשר — מגמה תומכת'
-        else:
-            tail = 'מגמה תומכת'
+    # Tail — explain tension if present, or reinforce if clean
+    tensions = []
+    if len(last25) >= 5 and dist_days >= 4:
+        tensions.append(f'אבל בשבועות האחרונים היו {dist_days} ימי ירידה חזקים — כסף גדול מתחיל למכור')
+    if t_score is not None and f_score is not None and t_score - f_score >= 25:
+        tensions.append('אבל הכסף הגדול לא אופטימי כמו המחיר — קונים הגנות')
+    elif f_score is not None and t_score is not None and f_score - t_score >= 25:
+        tensions.append('אבל המחיר עדיין לא עלה — הכסף מקדים')
+    if vix is not None and vix > 22 and state_key in ('bullish','constructive'):
+        tensions.append(f'אבל מדד הפחד VIX עולה ({vix:.0f}) — תנודתיות גוברת')
+    if flow and flow['pc_p'] is not None and flow['pc_p'] > 1.2 and state_key in ('bullish','constructive'):
+        tensions.append('אבל קונים הרבה הגנות — חשש מתיקון')
+
+    if tensions:
+        tail = tensions[0]
+    elif state_key == 'bullish':
+        tail = 'הכסף הגדול תומך והמגמה נקייה'
+    elif state_key == 'constructive':
+        tail = 'המגמה תומכת אבל כדאי לעקוב'
     elif state_key == 'neutral':
-        if f_score is not None and f_score >= 65:
-            tail = 'Flow שורי — סימן חיובי'
-        elif f_score is not None and f_score < 40:
-            tail = 'Flow דפנסיבי — עדיף להמתין'
-        elif vix is not None and vix > 22:
-            tail = 'תנודתיות גבוהה — מחכה לכיוון'
-        else:
-            tail = 'מחכה לאות ברור'
+        tail = 'עדיף להמתין לכיוון ברור'
     elif state_key == 'caution':
-        if vix is not None and vix > 22:
-            tail = 'תנודתיות עולה — להקטין סיכון'
-        elif p200 < 45:
-            tail = 'רוב המניות מתחת ל-200MA — לא לקנות'
-        else:
-            tail = 'להיזהר מהתרחבות חשיפה'
-    else:  # riskoff
-        if vix is not None and vix > 28:
-            tail = 'פאניקה — לחכות שהאבק ישקע'
-        else:
-            tail = 'עדיף להיות בצד'
+        tail = 'להיזהר מלהוסיף חשיפה'
+    else:
+        tail = 'עדיף לשבת בצד ולחכות להתבהרות'
 
     return f'{lead}. {tail}.'
 
@@ -341,67 +336,73 @@ def narrative():
 # ═══════════════════════════════════════════════════
 def key_signals():
     items = []
-    # SPX vs MAs — one clean bullet based on how many MAs price is above
+    # 1. SPX vs moving averages — trend position
     if spx and spx['price']:
         ok = sum(1 for v in (spx['ma20'], spx['ma50'], spx['ma200']) if v and spx['price'] > v)
         if ok == 3:
-            items.append('SPX מעל כל הממוצעים — מגמה חיובית')
+            items.append('המדד מעל כל שלושת קווי המגמה — מגמה יציבה')
         elif ok == 2:
-            items.append('SPX מעל 2 ממוצעים — מגמה חלקית')
+            items.append('המדד מעל 2 מתוך 3 קווי מגמה — מגמה חלקית')
         elif ok == 1:
-            items.append('SPX מעל ממוצע אחד — מגמה חלשה')
+            items.append('המדד מעל קו מגמה אחד — מגמה חלשה')
         else:
-            items.append('SPX מתחת לכל הממוצעים — מגמה שלילית')
-    # Alignment — only mention if clear
+            items.append('המדד מתחת לכל קווי המגמה — מגמה שלילית')
+    # 2. MA alignment — long-term trend quality
     if spx and spx['ma20'] and spx['ma50'] and spx['ma200']:
         if spx['ma20'] > spx['ma50'] > spx['ma200']:
-            items.append('סידור ממוצעים שורי — 20 מעל 50 מעל 200')
+            items.append('קווי המגמה מסודרים חיובי — מגמה ארוכת-טווח חזקה')
         elif spx['ma20'] < spx['ma50'] < spx['ma200']:
-            items.append('סידור ממוצעים דובי — 20 מתחת 50 מתחת 200')
-    # Distribution days
-    if len(last25) >= 5 and dist_days >= 3:
-        items.append(f'{dist_days} ימי מכירות כבדים — לחץ מוסדי')
-    # Flow premium (primary signal)
+            items.append('קווי המגמה מסודרים שלילי — מגמה ארוכת-טווח יורדת')
+    # 3. Distribution days (raised threshold: only show if 4+)
+    if len(last25) >= 5 and dist_days >= 4:
+        items.append(f'{dist_days} ימי ירידה חזקים בחודש האחרון — מוסדיים מוכרים')
+    # 4. Options premium — where the BIG money goes
     if flow and flow['pc_p'] is not None:
         if flow['pc_p'] < 0.70:
-            items.append('פרמיות Call מובילות בגדול — כסף שורי חזק')
+            items.append('הכסף הגדול משקיע הרבה יותר בעליות מאשר בהגנות — אופטימי מאוד')
         elif flow['pc_p'] < 1.00:
-            items.append('פרמיות Call מובילות — כסף שורי')
+            items.append('הכסף הגדול נוטה לעליות — אופטימיות מתונה')
         elif flow['pc_p'] < 1.30:
-            items.append('פרמיות מאוזנות — ללא כיוון ברור')
+            items.append('הכסף הגדול מחלק שווה בין עליות להגנות — ללא כיוון')
         else:
-            items.append('פרמיות Put גבוהות — ביקוש הגנות')
-    # Flow trades (crowd)
+            items.append('הכסף הגדול קונה יותר הגנות מעליות — חששות')
+    # 5. Trades (retail crowd direction)
     if flow and flow['pc_tr'] is not None:
         if flow['pc_tr'] < 0.70:
-            items.append('גם הקהל שורי — טריידים ל-Call')
+            items.append('גם הציבור הרחב קונה בעיקר עליות — אופטימיות רחבה')
         elif flow['pc_tr'] >= 1.30:
-            items.append('טריידים נוטים ל-Put — קהל זהיר')
-    # Divergences (high priority, override if present)
+            items.append('הציבור הרחב קונה בעיקר הגנות — חושש')
+    # Divergences override (show as a bullet at the end if clear)
     if t_score is not None and f_score is not None:
         if t_score >= 65 and f_score < 45:
-            items.append('⚠ מחיר חזק, זרימה חלשה — סטייה')
+            items.append('⚠ המחיר חזק אבל הכסף הגדול לא מאשר — זהירות')
         elif t_score < 45 and f_score >= 65:
-            items.append('⚠ זרימה שורית מול מחיר חלש — סטייה')
+            items.append('⚠ הכסף הגדול שורי אבל המחיר חלש — אי-התאמה')
     return items[:5]
 
 def signals_conclusion():
-    # One punchy line — trader interpretation
-    if flow is None: return ''
-    if m_score is None or f_score is None: return ''
-    if f_score >= 65 and m_score < 50:
-        return 'כסף גדול שורי, breadth מפגר'
-    if f_score < 40 and m_score >= 60:
-        return 'השוק נראה יפה — אבל הזרימה לא נקייה'
+    """One punchy line — what it all means together"""
+    if flow is None or m_score is None or f_score is None or t_score is None: return ''
+    # Price strong, money cautious
+    if t_score - f_score >= 25:
+        return 'המחיר חזק אבל הכסף הגדול מתחיל להיזהר — העלייה עלולה להיעצר'
+    # Money strong, price lagging
+    if f_score - t_score >= 25:
+        return 'הכסף הגדול שורי, אבל המחיר עדיין לא מאשר — יכול להיות תחילה של מהלך'
+    # Everything aligned up
     if f_score >= 70 and m_score >= 65:
-        return 'הכל מיושר — תמונה חיובית'
-    if t_score is not None and f_score is not None and abs(t_score - f_score) >= 25:
-        return 'המחיר והזרימה לא מסתדרים — זהירות'
-    if f_score < 35:
-        return 'הזרימה דובית — להיזהר'
+        return 'כל הסימנים חיוביים — מגמה חזקה'
+    # Everything aligned down
+    if f_score < 40 and m_score < 40:
+        return 'כל הסימנים שליליים — סביבה קשה'
+    # Hedges demand elevated
     if flow['pc_p'] is not None and flow['pc_p'] > 1.30:
-        return 'קהל קונה הגנות — סימן לערנות'
-    return 'הזרימה מאוזנת — ללא הכרעה'
+        return 'ביקוש הגנות גבוה — השוק חושש מתיקון'
+    # Flow strong but market broader not
+    if f_score >= 65 and m_score < 50:
+        return 'הכסף הגדול תומך, אבל רק מעט מניות עולות — מהלך צר'
+    # Default
+    return 'הסימנים מעורבים — עדיף לעקוב ולא לפעול'
 
 signals_items = key_signals()
 conclusion   = signals_conclusion()
@@ -469,15 +470,15 @@ weak   = sorted(stocks, key=weakness, reverse=True)[:5]
 def alerts():
     al = []
     if vix is not None and vix > 25:
-        al.append('VIX מעל 25 — תנודתיות חריגה')
+        al.append('מדד הפחד VIX גבוה — השוק מתנדנד חזק')
     if flow and flow['pc_p'] is not None and flow['pc_p'] > 1.30:
-        al.append('ביקוש הגנות גבוה — קהל חושש')
+        al.append('קונים הרבה הגנות — הקהל חושש מירידה')
     if len(last25) >= 5 and dist_days >= 5:
-        al.append(f'{dist_days} ימי מכירות כבדים — לחץ מוסדי מצטבר')
+        al.append(f'{dist_days} ימי ירידה חזקים בחודש — מוסדיים מוכרים')
     if t_score is not None and f_score is not None and abs(t_score - f_score) >= 30:
-        al.append('סטייה חריפה בין מחיר לזרימה')
+        al.append('המחיר והכסף הגדול לא מסתדרים — אי-התאמה משמעותית')
     if nl >= 30 and nh_nl < 0.5 and nh_nl != 99:
-        al.append(f'{nl} מניות רחוקות מהשיא — חולשה רחבה')
+        al.append(f'{nl} מניות רחוקות מהשיא שלהן — חולשה רחבה')
     return al[:3]
 
 alerts_list = alerts()
@@ -488,10 +489,10 @@ alerts_list = alerts()
 def action_line():
     if c_score is None: return '—'
     if c_score >= 80: return 'מגמה תומכת — אפשר להגדיל חשיפה בהדרגה'
-    if c_score >= 65: return 'לונגים סלקטיביים — להיזהר מהתרחבות'
-    if c_score >= 45: return 'סלקטיביות — להעדיף חזקות ברורות'
-    if c_score >= 30: return 'גישה דפנסיבית — להקטין סיכון'
-    return 'הגנתי — עדיף להיות בצד'
+    if c_score >= 65: return 'להתמקד במניות חזקות, לא לקנות הכל'
+    if c_score >= 45: return 'לבחור בקפידה, לא להתפזר על הרבה מניות'
+    if c_score >= 30: return 'להקטין סיכון, לא להוסיף פוזיציות'
+    return 'עדיף לשבת בצד ולחכות להתבהרות'
 
 # ═══════════════════════════════════════════════════
 #  Date label
@@ -503,16 +504,43 @@ if hist_files:
 # ═══════════════════════════════════════════════════
 #  HTML build
 # ═══════════════════════════════════════════════════
+def score_qualifier(v):
+    """One-word description of the score's magnitude."""
+    if v is None: return '—'
+    if v >= 80: return 'חזק מאוד'
+    if v >= 65: return 'חזק'
+    if v >= 45: return 'בינוני'
+    if v >= 30: return 'חלש'
+    return 'שלילי'
+
 def score_block(lbl, v):
     if v is None:
         color = '#cbd5e0'; txt = '—'
     else:
         color = '#10b981' if v >= 65 else '#f59e0b' if v >= 45 else '#ef4444'
         txt = str(v)
-    return (f'<td align="center" style="padding:12px 8px;text-align:center;width:33%;">'
-            f'<div style="font-size:10px;color:#718096;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;text-align:center;">{lbl}</div>'
+    qual = score_qualifier(v)
+    return (f'<td align="center" style="padding:14px 8px 12px;text-align:center;width:33%;">'
+            f'<div style="font-size:11px;color:#4a5568;font-weight:600;margin-bottom:6px;text-align:center;">{lbl}</div>'
             f'<div style="font-size:26px;font-weight:700;color:{color};line-height:1;text-align:center;">{txt}</div>'
+            f'<div style="font-size:10px;color:{color};font-weight:600;margin-top:4px;text-align:center;">{qual}</div>'
             f'</td>')
+
+def scores_interpretation():
+    """One plain-language line explaining what the three scores together mean."""
+    if None in (m_score, t_score, f_score): return ''
+    # Common tension: index strong, breadth or money less so
+    if t_score >= 80 and m_score < 55:
+        return 'המדד חזק, אבל רק חלק קטן מהמניות עולות — המהלך נישא ע״י מעטות'
+    if t_score >= 80 and f_score < 50:
+        return 'המדד חזק, אבל הכסף הגדול לא רודף — סימן זהירות'
+    if all(s >= 65 for s in (m_score, t_score, f_score)):
+        return 'כל שלושת הציונים חזקים — מגמה תומכת בכל החזיתות'
+    if all(s < 45 for s in (m_score, t_score, f_score)):
+        return 'כל שלושת הציונים חלשים — שוק מאתגר'
+    if m_score < 45 and t_score >= 65:
+        return 'המדד חזק אבל רוב המניות פחות — להיזהר מהכללה'
+    return 'תמונה מעורבת — כדאי לעקוב לפני פעולה'
 
 def stock_row(s, pos=True):
     meaning = strong_meaning(s) if pos else weak_meaning(s)
@@ -560,28 +588,33 @@ spx_chg_str   = pct(spx["chgPct"], 2) if (spx and spx["chgPct"] is not None) els
 nh_nl_str     = '∞' if nh_nl == 99 else f'{nh_nl:.2f}'
 vix_str       = f'{vix:.2f}' if vix is not None else '—'
 
+scores_interp_text = scores_interpretation()
+scores_interp_html = (f'<div dir="rtl" style="margin-top:12px;padding:8px 12px;background:#f7fafc;border-right:3px solid {accent};font-size:12px;color:#2d3748;line-height:1.5;text-align:right;">{scores_interp_text}</div>'
+                      if scores_interp_text else '')
+
 s3_html = f"""
 <div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
   <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:12px;text-align:right;">נתוני שוק</div>
   <table dir="rtl" style="width:100%;border-collapse:collapse;border:1px solid #edf2f7;border-radius:8px;overflow:hidden;background:#f7fafc;direction:rtl;">
     <tr>
-      {score_block('Market', m_score)}
-      {score_block('Technical', t_score)}
-      {score_block('Options Flow', f_score)}
+      {score_block('רוחב השוק', m_score)}
+      {score_block('כוח המדד', t_score)}
+      {score_block('זרימת כסף', f_score)}
     </tr>
   </table>
+  {scores_interp_html}
   <table dir="rtl" style="width:100%;font-size:13px;color:#2d3748;margin-top:14px;border-collapse:collapse;direction:rtl;">
     <tr style="background:#f7fafc;">
-      <td align="right" style="padding:8px 12px;color:#718096;width:80px;text-align:right;">SPX</td>
+      <td align="right" style="padding:8px 12px;color:#718096;width:110px;text-align:right;">SPX</td>
       <td align="right" style="padding:8px 12px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right;"><span dir="ltr" style="unicode-bidi:isolate;">{spx_price_str}</span> <span dir="ltr" style="color:{spx_chg_color};font-weight:600;unicode-bidi:isolate;">{spx_chg_str}</span></td>
-      <td align="right" style="padding:8px 12px;color:#718096;width:60px;text-align:right;">VIX</td>
+      <td align="right" style="padding:8px 12px;color:#718096;width:110px;text-align:right;">מדד הפחד VIX</td>
       <td align="right" style="padding:8px 12px;font-weight:600;text-align:right;"><span dir="ltr" style="unicode-bidi:isolate;">{vix_str}</span></td>
     </tr>
     <tr>
-      <td align="right" style="padding:8px 12px;color:#718096;text-align:right;">% מעל MA200</td>
+      <td align="right" style="padding:8px 12px;color:#718096;text-align:right;">מניות במגמה עולה</td>
       <td align="right" style="padding:8px 12px;font-weight:600;text-align:right;"><span dir="ltr" style="unicode-bidi:isolate;">{int(p200)}% ({a200}/{total})</span></td>
-      <td align="right" style="padding:8px 12px;color:#718096;text-align:right;">NH/NL</td>
-      <td align="right" style="padding:8px 12px;font-weight:600;text-align:right;"><span dir="ltr" style="unicode-bidi:isolate;">{nh}/{nl} = {nh_nl_str}</span></td>
+      <td align="right" style="padding:8px 12px;color:#718096;text-align:right;">חזקות / חלשות</td>
+      <td align="right" style="padding:8px 12px;font-weight:600;text-align:right;"><span dir="ltr" style="unicode-bidi:isolate;">{nh} / {nl}</span></td>
     </tr>
   </table>
 </div>
