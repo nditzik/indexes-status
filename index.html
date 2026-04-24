@@ -2879,29 +2879,29 @@ function deltaClass(v) { return v > 0 ? 'pos' : v < 0 ? 'neg' : 'muted'; }
 function mccInterp(stateKey, ctx) {
     const { vix, p200, distDays, nhnl, fg, weekChg, histLen } = ctx;
     if (stateKey === 'bullish') {
-        if (fg != null && fg > 85) return 'שוק חזק אך חם — היזהרו מהתקררות קצרה';
-        if (weekChg != null && weekChg < 0 && histLen >= 5) return 'מבנה חיובי למרות שבוע חלש — מומנטום שמור';
-        return 'מומנטום רחב — חלון חיובי להגדלת חשיפה';
+        if (fg != null && fg > 85) return 'השוק עולה אבל כולם כבר בפנים — סיכון לתיקון קצר';
+        if (weekChg != null && weekChg < 0 && histLen >= 5) return 'שבוע אדום בתוך מגמה חזקה — כנראה רק תיקון';
+        return 'רוב המניות עולות, VIX רגוע — זמן טוב לקנות';
     }
     if (stateKey === 'constructive') {
-        if (distDays >= 3 && histLen >= 5) return 'שוק תומך עם לחץ חלוקה — סלקטיביות נדרשת';
-        if (fg != null && fg > 80) return 'שוק תומך אך חם — לונגים סלקטיביים';
-        return 'שוק תומך — לונגים סלקטיביים וניהול סיכונים';
+        if (distDays >= 3 && histLen >= 5) return 'מגמה חיובית אבל ימי מכירות מצטברים — רק את החזקות ביותר';
+        if (fg != null && fg > 80) return 'מגמה חיובית אבל כולם אופטימיים — עדיף לחכות לפריצה ברורה';
+        return 'שוק חיובי — קנה מניות חזקות בלבד, לא הכל';
     }
     if (stateKey === 'neutral') {
-        if (distDays >= 4 && histLen >= 5) return 'לחץ חלוקה מצטבר — סלקטיביות מוקפדת';
-        if (nhnl != null && nhnl !== 99 && nhnl < 0.7) return 'רוחב נחלש — שימו לב לאשליית עלייה';
-        if (vix != null && vix >= 20) return 'תנודתיות עולה — גישה מאוזנת';
-        return 'איתותים מעורבים — סלקטיביות נדרשת';
+        if (distDays >= 4 && histLen >= 5) return 'ימי מכירות כבדים מצטברים — הפחת חשיפה והישמר';
+        if (nhnl != null && nhnl !== 99 && nhnl < 0.7) return 'יותר מניות בשפל מאשר בשיא — המגמה נחלשת';
+        if (vix != null && vix >= 20) return 'VIX עולה, פחד בשוק — המתן לכיוון ברור';
+        return 'אין כיוון ברור — עדיף להמתין לפריצה או שבירה';
     }
     if (stateKey === 'caution') {
-        if (vix != null && vix > 22) return 'תנודתיות עולה — הפחיתו סיכון ומינוף';
-        if (p200 != null && p200 < 45) return 'רוחב שוק נחלש — גישה זהירה';
-        return 'לחץ שוק עולה — גישה זהירה';
+        if (vix != null && vix > 22) return 'VIX מעל 22 — הקטן פוזיציות, בלי מינוף';
+        if (p200 != null && p200 < 45) return 'רוב המניות מתחת ל-MA200 — לא זמן לקנות';
+        return 'השוק נחלש — צמצם חשיפה, העבר חלק למזומן';
     }
     if (stateKey === 'riskoff') {
-        if (vix != null && vix > 28) return 'פאניקה בשוק — שקלו חשיפה דפנסיבית / מזומן';
-        return 'לחץ שוק גבוה — גישה דפנסיבית / מזומן';
+        if (vix != null && vix > 28) return 'פאניקה בשוק — חכה שהאבק ישקע, אל תקנה עכשיו';
+        return 'השוק יורד בכל החזיתות — מזומן או שורט';
     }
     return 'ממתין לנתונים';
 }
