@@ -1438,58 +1438,6 @@
 
         <div class="stats-grid" id="statsGrid"></div>
 
-        <div class="section-group-label">Market Internals · אינטרנלים</div>
-
-        <!-- Row 1 -->
-        <div class="charts-2col">
-            <div class="chart-card">
-                <h3>רוחב שוק — % מניות מעל ממוצע נע</h3>
-                <canvas id="breadthChart"></canvas>
-                <div class="analysis-box" id="analysisBreadth"></div>
-            </div>
-            <div class="chart-card">
-                <h3>התפלגות RSI</h3>
-                <canvas id="rsiChart"></canvas>
-                <div class="analysis-box" id="analysisRsi"></div>
-            </div>
-        </div>
-
-        <!-- Row 2 -->
-        <div class="charts-2col">
-            <div class="chart-card">
-                <h3>מרחק מהשיא השנתי (52W High)</h3>
-                <canvas id="highChart"></canvas>
-                <div class="analysis-box" id="analysisHigh"></div>
-            </div>
-            <div class="chart-card">
-                <h3>Golden Cross — 50D MA מול 200D MA</h3>
-                <canvas id="goldenChart"></canvas>
-                <div class="analysis-box" id="analysisGolden"></div>
-            </div>
-        </div>
-
-        <!-- Row 3 -->
-        <div class="charts-2col">
-            <div class="chart-card">
-                <h3>בריאות סקטורים — % מניות מעל 200D MA</h3>
-                <canvas id="sectorChart"></canvas>
-                <div class="analysis-box" id="analysisSector"></div>
-            </div>
-            <div class="chart-card">
-                <h3>ציון יישור ממוצעים (0–4 MAs)</h3>
-                <canvas id="alignChart"></canvas>
-                <div class="analysis-box" id="analysisAlign"></div>
-            </div>
-        </div>
-
-        <!-- Row 4: Scatter -->
-        <div class="card">
-            <h3 class="section-title">מפת הזדמנויות — RSI מול מרחק מהשיא</h3>
-            <canvas id="scatterChart" style="max-height:380px;"></canvas>
-            <p class="scatter-note">ימין-למטה = מכירת יתר + רחוק מהשיא &nbsp;|&nbsp; שמאל-למעלה = חוזק טכני + קרוב לשיא &nbsp;|&nbsp; צבע = ציון MA (אדום=0, ירוק=4)</p>
-            <div class="analysis-box" id="analysisScatter"></div>
-        </div>
-
         <div class="section-group-label">Sector Rotation · רוטציה סקטוריאלית</div>
 
         <!-- Row 5: Sector Heatmap -->
@@ -1631,9 +1579,60 @@
 
         <!-- placeholder tabs (wired up in later phases) -->
         <section class="tab-view" data-tab-view="market">
-            <div class="tab-placeholder">
-                <h2>שוק — Market Internals</h2>
-                <p>בשלב הבא: breadth, RSI, Golden Cross, align, scatter, 52W, RVOL.</p>
+            <div class="container">
+
+                <div class="section-group-label">Market Breadth · רוחב שוק</div>
+
+                <div class="charts-2col">
+                    <div class="chart-card">
+                        <h3>רוחב שוק — % מניות מעל ממוצע נע</h3>
+                        <canvas id="breadthChart"></canvas>
+                        <div class="analysis-box" id="analysisBreadth"></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>התפלגות RSI</h3>
+                        <canvas id="rsiChart"></canvas>
+                        <div class="analysis-box" id="analysisRsi"></div>
+                    </div>
+                </div>
+
+                <div class="charts-2col">
+                    <div class="chart-card">
+                        <h3>מרחק מהשיא השנתי (52W High)</h3>
+                        <canvas id="highChart"></canvas>
+                        <div class="analysis-box" id="analysisHigh"></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Golden Cross — 50D MA מול 200D MA</h3>
+                        <canvas id="goldenChart"></canvas>
+                        <div class="analysis-box" id="analysisGolden"></div>
+                    </div>
+                </div>
+
+                <div class="section-group-label">Trend Quality · יישור ממוצעים</div>
+
+                <div class="charts-2col">
+                    <div class="chart-card">
+                        <h3>בריאות סקטורים — % מניות מעל 200D MA</h3>
+                        <canvas id="sectorChart"></canvas>
+                        <div class="analysis-box" id="analysisSector"></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>ציון יישור ממוצעים (0–4 MAs)</h3>
+                        <canvas id="alignChart"></canvas>
+                        <div class="analysis-box" id="analysisAlign"></div>
+                    </div>
+                </div>
+
+                <div class="section-group-label">Opportunity Map · מפת הזדמנויות</div>
+
+                <div class="card">
+                    <h3 class="section-title">מפת הזדמנויות — RSI מול מרחק מהשיא</h3>
+                    <canvas id="scatterChart" style="max-height:380px;"></canvas>
+                    <p class="scatter-note">ימין-למטה = מכירת יתר + רחוק מהשיא &nbsp;|&nbsp; שמאל-למעלה = חוזק טכני + קרוב לשיא &nbsp;|&nbsp; צבע = ציון MA (אדום=0, ירוק=4)</p>
+                    <div class="analysis-box" id="analysisScatter"></div>
+                </div>
+
             </div>
         </section>
         <section class="tab-view" data-tab-view="sectors">
@@ -1713,6 +1712,14 @@
         subtitle.textContent = m.s;
         try { localStorage.setItem('activeTab', tab); } catch(e) {}
         window.scrollTo({ top: 0, behavior: 'instant' });
+        // Charts in hidden tabs render at 0×0; trigger Chart.js resize once the view is visible.
+        requestAnimationFrame(() => {
+            try {
+                if (typeof Chart !== 'undefined' && Chart.instances) {
+                    Object.values(Chart.instances).forEach(c => { try { c.resize(); } catch(_){} });
+                }
+            } catch(_) {}
+        });
     }
 
     navBtns.forEach(b => b.addEventListener('click', () => activate(b.dataset.tab)));
