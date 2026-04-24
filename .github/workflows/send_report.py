@@ -577,17 +577,20 @@ def score_qualifier(v):
     if v >= 30: return 'חלש'
     return 'שלילי'
 
-def score_block(lbl, v):
+def score_block(lbl, v, desc=''):
     if v is None:
         color = '#cbd5e0'; txt = '—'
     else:
         color = '#10b981' if v >= 65 else '#f59e0b' if v >= 45 else '#ef4444'
         txt = str(v)
     qual = score_qualifier(v)
-    return (f'<td align="center" style="padding:14px 8px 12px;text-align:center;width:33%;">'
+    desc_html = (f'<div style="font-size:10px;color:#94a3b8;margin-top:6px;line-height:1.35;text-align:center;">{desc}</div>'
+                 if desc else '')
+    return (f'<td align="center" style="padding:14px 8px 12px;text-align:center;width:33%;vertical-align:top;">'
             f'<div style="font-size:11px;color:#4a5568;font-weight:600;margin-bottom:6px;text-align:center;">{lbl}</div>'
             f'<div style="font-size:26px;font-weight:700;color:{color};line-height:1;text-align:center;">{txt}</div>'
             f'<div style="font-size:10px;color:{color};font-weight:600;margin-top:4px;text-align:center;">{qual}</div>'
+            f'{desc_html}'
             f'</td>')
 
 def scores_interpretation():
@@ -661,9 +664,9 @@ s3_html = f"""
   <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:12px;text-align:right;">נתוני שוק</div>
   <table dir="rtl" style="width:100%;border-collapse:collapse;border:1px solid #edf2f7;border-radius:8px;overflow:hidden;background:#f7fafc;direction:rtl;">
     <tr>
-      {score_block('רוחב השוק', m_score)}
-      {score_block('כוח המדד', t_score)}
-      {score_block('זרימת כסף', f_score)}
+      {score_block('רוחב השוק', m_score, 'כמה מניות משתתפות במגמה')}
+      {score_block('כוח המדד', t_score, 'הטכניקה של SPX עצמו')}
+      {score_block('זרימת כסף', f_score, 'לאן זורם כסף מוסדי באופציות')}
     </tr>
   </table>
   {scores_interp_html}
@@ -675,7 +678,7 @@ s3_html = f"""
       <td align="right" style="padding:8px 12px;font-weight:600;text-align:right;"><span dir="ltr" style="unicode-bidi:isolate;">{vix_str}</span></td>
     </tr>
     <tr>
-      <td align="right" style="padding:8px 12px;color:#718096;text-align:right;">מניות במגמה עולה</td>
+      <td align="right" style="padding:8px 12px;color:#718096;text-align:right;">מניות מעל ממוצע 200 יום</td>
       <td align="right" style="padding:8px 12px;font-weight:600;text-align:right;"><span dir="ltr" style="unicode-bidi:isolate;">{int(p200)}% ({a200}/{total})</span></td>
       <td align="right" style="padding:8px 12px;color:#718096;text-align:right;">חזקות / חלשות</td>
       <td align="right" style="padding:8px 12px;font-weight:600;text-align:right;"><span dir="ltr" style="unicode-bidi:isolate;">{nh} / {nl}</span></td>
