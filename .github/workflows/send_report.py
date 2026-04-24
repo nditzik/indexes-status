@@ -729,7 +729,7 @@ html = f"""<!DOCTYPE html>
     <table dir="rtl" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;direction:rtl;">
       <tr>
         <td align="right" style="vertical-align:middle;width:128px;text-align:right;padding:4px 0;">
-          <img src="https://nditzik.github.io/indexes-status/logo.png?v=7" alt="Logo" width="112" height="auto" style="display:block;height:auto;width:112px;max-width:112px;border:0;">
+          <img src="https://nditzik.github.io/indexes-status/logo-v2.png" alt="Logo" width="112" height="auto" style="display:block;height:auto;width:112px;max-width:112px;border:0;">
         </td>
         <td align="right" style="vertical-align:middle;padding-right:0;padding-left:14px;text-align:right;">
           <div style="font-size:11px;opacity:0.7;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:4px;text-align:right;">Daily Briefing</div>
