@@ -532,8 +532,9 @@
             font-size: 22px;
             letter-spacing: -0.01em;
             line-height: 1.15;
-            margin-top: 2px;
-            transition: color 250ms ease;
+            margin-top: 3px;
+            text-shadow: 0 0 22px color-mix(in srgb, var(--mcc-accent) 32%, transparent);
+            transition: color 250ms ease, text-shadow 250ms ease;
         }
         .mcc-interp {
             color: var(--text-muted);
@@ -542,21 +543,29 @@
             line-height: 1.3;
             letter-spacing: 0.01em;
             max-width: 44ch;
-            margin-top: 2px;
+            margin-top: 5px;
         }
 
-        /* Separator between L1 and L2 */
+        /* Separators — consistent hairlines between zones */
         .mcc-sep {
             width: 1px;
             align-self: stretch;
-            margin: 8px 0;
+            margin: 10px 0;
             background: var(--border);
-            opacity: 0.9;
+            opacity: 0.85;
         }
         body.light .mcc-sep { background: #e7e5e4; }
+        /* push divider: absorbs auto-space between center and left zones */
+        .mcc-sep-push { margin-right: auto; }
 
         /* Level 2 — Score */
-        .mcc-score { display: flex; flex-direction: column; gap: 7px; min-width: 130px; }
+        .mcc-score {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            min-width: 148px;
+            margin-right: auto;
+        }
         .mcc-score-top { display: flex; align-items: baseline; gap: 6px; }
         .mcc-score-lbl {
             color: var(--text-dim);
@@ -564,11 +573,12 @@
             letter-spacing: 0.1em;
             text-transform: uppercase;
             font-weight: 400;
+            opacity: 0.6;
         }
         .mcc-score-val {
             color: var(--text);
             font-weight: 600;
-            font-size: 26px;
+            font-size: 28px;
             font-variant-numeric: tabular-nums;
             line-height: 1;
             letter-spacing: -0.02em;
@@ -577,12 +587,13 @@
             color: var(--text-dim);
             font-size: 12px;
             font-variant-numeric: tabular-nums;
+            opacity: 0.7;
         }
         .mcc-bar {
             width: 100%;
-            height: 6px;
+            height: 7px;
             background: var(--border);
-            border-radius: 3px;
+            border-radius: 4px;
             overflow: hidden;
             position: relative;
         }
@@ -618,25 +629,23 @@
         /* Level 3 — Drivers (supporting signals) */
         .mcc-drivers {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             flex-wrap: wrap;
-            margin-right: auto;
-            padding-right: 20px;
-            border-right: 1px solid var(--border);
         }
-        body.light .mcc-drivers { border-right-color: #e7e5e4; }
         .mcc-driver {
             display: inline-flex;
             align-items: baseline;
-            gap: 7px;
-            padding: 5px 11px;
-            background: rgba(255,255,255,0.025);
+            justify-content: space-between;
+            gap: 10px;
+            padding: 6px 12px;
+            min-width: 88px;
+            background: rgba(255,255,255,0.018);
             border: 1px solid var(--border);
             border-radius: 14px;
             font-size: 12px;
             transition: border-color 200ms ease, background 200ms ease;
         }
-        body.light .mcc-driver { background: rgba(0,0,0,0.015); border-color: #e7e5e4; }
+        body.light .mcc-driver { background: rgba(0,0,0,0.012); border-color: #e7e5e4; }
         .mcc-driver:hover { border-color: var(--border-strong); background: rgba(255,255,255,0.04); }
         body.light .mcc-driver:hover { background: rgba(0,0,0,0.03); }
         .mcc-driver .drv-lbl {
@@ -713,7 +722,9 @@
         .mcc-tooltip .tt-override { margin-top: 8px; padding: 6px 8px; font-size: 10px; color: var(--warn); background: rgba(245,158,11,0.06); border-radius: 4px; line-height: 1.5; }
 
         @media (max-width: 1400px) {
-            .mcc-drivers { margin-right: 0; width: 100%; order: 99; border-right: none; padding-right: 0; }
+            .mcc-sep-push { display: none; }
+            .mcc-score { margin-right: 0; }
+            .mcc-drivers { width: 100%; order: 99; }
         }
         @media (max-width: 720px) {
             .mcc { gap: 14px; padding: 12px 14px; min-height: 72px; }
@@ -721,8 +732,9 @@
             .mcc-state { font-size: 18px; }
             .mcc-interp { font-size: 11px; max-width: 100%; }
             .mcc-score { min-width: 110px; }
-            .mcc-score-val { font-size: 22px; }
-            .mcc-drivers { gap: 6px; }
+            .mcc-score-val { font-size: 24px; }
+            .mcc-drivers { gap: 8px; }
+            .mcc-driver { min-width: 0; padding: 5px 10px; }
         }
         /* KPI row · 8 compact metric cards */
         .kpi-grid {
@@ -1447,11 +1459,11 @@
                     <span class="mcc-meta-lbl">Bias</span>
                     <span class="mcc-meta-val" id="mccBias">—</span>
                 </div>
+                <div class="mcc-sep mcc-sep-push" aria-hidden="true"></div>
                 <div class="mcc-drivers" id="mccDrivers">
-                    <span class="mcc-driver"><span class="drv-lbl">VIX</span><span class="drv-val" id="drvVix">—</span></span>
-                    <span class="mcc-driver"><span class="drv-lbl">MA200</span><span class="drv-val" id="drvMa200">—</span></span>
-                    <span class="mcc-driver"><span class="drv-lbl">Dist. Days</span><span class="drv-val" id="drvDd">—</span></span>
                     <span class="mcc-driver"><span class="drv-lbl">NH/NL</span><span class="drv-val" id="drvNhnl">—</span></span>
+                    <span class="mcc-driver"><span class="drv-lbl">MA200</span><span class="drv-val" id="drvMa200">—</span></span>
+                    <span class="mcc-driver"><span class="drv-lbl">VIX</span><span class="drv-val" id="drvVix">—</span></span>
                 </div>
                 <div class="mcc-chips" id="mccChips"></div>
                 <button class="mcc-why" type="button" id="mccWhyBtn" aria-label="פירוט ציון">?</button>
@@ -3041,19 +3053,16 @@ function renderMCC() {
     const fill = document.getElementById('mccBarFill');
     if (fill) fill.style.width = (score != null ? score : 0) + '%';
 
-    // Drivers
-    const vixCls = vix == null ? '' : vix < 15 ? 'pos' : vix < 20 ? '' : vix < 25 ? 'warn' : 'neg';
+    // Drivers (Dist. Days remains a scoring input; shown in tooltip breakdown, not as a chip)
+    const vixCls  = vix == null ? '' : vix < 15 ? 'pos' : vix < 20 ? '' : vix < 25 ? 'warn' : 'neg';
     const p200Cls = p200 == null ? '' : p200 >= 55 ? 'pos' : p200 >= 40 ? 'warn' : 'neg';
-    const ddCls = hist.length < 5 ? '' : distDays <= 2 ? 'pos' : distDays <= 4 ? 'warn' : 'neg';
     const nhnlCls = nhnl == null ? '' : (nhnl === 99 || nhnl >= 1.5) ? 'pos' : nhnl >= 1.0 ? '' : 'neg';
     const drvVix = document.getElementById('drvVix');
-    const drvMa = document.getElementById('drvMa200');
-    const drvDd = document.getElementById('drvDd');
-    const drvNh = document.getElementById('drvNhnl');
+    const drvMa  = document.getElementById('drvMa200');
+    const drvNh  = document.getElementById('drvNhnl');
     if (drvVix) { drvVix.textContent = vix != null ? vix.toFixed(2) : '—'; drvVix.className = 'drv-val ' + vixCls; }
-    if (drvMa)  { drvMa.textContent = p200 != null ? p200.toFixed(1) + '%' : '—'; drvMa.className = 'drv-val ' + p200Cls; }
-    if (drvDd)  { drvDd.textContent = hist.length < 5 ? 'N/A' : distDays; drvDd.className = 'drv-val ' + ddCls; }
-    if (drvNh)  { drvNh.textContent = nhnlDisplay; drvNh.className = 'drv-val ' + nhnlCls; }
+    if (drvMa)  { drvMa.textContent  = p200 != null ? p200.toFixed(1) + '%' : '—'; drvMa.className = 'drv-val ' + p200Cls; }
+    if (drvNh)  { drvNh.textContent  = nhnlDisplay; drvNh.className = 'drv-val ' + nhnlCls; }
 
     const chipsEl = document.getElementById('mccChips');
     if (chipsEl) chipsEl.innerHTML = chips.map(c => `<span class="mcc-chip ${c.type}">${c.text}</span>`).join('');
