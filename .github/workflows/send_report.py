@@ -117,6 +117,52 @@ chg_vals   = [s['chg'] for s in stocks if s['chg'] is not None]
 avg_change = sum(chg_vals) / len(chg_vals) if chg_vals else 0
 
 # ═══════════════════════════════════════════════════
+#  Sector breakdown — who's pushing the market down / up today
+# ═══════════════════════════════════════════════════
+try:
+    with open('data/sectors.json', encoding='utf-8') as sf:
+        _sectors = json.load(sf)
+    SECTOR_MAP = _sectors.get('tickers', {})
+    SECTOR_HE  = _sectors.get('codes', {})
+except Exception as _e:
+    print(f'Sectors load skip: {_e}')
+    SECTOR_MAP, SECTOR_HE = {}, {}
+
+def sector_breakdown():
+    by_sec = {}
+    for s in stocks:
+        sec = SECTOR_MAP.get(s['sym'])
+        if not sec: continue
+        if sec not in by_sec:
+            by_sec[sec] = {'chgs': [], 'above200': 0, 'total': 0}
+        by_sec[sec]['total'] += 1
+        if s['chg'] is not None:
+            by_sec[sec]['chgs'].append(s['chg'])
+        if s['dist200'] is not None and s['dist200'] > 0:
+            by_sec[sec]['above200'] += 1
+    out = []
+    for sec, d in by_sec.items():
+        if not d['chgs']: continue
+        avg = sum(d['chgs']) / len(d['chgs'])
+        out.append({
+            'sec': sec,
+            'name': SECTOR_HE.get(sec, sec),
+            'avg_chg': avg,
+            'pct200': d['above200'] / d['total'] * 100 if d['total'] else 0,
+            'total': d['total'],
+        })
+    return out
+
+sectors_data = sector_breakdown()
+weak_sectors   = sorted(sectors_data, key=lambda x: x['avg_chg'])[:3]
+strong_sectors = sorted(sectors_data, key=lambda x: x['avg_chg'], reverse=True)[:3]
+
+def weak_sector_names(max_neg=2):
+    """Names of top weak sectors (only those actually negative)"""
+    names = [s['name'] for s in weak_sectors if s['avg_chg'] < -0.1][:max_neg]
+    return ', '.join(names) if names else ''
+
+# ═══════════════════════════════════════════════════
 #  Historical avg-change (last 25 sessions) → Dist Days + Weekly
 # ═══════════════════════════════════════════════════
 hist_files = sorted(glob.glob('data/watchlist-sp-500-intraday-*.csv'))
@@ -306,7 +352,11 @@ def narrative():
     # Tail — explain tension if present, or reinforce if clean
     tensions = []
     if len(last25) >= 5 and dist_days >= 4:
-        tensions.append(f'אבל בשבועות האחרונים היו {dist_days} ימי ירידה חזקים — כסף גדול מתחיל למכור')
+        weak_names = weak_sector_names(2)
+        if weak_names:
+            tensions.append(f'אבל יש לחץ מכירות בחלק מהסקטורים — בעיקר ב-{weak_names}')
+        else:
+            tensions.append(f'אבל ברוב הסשנים היו {dist_days} ימי ירידה רחבה — כסף גדול מתחיל למכור')
     if t_score is not None and f_score is not None and t_score - f_score >= 25:
         tensions.append('אבל הכסף הגדול לא אופטימי כמו המחיר — קונים הגנות')
     elif f_score is not None and t_score is not None and f_score - t_score >= 25:
@@ -353,9 +403,13 @@ def key_signals():
             items.append('קווי המגמה מסודרים חיובי — מגמה ארוכת-טווח חזקה')
         elif spx['ma20'] < spx['ma50'] < spx['ma200']:
             items.append('קווי המגמה מסודרים שלילי — מגמה ארוכת-טווח יורדת')
-    # 3. Distribution days (raised threshold: only show if 4+)
+    # 3. Distribution days — contextualize with today's weakest sectors
     if len(last25) >= 5 and dist_days >= 4:
-        items.append(f'{dist_days} ימי ירידה חזקים בחודש האחרון — מוסדיים מוכרים')
+        weak_names = weak_sector_names(2)
+        if weak_names:
+            items.append(f'{dist_days} ימי ירידה רחבה בחודש — החולשה מרוכזת ב-{weak_names}')
+        else:
+            items.append(f'{dist_days} ימי ירידה רחבה בחודש — רוב המניות חלשות מול SPX')
     # 4. Options premium — where the BIG money goes
     if flow and flow['pc_p'] is not None:
         if flow['pc_p'] < 0.70:
@@ -474,7 +528,11 @@ def alerts():
     if flow and flow['pc_p'] is not None and flow['pc_p'] > 1.30:
         al.append('קונים הרבה הגנות — הקהל חושש מירידה')
     if len(last25) >= 5 and dist_days >= 5:
-        al.append(f'{dist_days} ימי ירידה חזקים בחודש — מוסדיים מוכרים')
+        weak_names = weak_sector_names(2)
+        if weak_names:
+            al.append(f'{dist_days} ימי ירידה רחבה — חולשה מתרכזת ב-{weak_names}')
+        else:
+            al.append(f'{dist_days} ימי ירידה רחבה — מוסדיים מוכרים בחלק מהסקטורים')
     if t_score is not None and f_score is not None and abs(t_score - f_score) >= 30:
         al.append('המחיר והכסף הגדול לא מסתדרים — אי-התאמה משמעותית')
     if nl >= 30 and nh_nl < 0.5 and nh_nl != 99:
@@ -499,7 +557,13 @@ def action_line():
 # ═══════════════════════════════════════════════════
 date_label = ''
 if hist_files:
-    date_label = os.path.basename(hist_files[-1]).replace('watchlist-sp-500-intraday-','').replace('.csv','')
+    raw = os.path.basename(hist_files[-1]).replace('watchlist-sp-500-intraday-','').replace('.csv','')
+    # Filename format is MM-DD-YYYY; convert to Israeli DD-MM-YYYY
+    parts = raw.split('-')
+    if len(parts) == 3:
+        date_label = f'{parts[1]}-{parts[0]}-{parts[2]}'
+    else:
+        date_label = raw
 
 # ═══════════════════════════════════════════════════
 #  HTML build
@@ -661,12 +725,12 @@ html = f"""<!DOCTYPE html>
   <div dir="rtl" style="background:#0f0f11;padding:16px 22px;color:#fff;border-radius:10px;margin-bottom:12px;direction:rtl;">
     <table dir="rtl" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;direction:rtl;">
       <tr>
-        <td align="right" style="vertical-align:middle;width:64px;text-align:right;">
-          <img src="https://nditzik.github.io/indexes-status/logo.png" alt="Logo" width="56" height="auto" style="display:block;height:auto;width:56px;max-width:56px;border:0;">
+        <td align="right" style="vertical-align:middle;width:128px;text-align:right;padding:4px 0;">
+          <img src="https://nditzik.github.io/indexes-status/logo.png" alt="Logo" width="112" height="auto" style="display:block;height:auto;width:112px;max-width:112px;border:0;">
         </td>
         <td align="right" style="vertical-align:middle;padding-right:0;padding-left:14px;text-align:right;">
-          <div style="font-size:10px;opacity:0.65;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:3px;text-align:right;">Daily Briefing</div>
-          <div style="font-size:16px;font-weight:600;text-align:right;">S&amp;P 500 · {date_label}</div>
+          <div style="font-size:11px;opacity:0.7;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:4px;text-align:right;">Daily Briefing</div>
+          <div style="font-size:18px;font-weight:600;text-align:right;">S&amp;P 500 · {date_label}</div>
         </td>
         <td align="left" style="vertical-align:middle;text-align:left;">
           <a href="https://nditzik.github.io/indexes-status/" style="color:#fff;background:#3b82f6;padding:6px 12px;border-radius:6px;font-size:11px;text-decoration:none;font-weight:500;white-space:nowrap;">דשבורד ←</a>
