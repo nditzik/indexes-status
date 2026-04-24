@@ -468,6 +468,140 @@
             gap: 16px;
             margin-bottom: 28px;
         }
+
+        /* ─── Market Control Center (top command strip) ─── */
+        .mcc {
+            --mcc-accent: #64748b;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 12px 18px;
+            min-height: 62px;
+            background: #121214;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: 0 1px 0 rgba(255,255,255,0.02) inset;
+            font-size: 12px;
+            flex-wrap: wrap;
+        }
+        body.light .mcc { background: #fafaf9; border-color: #e7e5e4; }
+        .mcc::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: var(--mcc-accent);
+            border-radius: 10px 10px 0 0;
+            opacity: 0.9;
+        }
+        .mcc[data-state="bullish"]      { --mcc-accent: #10b981; }
+        .mcc[data-state="constructive"] { --mcc-accent: #14b8a6; }
+        .mcc[data-state="neutral"]      { --mcc-accent: #64748b; }
+        .mcc[data-state="caution"]      { --mcc-accent: #f59e0b; }
+        .mcc[data-state="riskoff"]      { --mcc-accent: #ef4444; }
+
+        .mcc-lead { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .mcc-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--mcc-accent);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--mcc-accent) 18%, transparent);
+        }
+        .mcc-caption { color: var(--text-muted); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; }
+        .mcc-state { color: var(--mcc-accent); font-weight: 600; font-size: 15px; letter-spacing: 0.02em; }
+
+        .mcc-score { display: flex; align-items: center; gap: 8px; padding-left: 18px; border-right: 1px solid var(--border); padding-right: 18px; }
+        body.light .mcc-score { border-right-color: #e7e5e4; }
+        .mcc-score-lbl { color: var(--text-muted); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+        .mcc-score-val { color: var(--text); font-weight: 600; font-size: 18px; font-variant-numeric: tabular-nums; }
+        .mcc-score-max { color: var(--text-dim); font-size: 11px; font-variant-numeric: tabular-nums; }
+        .mcc-bar { width: 70px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+        .mcc-bar-fill {
+            height: 100%;
+            background: var(--mcc-accent);
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .mcc-meta { display: flex; align-items: baseline; gap: 6px; }
+        .mcc-meta-lbl { color: var(--text-muted); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+        .mcc-meta-val { color: var(--text); font-weight: 500; font-size: 12px; }
+
+        .mcc-drivers { display: flex; gap: 10px; flex-wrap: wrap; margin-right: auto; }
+        .mcc-driver {
+            display: inline-flex; align-items: baseline; gap: 6px;
+            padding: 4px 10px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            font-size: 11px;
+        }
+        body.light .mcc-driver { background: rgba(0,0,0,0.02); border-color: #e7e5e4; }
+        .mcc-driver .drv-lbl { color: var(--text-muted); font-size: 10px; letter-spacing: 0.05em; }
+        .mcc-driver .drv-val { color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
+        .mcc-driver .drv-val.pos { color: var(--pos); }
+        .mcc-driver .drv-val.neg { color: var(--neg); }
+        .mcc-driver .drv-val.warn { color: var(--warn); }
+
+        .mcc-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+        .mcc-chip {
+            padding: 3px 8px;
+            font-size: 10px;
+            border-radius: 4px;
+            border: 1px solid;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+        .mcc-chip.warn { color: #f59e0b; border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.08); }
+        .mcc-chip.neg  { color: #ef4444; border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.08); }
+        .mcc-chip.info { color: #60a5fa; border-color: rgba(96,165,250,0.3); background: rgba(96,165,250,0.08); }
+
+        .mcc-why {
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.15s;
+        }
+        .mcc-why:hover { border-color: var(--mcc-accent); color: var(--text); }
+
+        .mcc-tooltip {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 12px;
+            min-width: 300px;
+            background: #0f0f11;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 100;
+            font-size: 11px;
+        }
+        body.light .mcc-tooltip { background: #fff; border-color: #e7e5e4; box-shadow: 0 10px 30px rgba(0,0,0,0.12); }
+        .mcc-tooltip[hidden] { display: none; }
+        .mcc-tooltip .tt-title { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+        .mcc-tooltip .tt-row { display: flex; justify-content: space-between; gap: 16px; padding: 3px 0; font-variant-numeric: tabular-nums; }
+        .mcc-tooltip .tt-row .tt-lbl { color: var(--text-muted); }
+        .mcc-tooltip .tt-row .tt-val { color: var(--text); font-weight: 500; }
+        .mcc-tooltip .tt-total { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); font-weight: 600; color: var(--text); }
+        .mcc-tooltip .tt-note { margin-top: 8px; padding: 6px 8px; font-size: 10px; color: var(--text-muted); background: rgba(96,165,250,0.06); border-radius: 4px; line-height: 1.5; }
+        .mcc-tooltip .tt-override { margin-top: 8px; padding: 6px 8px; font-size: 10px; color: var(--warn); background: rgba(245,158,11,0.06); border-radius: 4px; line-height: 1.5; }
+
+        @media (max-width: 1400px) {
+            .mcc-drivers { margin-right: 0; width: 100%; order: 99; }
+        }
+        @media (max-width: 720px) {
+            .mcc { gap: 12px; padding: 10px 12px; }
+            .mcc-score { padding: 0 10px 0 0; border-right: none; }
+            .mcc-state { font-size: 13px; }
+            .mcc-score-val { font-size: 16px; }
+            .mcc-drivers { gap: 6px; }
+        }
         /* KPI row · 8 compact metric cards */
         .kpi-grid {
             display: grid;
@@ -1163,6 +1297,38 @@
 
         <!-- ══════════ PHASE 2: NEW OVERVIEW ══════════ -->
         <div class="overview-v2" id="overviewV2" style="display:none;">
+
+            <!-- Market Control Center · command strip -->
+            <section class="mcc" id="mcc" data-state="neutral" aria-label="Market Control Center">
+                <div class="mcc-lead">
+                    <span class="mcc-dot"></span>
+                    <span class="mcc-caption">מצב השוק</span>
+                    <span class="mcc-state" id="mccState">—</span>
+                </div>
+                <div class="mcc-score">
+                    <span class="mcc-score-lbl">Score</span>
+                    <span class="mcc-score-val" id="mccScore">—</span>
+                    <span class="mcc-score-max">/100</span>
+                    <div class="mcc-bar"><div class="mcc-bar-fill" id="mccBarFill"></div></div>
+                </div>
+                <div class="mcc-meta">
+                    <span class="mcc-meta-lbl">Risk</span>
+                    <span class="mcc-meta-val" id="mccRisk">—</span>
+                </div>
+                <div class="mcc-meta">
+                    <span class="mcc-meta-lbl">Bias</span>
+                    <span class="mcc-meta-val" id="mccBias">—</span>
+                </div>
+                <div class="mcc-drivers" id="mccDrivers">
+                    <span class="mcc-driver"><span class="drv-lbl">VIX</span><span class="drv-val" id="drvVix">—</span></span>
+                    <span class="mcc-driver"><span class="drv-lbl">MA200</span><span class="drv-val" id="drvMa200">—</span></span>
+                    <span class="mcc-driver"><span class="drv-lbl">Dist. Days</span><span class="drv-val" id="drvDd">—</span></span>
+                    <span class="mcc-driver"><span class="drv-lbl">NH/NL</span><span class="drv-val" id="drvNhnl">—</span></span>
+                </div>
+                <div class="mcc-chips" id="mccChips"></div>
+                <button class="mcc-why" type="button" id="mccWhyBtn" aria-label="פירוט ציון">?</button>
+                <div class="mcc-tooltip" id="mccTooltip" role="tooltip" hidden></div>
+            </section>
 
             <!-- KPI row -->
             <div class="kpi-grid" id="kpiGrid">
@@ -2245,6 +2411,7 @@ async function autoLoadHistory(t) {
                             renderHistoryUI();
                         }
                         try { renderOverviewV2(); } catch(e) { console.error('renderOverviewV2 (post-history)', e); }
+                        try { renderMCC(); } catch(e) { console.error('renderMCC (post-history)', e); }
                         try { renderChangesBlock(); } catch(e) { console.error('renderChangesBlock (post-history)', e); }
                     }
                 });
@@ -2479,6 +2646,7 @@ function processData() {
     renderTable();
     generateDailySummary();
     try { renderOverviewV2(); } catch (e) { console.error('renderOverviewV2', e); }
+    try { renderMCC(); } catch (e) { console.error('renderMCC', e); }
     try { renderFavorites(); } catch (e) { console.error('renderFavorites', e); }
     try { if (window.updateMarketStatus) window.updateMarketStatus(); } catch(e) {}
 }
@@ -2575,6 +2743,193 @@ function fmtDelta(v, unit, digits) {
     return s + d.toFixed(digits == null ? 2 : digits) + (unit || '');
 }
 function deltaClass(v) { return v > 0 ? 'pos' : v < 0 ? 'neg' : 'muted'; }
+
+/* ═══════════════════════════════════════════════════════════
+   MARKET CONTROL CENTER · top command strip
+   Scoring + state classification + tooltip breakdown.
+   ═══════════════════════════════════════════════════════════ */
+function renderMCC() {
+    const root = document.getElementById('mcc');
+    if (!root || typeof M !== 'object' || !M) return;
+    const hist = (typeof historyData !== 'undefined' && Array.isArray(historyData)) ? historyData : [];
+    const prev = hist.length >= 2 ? hist[hist.length - 2].metrics : null;
+
+    // ─── Gather inputs ───
+    const p200      = (M.a200 != null && M.total) ? (M.a200 / M.total * 100) : null;
+    const vix       = M.vix;
+    const vixPrev   = prev ? prev.vix : null;
+    const vixPctChg = (vix != null && vixPrev != null && vixPrev > 0) ? (vix - vixPrev) / vixPrev * 100 : null;
+    const breadth   = M.healthScore;
+    const nhnl      = (M.nhNlRatio != null && M.nhNlRatio !== 99) ? M.nhNlRatio : (M.nhNlRatio === 99 ? 99 : null);
+    const fg        = (typeof calcFearGreed === 'function' && M) ? calcFearGreed(M) : null;
+
+    // Distribution Days proxy — last 25 sessions with avgChange < -0.2% (no volume check available)
+    const last25 = hist.slice(-25);
+    const distDays = last25.filter(h => h.metrics && typeof h.metrics.avgChange === 'number' && h.metrics.avgChange < -0.2).length;
+
+    // Weekly market change — sum of last 5 sessions' avgChange
+    const last5 = hist.slice(-5);
+    const weekChg = last5.length ? last5.reduce((s, h) => s + (h.metrics && typeof h.metrics.avgChange === 'number' ? h.metrics.avgChange : 0), 0) : null;
+
+    // ─── Score components ───
+    const parts = [];
+    const add = (label, value, max) => parts.push({ label, value, max });
+
+    // 1. % Above 200 MA (max 25)
+    if (p200 != null) {
+        let s = p200 >= 65 ? 25 : p200 >= 50 ? 18 : p200 >= 40 ? 10 : 3;
+        add('MA200 (' + p200.toFixed(1) + '%)', s, 25);
+    } else add('MA200', null, 25);
+
+    // 2. VIX (max 20)
+    if (vix != null) {
+        let s = vix < 15 ? 20 : vix < 20 ? 15 : vix < 25 ? 8 : 2;
+        add('VIX (' + vix.toFixed(2) + ')', s, 20);
+    } else add('VIX', null, 20);
+
+    // VIX change modifier (-5 / 0 / +5)
+    let vixMod = 0;
+    if (vixPctChg != null) {
+        if (vixPctChg > 10) vixMod = -5;
+        else if (vixPctChg < -10) vixMod = +5;
+    }
+    if (vixPctChg != null) add('VIX Δ (' + (vixPctChg>0?'+':'') + vixPctChg.toFixed(1) + '%)', vixMod, null);
+
+    // 3. Distribution Days (max 15)
+    let ddScore;
+    if (hist.length < 5) ddScore = null;
+    else ddScore = distDays <= 2 ? 15 : distDays <= 4 ? 8 : 2;
+    add('Dist. Days (' + (hist.length < 5 ? 'N/A' : distDays) + ')', ddScore, 15);
+
+    // 4. Breadth / Health Score (max 15)
+    let brScore;
+    if (breadth != null) brScore = breadth >= 70 ? 15 : breadth >= 55 ? 10 : breadth >= 40 ? 5 : 1;
+    else brScore = null;
+    add('Breadth (' + (breadth != null ? breadth : 'N/A') + ')', brScore, 15);
+
+    // 5. NH/NL Ratio (max 10)
+    let nhnlScore;
+    const nhnlDisplay = nhnl === 99 ? '∞' : (nhnl != null ? nhnl.toFixed(2) : 'N/A');
+    if (nhnl != null) {
+        const n = nhnl === 99 ? 99 : nhnl;
+        nhnlScore = n >= 1.5 ? 10 : n >= 1.0 ? 7 : n >= 0.7 ? 3 : 0;
+    } else nhnlScore = null;
+    add('NH/NL (' + nhnlDisplay + ')', nhnlScore, 10);
+
+    // 6. Fear & Greed (max 10)
+    let fgScore;
+    if (fg != null) fgScore = (fg >= 45 && fg <= 70) ? 10 : (fg > 70 && fg <= 85) ? 6 : (fg >= 25 && fg < 45) ? 5 : 2;
+    else fgScore = null;
+    add('F&G (' + (fg != null ? fg : 'N/A') + ')', fgScore, 10);
+
+    // 7. Weekly change (max 5)
+    let wkScore;
+    if (weekChg != null && last5.length >= 3) wkScore = weekChg > 0.5 ? 5 : weekChg >= -0.5 ? 3 : 0;
+    else wkScore = null;
+    const wkDisplay = (weekChg != null && last5.length >= 3) ? (weekChg>0?'+':'') + weekChg.toFixed(2) + '%' : 'N/A';
+    add('Weekly (' + wkDisplay + ')', wkScore, 5);
+
+    // ─── Aggregate score ───
+    let earned = 0, maxAvail = 0;
+    parts.forEach(p => { if (p.value != null) { earned += p.value; maxAvail += (p.max != null ? p.max : 0); } });
+    // VIX modifier doesn't add to max (it's a modifier, not a component)
+    const normalized = maxAvail > 0 ? Math.round(earned / maxAvail * 100) : null;
+    const score = normalized != null ? Math.max(0, Math.min(100, normalized)) : null;
+
+    // ─── State classification ───
+    const classify = (s) => {
+        if (s == null) return { key: 'neutral', label: 'ממתין לנתונים', en: 'NEUTRAL', risk: '—', bias: '—' };
+        if (s >= 80) return { key: 'bullish', label: 'שורי', en: 'BULLISH', risk: 'Low / Moderate', bias: 'Broad Exposure' };
+        if (s >= 65) return { key: 'constructive', label: 'חיובי זהיר', en: 'CONSTRUCTIVE', risk: 'Moderate', bias: 'Selective Longs' };
+        if (s >= 45) return { key: 'neutral', label: 'ניטרלי', en: 'NEUTRAL', risk: 'Medium', bias: 'Selective / Balanced' };
+        if (s >= 30) return { key: 'caution', label: 'זהירות', en: 'CAUTION', risk: 'Elevated', bias: 'Reduce Risk' };
+        return { key: 'riskoff', label: 'סיכון גבוה', en: 'RISK-OFF', risk: 'High', bias: 'Defensive / Cash' };
+    };
+    let state = classify(score);
+
+    // ─── Override rules ───
+    const overrides = [];
+    if (vix != null && vix > 25 && distDays >= 5) {
+        state = classify(15); overrides.push('VIX>25 & Dist.Days≥5 → RISK-OFF');
+    }
+    if (p200 != null && p200 < 40 && nhnl != null && nhnl !== 99 && nhnl < 0.7) {
+        if (score != null && score < 35) { state = classify(15); overrides.push('MA200<40% & NH/NL<0.7 & Score<35 → RISK-OFF'); }
+        else { state = classify(35); overrides.push('MA200<40% & NH/NL<0.7 → CAUTION (minimum)'); }
+    }
+    if (p200 != null && p200 > 65 && vix != null && vix < 18 && distDays <= 2 && hist.length >= 5) {
+        if (state.key === 'neutral' || state.key === 'caution' || state.key === 'riskoff') {
+            state = classify(65); overrides.push('MA200>65% & VIX<18 & Dist.Days≤2 → CONSTRUCTIVE (minimum)');
+        }
+    }
+
+    // ─── Warning chips ───
+    const chips = [];
+    if (fg != null && fg > 85) chips.push({ type:'warn', text:'Extreme Greed — סיכון התחממות קצר-טווח' });
+    if (fg != null && fg < 20) chips.push({ type:'warn', text:'Extreme Fear — סביבת תנודתיות גבוהה' });
+
+    // ─── Apply to DOM ───
+    root.dataset.state = state.key;
+    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setText('mccState', state.label);
+    setText('mccScore', score != null ? score : '—');
+    setText('mccRisk', state.risk);
+    setText('mccBias', state.bias);
+    const fill = document.getElementById('mccBarFill');
+    if (fill) fill.style.width = (score != null ? score : 0) + '%';
+
+    // Drivers
+    const vixCls = vix == null ? '' : vix < 15 ? 'pos' : vix < 20 ? '' : vix < 25 ? 'warn' : 'neg';
+    const p200Cls = p200 == null ? '' : p200 >= 55 ? 'pos' : p200 >= 40 ? 'warn' : 'neg';
+    const ddCls = hist.length < 5 ? '' : distDays <= 2 ? 'pos' : distDays <= 4 ? 'warn' : 'neg';
+    const nhnlCls = nhnl == null ? '' : (nhnl === 99 || nhnl >= 1.5) ? 'pos' : nhnl >= 1.0 ? '' : 'neg';
+    const drvVix = document.getElementById('drvVix');
+    const drvMa = document.getElementById('drvMa200');
+    const drvDd = document.getElementById('drvDd');
+    const drvNh = document.getElementById('drvNhnl');
+    if (drvVix) { drvVix.textContent = vix != null ? vix.toFixed(2) : '—'; drvVix.className = 'drv-val ' + vixCls; }
+    if (drvMa)  { drvMa.textContent = p200 != null ? p200.toFixed(1) + '%' : '—'; drvMa.className = 'drv-val ' + p200Cls; }
+    if (drvDd)  { drvDd.textContent = hist.length < 5 ? 'N/A' : distDays; drvDd.className = 'drv-val ' + ddCls; }
+    if (drvNh)  { drvNh.textContent = nhnlDisplay; drvNh.className = 'drv-val ' + nhnlCls; }
+
+    const chipsEl = document.getElementById('mccChips');
+    if (chipsEl) chipsEl.innerHTML = chips.map(c => `<span class="mcc-chip ${c.type}">${c.text}</span>`).join('');
+
+    // ─── Tooltip breakdown ───
+    const tt = document.getElementById('mccTooltip');
+    if (tt) {
+        const rows = parts.map(p => {
+            const v = p.value == null ? 'N/A' : (p.value >= 0 ? '+' + p.value : String(p.value));
+            const suffix = p.max != null ? ' / ' + p.max : '';
+            return `<div class="tt-row"><span class="tt-lbl">${p.label}</span><span class="tt-val">${v}${suffix}</span></div>`;
+        }).join('');
+        const noteParts = [];
+        if (hist.length < 5) noteParts.push('Distribution Days ו-Weekly Change דורשים ≥5 ימי היסטוריה.');
+        noteParts.push('Distribution Days — קירוב: ימים עם שינוי ממוצע &lt; -0.2% ב-25 הסשנים האחרונים (ללא בדיקת נפח, בניגוד לתקן IBD).');
+        tt.innerHTML = `
+            <div class="tt-title">Market Score Breakdown</div>
+            ${rows}
+            <div class="tt-row tt-total"><span>Normalized</span><span>${score != null ? score + ' / 100' : 'N/A'}</span></div>
+            ${overrides.length ? `<div class="tt-override"><b>Override:</b><br>${overrides.join('<br>')}</div>` : ''}
+            <div class="tt-note">${noteParts.join('<br>')}</div>
+        `;
+    }
+}
+
+/* Tooltip open/close */
+(function initMccTooltip() {
+    const handler = (e) => {
+        const btn = document.getElementById('mccWhyBtn');
+        const tt  = document.getElementById('mccTooltip');
+        if (!btn || !tt) return;
+        if (e.target === btn) {
+            tt.hidden = !tt.hidden;
+            e.stopPropagation();
+        } else if (!tt.contains(e.target)) {
+            tt.hidden = true;
+        }
+    };
+    document.addEventListener('click', handler);
+})();
 
 function renderOverviewV2() {
     const root = document.getElementById('overviewV2');
