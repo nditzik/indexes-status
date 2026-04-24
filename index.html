@@ -475,15 +475,16 @@
             position: relative;
             display: flex;
             align-items: center;
-            gap: 20px;
-            padding: 12px 18px;
-            min-height: 62px;
+            gap: 28px;
+            padding: 16px 24px;
+            min-height: 78px;
             background: #121214;
             border: 1px solid var(--border);
             border-radius: 10px;
             box-shadow: 0 1px 0 rgba(255,255,255,0.02) inset;
             font-size: 12px;
             flex-wrap: wrap;
+            transition: border-color 200ms ease;
         }
         body.light .mcc { background: #fafaf9; border-color: #e7e5e4; }
         .mcc::before {
@@ -493,7 +494,8 @@
             height: 2px;
             background: var(--mcc-accent);
             border-radius: 10px 10px 0 0;
-            opacity: 0.9;
+            opacity: 0.95;
+            transition: background 250ms ease;
         }
         .mcc[data-state="bullish"]      { --mcc-accent: #10b981; }
         .mcc[data-state="constructive"] { --mcc-accent: #14b8a6; }
@@ -501,46 +503,159 @@
         .mcc[data-state="caution"]      { --mcc-accent: #f59e0b; }
         .mcc[data-state="riskoff"]      { --mcc-accent: #ef4444; }
 
-        .mcc-lead { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        /* Level 1 — Market State (visual anchor) */
+        .mcc-lead { display: flex; align-items: center; gap: 14px; min-width: 0; }
         .mcc-dot {
-            width: 8px; height: 8px; border-radius: 50%;
+            width: 10px; height: 10px; border-radius: 50%;
             background: var(--mcc-accent);
-            box-shadow: 0 0 0 3px color-mix(in srgb, var(--mcc-accent) 18%, transparent);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--mcc-accent) 22%, transparent);
+            animation: mccDotPulse 2.4s ease-in-out infinite;
+            flex-shrink: 0;
+            transition: background 250ms ease;
         }
-        .mcc-caption { color: var(--text-muted); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; }
-        .mcc-state { color: var(--mcc-accent); font-weight: 600; font-size: 15px; letter-spacing: 0.02em; }
+        @keyframes mccDotPulse {
+            0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--mcc-accent) 22%, transparent); }
+            50%      { box-shadow: 0 0 0 7px color-mix(in srgb, var(--mcc-accent) 9%, transparent); }
+        }
+        .mcc-lead-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .mcc-caption {
+            color: var(--text-dim);
+            font-size: 10px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-weight: 400;
+            line-height: 1;
+        }
+        .mcc-state {
+            color: var(--mcc-accent);
+            font-weight: 700;
+            font-size: 22px;
+            letter-spacing: -0.01em;
+            line-height: 1.15;
+            margin-top: 2px;
+            transition: color 250ms ease;
+        }
+        .mcc-interp {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 400;
+            line-height: 1.3;
+            letter-spacing: 0.01em;
+            max-width: 44ch;
+            margin-top: 2px;
+        }
 
-        .mcc-score { display: flex; align-items: center; gap: 8px; padding-left: 18px; border-right: 1px solid var(--border); padding-right: 18px; }
-        body.light .mcc-score { border-right-color: #e7e5e4; }
-        .mcc-score-lbl { color: var(--text-muted); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
-        .mcc-score-val { color: var(--text); font-weight: 600; font-size: 18px; font-variant-numeric: tabular-nums; }
-        .mcc-score-max { color: var(--text-dim); font-size: 11px; font-variant-numeric: tabular-nums; }
-        .mcc-bar { width: 70px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+        /* Separator between L1 and L2 */
+        .mcc-sep {
+            width: 1px;
+            align-self: stretch;
+            margin: 8px 0;
+            background: var(--border);
+            opacity: 0.9;
+        }
+        body.light .mcc-sep { background: #e7e5e4; }
+
+        /* Level 2 — Score */
+        .mcc-score { display: flex; flex-direction: column; gap: 7px; min-width: 130px; }
+        .mcc-score-top { display: flex; align-items: baseline; gap: 6px; }
+        .mcc-score-lbl {
+            color: var(--text-dim);
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-weight: 400;
+        }
+        .mcc-score-val {
+            color: var(--text);
+            font-weight: 600;
+            font-size: 26px;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+            letter-spacing: -0.02em;
+        }
+        .mcc-score-max {
+            color: var(--text-dim);
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+        }
+        .mcc-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+        body.light .mcc-bar { background: #e7e5e4; }
         .mcc-bar-fill {
             height: 100%;
-            background: var(--mcc-accent);
+            background: linear-gradient(90deg,
+                color-mix(in srgb, var(--mcc-accent) 65%, transparent),
+                var(--mcc-accent));
             width: 0%;
-            transition: width 0.4s ease;
+            transition: width 600ms cubic-bezier(0.2, 0.8, 0.2, 1), background 250ms ease;
+            border-radius: inherit;
         }
 
-        .mcc-meta { display: flex; align-items: baseline; gap: 6px; }
-        .mcc-meta-lbl { color: var(--text-muted); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
-        .mcc-meta-val { color: var(--text); font-weight: 500; font-size: 12px; }
+        /* Level 2 — Risk / Bias */
+        .mcc-meta { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+        .mcc-meta-lbl {
+            color: var(--text-dim);
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-weight: 400;
+            line-height: 1;
+        }
+        .mcc-meta-val {
+            color: var(--text);
+            font-weight: 500;
+            font-size: 13px;
+            letter-spacing: 0.01em;
+            line-height: 1.2;
+        }
 
-        .mcc-drivers { display: flex; gap: 10px; flex-wrap: wrap; margin-right: auto; }
+        /* Level 3 — Drivers (supporting signals) */
+        .mcc-drivers {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-right: auto;
+            padding-right: 20px;
+            border-right: 1px solid var(--border);
+        }
+        body.light .mcc-drivers { border-right-color: #e7e5e4; }
         .mcc-driver {
-            display: inline-flex; align-items: baseline; gap: 6px;
-            padding: 4px 10px;
-            background: rgba(255,255,255,0.03);
+            display: inline-flex;
+            align-items: baseline;
+            gap: 7px;
+            padding: 5px 11px;
+            background: rgba(255,255,255,0.025);
             border: 1px solid var(--border);
             border-radius: 14px;
-            font-size: 11px;
+            font-size: 12px;
+            transition: border-color 200ms ease, background 200ms ease;
         }
-        body.light .mcc-driver { background: rgba(0,0,0,0.02); border-color: #e7e5e4; }
-        .mcc-driver .drv-lbl { color: var(--text-muted); font-size: 10px; letter-spacing: 0.05em; }
-        .mcc-driver .drv-val { color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
-        .mcc-driver .drv-val.pos { color: var(--pos); }
-        .mcc-driver .drv-val.neg { color: var(--neg); }
+        body.light .mcc-driver { background: rgba(0,0,0,0.015); border-color: #e7e5e4; }
+        .mcc-driver:hover { border-color: var(--border-strong); background: rgba(255,255,255,0.04); }
+        body.light .mcc-driver:hover { background: rgba(0,0,0,0.03); }
+        .mcc-driver .drv-lbl {
+            color: var(--text-dim);
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        .mcc-driver .drv-val {
+            color: var(--text);
+            font-weight: 500;
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.01em;
+            transition: color 250ms ease;
+        }
+        .mcc-driver .drv-val.pos  { color: var(--pos); }
+        .mcc-driver .drv-val.neg  { color: var(--neg); }
         .mcc-driver .drv-val.warn { color: var(--warn); }
 
         .mcc-chips { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -557,7 +672,7 @@
         .mcc-chip.info { color: #60a5fa; border-color: rgba(96,165,250,0.3); background: rgba(96,165,250,0.08); }
 
         .mcc-why {
-            width: 22px; height: 22px;
+            width: 24px; height: 24px;
             border-radius: 50%;
             background: transparent;
             border: 1px solid var(--border);
@@ -565,9 +680,14 @@
             font-size: 12px;
             cursor: pointer;
             font-weight: 500;
-            transition: all 0.15s;
+            transition: all 180ms ease;
+            flex-shrink: 0;
         }
-        .mcc-why:hover { border-color: var(--mcc-accent); color: var(--text); }
+        .mcc-why:hover {
+            border-color: var(--mcc-accent);
+            color: var(--text);
+            background: color-mix(in srgb, var(--mcc-accent) 10%, transparent);
+        }
 
         .mcc-tooltip {
             position: absolute;
@@ -593,13 +713,15 @@
         .mcc-tooltip .tt-override { margin-top: 8px; padding: 6px 8px; font-size: 10px; color: var(--warn); background: rgba(245,158,11,0.06); border-radius: 4px; line-height: 1.5; }
 
         @media (max-width: 1400px) {
-            .mcc-drivers { margin-right: 0; width: 100%; order: 99; }
+            .mcc-drivers { margin-right: 0; width: 100%; order: 99; border-right: none; padding-right: 0; }
         }
         @media (max-width: 720px) {
-            .mcc { gap: 12px; padding: 10px 12px; }
-            .mcc-score { padding: 0 10px 0 0; border-right: none; }
-            .mcc-state { font-size: 13px; }
-            .mcc-score-val { font-size: 16px; }
+            .mcc { gap: 14px; padding: 12px 14px; min-height: 72px; }
+            .mcc-sep { display: none; }
+            .mcc-state { font-size: 18px; }
+            .mcc-interp { font-size: 11px; max-width: 100%; }
+            .mcc-score { min-width: 110px; }
+            .mcc-score-val { font-size: 22px; }
             .mcc-drivers { gap: 6px; }
         }
         /* KPI row · 8 compact metric cards */
@@ -1301,14 +1423,20 @@
             <!-- Market Control Center · command strip -->
             <section class="mcc" id="mcc" data-state="neutral" aria-label="Market Control Center">
                 <div class="mcc-lead">
-                    <span class="mcc-dot"></span>
-                    <span class="mcc-caption">מצב השוק</span>
-                    <span class="mcc-state" id="mccState">—</span>
+                    <span class="mcc-dot" aria-hidden="true"></span>
+                    <div class="mcc-lead-text">
+                        <div class="mcc-caption">מצב השוק</div>
+                        <div class="mcc-state" id="mccState">—</div>
+                        <div class="mcc-interp" id="mccInterp">—</div>
+                    </div>
                 </div>
+                <div class="mcc-sep" aria-hidden="true"></div>
                 <div class="mcc-score">
-                    <span class="mcc-score-lbl">Score</span>
-                    <span class="mcc-score-val" id="mccScore">—</span>
-                    <span class="mcc-score-max">/100</span>
+                    <div class="mcc-score-top">
+                        <span class="mcc-score-lbl">Score</span>
+                        <span class="mcc-score-val" id="mccScore">—</span>
+                        <span class="mcc-score-max">/100</span>
+                    </div>
                     <div class="mcc-bar"><div class="mcc-bar-fill" id="mccBarFill"></div></div>
                 </div>
                 <div class="mcc-meta">
@@ -2748,6 +2876,36 @@ function deltaClass(v) { return v > 0 ? 'pos' : v < 0 ? 'neg' : 'muted'; }
    MARKET CONTROL CENTER · top command strip
    Scoring + state classification + tooltip breakdown.
    ═══════════════════════════════════════════════════════════ */
+function mccInterp(stateKey, ctx) {
+    const { vix, p200, distDays, nhnl, fg, weekChg, histLen } = ctx;
+    if (stateKey === 'bullish') {
+        if (fg != null && fg > 85) return 'שוק חזק אך חם — היזהרו מהתקררות קצרה';
+        if (weekChg != null && weekChg < 0 && histLen >= 5) return 'מבנה חיובי למרות שבוע חלש — מומנטום שמור';
+        return 'מומנטום רחב — חלון חיובי להגדלת חשיפה';
+    }
+    if (stateKey === 'constructive') {
+        if (distDays >= 3 && histLen >= 5) return 'שוק תומך עם לחץ חלוקה — סלקטיביות נדרשת';
+        if (fg != null && fg > 80) return 'שוק תומך אך חם — לונגים סלקטיביים';
+        return 'שוק תומך — לונגים סלקטיביים וניהול סיכונים';
+    }
+    if (stateKey === 'neutral') {
+        if (distDays >= 4 && histLen >= 5) return 'לחץ חלוקה מצטבר — סלקטיביות מוקפדת';
+        if (nhnl != null && nhnl !== 99 && nhnl < 0.7) return 'רוחב נחלש — שימו לב לאשליית עלייה';
+        if (vix != null && vix >= 20) return 'תנודתיות עולה — גישה מאוזנת';
+        return 'איתותים מעורבים — סלקטיביות נדרשת';
+    }
+    if (stateKey === 'caution') {
+        if (vix != null && vix > 22) return 'תנודתיות עולה — הפחיתו סיכון ומינוף';
+        if (p200 != null && p200 < 45) return 'רוחב שוק נחלש — גישה זהירה';
+        return 'לחץ שוק עולה — גישה זהירה';
+    }
+    if (stateKey === 'riskoff') {
+        if (vix != null && vix > 28) return 'פאניקה בשוק — שקלו חשיפה דפנסיבית / מזומן';
+        return 'לחץ שוק גבוה — גישה דפנסיבית / מזומן';
+    }
+    return 'ממתין לנתונים';
+}
+
 function renderMCC() {
     const root = document.getElementById('mcc');
     if (!root || typeof M !== 'object' || !M) return;
@@ -2867,10 +3025,16 @@ function renderMCC() {
     if (fg != null && fg > 85) chips.push({ type:'warn', text:'Extreme Greed — סיכון התחממות קצר-טווח' });
     if (fg != null && fg < 20) chips.push({ type:'warn', text:'Extreme Fear — סביבת תנודתיות גבוהה' });
 
+    // ─── Interpretation sentence (context-aware, one line) ───
+    const interp = mccInterp(state.key, {
+        vix, p200, distDays, nhnl, fg, weekChg, histLen: hist.length
+    });
+
     // ─── Apply to DOM ───
     root.dataset.state = state.key;
     const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     setText('mccState', state.label);
+    setText('mccInterp', interp);
     setText('mccScore', score != null ? score : '—');
     setText('mccRisk', state.risk);
     setText('mccBias', state.bias);
