@@ -515,8 +515,43 @@ def weak_meaning(s):
         return 'חולשה ברורה'
     return 'נחלשת'
 
-strong = sorted(stocks, key=momentum, reverse=True)[:5]
-weak   = sorted(stocks, key=weakness, reverse=True)[:5]
+def is_rebound(s):
+    """
+    Rebound candidate: oversold OR weak-RSI + has at least one MA support + volume spike + actually pulled back.
+    Logic: stock is beaten down but institutions may be accumulating.
+    """
+    return (s['rsi'] in ('Below 30','New Below 30','Below 50','New Below 50')
+            and s['ma_score'] >= 1
+            and s['rvol'] > 1.2
+            and s['w52'] < -15)
+
+def rebound_score(s):
+    """Rank rebound candidates — prefer deep oversold with strong volume"""
+    sc = 0
+    if s['rsi'] in ('Below 30','New Below 30'): sc += 30  # deeper oversold
+    elif s['rsi'] in ('Below 50','New Below 50'): sc += 15
+    sc += min(s['rvol'], 5) * 10                          # volume confirmation (up to 50)
+    sc += s['ma_score'] * 5                               # MA support intact
+    if s['chg'] is not None and s['chg'] > 0: sc += 10    # turning up today
+    return sc
+
+def rebound_meaning(s):
+    rvol = s['rvol']
+    if s['rsi'] in ('Below 30','New Below 30') and rvol > 2:
+        return 'מכירת יתר עמוקה + נפח חריג'
+    if s['rsi'] in ('Below 30','New Below 30'):
+        return 'מכירת יתר — קצה התחתית'
+    if rvol > 2.5:
+        return 'נפח גבוה — מוסדיים נכנסים'
+    if s['chg'] is not None and s['chg'] > 1:
+        return 'מכירת יתר + מתחילה להתהפך'
+    if s['ma_score'] >= 2:
+        return 'נחלשה אך מחזיקה תמיכות'
+    return 'מכירת יתר — נפח מצטבר'
+
+strong   = sorted(stocks, key=momentum, reverse=True)[:5]
+weak     = sorted(stocks, key=weakness, reverse=True)[:5]
+rebound  = sorted([s for s in stocks if is_rebound(s)], key=rebound_score, reverse=True)[:5]
 
 # ═══════════════════════════════════════════════════
 #  Section 5 — alerts (only if relevant)
@@ -609,9 +644,14 @@ def scores_interpretation():
         return 'המדד חזק אבל רוב המניות פחות — להיזהר מהכללה'
     return 'תמונה מעורבת — כדאי לעקוב לפני פעולה'
 
-def stock_row(s, pos=True):
-    meaning = strong_meaning(s) if pos else weak_meaning(s)
-    meaning_color = '#2f855a' if pos else '#c53030'
+def stock_row(s, kind='strong'):
+    """kind: 'strong' | 'weak' | 'rebound' — determines meaning + color"""
+    if kind == 'strong':
+        meaning = strong_meaning(s); meaning_color = '#2f855a'
+    elif kind == 'rebound':
+        meaning = rebound_meaning(s); meaning_color = '#b7791f'  # amber/gold
+    else:
+        meaning = weak_meaning(s); meaning_color = '#c53030'
     return (f'<tr>'
             f'<td align="right" dir="ltr" style="padding:8px 10px;font-weight:700;color:#2b6cb0;width:70px;text-align:right;font-size:13px;">{s["sym"]}</td>'
             f'<td align="right" style="padding:8px 10px;color:{meaning_color};font-size:13px;font-weight:500;text-align:right;">— {meaning}</td>'
@@ -687,16 +727,22 @@ s3_html = f"""
 </div>
 """
 
-strong_rows = ''.join(stock_row(s, True) for s in strong)
-weak_rows   = ''.join(stock_row(s, False) for s in weak)
+strong_rows  = ''.join(stock_row(s, 'strong') for s in strong)
+weak_rows    = ''.join(stock_row(s, 'weak') for s in weak)
+rebound_rows = ''.join(stock_row(s, 'rebound') for s in rebound)
+rebound_section_html = (f'''<tr style="background:#fffbeb;"><td align="right" colspan="2" style="padding:8px 10px;font-size:12px;color:#b7791f;font-weight:700;text-align:right;">↺ מועמדות לריבאונד</td></tr>
+    <tr><td align="right" colspan="2" style="padding:2px 10px 6px;font-size:11px;color:#92400e;text-align:right;font-style:italic;">מניות במכירת יתר עם נפח שעולה — עשויות להתהפך</td></tr>
+    {rebound_rows}''' if rebound else '')
+
 s4_html = f"""
 <div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
-  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:12px;text-align:right;">מניות — חוזק / חולשה</div>
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:12px;text-align:right;">מניות — חוזק / חולשה / ריבאונד</div>
   <table dir="rtl" style="width:100%;border-collapse:collapse;direction:rtl;">
     <tr style="background:#f0fdf4;"><td align="right" colspan="2" style="padding:8px 10px;font-size:12px;color:#2f855a;font-weight:700;text-align:right;">▲ חזקות</td></tr>
     {strong_rows}
     <tr style="background:#fef2f2;"><td align="right" colspan="2" style="padding:8px 10px;font-size:12px;color:#c53030;font-weight:700;text-align:right;">▼ חלשות</td></tr>
     {weak_rows}
+    {rebound_section_html}
   </table>
 </div>
 """
