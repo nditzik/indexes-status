@@ -1313,125 +1313,6 @@
         <span id="historyStatus"></span>
     </div>
 
-    <!-- AI Daily Summary Card -->
-    <div class="card" id="aiSummaryCard" style="display:none; margin-bottom:20px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-            <h3 class="section-title" style="margin:0;">🤖 סיכום יומי AI — ניתוח שוק בעברית</h3>
-            <div style="display:flex; gap:8px; align-items:center;">
-                <button class="secondary" onclick="generateDailySummary()" id="aiRefreshBtn" style="font-size:12px; padding:6px 14px;">🔄 עדכן</button>
-                <button class="secondary" onclick="toggleApiKeyPanel()" style="font-size:12px; padding:6px 14px;">⚙️ API Key</button>
-            </div>
-        </div>
-        <div id="apiKeyPanel" style="display:none;">
-            <div class="ai-key-panel">
-                <p style="margin:0 0 10px; color:var(--text-muted); font-size:13px;">מפתח Groq API — חינמי מ-console.groq.com · נשמר בדפדפן בלבד</p>
-                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    <input type="password" id="apiKeyInput" class="ai-key-input" placeholder="gsk_...">
-                    <button class="primary" onclick="saveApiKey()" style="font-size:13px; padding:7px 16px;">שמור</button>
-                    <button class="secondary" onclick="clearApiKey()" style="font-size:12px; padding:7px 12px;">מחק</button>
-                </div>
-                <p id="apiKeyStatus" style="margin:8px 0 0; font-size:12px; color:var(--pos); min-height:18px;"></p>
-            </div>
-        </div>
-        <div id="aiSummaryContent">
-            <p style="color:var(--text-muted); text-align:center; padding:20px;">ממתין לנתונים...</p>
-        </div>
-    </div>
-
-    <!-- History section -->
-    <div class="card history-section" id="historySection" style="display:none;">
-        <h3 class="section-title">ניתוח היסטורי — מגמות לאורך זמן</h3>
-        <div id="historyStats" style="display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:16px;padding-bottom:4px;"></div>
-
-        <!-- 1. מפת חום מצטברת סקטורים -->
-        <div id="sectorCumHeatmapCard" class="chart-card" style="margin-bottom:20px;display:none;">
-            <h3>מפת חום סקטורים — ביצועים מצטברים מתחילת המדידה</h3>
-            <div id="sectorCumHeatmap" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:12px 0;"></div>
-            <div id="sectorCumHeatmapDate" style="text-align:center;font-size:13px;color:#fff;font-weight:600;margin-top:8px;"></div>
-        </div>
-
-        <div id="historyCharts" style="display:none;">
-            <!-- 2. מדד הפחד היומי -->
-            <div class="chart-card" id="vixChartCard" style="margin-bottom:20px;display:none;">
-                <h3>מדד הפחד היומי · VIX · DXY · TNX לאורך זמן</h3>
-                <canvas id="trendVixChart" style="max-height:300px;"></canvas>
-            </div>
-            <!-- 3. שינוי ממוצע 20D MA -->
-            <div class="chart-card" style="margin-bottom:20px;">
-                <h3>שינוי ממוצע 20D MA לאורך הימים</h3>
-                <canvas id="trend20dMAChart" style="max-height:240px;"></canvas>
-            </div>
-            <!-- 4. יישור ממוצעים -->
-            <div class="chart-card" style="margin-bottom:20px;">
-                <h3>יישור ממוצעים לאורך זמן — התפלגות ציוני MA (0–4)</h3>
-                <canvas id="trendMAStackChart" style="max-height:280px;"></canvas>
-            </div>
-            <!-- 5. יחס NH/NL -->
-            <div class="chart-card" style="margin-bottom:20px;">
-                <h3>יחס NH/NL לאורך זמן — מניות קרובות לשיא מול מניות בירידה חדה</h3>
-                <canvas id="trendNhNlChart" style="max-height:260px;"></canvas>
-                <div class="analysis-box" style="margin-top:12px;">
-                    <strong>מה זה NH/NL?</strong><br>
-                    <b>NH (New High)</b> — מניות הנמצאות בתוך 5% מהשיא השנתי שלהן — מניות חזקות יחסית.<br>
-                    <b>NL (New Low)</b> — מניות שירדו 30% ומעלה מהשיא — מניות בלחץ חמור.<br><br>
-                    <b>פירוש היחס:</b><br>
-                    <span class="pos">מעל 2.0</span> — שוק חזק, הרבה יותר מניות חזקות מחלשות<br>
-                    <span class="warn">1.0 – 2.0</span> — שוק מאוזן, מעקב נדרש<br>
-                    <span class="neg">מתחת ל-1.0</span> — לחץ מכירות רחב, יותר חלשות מחזקות<br><br>
-                    <b>כיצד להשתמש:</b> עקוב אחרי <em>כיוון</em> היחס לאורך ימים — עלייה עקבית = שיפור בריאות השוק גם אם המחירים עדיין נמוכים.
-                </div>
-            </div>
-            <!-- שאר הגרפים ללא שינוי -->
-            <div class="trend-grid">
-                <div class="chart-card">
-                    <h3>ציון בריאות שוק לאורך זמן</h3>
-                    <canvas id="trendHealthChart"></canvas>
-                </div>
-                <div class="chart-card">
-                    <h3>רוחב שוק — % מעל 200D MA</h3>
-                    <canvas id="trendBreadthChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card" style="margin-bottom:20px;">
-                <h3>כל המדדים לאורך זמן</h3>
-                <canvas id="trendAllChart" style="max-height:320px;"></canvas>
-            </div>
-            <div class="chart-card" style="margin-bottom:20px;">
-                <h3>Heatmap שבועי — ממוצע שינוי יומי לפי סקטור (כל 5 ימי מסחר)</h3>
-                <div id="sectorWeeklyHeatmap" style="overflow-x:auto;"></div>
-                <div style="margin-top:10px;font-size:11px;color:var(--text-muted);display:flex;gap:16px;align-items:center;">
-                    <span>🟥 ירידה חזקה (&lt;-1%)</span>
-                    <span>🟧 ירידה קלה (-0.3% עד -1%)</span>
-                    <span>⬜ יציב</span>
-                    <span>🟩 עלייה קלה (0.3%-1%)</span>
-                    <span>💚 עלייה חזקה (&gt;1%)</span>
-                </div>
-            </div>
-            <div class="chart-card" style="margin-bottom:20px;">
-                <h3>עולות מול יורדות לאורך זמן</h3>
-                <canvas id="trendAdChart" style="max-height:260px;"></canvas>
-            </div>
-            <div class="tbl-wrap">
-                <table class="history-tbl" id="historyTable">
-                    <thead><tr>
-                        <th>תאריך</th>
-                        <th>ציון בריאות</th>
-                        <th>מעל 200D MA%</th>
-                        <th>Golden Cross%</th>
-                        <th>RSI&gt;50%</th>
-                        <th>קרוב לשיא%</th>
-                        <th>Oversold%</th>
-                        <th>NH/NL יחס</th>
-                        <th>שינוי ממוצע</th>
-                        <th>RVOL ממוצע</th>
-                        <th>מניות</th>
-                    </tr></thead>
-                    <tbody id="historyTableBody"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
     <div id="dashboard" style="display:none;">
 
         <!-- מה השתנה היום -->
@@ -1445,31 +1326,6 @@
 
         <div class="stats-grid" id="statsGrid"></div>
 
-        <div class="section-group-label">Analysis &amp; Summary · ניתוח וסיכום</div>
-
-        <!-- Market Summary -->
-        <div class="card" id="summaryCard">
-            <h3 class="section-title">ניתוח שוק מקיף</h3>
-            <div id="marketSummary"></div>
-        </div>
-
-        <!-- Top / Bottom 10 -->
-        <div class="card" id="topBottomCard">
-            <h3 class="section-title">Top 10 / Bottom 10 — ציון מומנטום</h3>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-                <div>
-                    <div style="font-weight:700;color:#276749;margin-bottom:8px;font-size:13px;">🔝 10 המניות החזקות ביותר</div>
-                    <div id="top10"></div>
-                </div>
-                <div>
-                    <div style="font-weight:700;color:#e53e3e;margin-bottom:8px;font-size:13px;">🔻 10 המניות החלשות ביותר</div>
-                    <div id="bottom10"></div>
-                </div>
-            </div>
-            <div class="analysis-box" style="margin-top:12px;">
-                <strong>ציון מומנטום (0–100)</strong> — שקלול של: מיקום מעל ממוצעים נעים (30%), RSI (25%), מרחק מהשיא (20%), נפח יחסי RVOL (10%), שינוי יומי (15%).
-            </div>
-        </div>
 
 
     </div>
@@ -1668,9 +1524,147 @@
             </div>
         </section>
         <section class="tab-view" data-tab-view="reports">
-            <div class="tab-placeholder">
-                <h2>דוחות — Historical Reports</h2>
-                <p>בשלב הבא: טבלת היסטוריה, גרפי trend, סיכום AI.</p>
+            <div class="container">
+
+                <div class="section-group-label">Daily Summary · סיכום יומי</div>
+
+                <div class="card" id="aiSummaryCard" style="margin-bottom:20px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                        <h3 class="section-title" style="margin:0;">🤖 סיכום יומי AI — ניתוח שוק בעברית</h3>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <button class="secondary" onclick="generateDailySummary()" id="aiRefreshBtn" style="font-size:12px; padding:6px 14px;">🔄 עדכן</button>
+                            <button class="secondary" onclick="toggleApiKeyPanel()" style="font-size:12px; padding:6px 14px;">⚙️ API Key</button>
+                        </div>
+                    </div>
+                    <div id="apiKeyPanel" style="display:none;">
+                        <div class="ai-key-panel">
+                            <p style="margin:0 0 10px; color:var(--text-muted); font-size:13px;">מפתח Groq API — חינמי מ-console.groq.com · נשמר בדפדפן בלבד</p>
+                            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                <input type="password" id="apiKeyInput" class="ai-key-input" placeholder="gsk_...">
+                                <button class="primary" onclick="saveApiKey()" style="font-size:13px; padding:7px 16px;">שמור</button>
+                                <button class="secondary" onclick="clearApiKey()" style="font-size:12px; padding:7px 12px;">מחק</button>
+                            </div>
+                            <p id="apiKeyStatus" style="margin:8px 0 0; font-size:12px; color:var(--pos); min-height:18px;"></p>
+                        </div>
+                    </div>
+                    <div id="aiSummaryContent">
+                        <p style="color:var(--text-muted); text-align:center; padding:20px;">ממתין לנתונים...</p>
+                    </div>
+                </div>
+
+                <div class="card" id="summaryCard">
+                    <h3 class="section-title">ניתוח שוק מקיף</h3>
+                    <div id="marketSummary"></div>
+                </div>
+
+                <div class="section-group-label">Momentum Leaders · מובילי וחלשי השוק</div>
+
+                <div class="card" id="topBottomCard">
+                    <h3 class="section-title">Top 10 / Bottom 10 — ציון מומנטום</h3>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                        <div>
+                            <div style="font-weight:700;color:#276749;margin-bottom:8px;font-size:13px;">🔝 10 המניות החזקות ביותר</div>
+                            <div id="top10"></div>
+                        </div>
+                        <div>
+                            <div style="font-weight:700;color:#e53e3e;margin-bottom:8px;font-size:13px;">🔻 10 המניות החלשות ביותר</div>
+                            <div id="bottom10"></div>
+                        </div>
+                    </div>
+                    <div class="analysis-box" style="margin-top:12px;">
+                        <strong>ציון מומנטום (0–100)</strong> — שקלול של: מיקום מעל ממוצעים נעים (30%), RSI (25%), מרחק מהשיא (20%), נפח יחסי RVOL (10%), שינוי יומי (15%).
+                    </div>
+                </div>
+
+                <div class="section-group-label">Historical Trends · מגמות לאורך זמן</div>
+
+                <div class="card history-section" id="historySection" style="display:none;">
+                    <h3 class="section-title">ניתוח היסטורי — מגמות לאורך זמן</h3>
+                    <div id="historyStats" style="display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:16px;padding-bottom:4px;"></div>
+
+                    <div id="sectorCumHeatmapCard" class="chart-card" style="margin-bottom:20px;display:none;">
+                        <h3>מפת חום סקטורים — ביצועים מצטברים מתחילת המדידה</h3>
+                        <div id="sectorCumHeatmap" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:12px 0;"></div>
+                        <div id="sectorCumHeatmapDate" style="text-align:center;font-size:13px;color:#fff;font-weight:600;margin-top:8px;"></div>
+                    </div>
+
+                    <div id="historyCharts" style="display:none;">
+                        <div class="chart-card" id="vixChartCard" style="margin-bottom:20px;display:none;">
+                            <h3>מדד הפחד היומי · VIX · DXY · TNX לאורך זמן</h3>
+                            <canvas id="trendVixChart" style="max-height:300px;"></canvas>
+                        </div>
+                        <div class="chart-card" style="margin-bottom:20px;">
+                            <h3>שינוי ממוצע 20D MA לאורך הימים</h3>
+                            <canvas id="trend20dMAChart" style="max-height:240px;"></canvas>
+                        </div>
+                        <div class="chart-card" style="margin-bottom:20px;">
+                            <h3>יישור ממוצעים לאורך זמן — התפלגות ציוני MA (0–4)</h3>
+                            <canvas id="trendMAStackChart" style="max-height:280px;"></canvas>
+                        </div>
+                        <div class="chart-card" style="margin-bottom:20px;">
+                            <h3>יחס NH/NL לאורך זמן — מניות קרובות לשיא מול מניות בירידה חדה</h3>
+                            <canvas id="trendNhNlChart" style="max-height:260px;"></canvas>
+                            <div class="analysis-box" style="margin-top:12px;">
+                                <strong>מה זה NH/NL?</strong><br>
+                                <b>NH (New High)</b> — מניות הנמצאות בתוך 5% מהשיא השנתי שלהן — מניות חזקות יחסית.<br>
+                                <b>NL (New Low)</b> — מניות שירדו 30% ומעלה מהשיא — מניות בלחץ חמור.<br><br>
+                                <b>פירוש היחס:</b><br>
+                                <span class="pos">מעל 2.0</span> — שוק חזק, הרבה יותר מניות חזקות מחלשות<br>
+                                <span class="warn">1.0 – 2.0</span> — שוק מאוזן, מעקב נדרש<br>
+                                <span class="neg">מתחת ל-1.0</span> — לחץ מכירות רחב, יותר חלשות מחזקות<br><br>
+                                <b>כיצד להשתמש:</b> עקוב אחרי <em>כיוון</em> היחס לאורך ימים — עלייה עקבית = שיפור בריאות השוק גם אם המחירים עדיין נמוכים.
+                            </div>
+                        </div>
+                        <div class="trend-grid">
+                            <div class="chart-card">
+                                <h3>ציון בריאות שוק לאורך זמן</h3>
+                                <canvas id="trendHealthChart"></canvas>
+                            </div>
+                            <div class="chart-card">
+                                <h3>רוחב שוק — % מעל 200D MA</h3>
+                                <canvas id="trendBreadthChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card" style="margin-bottom:20px;">
+                            <h3>כל המדדים לאורך זמן</h3>
+                            <canvas id="trendAllChart" style="max-height:320px;"></canvas>
+                        </div>
+                        <div class="chart-card" style="margin-bottom:20px;">
+                            <h3>Heatmap שבועי — ממוצע שינוי יומי לפי סקטור (כל 5 ימי מסחר)</h3>
+                            <div id="sectorWeeklyHeatmap" style="overflow-x:auto;"></div>
+                            <div style="margin-top:10px;font-size:11px;color:var(--text-muted);display:flex;gap:16px;align-items:center;">
+                                <span>🟥 ירידה חזקה (&lt;-1%)</span>
+                                <span>🟧 ירידה קלה (-0.3% עד -1%)</span>
+                                <span>⬜ יציב</span>
+                                <span>🟩 עלייה קלה (0.3%-1%)</span>
+                                <span>💚 עלייה חזקה (&gt;1%)</span>
+                            </div>
+                        </div>
+                        <div class="chart-card" style="margin-bottom:20px;">
+                            <h3>עולות מול יורדות לאורך זמן</h3>
+                            <canvas id="trendAdChart" style="max-height:260px;"></canvas>
+                        </div>
+                        <div class="tbl-wrap">
+                            <table class="history-tbl" id="historyTable">
+                                <thead><tr>
+                                    <th>תאריך</th>
+                                    <th>ציון בריאות</th>
+                                    <th>מעל 200D MA%</th>
+                                    <th>Golden Cross%</th>
+                                    <th>RSI&gt;50%</th>
+                                    <th>קרוב לשיא%</th>
+                                    <th>Oversold%</th>
+                                    <th>NH/NL יחס</th>
+                                    <th>שינוי ממוצע</th>
+                                    <th>RVOL ממוצע</th>
+                                    <th>מניות</th>
+                                </tr></thead>
+                                <tbody id="historyTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </section>
 
