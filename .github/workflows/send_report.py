@@ -1,262 +1,592 @@
-import csv, json, os, urllib.request, glob, io
+"""
+Daily Market Briefing Email
+===========================
+Structured 6-section brief, readable in under 60 seconds.
+Replicates the dashboard's scoring logic (MCC, Technical, Options Flow)
+and renders as a compact HTML email sent via Brevo on every CSV push.
+"""
 
-# קרא את ה-CSV
-with open('data/data.txt', encoding='utf-8-sig', newline='') as f:
-    content = f.read()
-content = content.replace('\r\n', '\n').replace('\r', '\n')
-reader = csv.DictReader(io.StringIO(content))
-all_rows = list(reader)
-print(f"Total rows: {len(all_rows)}")
+import csv, json, os, urllib.request, urllib.error, glob, io
 
-# סנן רק מניות תקינות
+# ═══════════════════════════════════════════════════
+#  Helpers
+# ═══════════════════════════════════════════════════
+def num(v):
+    """Parse number from CSV field, handles %, +, , and N/A gracefully."""
+    if v is None: return None
+    s = str(v).strip().replace('%','').replace('+','').replace(',','')
+    try: return float(s)
+    except: return None
+
+def fmt_money(v):
+    if v is None: return '—'
+    a = abs(v)
+    sign = '' if v >= 0 else '−'
+    if a >= 1e9: return f'{sign}${a/1e9:.2f}B'
+    if a >= 1e6: return f'{sign}${a/1e6:.1f}M'
+    if a >= 1e3: return f'{sign}${a/1e3:.0f}K'
+    return f'{sign}${a:.0f}'
+
+def pct(v, d=1):
+    if v is None: return '—'
+    sign = '+' if v > 0 else ''
+    return f'{sign}{v:.{d}f}%'
+
+def clamp(v, lo=0, hi=100):
+    return max(lo, min(hi, v))
+
+def load_csv(path):
+    with open(path, encoding='utf-8-sig', newline='') as f:
+        txt = f.read().replace('\r\n','\n').replace('\r','\n')
+    return list(csv.DictReader(io.StringIO(txt)))
+
+# ═══════════════════════════════════════════════════
+#  Parse today's watchlist (data.txt = copy of latest CSV)
+# ═══════════════════════════════════════════════════
+all_rows = load_csv('data/data.txt')
+
+def find_macro(sym):
+    for r in all_rows:
+        if r.get('Symbol','').strip() == sym: return r
+    return None
+
+spx_row = find_macro('$SPX')
+vix_row = find_macro('$VIX')
+dxy_row = find_macro('$DXY')
+tnx_row = find_macro('$TNX')
+
+spx = None
+if spx_row:
+    spx = {
+        'price':  num(spx_row.get('Latest')),
+        'chgPct': num(spx_row.get('%Change')),
+        'ma20':   num(spx_row.get('20D MA')),
+        'ma50':   num(spx_row.get('50D MA')),
+        'ma150':  num(spx_row.get('150D MA')),
+        'ma200': num(spx_row.get('200D MA')),
+        'high52': num(spx_row.get('52W %/High')),
+    }
+vix = num(vix_row.get('Latest')) if vix_row else None
+dxy = num(dxy_row.get('Latest')) if dxy_row else None
+tnx = num(tnx_row.get('Latest')) if tnx_row else None
+
+# Non-macro stocks
 stocks = []
 for row in all_rows:
     sym = row.get('Symbol','').strip()
-    if not sym or not sym.replace('.','').isalnum() or not sym[0].isupper():
-        continue
-    try:
-        latest = float(row.get('Latest', '0').replace('%','').replace('+','') or 0)
-        ma200  = float(row.get('200D MA', '0').replace('%','') or 0)
-        ma50   = float(row.get('50D MA', '0').replace('%','') or 0)
-        ma20   = float(row.get('20D MA', '0').replace('%','') or 0)
-        ma150  = float(row.get('150D MA', '0').replace('%','') or 0)
-        rvol   = float(row.get('20D RelVol', '0').replace('%','') or 0)
-        chg    = row.get('%Change','').strip()
-        rsi    = row.get('RSI Rank','').strip()
-        w52    = float(row.get('52W %/High', '0').replace('%','') or 0)
-    except:
-        continue
-    if latest <= 0:
-        continue
-    dist200 = (latest/ma200-1)*100 if ma200 > 0 else None
-    # MA score (0-4)
-    ma_score = sum([
-        1 if ma20 > 0 and latest > ma20 else 0,
-        1 if ma50 > 0 and latest > ma50 else 0,
-        1 if ma150 > 0 and latest > ma150 else 0,
-        1 if ma200 > 0 and latest > ma200 else 0,
-    ])
-    stocks.append({
-        'sym': sym, 'name': row.get('Name','').strip('"'),
-        'latest': latest, 'ma200': ma200, 'ma150': ma150, 'ma50': ma50, 'ma20': ma20,
-        'rvol': rvol, 'chg': chg, 'rsi': rsi,
-        'w52': w52, 'dist200': dist200, 'ma_score': ma_score
-    })
+    if not sym or sym.startswith('$'): continue
+    latest = num(row.get('Latest'))
+    if latest is None or latest <= 0: continue
+    s = {
+        'sym': sym, 'name': (row.get('Name','') or '').strip('"'),
+        'latest': latest,
+        'ma20':  num(row.get('20D MA')),
+        'ma50':  num(row.get('50D MA')),
+        'ma150': num(row.get('150D MA')),
+        'ma200': num(row.get('200D MA')),
+        'chg':   num(row.get('%Change')),
+        'rsi':   (row.get('RSI Rank','') or '').strip(),
+        'rvol':  num(row.get('20D RelVol')) or 0,
+        'w52':   num(row.get('52W %/High')) or 0,
+    }
+    s['dist200']  = (latest/s['ma200'] - 1) * 100 if s['ma200'] and s['ma200'] > 0 else None
+    s['ma_score'] = sum(1 for k in ('ma20','ma50','ma150','ma200') if s[k] and latest > s[k])
+    stocks.append(s)
 
-print(f"Valid stocks: {len(stocks)}")
+total = len(stocks)
+print(f'Stocks parsed: {total}')
 
-# תאריך
-files = sorted(glob.glob('data/watchlist-sp-500-intraday-*.csv'))
-date_label = files[-1].replace('data/watchlist-sp-500-intraday-','').replace('.csv','') if files else ''
-
-# ── נתוני שוק כלליים ──
-total     = len(stocks)
-above200  = sum(1 for s in stocks if s['dist200'] is not None and s['dist200'] > 0)
-above150  = sum(1 for s in stocks if s['ma150'] > 0 and s['latest'] > s['ma150'])
-above50   = sum(1 for s in stocks if s['ma50'] > 0 and s['latest'] > s['ma50'])
-above20   = sum(1 for s in stocks if s['ma20'] > 0 and s['latest'] > s['ma20'])
-golden    = sum(1 for s in stocks if s['ma50'] > 0 and s['ma200'] > 0 and s['ma50'] > s['ma200'])
-advancing = sum(1 for s in stocks if '+' in s['chg'])
-declining = sum(1 for s in stocks if s['chg'].startswith('-'))
-nh        = sum(1 for s in stocks if s['w52'] >= -5)
-nl        = sum(1 for s in stocks if s['w52'] <= -30)
-oversold  = sum(1 for s in stocks if s['rsi'] in ('Below 30','New Below 30'))
+# ═══════════════════════════════════════════════════
+#  Breadth metrics
+# ═══════════════════════════════════════════════════
+above = lambda k: sum(1 for s in stocks if s[k] and s['latest'] > s[k])
+a20, a50, a150, a200 = above('ma20'), above('ma50'), above('ma150'), above('ma200')
+golden = sum(1 for s in stocks if s['ma50'] and s['ma200'] and s['ma50'] > s['ma200'])
+nh = sum(1 for s in stocks if s['w52'] >= -5)
+nl = sum(1 for s in stocks if s['w52'] <= -30)
+nh_nl = 99.0 if (nl == 0 and nh > 0) else (nh / nl if nl > 0 else 0)
+advancing  = sum(1 for s in stocks if s['chg'] is not None and s['chg'] > 0)
+declining  = sum(1 for s in stocks if s['chg'] is not None and s['chg'] < 0)
 rsi_above50 = sum(1 for s in stocks if s['rsi'] in ('Above 50','New Above 50','Above 70','New Above 70'))
-ratio     = f"{nh/nl:.2f}" if nl > 0 else "∞"
-health    = round((above200/total*100)*0.30 + (golden/total*100)*0.25 + (rsi_above50/total*100)*0.25 + (above20/total*100)*0.20) if total else 0
+oversold    = sum(1 for s in stocks if s['rsi'] in ('Below 30','New Below 30'))
 
-def pct(n): return f"{round(n/total*100,1) if total else 0}%"
+p200   = a200 / total * 100 if total else 0
+health = round((a200/total*100)*0.30 + (golden/total*100)*0.25 + (rsi_above50/total*100)*0.25 + (a20/total*100)*0.20) if total else 0
 
-# ── סקטורים — מקור אמת יחיד ב-data/sectors.json ──
-try:
-    with open('data/sectors.json', encoding='utf-8') as sf:
-        _sectors = json.load(sf)
-    SECTOR_MAP = _sectors.get('tickers', {})
-    SECTOR_HE  = _sectors.get('codes', {})
-except Exception as _e:
-    print(f"WARN: failed to load sectors.json: {_e}")
-    SECTOR_MAP, SECTOR_HE = {}, {}
+chg_vals   = [s['chg'] for s in stocks if s['chg'] is not None]
+avg_change = sum(chg_vals) / len(chg_vals) if chg_vals else 0
 
-sector_data = {}
-for s in stocks:
-    sc = SECTOR_MAP.get(s['sym'], '?')
-    if sc == '?': continue
-    if sc not in sector_data:
-        sector_data[sc] = {'total':0,'above200':0,'chg_sum':0,'chg_count':0}
-    sector_data[sc]['total'] += 1
-    if s['dist200'] is not None and s['dist200'] > 0:
-        sector_data[sc]['above200'] += 1
+# ═══════════════════════════════════════════════════
+#  Historical avg-change (last 25 sessions) → Dist Days + Weekly
+# ═══════════════════════════════════════════════════
+hist_files = sorted(glob.glob('data/watchlist-sp-500-intraday-*.csv'))
+history = []
+for hf in hist_files[-26:]:
     try:
-        cv = float(s['chg'].replace('%','').replace('+',''))
-        sector_data[sc]['chg_sum'] += cv
-        sector_data[sc]['chg_count'] += 1
-    except: pass
+        rows = load_csv(hf)
+        vals = []
+        for r in rows:
+            sym = r.get('Symbol','').strip()
+            if not sym or sym.startswith('$'): continue
+            c = num(r.get('%Change'))
+            if c is not None and c != 0:
+                vals.append(c)
+        if vals:
+            history.append(sum(vals)/len(vals))
+    except Exception as e:
+        print(f'History load skip {hf}: {e}')
 
-def sector_heatmap():
-    if not sector_data: return '<p>אין נתונים</p>'
-    rows = ''
-    for sc in sorted(sector_data, key=lambda x: sector_data[x]['above200']/max(sector_data[x]['total'],1), reverse=True):
-        d = sector_data[sc]
-        p = round(d['above200']/d['total']*100) if d['total'] else 0
-        avg_chg = round(d['chg_sum']/d['chg_count'],2) if d['chg_count'] else 0
-        bg = '#276749' if p >= 60 else '#d69e2e' if p >= 40 else '#c53030'
-        chg_col = '#276749' if avg_chg > 0 else '#c53030'
-        chg_str = f"+{avg_chg}%" if avg_chg > 0 else f"{avg_chg}%"
-        name = SECTOR_HE.get(sc, sc)
-        rows += (f'<tr>'
-                 f'<td style="padding:7px 12px;font-weight:600;">{name}</td>'
-                 f'<td style="padding:7px 12px;text-align:center;background:{bg};color:#fff;font-weight:700;border-radius:4px;">{p}%</td>'
-                 f'<td style="padding:7px 12px;text-align:center;color:{chg_col};font-weight:600;">{chg_str}</td>'
-                 f'<td style="padding:7px 12px;text-align:center;color:#718096;">{d["above200"]}/{d["total"]}</td>'
-                 f'</tr>')
-    return (f'<table style="width:100%;border-collapse:collapse;font-size:13px;">'
-            f'<thead><tr style="background:#2d3748;color:#fff;">'
-            f'<th style="padding:9px 12px;text-align:right;">סקטור</th>'
-            f'<th style="padding:9px 12px;text-align:center;">מעל 200D MA</th>'
-            f'<th style="padding:9px 12px;text-align:center;">שינוי יומי ממוצע</th>'
-            f'<th style="padding:9px 12px;text-align:center;">מניות</th>'
-            f'</tr></thead><tbody>{rows}</tbody></table>')
+last25 = history[-25:]
+last5  = history[-5:]
+dist_days     = sum(1 for v in last25 if v < -0.2)
+weekly_change = sum(last5) if len(last5) >= 3 else None
 
-def make_table(data, cols, headers, title, color):
-    if not data:
-        return (f'<div style="margin-bottom:24px;">'
-                f'<h3 style="margin:0;font-size:15px;color:#fff;background:{color};padding:10px 14px;border-radius:8px;">{title}</h3>'
-                f'<p style="color:#a0aec0;font-size:13px;padding:10px 0;">אין נתונים</p></div>')
-    th = ''.join(f'<th style="padding:9px 10px;text-align:{"right" if i<=1 else "center"};">{h}</th>' for i,h in enumerate(headers))
-    tbody = ''
-    for i, s in enumerate(data[:15]):
-        bg = '#f7fafc' if i%2==0 else '#fff'
-        tds = ''
-        for j, c in enumerate(cols):
-            val = s.get(c,'')
-            align = 'right' if j<=1 else 'center'
-            fw = 'font-weight:700;color:#2b6cb0;' if j==0 else ''
-            if c == 'chg':
-                col2 = '#276749' if '+' in str(val) else '#c53030'
-                tds += f'<td style="padding:7px 10px;text-align:{align};color:{col2};font-weight:600;">{val}</td>'
-            elif c == 'dist200':
-                sign = '+' if val >= 0 else ''
-                col2 = '#276749' if val >= 0 else '#c53030'
-                tds += f'<td style="padding:7px 10px;text-align:{align};color:{col2};font-weight:600;">{sign}{val:.1f}%</td>'
-            elif c == 'rvol':
-                col2 = '#276749' if float(val or 0)>1.2 else '#4a5568'
-                tds += f'<td style="padding:7px 10px;text-align:{align};color:{col2};">{float(val):.2f}</td>'
-            elif c == 'w52':
-                col2 = '#276749' if float(val or 0)>=-5 else '#c53030' if float(val or 0)<=-25 else '#4a5568'
-                tds += f'<td style="padding:7px 10px;text-align:{align};color:{col2};">{float(val):.1f}%</td>'
-            else:
-                tds += f'<td style="padding:7px 10px;text-align:{align};{fw}">{val}</td>'
-        tbody += f'<tr style="background:{bg};">{tds}</tr>'
-    return (f'<div style="margin-bottom:24px;">'
-            f'<h3 style="margin:0;font-size:15px;color:#fff;background:{color};padding:10px 14px;border-radius:8px 8px 0 0;">{title}</h3>'
-            f'<table style="width:100%;border-collapse:collapse;font-size:13px;">'
-            f'<thead><tr style="background:#2d3748;color:#fff;">{th}</tr></thead>'
-            f'<tbody>{tbody}</tbody>'
-            f'</table></div>')
+# ═══════════════════════════════════════════════════
+#  Score 1 · Market (MCC)
+# ═══════════════════════════════════════════════════
+def market_score():
+    parts, max_ = [], 0
+    # MA200 (25)
+    parts.append(25 if p200 >= 65 else 18 if p200 >= 50 else 10 if p200 >= 40 else 3)
+    max_ += 25
+    # VIX (20)
+    if vix is not None:
+        parts.append(20 if vix < 15 else 15 if vix < 20 else 8 if vix < 25 else 2)
+        max_ += 20
+    # Distribution Days (15, needs ≥5 hist points)
+    if len(last25) >= 5:
+        parts.append(15 if dist_days <= 2 else 8 if dist_days <= 4 else 2)
+        max_ += 15
+    # Breadth/Health (15)
+    parts.append(15 if health >= 70 else 10 if health >= 55 else 5 if health >= 40 else 1)
+    max_ += 15
+    # NH/NL (10)
+    if nh_nl == 99 or nh_nl >= 1.5: parts.append(10)
+    elif nh_nl >= 1.0: parts.append(7)
+    elif nh_nl >= 0.7: parts.append(3)
+    else: parts.append(0)
+    max_ += 10
+    # Weekly change (5)
+    if weekly_change is not None:
+        parts.append(5 if weekly_change > 0.5 else 3 if weekly_change >= -0.5 else 0)
+        max_ += 5
+    if max_ == 0: return None
+    return clamp(round(sum(parts) / max_ * 100))
 
-# ── Top 10 מומנטום עולה ──
-def momentum_score(s):
-    score = 0
-    if s['dist200'] is not None and s['dist200'] > 0: score += 30
-    if s['rsi'] in ('Above 70','New Above 70','Above 50','New Above 50'): score += 25
-    if s['w52'] >= -10: score += 20
-    if s['rvol'] > 1.2: score += 15
+m_score = market_score()
+
+# ═══════════════════════════════════════════════════
+#  Score 2 · Technical (SPX technicals)
+# ═══════════════════════════════════════════════════
+def tech_score():
+    if not spx or spx['price'] is None: return None
+    parts, max_ = [], 0
+    p = spx['price']
+    if spx['ma20']:  parts.append(15 if p > spx['ma20']  else 5);  max_ += 15
+    if spx['ma50']:  parts.append(20 if p > spx['ma50']  else 5);  max_ += 20
+    if spx['ma200']: parts.append(25 if p > spx['ma200'] else 3);  max_ += 25
+    if spx['ma20'] and spx['ma50'] and spx['ma200']:
+        if   spx['ma20'] > spx['ma50'] > spx['ma200']: parts.append(15)
+        elif spx['ma20'] < spx['ma50'] < spx['ma200']: parts.append(0)
+        elif spx['ma20'] > spx['ma50']:                parts.append(10)
+        else:                                          parts.append(5)
+        max_ += 15
+    if spx['high52'] is not None:
+        d = abs(spx['high52'])
+        parts.append(10 if d <= 5 else 7 if d <= 10 else 4 if d <= 20 else 1)
+        max_ += 10
+    if spx['chgPct'] is not None:
+        c = spx['chgPct']
+        parts.append(5 if c > 0.5 else 3 if c >= -0.5 else 0)
+        max_ += 5
+    if max_ == 0: return None
+    return clamp(round(sum(parts) / max_ * 100))
+
+t_score = tech_score()
+
+# ═══════════════════════════════════════════════════
+#  Score 3 · Options Flow
+# ═══════════════════════════════════════════════════
+flow_files = sorted(glob.glob('data/spx-options-flow-*.csv'))
+flow = None
+if flow_files:
     try:
-        if float(s['chg'].replace('%','').replace('+','')) > 0: score += 10
-    except: pass
-    return score
+        rows = load_csv(flow_files[-1])
+        call_tr = put_tr = 0
+        call_p = put_p = 0.0
+        for r in rows:
+            t = (r.get('Type','') or '').strip().lower()
+            pr = num(r.get('Premium')) or 0
+            if t == 'call':
+                call_tr += 1; call_p += pr
+            elif t == 'put':
+                put_tr += 1; put_p += pr
+        total_tr = call_tr + put_tr
+        total_p  = call_p + put_p
+        if total_tr > 0:
+            pc_tr  = put_tr / call_tr if call_tr > 0 else None
+            pc_p   = put_p  / call_p  if call_p  > 0 else None
+            net_p  = call_p - put_p
+            ts = 0 if pc_tr is None else 35 if pc_tr < 0.70 else 27 if pc_tr < 1.00 else 15 if pc_tr < 1.30 else 5
+            ps = 0 if pc_p  is None else 50 if pc_p  < 0.70 else 38 if pc_p  < 1.00 else 22 if pc_p  < 1.30 else 5
+            net_pct = net_p / total_p if total_p > 0 else 0
+            ns = 15 if net_pct > 0.10 else 8 if net_pct > -0.10 else 2
+            flow = {
+                'score': clamp(round(ts + ps + ns)),
+                'pc_tr': pc_tr, 'pc_p': pc_p, 'net_p': net_p,
+                'call_p_pct': call_p/total_p*100 if total_p else 0,
+                'put_p_pct':  put_p/total_p*100  if total_p else 0,
+                'call_tr_pct': call_tr/total_tr*100,
+                'put_tr_pct':  put_tr/total_tr*100,
+                'call_tr': call_tr, 'put_tr': put_tr,
+            }
+    except Exception as e:
+        print(f'Options flow parse error: {e}')
 
-top_momentum = sorted(stocks, key=momentum_score, reverse=True)[:15]
-for s in top_momentum: s['mscore'] = momentum_score(s)
-t_momentum = make_table(top_momentum, ['sym','name','mscore','chg','rvol','w52'],
-    ['סימול','שם','ציון','שינוי','RVOL','52W%'],
-    "🚀 מניות עם מומנטום עולה — Top 15", "#2b6cb0")
+f_score = flow['score'] if flow else None
 
-# ── מועמדות לריבאונד ──
-# RSI חלש/oversold + MA Score >= 1 + RVOL > 1.2
-rebound = [s for s in stocks
-    if s['rsi'] in ('Below 30','New Below 30','Below 50','New Below 50')
-    and s['ma_score'] >= 1
-    and s['rvol'] > 1.2
-    and s['w52'] < -10]
-rebound = sorted(rebound, key=lambda s: (s['ma_score'], s['rvol']), reverse=True)[:15]
-t_rebound = make_table(rebound, ['sym','name','chg','rvol','ma_score','w52'],
-    ['סימול','שם','שינוי','RVOL','MA Score','52W%'],
-    f"💡 מועמדות לריבאונד — RSI חלש + נפח + MA≥1 ({len(rebound)} מניות)", "#744210")
+# ═══════════════════════════════════════════════════
+#  Combined signal (40% M + 35% T + 25% F, auto re-normalize)
+# ═══════════════════════════════════════════════════
+def combined():
+    w = {'m': 0.40, 't': 0.35, 'f': 0.25}
+    num_, den = 0.0, 0.0
+    if m_score is not None: num_ += w['m']*m_score; den += w['m']
+    if t_score is not None: num_ += w['t']*t_score; den += w['t']
+    if f_score is not None: num_ += w['f']*f_score; den += w['f']
+    if den == 0: return None
+    return clamp(round(num_/den))
 
-# ── סיכום כללי ──
-def summary_section():
-    items = [
-        ("ציון בריאות שוק",    f"{health}/100",           "#3182ce"),
-        ("מעל 200D MA",        f"{pct(above200)} ({above200}/{total})", "#38a169" if above200/total>0.5 else "#e53e3e" if total else "#e53e3e"),
-        ("מעל 150D MA",        f"{pct(above150)}",         "#38a169" if total and above150/total>0.5 else "#e53e3e"),
-        ("מעל 50D MA",         f"{pct(above50)}",          "#38a169" if total and above50/total>0.5 else "#e53e3e"),
-        ("מעל 20D MA",         f"{pct(above20)}",          "#38a169" if total and above20/total>0.5 else "#e53e3e"),
-        ("Golden Cross",       f"{pct(golden)}",           "#d69e2e"),
-        ("RSI מעל 50",         f"{pct(rsi_above50)}",      "#38a169" if total and rsi_above50/total>0.5 else "#e53e3e"),
-        ("RSI מכירת יתר",      f"{oversold} מניות",        "#c53030" if oversold>30 else "#718096"),
-        ("עולות / יורדות",     f"{advancing} / {declining}", "#38a169" if advancing>declining else "#e53e3e"),
-        ("NH / NL יחס",        f"{nh} / {nl} = {ratio}",  "#38a169" if nl==0 or (nl>0 and nh/nl>=2) else "#e53e3e"),
-    ]
-    rows = ''.join(
-        f'<tr style="background:{"#f7fafc" if i%2==0 else "#fff"};">'
-        f'<td style="padding:9px 14px;font-weight:600;color:#4a5568;">{k}</td>'
-        f'<td style="padding:9px 14px;font-weight:700;color:{c};font-size:15px;">{v}</td></tr>'
-        for i,(k,v,c) in enumerate(items)
-    )
-    return f'<table style="width:100%;border-collapse:collapse;font-size:14px;"><tbody>{rows}</tbody></table>'
+c_score = combined()
 
-# ── HTML ──
+# ═══════════════════════════════════════════════════
+#  Classification — state / risk / bias
+# ═══════════════════════════════════════════════════
+def classify_combined(s):
+    if s is None:      return ('—','—','—','neutral')
+    if s >= 80:        return ('שורי מאומת חזק',   'נמוך',   'לונגים רחבים',              'bullish')
+    if s >= 65:        return ('אישור חיובי',      'בינוני', 'לונגים סלקטיביים',          'constructive')
+    if s >= 45:        return ('מעורב ללא יתרון',  'בינוני', 'סלקטיבי / מאוזן',            'neutral')
+    if s >= 30:        return ('זהירות / סטייה',   'גבוה',   'הפחת חשיפה',                 'caution')
+    return              ('דפנסיבי / סיכון גבוה', 'גבוה',   'מזומן / הגנתי',             'riskoff')
+
+state_label, risk_level, bias_text, state_key = classify_combined(c_score)
+STATE_COLORS = {
+    'bullish':      '#10b981',
+    'constructive': '#14b8a6',
+    'neutral':      '#64748b',
+    'caution':      '#f59e0b',
+    'riskoff':      '#ef4444',
+}
+accent = STATE_COLORS.get(state_key, '#64748b')
+
+# ═══════════════════════════════════════════════════
+#  Section 1 narrative (2 short sentences)
+# ═══════════════════════════════════════════════════
+def narrative():
+    bits = []
+    if vix is not None:
+        if   vix < 15:  bits.append(f'VIX רגוע ({vix:.1f})')
+        elif vix < 20:  bits.append(f'VIX ב-{vix:.1f}')
+        elif vix < 25:  bits.append(f'VIX ב-{vix:.1f} — ערנות')
+        else:           bits.append(f'VIX גבוה ({vix:.1f})')
+    if   p200 >= 60: bits.append(f'{int(p200)}% מהמניות מעל MA200 — רוחב חיובי')
+    elif p200 >= 45: bits.append(f'{int(p200)}% מעל MA200 — רוחב מעורב')
+    else:            bits.append(f'רק {int(p200)}% מעל MA200 — רוחב חלש')
+    if spx and spx['chgPct'] is not None:
+        direction = 'עלה' if spx['chgPct'] > 0 else 'ירד' if spx['chgPct'] < 0 else 'ללא שינוי'
+        bits.append(f'SPX {direction} ב-{abs(spx["chgPct"]):.2f}% היום')
+    return '. '.join(bits[:3]) + '.'
+
+# ═══════════════════════════════════════════════════
+#  Section 2 — Key signals (merged technical + flow)
+# ═══════════════════════════════════════════════════
+def key_signals():
+    items = []
+    # SPX vs MAs (single compact bullet)
+    if spx and spx['price']:
+        parts = []
+        for lbl, v in [('MA20', spx['ma20']), ('MA50', spx['ma50']), ('MA200', spx['ma200'])]:
+            if v:
+                diff = (spx['price']/v - 1) * 100
+                parts.append(f"{lbl} {'+' if diff >= 0 else ''}{diff:.1f}%")
+        if parts:
+            items.append('SPX מול ממוצעים — ' + ' · '.join(parts))
+    # Alignment
+    if spx and spx['ma20'] and spx['ma50'] and spx['ma200']:
+        if spx['ma20'] > spx['ma50'] > spx['ma200']:
+            items.append('מבנה ממוצעים שורי (20&gt;50&gt;200) — מגמה עולה תומכת')
+        elif spx['ma20'] < spx['ma50'] < spx['ma200']:
+            items.append('מבנה ממוצעים דובי (20&lt;50&lt;200) — מגמה יורדת')
+    # Dist days
+    if len(last25) >= 5 and dist_days >= 3:
+        items.append(f'{dist_days} ימי חלוקה ב-25 סשנים — לחץ מוסדי')
+    # Flow premium
+    if flow and flow['pc_p'] is not None:
+        if flow['pc_p'] < 0.70:
+            items.append(f'Put/Call Premium {flow["pc_p"]:.2f} — זרימה שורית חזקה')
+        elif flow['pc_p'] < 1.00:
+            items.append(f'Put/Call Premium {flow["pc_p"]:.2f} — נטייה שורית')
+        elif flow['pc_p'] < 1.30:
+            items.append(f'Put/Call Premium {flow["pc_p"]:.2f} — מאוזן / הגנות')
+        else:
+            items.append(f'Put/Call Premium גבוה ({flow["pc_p"]:.2f}) — ביקוש הגנות משמעותי')
+    # Flow trades
+    if flow and flow['pc_tr'] is not None:
+        items.append(f'Put/Call Trades {flow["pc_tr"]:.2f} · Call {flow["call_tr_pct"]:.0f}% / Put {flow["put_tr_pct"]:.0f}%')
+    # Net premium
+    if flow:
+        direction = 'חיובי — נהיגת Calls' if flow['net_p'] > 0 else 'שלילי — נהיגת Puts'
+        items.append(f'Net Premium: {fmt_money(flow["net_p"])} ({direction})')
+    # Divergences
+    if t_score is not None and f_score is not None:
+        if t_score >= 65 and f_score < 45:
+            items.append('⚠ סטייה: טכניקה חזקה אך הזרימה לא מאשרת')
+        elif t_score < 45 and f_score >= 65:
+            items.append('⚠ סטייה: זרימה שורית מול טכניקה חלשה')
+    return items[:6]
+
+def signals_conclusion():
+    # One-line interpretation
+    if flow is None: return ''
+    if m_score is None or f_score is None: return ''
+    if f_score >= 65 and m_score < 50:
+        return 'Flow מעורב — כסף גדול שורי, breadth קהה'
+    if f_score < 40 and m_score >= 60:
+        return 'Breadth תומך אך זרימה דפנסיבית — בחר בקפידה'
+    if f_score >= 70 and m_score >= 65:
+        return 'זרימה ו-breadth מיושרים — תמונה שורית עקבית'
+    if f_score < 35:
+        return 'זרימה דובית — זהירות מוגברת'
+    if flow['pc_p'] is not None and flow['pc_p'] > 1.30:
+        return 'ביקוש הגנות מוגבר — סביבה מחייבת ערנות'
+    return 'Flow מאוזן ביחס ל-breadth — ללא סטייה ברורה'
+
+signals_items = key_signals()
+conclusion   = signals_conclusion()
+
+# ═══════════════════════════════════════════════════
+#  Section 4 — stocks (5 strong / 5 weak)
+# ═══════════════════════════════════════════════════
+def momentum(s):
+    sc = 0
+    if s['dist200'] is not None and s['dist200'] > 0: sc += 30
+    if s['rsi'] in ('Above 70','New Above 70','Above 50','New Above 50'): sc += 25
+    if s['w52'] >= -10: sc += 20
+    if s['rvol'] > 1.2: sc += 15
+    if s['chg'] is not None and s['chg'] > 0: sc += 10
+    return sc
+
+def weakness(s):
+    sc = 0
+    if s['dist200'] is not None and s['dist200'] < 0: sc += 30
+    if s['rsi'] in ('Below 30','New Below 30','Below 50','New Below 50'): sc += 25
+    if s['w52'] <= -25: sc += 20
+    if s['chg'] is not None and s['chg'] < -1: sc += 15
+    if s['rvol'] > 1.2: sc += 10
+    return sc
+
+strong = sorted(stocks, key=momentum, reverse=True)[:5]
+weak   = sorted(stocks, key=weakness, reverse=True)[:5]
+
+# ═══════════════════════════════════════════════════
+#  Section 5 — alerts (only if relevant)
+# ═══════════════════════════════════════════════════
+def alerts():
+    al = []
+    if vix is not None and vix > 25:
+        al.append(f'VIX מעל 25 ({vix:.1f}) — תנודתיות חריגה')
+    if flow and flow['pc_p'] is not None and flow['pc_p'] > 1.30:
+        al.append(f'P/C Premium {flow["pc_p"]:.2f} — ביקוש הגנות יוצא-דופן')
+    if len(last25) >= 5 and dist_days >= 5:
+        al.append(f'{dist_days} ימי חלוקה ב-25 סשנים — לחץ מכירות מצטבר')
+    if t_score is not None and f_score is not None and abs(t_score - f_score) >= 30:
+        al.append(f'סטייה חריפה בין טכניקה ל-Flow ({t_score} vs {f_score})')
+    if nl >= 30 and nh_nl < 0.5 and nh_nl != 99:
+        al.append(f'NL מוגבר — {nl} מניות בירידה חריפה מהשיא')
+    return al[:4]
+
+alerts_list = alerts()
+
+# ═══════════════════════════════════════════════════
+#  Section 6 — Action line
+# ═══════════════════════════════════════════════════
+def action_line():
+    if c_score is None: return '—'
+    if c_score >= 80: return 'מגמה תומכת — ניתן להגדיל חשיפה בהדרגה למובילים'
+    if c_score >= 65: return 'לונגים סלקטיביים — להתמקד בחזקות ולנהל סיכון'
+    if c_score >= 45:
+        if flow and flow['pc_p'] is not None and flow['pc_p'] > 1.2:
+            return 'סלקטיביות — להימנע מחשיפה רחבה, Flow דורש ערנות'
+        return 'סלקטיביות — להעדיף חזקות מאומתות, להימנע מהתרחבות רחבה'
+    if c_score >= 30: return 'גישה דפנסיבית — עדיף להקטין חשיפה'
+    return 'הגנתי — להעדיף מזומן ולחכות להתבהרות'
+
+# ═══════════════════════════════════════════════════
+#  Date label
+# ═══════════════════════════════════════════════════
+date_label = ''
+if hist_files:
+    date_label = os.path.basename(hist_files[-1]).replace('watchlist-sp-500-intraday-','').replace('.csv','')
+
+# ═══════════════════════════════════════════════════
+#  HTML build
+# ═══════════════════════════════════════════════════
+def score_block(lbl, v):
+    if v is None:
+        color = '#cbd5e0'; txt = '—'
+    else:
+        color = '#10b981' if v >= 65 else '#f59e0b' if v >= 45 else '#ef4444'
+        txt = str(v)
+    return (f'<td style="padding:12px 8px;text-align:center;width:33%;">'
+            f'<div style="font-size:10px;color:#718096;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">{lbl}</div>'
+            f'<div style="font-size:26px;font-weight:700;color:{color};line-height:1;">{txt}</div>'
+            f'</td>')
+
+def stock_row(s, pos=True):
+    c = '#10b981' if pos else '#ef4444'
+    chg_str  = pct(s['chg'], 2) if s['chg'] is not None else '—'
+    dist_str = pct(s['dist200'], 1) if s['dist200'] is not None else '—'
+    return (f'<tr>'
+            f'<td style="padding:7px 10px;font-weight:700;color:#2b6cb0;width:56px;">{s["sym"]}</td>'
+            f'<td style="padding:7px 10px;color:#2d3748;font-size:12px;">{s["name"][:30]}</td>'
+            f'<td style="padding:7px 10px;text-align:center;color:{c};font-weight:600;font-size:12px;">{chg_str}</td>'
+            f'<td style="padding:7px 10px;text-align:center;color:{c};font-weight:600;font-size:12px;">{dist_str}</td>'
+            f'</tr>')
+
+# Build each section
+CARD = 'background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:12px;'
+
+s1_html = f"""
+<div style="{CARD}padding:20px 22px;border-top:3px solid {accent};">
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:6px;">סיכום השוק</div>
+  <div style="font-size:22px;font-weight:700;color:{accent};line-height:1.1;margin-bottom:10px;">{state_label}</div>
+  <table style="width:100%;font-size:12px;color:#2d3748;border-collapse:collapse;margin-bottom:10px;">
+    <tr>
+      <td style="padding:2px 0;color:#718096;width:80px;">רמת סיכון</td>
+      <td style="padding:2px 0;font-weight:600;">{risk_level}</td>
+    </tr>
+    <tr>
+      <td style="padding:2px 0;color:#718096;">הטיית פוזיציה</td>
+      <td style="padding:2px 0;font-weight:600;">{bias_text}</td>
+    </tr>
+  </table>
+  <div style="font-size:13px;color:#4a5568;line-height:1.55;border-top:1px solid #edf2f7;padding-top:10px;">{narrative()}</div>
+</div>
+"""
+
+s2_items_html = ''.join(f'<li style="padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:13px;color:#2d3748;">{it}</li>' for it in signals_items)
+s2_conclusion_html = (f'<div style="margin-top:12px;padding:10px 14px;background:#f7fafc;border-right:3px solid {accent};font-size:13px;color:#2d3748;font-weight:600;">{conclusion}</div>'
+                     if conclusion else '')
+s2_html = f"""
+<div style="{CARD}padding:20px 22px;">
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:10px;">איתותים מרכזיים</div>
+  <ul style="margin:0;padding:0;list-style:none;">{s2_items_html}</ul>
+  {s2_conclusion_html}
+</div>
+"""
+
+spx_price_str = f'{spx["price"]:,.2f}' if (spx and spx["price"]) else '—'
+spx_chg_color = '#10b981' if (spx and spx["chgPct"] and spx["chgPct"] > 0) else ('#ef4444' if (spx and spx["chgPct"] and spx["chgPct"] < 0) else '#718096')
+spx_chg_str   = pct(spx["chgPct"], 2) if (spx and spx["chgPct"] is not None) else '—'
+nh_nl_str     = '∞' if nh_nl == 99 else f'{nh_nl:.2f}'
+vix_str       = f'{vix:.2f}' if vix is not None else '—'
+
+s3_html = f"""
+<div style="{CARD}padding:20px 22px;">
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:12px;">נתוני שוק</div>
+  <table style="width:100%;border-collapse:collapse;border:1px solid #edf2f7;border-radius:8px;overflow:hidden;background:#f7fafc;">
+    <tr>
+      {score_block('Market', m_score)}
+      {score_block('Technical', t_score)}
+      {score_block('Options Flow', f_score)}
+    </tr>
+  </table>
+  <table style="width:100%;font-size:13px;color:#2d3748;margin-top:14px;border-collapse:collapse;">
+    <tr style="background:#f7fafc;">
+      <td style="padding:8px 12px;color:#718096;width:80px;">SPX</td>
+      <td style="padding:8px 12px;font-weight:600;font-variant-numeric:tabular-nums;">{spx_price_str} <span style="color:{spx_chg_color};font-weight:600;">{spx_chg_str}</span></td>
+      <td style="padding:8px 12px;color:#718096;width:60px;">VIX</td>
+      <td style="padding:8px 12px;font-weight:600;">{vix_str}</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 12px;color:#718096;">% מעל MA200</td>
+      <td style="padding:8px 12px;font-weight:600;">{int(p200)}% ({a200}/{total})</td>
+      <td style="padding:8px 12px;color:#718096;">NH/NL</td>
+      <td style="padding:8px 12px;font-weight:600;">{nh}/{nl} = {nh_nl_str}</td>
+    </tr>
+  </table>
+</div>
+"""
+
+strong_rows = ''.join(stock_row(s, True) for s in strong)
+weak_rows   = ''.join(stock_row(s, False) for s in weak)
+s4_html = f"""
+<div style="{CARD}padding:20px 22px;">
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:12px;">מניות — חוזק / חולשה</div>
+  <table style="width:100%;border-collapse:collapse;">
+    <tr style="background:#f0fdf4;"><td colspan="4" style="padding:7px 10px;font-size:12px;color:#2f855a;font-weight:700;">▲ חזקות</td></tr>
+    {strong_rows}
+    <tr style="background:#fef2f2;"><td colspan="4" style="padding:7px 10px;font-size:12px;color:#c53030;font-weight:700;">▼ חלשות</td></tr>
+    {weak_rows}
+  </table>
+</div>
+"""
+
+s5_html = ''
+if alerts_list:
+    al_items = ''.join(f'<li style="padding:5px 0;font-size:13px;color:#744210;">• {a}</li>' for a in alerts_list)
+    s5_html = f"""
+<div style="background:#fffaf0;border-radius:10px;border-right:4px solid #f59e0b;padding:16px 22px;margin-bottom:12px;">
+  <div style="font-size:11px;color:#c05621;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;margin-bottom:6px;">⚡ התראות</div>
+  <ul style="margin:0;padding:0;list-style:none;">{al_items}</ul>
+</div>
+"""
+
+s6_html = f"""
+<div style="background:{accent};color:#fff;border-radius:10px;padding:18px 22px;margin-bottom:12px;">
+  <div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;opacity:0.85;margin-bottom:4px;font-weight:600;">גישה להיום</div>
+  <div style="font-size:15px;font-weight:600;line-height:1.4;">{action_line()}</div>
+</div>
+"""
+
 html = f"""<!DOCTYPE html>
 <html dir="rtl" lang="he">
-<body style="font-family:Arial,sans-serif;background:#f4f6f9;padding:20px;color:#1a202c;margin:0;">
-<div style="max-width:760px;margin:auto;">
+<head><meta charset="utf-8"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#f4f6f9;padding:16px;color:#1a202c;margin:0;">
+<div style="max-width:620px;margin:auto;">
 
-  <!-- כותרת -->
-  <div style="background:#1a365d;padding:22px 28px;color:#fff;border-radius:12px 12px 0 0;">
+  <!-- Header -->
+  <div style="background:#0f0f11;padding:16px 22px;color:#fff;border-radius:10px;margin-bottom:12px;">
     <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
       <tr>
         <td style="vertical-align:middle;">
-          <h2 style="margin:0 0 6px;font-size:22px;color:#fff;">&#x1F4CA; דוח שוק יומי — S&amp;P 500</h2>
-          <p style="margin:0;opacity:0.8;font-size:13px;color:#fff;">יום המסחר: {date_label} &middot; {total} מניות</p>
+          <div style="font-size:10px;opacity:0.65;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:3px;">Daily Briefing</div>
+          <div style="font-size:16px;font-weight:600;">S&amp;P 500 · {date_label}</div>
         </td>
-        <td style="vertical-align:middle;text-align:right;width:130px;">
-          <img src="https://nditzik.github.io/indexes-status/logo.png" alt="Logo" style="height:70px;width:auto;border-radius:6px;display:block;margin-bottom:8px;margin-right:0;margin-left:auto;"><br>
-          <a href="https://nditzik.github.io/indexes-status/" style="color:#faf089;font-weight:700;font-size:12px;text-decoration:none;border:2px solid #faf089;padding:4px 10px;border-radius:5px;white-space:nowrap;">פתח דשבורד ←</a>
+        <td style="vertical-align:middle;text-align:left;">
+          <a href="https://nditzik.github.io/indexes-status/" style="color:#fff;background:#3b82f6;padding:6px 12px;border-radius:6px;font-size:11px;text-decoration:none;font-weight:500;">דשבורד ←</a>
         </td>
       </tr>
     </table>
   </div>
 
-  <!-- אזהרה -->
-  <div style="background:#fff5f5;padding:10px 20px;text-align:right;direction:rtl;border-bottom:1px solid #fed7d7;">
-    <p style="margin:0;color:#c53030;font-size:13px;font-weight:600;">⚠️ המידע הוכן על ידי איציק נידם המלך ונועד אך ורק לשימוש אישי. מי שיעביר יהיה לו עסק עם עורכי דין ויוסר מהתפוצה.</p>
-  </div>
+  {s1_html}
+  {s2_html}
+  {s3_html}
+  {s4_html}
+  {s5_html}
+  {s6_html}
 
-  <!-- נתונים כלליים -->
-  <div style="background:#fff;padding:20px 28px;margin-bottom:16px;border-radius:0 0 12px 12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-    <h3 style="margin:0 0 14px;font-size:16px;color:#1a365d;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">&#x1F4CA; נתוני רוחב שוק</h3>
-    {summary_section()}
-  </div>
-
-  <!-- מפת חום סקטורים -->
-  <div style="background:#fff;padding:20px 28px;margin-bottom:16px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-    <h3 style="margin:0 0 14px;font-size:16px;color:#1a365d;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">&#x1F525; מפת חום סקטורים — ביצועי היום</h3>
-    {sector_heatmap()}
-  </div>
-
-  <!-- טבלאות -->
-  <div style="background:#fff;padding:20px 28px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-    {t_momentum}
-    {t_rebound}
-  </div>
-
-  <div style="text-align:center;font-size:11px;color:#718096;padding:14px;">
-    נוצר אוטומטית &middot; S&amp;P 500 Dashboard &middot; nditzik
+  <div style="text-align:center;font-size:10px;color:#a0aec0;padding:8px;line-height:1.4;">
+    לא מהווה ייעוץ השקעות · מידע אישי למנויים · S&amp;P 500 Dashboard
   </div>
 </div>
 </body></html>"""
 
+# ═══════════════════════════════════════════════════
+#  Send via Brevo
+# ═══════════════════════════════════════════════════
 api_key = os.environ.get("BREVO_API_KEY", "")
 payload = json.dumps({
     "sender": {"name": "S&P Dashboard", "email": "nditzik@gmail.com"},
@@ -266,7 +596,7 @@ payload = json.dumps({
         {"email": "yakiryona3@gmail.com"},
         {"email": "ofeknidam@gmail.com"}
     ],
-    "subject": f"📊 דוח שוק יומי S&P 500 — {date_label}",
+    "subject": f"📊 {state_label} · S&P 500 {date_label}",
     "htmlContent": html
 }).encode()
 
