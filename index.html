@@ -1438,32 +1438,6 @@
 
         <div class="stats-grid" id="statsGrid"></div>
 
-        <div class="section-group-label">Sector Rotation · רוטציה סקטוריאלית</div>
-
-        <!-- Row 5: Sector Heatmap -->
-        <div class="card">
-            <h3 class="section-title">מטריצת רוטציה סקטוריאלית — % מניות מעל כל ממוצע נע</h3>
-            <div class="heatmap-wrap"><div id="sectorHeatmap"></div></div>
-            <div class="analysis-box" id="analysisHeatmap" style="margin-top:12px;"></div>
-            <!-- מפת חום ציוני MA לפי סקטור -->
-            <div id="sectorMaScoreHeatmapWrap" style="margin-top:20px;display:none;">
-                <h3 class="section-title" style="margin-bottom:12px;">התפלגות ציוני MA לפי סקטור</h3>
-                <div id="sectorMaScoreHeatmap" style="overflow-x:auto;"></div>
-            </div>
-        </div>
-
-        <!-- Row 6: RVOL Analysis -->
-        <div class="charts-2col">
-            <div class="chart-card">
-                <h3>התפלגות RVOL — כל השוק</h3>
-                <canvas id="rvolHistChart"></canvas>
-            </div>
-            <div class="chart-card">
-                <h3>ממוצע שינוי % מניות עם RVOL גבוה (&gt;1.2) לפי סקטור</h3>
-                <canvas id="rvolSectorChart"></canvas>
-            </div>
-        </div>
-
         <div class="section-group-label">Market Movers · מסננים וסט-אפים</div>
 
         <!-- Setup Screener -->
@@ -1636,11 +1610,36 @@
             </div>
         </section>
         <section class="tab-view" data-tab-view="sectors">
-            <div class="tab-placeholder">
-                <h2>סקטורים — Sector Analysis</h2>
-                <p>בשלב הבא: מפת חום מצטברת, שבועית, וביצועי MA לפי סקטור.</p>
+            <div class="container">
+
+                <div class="section-group-label">Sector Rotation · רוטציה סקטוריאלית</div>
+
+                <div class="card">
+                    <h3 class="section-title">מטריצת רוטציה סקטוריאלית — % מניות מעל כל ממוצע נע</h3>
+                    <div class="heatmap-wrap"><div id="sectorHeatmap"></div></div>
+                    <div class="analysis-box" id="analysisHeatmap" style="margin-top:12px;"></div>
+                    <div id="sectorMaScoreHeatmapWrap" style="margin-top:20px;display:none;">
+                        <h3 class="section-title" style="margin-bottom:12px;">התפלגות ציוני MA לפי סקטור</h3>
+                        <div id="sectorMaScoreHeatmap" style="overflow-x:auto;"></div>
+                    </div>
+                </div>
+
+                <div class="section-group-label">Relative Volume · RVOL</div>
+
+                <div class="charts-2col">
+                    <div class="chart-card">
+                        <h3>התפלגות RVOL — כל השוק</h3>
+                        <canvas id="rvolHistChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>ממוצע שינוי % מניות עם RVOL גבוה (&gt;1.2) לפי סקטור</h3>
+                        <canvas id="rvolSectorChart"></canvas>
+                    </div>
+                </div>
+
             </div>
         </section>
+
         <section class="tab-view" data-tab-view="stocks">
             <div class="tab-placeholder">
                 <h2>מניות — All Stocks</h2>
