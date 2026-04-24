@@ -1315,9 +1315,6 @@
 
     <div id="dashboard" style="display:none;">
 
-        <!-- מה השתנה היום -->
-        <div id="changesBlock" style="display:none;margin-bottom:14px;"></div>
-
         <div class="section-group-label">Market Snapshot · סקירת שוק</div>
         <div class="health-banner" id="healthBanner"></div>
 
@@ -1325,8 +1322,6 @@
         <div id="fearGreedBlock" style="margin-bottom:20px;"></div>
 
         <div class="stats-grid" id="statsGrid"></div>
-
-
 
     </div>
 </div>
@@ -1518,9 +1513,24 @@
             </div>
         </section>
         <section class="tab-view" data-tab-view="alerts">
-            <div class="tab-placeholder">
-                <h2>התראות — Alerts</h2>
-                <p>בשלב הבא: מה השתנה היום, Signal Watch, Breadth Thrust.</p>
+            <div class="container">
+
+                <div class="section-group-label">Daily Changes · מה השתנה היום</div>
+
+                <div class="card">
+                    <h3 class="section-title">שינויים מאתמול</h3>
+                    <div id="changesBlock" style="display:none;"></div>
+                    <div id="changesEmpty" style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px 0;">טוען נתוני יום קודם...</div>
+                </div>
+
+                <div class="section-group-label">Signal Watch · התראות שוק פעילות</div>
+
+                <div class="card">
+                    <h3 class="section-title">כל ההתראות הפעילות</h3>
+                    <p style="font-size:12px;color:var(--text-muted);margin:0 0 12px;">התראות נגזרות בזמן אמת מהנתונים — VIX, רוחב, NH/NL, Breadth Thrust, Oversold, שינוי בציון בריאות</p>
+                    <div id="alertsListFull"></div>
+                </div>
+
             </div>
         </section>
         <section class="tab-view" data-tab-view="reports">
@@ -2118,6 +2128,7 @@ async function autoLoadHistory(t) {
                             renderHistoryUI();
                         }
                         try { renderOverviewV2(); } catch(e) { console.error('renderOverviewV2 (post-history)', e); }
+                        try { renderChangesBlock(); } catch(e) { console.error('renderChangesBlock (post-history)', e); }
                     }
                 });
         });
@@ -2782,23 +2793,32 @@ let alertsCache = [];
 let alertsShowAll = false;
 function renderAlertsList() {
     const list = document.getElementById('alertsList');
-    if (!list) return;
-    if (!alertsCache.length) {
-        list.innerHTML = '<div style="color:var(--text-dim);font-size:11px;text-align:center;padding:20px 0;">אין התראות חריגות כרגע</div>';
-        return;
-    }
-    const slice = alertsShowAll ? alertsCache : alertsCache.slice(0, 6);
-    list.innerHTML = slice.map(a => `
+    const listFull = document.getElementById('alertsListFull');
+    const alertHtml = (a) => `
         <div class="alert-item">
             <div class="alert-dot ${a.type}"></div>
             <div class="alert-body">
                 <div class="alert-title">${a.title}</div>
                 <div class="alert-meta">${a.meta}</div>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    const emptyMsg = '<div style="color:var(--text-dim);font-size:12px;text-align:center;padding:20px 0;">אין התראות חריגות כרגע</div>';
+
+    // Side panel (top 6 / toggle all)
+    if (list) {
+        if (!alertsCache.length) list.innerHTML = emptyMsg;
+        else {
+            const slice = alertsShowAll ? alertsCache : alertsCache.slice(0, 6);
+            list.innerHTML = slice.map(alertHtml).join('');
+        }
+    }
     const btn = document.getElementById('alertsToggleBtn');
     if (btn) btn.textContent = alertsShowAll ? 'הצג פחות' : `הצג הכל (${alertsCache.length})`;
+
+    // Full list in alerts tab
+    if (listFull) {
+        listFull.innerHTML = alertsCache.length ? alertsCache.map(alertHtml).join('') : emptyMsg;
+    }
 }
 
 document.addEventListener('click', e => {
@@ -3400,9 +3420,15 @@ function renderSetupScreener() {
 
 function renderChangesBlock() {
     const el = document.getElementById('changesBlock');
+    const emptyEl = document.getElementById('changesEmpty');
     // מצא את היום הקודם — לא את היום הנוכחי
     const prevEntry = [...historyData].reverse().find(h => h.date !== currentDateLabel);
-    if (!prevEntry) { el.style.display = 'none'; return; }
+    if (!prevEntry) {
+        el.style.display = 'none';
+        if (emptyEl) { emptyEl.style.display = 'block'; emptyEl.textContent = 'אין נתוני יום קודם זמינים להשוואה.'; }
+        return;
+    }
+    if (emptyEl) emptyEl.style.display = 'none';
     const prev = prevEntry.metrics;
     const cur  = M;
 
