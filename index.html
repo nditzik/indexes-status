@@ -2426,18 +2426,29 @@ function processData() {
 function drawSparkline(canvas, values, opts) {
     if (!canvas || !values || !values.length) return;
     opts = opts || {};
+    const rect0 = canvas.getBoundingClientRect();
+    // If layout hasn't settled (hidden tab / pre-paint), retry on next frame.
+    if (rect0.width < 10 || rect0.height < 5) {
+        requestAnimationFrame(() => drawSparkline(canvas, values, opts));
+        return;
+    }
     const css = getComputedStyle(document.body);
     const colorPos = (css.getPropertyValue('--pos')||'#10b981').trim();
     const colorNeg = (css.getPropertyValue('--neg')||'#ef4444').trim();
-    const colorTxt = (css.getPropertyValue('--text-muted')||'#8a8a8f').trim();
     const stroke = opts.color || (values[values.length-1] >= values[0] ? colorPos : colorNeg);
-    // scale canvas for DPR
     const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    const W = Math.max(40, rect.width), H = Math.max(20, rect.height);
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    const ctx = canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
-    ctx.clearRect(0,0,W,H);
+    const rect = rect0;
+    // Integer CSS dimensions — pin them explicitly so buffer and display never drift.
+    const W = Math.max(40, Math.floor(rect.width));
+    const H = Math.max(20, Math.floor(rect.height));
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    // Buffer at exact DPR multiple (rounded to integer) → no sub-pixel resampling.
+    canvas.width  = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
     const clean = values.map(v => typeof v === 'number' && !isNaN(v) ? v : null);
     const nums = clean.filter(v => v !== null);
     if (nums.length < 2) return;
@@ -2445,26 +2456,30 @@ function drawSparkline(canvas, values, opts) {
     const range = (max - min) || 1;
     const pad = 2;
     const n = clean.length;
-    const xFor = i => pad + (n === 1 ? W/2 : (i / (n-1)) * (W - pad*2));
-    const yFor = v => pad + (1 - (v - min) / range) * (H - pad*2);
-    // area fill
+    const xRaw = i => pad + (n === 1 ? (W - pad*2) / 2 : (i / (n-1)) * (W - pad*2));
+    const yRaw = v => pad + (1 - (v - min) / range) * (H - pad*2);
+    // Half-pixel snap → crisp 1px/2px strokes aligned to the pixel grid.
+    const snap = v => Math.round(v * dpr) / dpr + 0.5 / dpr;
+    const xFor = i => snap(xRaw(i));
+    const yFor = v => snap(yRaw(v));
+    // area fill — use raw coords (the fill body doesn't benefit from snap)
     if (opts.fill !== false) {
         ctx.beginPath();
         let moved = false;
         clean.forEach((v,i) => {
             if (v === null) return;
-            const x = xFor(i), y = yFor(v);
+            const x = xRaw(i), y = yRaw(v);
             if (!moved) { ctx.moveTo(x, y); moved = true; } else ctx.lineTo(x, y);
         });
-        ctx.lineTo(xFor(n-1), H);
-        ctx.lineTo(xFor(0), H);
+        ctx.lineTo(xRaw(n-1), H);
+        ctx.lineTo(xRaw(0), H);
         ctx.closePath();
-        const grad = ctx.createLinearGradient(0,0,0,H);
+        const grad = ctx.createLinearGradient(0, 0, 0, H);
         grad.addColorStop(0, stroke + '33');
         grad.addColorStop(1, stroke + '00');
         ctx.fillStyle = grad; ctx.fill();
     }
-    // line
+    // line — snapped coords + integer-friendly width
     ctx.beginPath();
     let moved = false;
     clean.forEach((v,i) => {
@@ -2473,14 +2488,15 @@ function drawSparkline(canvas, values, opts) {
         if (!moved) { ctx.moveTo(x, y); moved = true; } else ctx.lineTo(x, y);
     });
     ctx.strokeStyle = stroke;
-    ctx.lineWidth = 1.4;
+    ctx.lineWidth = opts.width || (dpr >= 2 ? 1.5 : 1);
     ctx.lineJoin = 'round';
+    ctx.lineCap  = 'round';
     ctx.stroke();
-    // last dot
+    // last dot — use raw coords for circle center
     const lastVal = clean[clean.length-1];
-    if (lastVal !== null) {
+    if (lastVal !== null && opts.dot !== false) {
         ctx.beginPath();
-        ctx.arc(xFor(n-1), yFor(lastVal), 2.2, 0, Math.PI*2);
+        ctx.arc(xRaw(n-1), yRaw(lastVal), 2, 0, Math.PI*2);
         ctx.fillStyle = stroke;
         ctx.fill();
     }
