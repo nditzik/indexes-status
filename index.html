@@ -1271,9 +1271,8 @@
 
         </div>
 
-        <div class="legacy-divider" id="legacyDivider" style="display:none;">תצוגה מורחבת · Legacy Sections</div>
-
-<div class="container">
+        <!-- Legacy HTML retained for JS ID references; kept hidden since new Overview + dedicated tabs cover all content -->
+<div class="container" id="legacyContainer" style="display:none;">
 
     <div class="header">
         <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme" title="החלף מצב תצוגה" style="display:none">
@@ -2500,8 +2499,6 @@ function renderOverviewV2() {
     const root = document.getElementById('overviewV2');
     if (!root) return;
     root.style.display = 'flex';
-    const divider = document.getElementById('legacyDivider');
-    if (divider) divider.style.display = 'flex';
 
     const hist = (typeof historyData !== 'undefined' && Array.isArray(historyData)) ? historyData : [];
     const series = key => hist.map(h => {
