@@ -1721,12 +1721,13 @@
 
         </main><!-- /app-content -->
 
-        <!-- FOOTER: Index ticker (Phase 1 placeholders — wired in later phase) -->
+        <!-- FOOTER: Live index ticker (Stooq via CORS proxy) -->
         <footer class="index-ticker" id="indexTicker">
             <div class="ix-item"><span class="ix-name">S&amp;P 500</span><span class="ix-value" id="ixSPX">—</span><span class="ix-change" id="ixSPXChg">—</span></div>
             <div class="ix-item"><span class="ix-name">NASDAQ</span><span class="ix-value" id="ixIXIC">—</span><span class="ix-change" id="ixIXICChg">—</span></div>
             <div class="ix-item"><span class="ix-name">DOW</span><span class="ix-value" id="ixDJI">—</span><span class="ix-change" id="ixDJIChg">—</span></div>
             <div class="ix-item"><span class="ix-name">RUSSELL 2000</span><span class="ix-value" id="ixRUT">—</span><span class="ix-change" id="ixRUTChg">—</span></div>
+            <div class="ix-item" id="ixUpdatedWrap" style="opacity:0.6"><span class="ix-name">עודכן</span><span class="ix-value" id="ixUpdated">—</span></div>
         </footer>
 
     </div><!-- /app-main -->
@@ -1831,6 +1832,70 @@
     updateMarketStatus();
     setInterval(updateMarketStatus, 30000);
     window.updateMarketStatus = updateMarketStatus;
+
+    // Live index ticker — fetched from Stooq via corsproxy.io
+    async function updateIndexTicker() {
+        const symbols = { 'SPX': '^spx', 'IXIC': 'qqq.us', 'DJI': '^dji', 'RUT': 'iwm.us' };
+        const decimals = { 'SPX': 2, 'IXIC': 2, 'DJI': 2, 'RUT': 2 };
+        const apply = (key, close, prev) => {
+            const valEl = document.getElementById('ix' + key);
+            const chgEl = document.getElementById('ix' + key + 'Chg');
+            if (!valEl || !chgEl) return;
+            if (close == null || isNaN(close)) { valEl.textContent = '—'; chgEl.textContent = '—'; chgEl.className = 'ix-change'; return; }
+            valEl.textContent = close.toLocaleString('en-US', { minimumFractionDigits: decimals[key], maximumFractionDigits: decimals[key] });
+            if (prev && !isNaN(prev) && prev > 0) {
+                const pctChg = (close - prev) / prev * 100;
+                const abs = close - prev;
+                chgEl.textContent = `${pctChg>0?'+':''}${pctChg.toFixed(2)}% · ${abs>0?'+':''}${abs.toFixed(2)}`;
+                chgEl.className = 'ix-change ' + (pctChg > 0 ? 'pos' : pctChg < 0 ? 'neg' : '');
+            } else {
+                chgEl.textContent = '—';
+                chgEl.className = 'ix-change';
+            }
+        };
+        const query = Object.values(symbols).join('+');
+        const stooq = `https://stooq.com/q/l/?s=${query}&f=snd2t2ohlcpv&h&e=csv`;
+        const url = 'https://corsproxy.io/?' + encodeURIComponent(stooq);
+        try {
+            const r = await fetch(url, { cache: 'no-store' });
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            const text = await r.text();
+            const lines = text.trim().split(/\r?\n/);
+            if (lines.length < 2) throw new Error('empty response');
+            const header = lines[0].split(',');
+            const iClose = header.indexOf('Close');
+            const iPrev  = header.indexOf('Prev');
+            const iSym   = header.indexOf('Symbol');
+            const iTime  = header.indexOf('Time');
+            const iDate  = header.indexOf('Date');
+            const bySym = {};
+            for (let i = 1; i < lines.length; i++) {
+                const cols = lines[i].split(',');
+                bySym[(cols[iSym] || '').toUpperCase()] = {
+                    close: parseFloat(cols[iClose]), prev: parseFloat(cols[iPrev]),
+                    time: cols[iTime], date: cols[iDate],
+                };
+            }
+            Object.entries(symbols).forEach(([key, sym]) => {
+                const row = bySym[sym.toUpperCase()];
+                apply(key, row ? row.close : null, row ? row.prev : null);
+            });
+            const upd = document.getElementById('ixUpdated');
+            if (upd) {
+                const now = new Date();
+                const hh = String(now.getHours()).padStart(2,'0');
+                const mi = String(now.getMinutes()).padStart(2,'0');
+                upd.textContent = `${hh}:${mi}`;
+            }
+        } catch(e) {
+            console.warn('Index ticker fetch failed:', e.message);
+            const upd = document.getElementById('ixUpdated');
+            if (upd) upd.textContent = 'שגיאה';
+        }
+    }
+    updateIndexTicker();
+    setInterval(updateIndexTicker, 120000); // refresh every 2 minutes
+    window.updateIndexTicker = updateIndexTicker;
 
     // Theme segmented control — mirrors existing #themeToggle logic
     const btnLight = document.getElementById('themeBtnLight');
