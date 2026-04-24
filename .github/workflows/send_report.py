@@ -560,7 +560,10 @@ html = f"""<!DOCTYPE html>
   <div style="background:#0f0f11;padding:16px 22px;color:#fff;border-radius:10px;margin-bottom:12px;">
     <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
       <tr>
-        <td style="vertical-align:middle;">
+        <td style="vertical-align:middle;width:64px;">
+          <img src="https://nditzik.github.io/indexes-status/logo.png" alt="Logo" width="56" height="auto" style="display:block;height:auto;width:56px;max-width:56px;border:0;">
+        </td>
+        <td style="vertical-align:middle;padding-right:14px;">
           <div style="font-size:10px;opacity:0.65;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:3px;">Daily Briefing</div>
           <div style="font-size:16px;font-weight:600;">S&amp;P 500 · {date_label}</div>
         </td>
@@ -588,15 +591,26 @@ html = f"""<!DOCTYPE html>
 #  Send via Brevo
 # ═══════════════════════════════════════════════════
 api_key = os.environ.get("BREVO_API_KEY", "")
-payload = json.dumps({
-    "sender": {"name": "S&P Dashboard", "email": "nditzik@gmail.com"},
-    "to": [
+
+# TEST_RECIPIENTS env var overrides default list (comma-separated emails)
+_test = os.environ.get("TEST_RECIPIENTS", "").strip()
+if _test:
+    recipients = [{"email": e.strip()} for e in _test.split(",") if e.strip()]
+    subject_prefix = "🧪 [TEST] "
+    print(f"TEST MODE — sending only to: {[r['email'] for r in recipients]}")
+else:
+    recipients = [
         {"email": "nditzik@gmail.com"},
         {"email": "eddie@teco.org.il"},
         {"email": "yakiryona3@gmail.com"},
         {"email": "ofeknidam@gmail.com"}
-    ],
-    "subject": f"📊 {state_label} · S&P 500 {date_label}",
+    ]
+    subject_prefix = "📊 "
+
+payload = json.dumps({
+    "sender": {"name": "S&P Dashboard", "email": "nditzik@gmail.com"},
+    "to": recipients,
+    "subject": f"{subject_prefix}{state_label} · S&P 500 {date_label}",
     "htmlContent": html
 }).encode()
 
