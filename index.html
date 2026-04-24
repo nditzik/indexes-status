@@ -1471,60 +1471,6 @@
             </div>
         </div>
 
-        <div class="section-group-label">Stocks · טבלת מניות</div>
-
-        <!-- Watchlist -->
-        <div class="card">
-            <h3 class="section-title">מניות לצפייה</h3>
-            <div class="filter-row">
-                <label>RSI: <select id="fRsi" onchange="renderTable()">
-                    <option value="">הכל</option>
-                    <option value="oversold">מכירת יתר (&lt;30)</option>
-                    <option value="weak">חלש (30–50)</option>
-                    <option value="strong">חזק (50–70)</option>
-                    <option value="overbought">קניית יתר (&gt;70)</option>
-                </select></label>
-                <label>ציון MA: <select id="fScore" onchange="renderTable()">
-                    <option value="">הכל</option>
-                    <option value="4">4/4 — מושלם</option>
-                    <option value="3">3+</option>
-                    <option value="2">2+</option>
-                    <option value="0">0–1 — חלש</option>
-                </select></label>
-                <label>52W%: <select id="f52w" onchange="renderTable()">
-                    <option value="">הכל</option>
-                    <option value="near">קרוב לשיא (עד 10%-)</option>
-                    <option value="mid">תיקון בינוני (10%–25%)</option>
-                    <option value="deep">ירידה חמורה (מעל 25%-)</option>
-                </select></label>
-                <label>סקטור: <select id="fSector" onchange="renderTable()"></select></label>
-                <label>RVOL: <select id="fRvol" onchange="renderTable()">
-                    <option value="">הכל</option>
-                    <option value="high">גבוה (&gt;1.2)</option>
-                    <option value="normal">רגיל (0.8–1.2)</option>
-                    <option value="low">נמוך (&lt;0.8)</option>
-                </select></label>
-                <label>חיפוש: <input type="text" id="fSearch" placeholder="סימול / שם" oninput="renderTable()" style="width:130px;"></label>
-                <button class="secondary export-btn" onclick="exportCSV()">ייצא CSV</button>
-            </div>
-            <div id="tableInfo"></div>
-            <div class="tbl-wrap">
-                <table id="watchTable">
-                    <thead><tr>
-                        <th onclick="sortTable('Symbol')">סימול ↕</th>
-                        <th onclick="sortTable('Name')">שם ↕</th>
-                        <th onclick="sortTable('sector')">סקטור ↕</th>
-                        <th onclick="sortTable('maScore')">MA Score ↕</th>
-                        <th onclick="sortTable('RSI Rank')">RSI ↕</th>
-                        <th onclick="sortTable('52w')">52W% ↕</th>
-                        <th onclick="sortTable('dist200')">מרחק 200D% ↕</th>
-                        <th onclick="sortTable('rvol')">RVOL ↕</th>
-                        <th onclick="sortTable('momentumScore')">מתנע ↕</th>
-                    </tr></thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
-            </div>
-        </div>
 
     </div>
 </div>
@@ -1620,9 +1566,58 @@
         </section>
 
         <section class="tab-view" data-tab-view="stocks">
-            <div class="tab-placeholder">
-                <h2>מניות — All Stocks</h2>
-                <p>בשלב הבא: טבלת כל המניות + פילטרים.</p>
+            <div class="container">
+                <div class="card">
+                    <h3 class="section-title">מניות לצפייה</h3>
+                    <div class="filter-row">
+                        <label>RSI: <select id="fRsi" onchange="renderTable()">
+                            <option value="">הכל</option>
+                            <option value="oversold">מכירת יתר (&lt;30)</option>
+                            <option value="weak">חלש (30–50)</option>
+                            <option value="strong">חזק (50–70)</option>
+                            <option value="overbought">קניית יתר (&gt;70)</option>
+                        </select></label>
+                        <label>ציון MA: <select id="fScore" onchange="renderTable()">
+                            <option value="">הכל</option>
+                            <option value="4">4/4 — מושלם</option>
+                            <option value="3">3+</option>
+                            <option value="2">2+</option>
+                            <option value="0">0–1 — חלש</option>
+                        </select></label>
+                        <label>52W%: <select id="f52w" onchange="renderTable()">
+                            <option value="">הכל</option>
+                            <option value="near">קרוב לשיא (עד 10%-)</option>
+                            <option value="mid">תיקון בינוני (10%–25%)</option>
+                            <option value="deep">ירידה חמורה (מעל 25%-)</option>
+                        </select></label>
+                        <label>סקטור: <select id="fSector" onchange="renderTable()"></select></label>
+                        <label>RVOL: <select id="fRvol" onchange="renderTable()">
+                            <option value="">הכל</option>
+                            <option value="high">גבוה (&gt;1.2)</option>
+                            <option value="normal">רגיל (0.8–1.2)</option>
+                            <option value="low">נמוך (&lt;0.8)</option>
+                        </select></label>
+                        <label>חיפוש: <input type="text" id="fSearch" placeholder="סימול / שם" oninput="renderTable()" style="width:130px;"></label>
+                        <button class="secondary export-btn" onclick="exportCSV()">ייצא CSV</button>
+                    </div>
+                    <div id="tableInfo"></div>
+                    <div class="tbl-wrap">
+                        <table id="watchTable">
+                            <thead><tr>
+                                <th onclick="sortTable('Symbol')">סימול ↕</th>
+                                <th onclick="sortTable('Name')">שם ↕</th>
+                                <th onclick="sortTable('sector')">סקטור ↕</th>
+                                <th onclick="sortTable('maScore')">MA Score ↕</th>
+                                <th onclick="sortTable('RSI Rank')">RSI ↕</th>
+                                <th onclick="sortTable('52w')">52W% ↕</th>
+                                <th onclick="sortTable('dist200')">מרחק 200D% ↕</th>
+                                <th onclick="sortTable('rvol')">RVOL ↕</th>
+                                <th onclick="sortTable('momentumScore')">מתנע ↕</th>
+                            </tr></thead>
+                            <tbody id="tableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </section>
         <section class="tab-view" data-tab-view="favorites">
