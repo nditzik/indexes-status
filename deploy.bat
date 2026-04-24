@@ -5,7 +5,7 @@ echo.
 echo === מעדכן דשבורד... ===
 echo.
 
-:: מצא את ה-CSV החדש ביותר בתיקיית data
+:: מצא את ה-CSV החדש ביותר בתיקיית data (watchlist)
 for /f "delims=" %%f in ('dir /b /od "%~dp0data\watchlist-sp-500-intraday-*.csv" 2^>nul') do set LATEST=%%f
 
 if not defined LATEST (
@@ -14,7 +14,16 @@ if not defined LATEST (
     exit /b 1
 )
 
-echo נמצא: %LATEST%
+echo נמצא (watchlist): %LATEST%
+
+:: מצא את ה-options flow החדש ביותר (אופציונלי — לא חייב להיות)
+set LATEST_FLOW=
+for /f "delims=" %%f in ('dir /b /od "%~dp0data\spx-options-flow-*.csv" 2^>nul') do set LATEST_FLOW=%%f
+if defined LATEST_FLOW (
+    echo נמצא (options flow): %LATEST_FLOW%
+) else (
+    echo [מידע] אין קובץ options flow — ממשיך בלי
+)
 
 :: עדכן data.txt
 copy /Y "%~dp0data\%LATEST%" "%~dp0data\data.txt" >nul
@@ -23,9 +32,14 @@ echo [OK] data.txt עודכן
 :: עדכן index.json
 python -c "import json,os; f=r'%~dp0data\index.json'; idx=json.load(open(f)) if os.path.exists(f) else []; idx.append('%LATEST%') if '%LATEST%' not in idx else None; idx.sort(); json.dump(idx,open(f,'w'),indent=2); print('[OK] index.json -',len(idx),'קבצים')"
 
-:: Git push
+:: Git add + commit + push
 git add data\data.txt data\index.json "data\%LATEST%"
-git commit -m "Update %LATEST%"
+if defined LATEST_FLOW (
+    git add "data\%LATEST_FLOW%"
+    git commit -m "Update %LATEST% + %LATEST_FLOW%"
+) else (
+    git commit -m "Update %LATEST%"
+)
 git push
 
 echo.
