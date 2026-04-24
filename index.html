@@ -736,6 +736,314 @@
             .mcc-drivers { gap: 8px; }
             .mcc-driver { min-width: 0; padding: 5px 10px; }
         }
+
+        /* ─── Signal Row · Technicals + Flow + Combined ─── */
+        .sig-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+        .sig-panel {
+            --sig-accent: #64748b;
+            position: relative;
+            background: #121214;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 18px 14px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: border-color 200ms ease;
+        }
+        body.light .sig-panel { background: #fafaf9; border-color: #e7e5e4; }
+        .sig-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: var(--sig-accent);
+            border-radius: 10px 10px 0 0;
+            opacity: 0.9;
+            transition: background 250ms ease;
+        }
+        .sig-panel[data-state="bullish"]      { --sig-accent: #10b981; }
+        .sig-panel[data-state="constructive"] { --sig-accent: #14b8a6; }
+        .sig-panel[data-state="neutral"]      { --sig-accent: #64748b; }
+        .sig-panel[data-state="caution"]      { --sig-accent: #f59e0b; }
+        .sig-panel[data-state="riskoff"]      { --sig-accent: #ef4444; }
+
+        .sig-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .sig-lead { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .sig-caption {
+            color: var(--text-dim);
+            font-size: 10px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-weight: 400;
+            line-height: 1;
+        }
+        .sig-state {
+            color: var(--sig-accent);
+            font-weight: 700;
+            font-size: 17px;
+            letter-spacing: -0.01em;
+            line-height: 1.2;
+            margin-top: 2px;
+            text-shadow: 0 0 18px color-mix(in srgb, var(--sig-accent) 28%, transparent);
+            transition: color 250ms ease;
+        }
+        .sig-score-wrap {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .sig-score-val {
+            color: var(--text);
+            font-weight: 600;
+            font-size: 22px;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+            letter-spacing: -0.02em;
+        }
+        .sig-score-max {
+            color: var(--text-dim);
+            font-size: 11px;
+            font-variant-numeric: tabular-nums;
+            opacity: 0.7;
+        }
+        .sig-why {
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-right: 6px;
+            transition: all 180ms ease;
+            flex-shrink: 0;
+        }
+        .sig-why:hover {
+            border-color: var(--sig-accent);
+            color: var(--text);
+            background: color-mix(in srgb, var(--sig-accent) 10%, transparent);
+        }
+        .sig-bar {
+            width: 100%;
+            height: 5px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        body.light .sig-bar { background: #e7e5e4; }
+        .sig-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg,
+                color-mix(in srgb, var(--sig-accent) 60%, transparent),
+                var(--sig-accent));
+            width: 0%;
+            transition: width 600ms cubic-bezier(0.2, 0.8, 0.2, 1), background 250ms ease;
+        }
+        .sig-body { display: flex; flex-direction: column; gap: 10px; }
+
+        /* Panel 1 · Technicals body */
+        .tech-price-row { display: flex; align-items: baseline; gap: 8px; }
+        .tech-price-val {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.01em;
+            line-height: 1;
+        }
+        .tech-price-chg {
+            font-size: 12px;
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+        }
+        .tech-price-chg.pos { color: var(--pos); }
+        .tech-price-chg.neg { color: var(--neg); }
+        .tech-price-chg.muted { color: var(--text-muted); }
+        .tech-price-sym { font-size: 10px; color: var(--text-dim); letter-spacing: 0.12em; text-transform: uppercase; margin-right: auto; }
+
+        .tech-mas { display: flex; gap: 8px; flex-wrap: wrap; }
+        .tech-ma {
+            padding: 4px 9px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 11px;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-muted);
+            letter-spacing: 0.02em;
+            transition: all 200ms ease;
+        }
+        body.light .tech-ma { background: rgba(0,0,0,0.015); border-color: #e7e5e4; }
+        .tech-ma .pos { color: var(--pos); font-weight: 500; }
+        .tech-ma .neg { color: var(--neg); font-weight: 500; }
+
+        .tech-extras { display: flex; gap: 16px; flex-wrap: wrap; }
+        .tech-extra { display: flex; align-items: baseline; gap: 6px; font-size: 11px; }
+        .tech-extra .ex-lbl { color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; font-size: 10px; }
+        .tech-extra .ex-val { color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
+        .tech-extra .ex-val.pos { color: var(--pos); }
+        .tech-extra .ex-val.neg { color: var(--neg); }
+        .tech-extra .ex-val.warn { color: var(--warn); }
+
+        /* Panel 2 · Options Flow body */
+        .flow-section { display: flex; flex-direction: column; gap: 6px; }
+        .flow-premium-section {
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        body.light .flow-premium-section { border-bottom-color: #e7e5e4; }
+        .flow-section-hd {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+        .flow-section-lbl {
+            color: var(--text-muted);
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        .flow-premium-section .flow-section-lbl {
+            color: var(--text);
+            font-weight: 600;
+        }
+        .flow-section-ratio {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.02em;
+        }
+        .flow-trades-section .flow-section-ratio {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .flow-stack { display: flex; flex-direction: column; gap: 4px; }
+        .flow-stack-row { display: grid; grid-template-columns: 32px 1fr 48px; align-items: center; gap: 8px; }
+        .flow-stack-lbl { font-size: 10px; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500; }
+        .flow-stack-lbl.flow-call-lbl { color: #10b981; }
+        .flow-stack-lbl.flow-put-lbl { color: #ef4444; }
+        .flow-stack-bar { height: 7px; background: var(--border); border-radius: 3px; overflow: hidden; }
+        body.light .flow-stack-bar { background: #e7e5e4; }
+        .flow-stack-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 600ms cubic-bezier(0.2, 0.8, 0.2, 1);
+            border-radius: inherit;
+        }
+        .flow-stack-fill.flow-call { background: linear-gradient(90deg, rgba(16,185,129,0.55), #10b981); }
+        .flow-stack-fill.flow-put  { background: linear-gradient(90deg, rgba(239,68,68,0.55), #ef4444); }
+        .flow-stack-val {
+            font-size: 11px;
+            color: var(--text);
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+            text-align: end;
+        }
+
+        .flow-net {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-top: 4px;
+        }
+        .flow-net-lbl {
+            font-size: 10px;
+            color: var(--text-dim);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .flow-net-val {
+            font-size: 14px;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+        .flow-net-val.pos   { color: var(--pos); }
+        .flow-net-val.neg   { color: var(--neg); }
+        .flow-net-val.muted { color: var(--text-muted); }
+
+        .flow-trades-inline {
+            display: flex;
+            gap: 10px;
+            align-items: baseline;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+        .flow-inline-val { color: var(--text); font-weight: 500; }
+        .flow-inline-lbl { color: var(--text-dim); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
+        .flow-inline-sep { color: var(--text-dim); }
+
+        /* Panel 3 · Combined body */
+        .combined-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.45;
+            letter-spacing: 0.01em;
+        }
+        .combined-warnings { display: flex; flex-direction: column; gap: 5px; }
+        .combined-warn {
+            padding: 5px 9px;
+            font-size: 11px;
+            border-radius: 4px;
+            border: 1px solid;
+            line-height: 1.35;
+            font-weight: 500;
+        }
+        .combined-warn-warn { color: #f59e0b; border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.06); }
+        .combined-warn-neg  { color: #ef4444; border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.06); }
+        .combined-warn-pos  { color: #10b981; border-color: rgba(16,185,129,0.35); background: rgba(16,185,129,0.06); }
+
+        /* Signal tooltip (shared) */
+        .sig-tooltip {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 12px;
+            right: 12px;
+            background: #0f0f11;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 100;
+            font-size: 11px;
+        }
+        body.light .sig-tooltip { background: #fff; border-color: #e7e5e4; box-shadow: 0 10px 30px rgba(0,0,0,0.12); }
+        .sig-tooltip[hidden] { display: none; }
+        .sig-tooltip .tt-title { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+        .sig-tooltip .tt-row { display: flex; justify-content: space-between; gap: 16px; padding: 3px 0; font-variant-numeric: tabular-nums; }
+        .sig-tooltip .tt-row .tt-lbl { color: var(--text-muted); }
+        .sig-tooltip .tt-row .tt-val { color: var(--text); font-weight: 500; }
+        .sig-tooltip .tt-total { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); font-weight: 600; color: var(--text); }
+        .sig-tooltip .tt-note { margin-top: 8px; padding: 6px 8px; font-size: 10px; color: var(--text-muted); background: rgba(96,165,250,0.06); border-radius: 4px; line-height: 1.5; }
+
+        @media (max-width: 1100px) {
+            .sig-row { grid-template-columns: 1fr 1fr; }
+            .sig-panel-combined { grid-column: 1 / -1; }
+        }
+        @media (max-width: 720px) {
+            .sig-row { grid-template-columns: 1fr; }
+            .sig-panel-combined { grid-column: auto; }
+            .sig-state { font-size: 15px; }
+            .sig-score-val { font-size: 20px; }
+            .tech-price-val { font-size: 20px; }
+        }
         /* KPI row · 8 compact metric cards */
         .kpi-grid {
             display: grid;
@@ -1468,6 +1776,116 @@
                 <div class="mcc-chips" id="mccChips"></div>
                 <button class="mcc-why" type="button" id="mccWhyBtn" aria-label="פירוט ציון">?</button>
                 <div class="mcc-tooltip" id="mccTooltip" role="tooltip" hidden></div>
+            </section>
+
+            <!-- ══════════ SIGNAL ROW · Technicals + Options Flow + Combined ══════════ -->
+            <section class="sig-row" aria-label="Market signal panels">
+
+                <!-- Panel 1 · Market Technicals -->
+                <div class="sig-panel" id="sigTech" data-state="neutral">
+                    <div class="sig-head">
+                        <div class="sig-lead">
+                            <div class="sig-caption">מצב טכני של השוק</div>
+                            <div class="sig-state" id="techState">—</div>
+                        </div>
+                        <div class="sig-score-wrap">
+                            <span class="sig-score-val" id="techScore">—</span>
+                            <span class="sig-score-max">/100</span>
+                            <button class="sig-why" type="button" data-target="techTooltip" aria-label="פירוט">?</button>
+                        </div>
+                    </div>
+                    <div class="sig-bar"><div class="sig-bar-fill" id="techBarFill"></div></div>
+                    <div class="sig-body">
+                        <div class="tech-price-row">
+                            <span class="tech-price-val" id="techSpxPrice">—</span>
+                            <span class="tech-price-chg muted" id="techSpxChg">—</span>
+                            <span class="tech-price-sym">SPX</span>
+                        </div>
+                        <div class="tech-mas">
+                            <span class="tech-ma" id="techMa20">MA20 —</span>
+                            <span class="tech-ma" id="techMa50">MA50 —</span>
+                            <span class="tech-ma" id="techMa200">MA200 —</span>
+                        </div>
+                        <div class="tech-extras">
+                            <span class="tech-extra"><span class="ex-lbl">52W High</span><span class="ex-val" id="tech52w">—</span></span>
+                            <span class="tech-extra"><span class="ex-lbl">Alignment</span><span class="ex-val" id="techAlign">—</span></span>
+                        </div>
+                    </div>
+                    <div class="sig-tooltip" id="techTooltip" role="tooltip" hidden></div>
+                </div>
+
+                <!-- Panel 2 · Options Flow -->
+                <div class="sig-panel" id="sigFlow" data-state="neutral">
+                    <div class="sig-head">
+                        <div class="sig-lead">
+                            <div class="sig-caption">יחסי אופציות</div>
+                            <div class="sig-state" id="flowState">—</div>
+                        </div>
+                        <div class="sig-score-wrap">
+                            <span class="sig-score-val" id="flowScore">—</span>
+                            <span class="sig-score-max">/100</span>
+                            <button class="sig-why" type="button" data-target="flowTooltip" aria-label="פירוט">?</button>
+                        </div>
+                    </div>
+                    <div class="sig-bar"><div class="sig-bar-fill" id="flowBarFill"></div></div>
+                    <div class="sig-body">
+                        <!-- Premium section (heavier weight) -->
+                        <div class="flow-section flow-premium-section">
+                            <div class="flow-section-hd">
+                                <span class="flow-section-lbl">Premium</span>
+                                <span class="flow-section-ratio" id="flowPcPremium">P/C —</span>
+                            </div>
+                            <div class="flow-stack">
+                                <div class="flow-stack-row">
+                                    <span class="flow-stack-lbl flow-call-lbl">Call</span>
+                                    <div class="flow-stack-bar"><div class="flow-stack-fill flow-call" id="flowCallPremBar"></div></div>
+                                    <span class="flow-stack-val" id="flowCallPremPct">—</span>
+                                </div>
+                                <div class="flow-stack-row">
+                                    <span class="flow-stack-lbl flow-put-lbl">Put</span>
+                                    <div class="flow-stack-bar"><div class="flow-stack-fill flow-put" id="flowPutPremBar"></div></div>
+                                    <span class="flow-stack-val" id="flowPutPremPct">—</span>
+                                </div>
+                            </div>
+                            <div class="flow-net"><span class="flow-net-lbl">Net Calls − Puts</span><span class="flow-net-val" id="flowNetPremium">—</span></div>
+                        </div>
+                        <!-- Trades section (lighter) -->
+                        <div class="flow-section flow-trades-section">
+                            <div class="flow-section-hd">
+                                <span class="flow-section-lbl">Trades</span>
+                                <span class="flow-section-ratio" id="flowPcTrades">P/C —</span>
+                            </div>
+                            <div class="flow-trades-inline">
+                                <span class="flow-inline-val"><span id="flowCallTradePct">—</span><span class="flow-inline-lbl"> Call</span></span>
+                                <span class="flow-inline-sep">·</span>
+                                <span class="flow-inline-val"><span id="flowPutTradePct">—</span><span class="flow-inline-lbl"> Put</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sig-tooltip" id="flowTooltip" role="tooltip" hidden></div>
+                </div>
+
+                <!-- Panel 3 · Combined Signal -->
+                <div class="sig-panel sig-panel-combined" id="sigCombined" data-state="neutral">
+                    <div class="sig-head">
+                        <div class="sig-lead">
+                            <div class="sig-caption">איתות משולב</div>
+                            <div class="sig-state" id="combinedState">—</div>
+                        </div>
+                        <div class="sig-score-wrap">
+                            <span class="sig-score-val" id="combinedScore">—</span>
+                            <span class="sig-score-max">/100</span>
+                            <button class="sig-why" type="button" data-target="combinedTooltip" aria-label="פירוט">?</button>
+                        </div>
+                    </div>
+                    <div class="sig-bar"><div class="sig-bar-fill" id="combinedBarFill"></div></div>
+                    <div class="sig-body">
+                        <div class="combined-desc" id="combinedDesc">—</div>
+                        <div class="combined-warnings" id="combinedWarnings"></div>
+                    </div>
+                    <div class="sig-tooltip" id="combinedTooltip" role="tooltip" hidden></div>
+                </div>
+
             </section>
 
             <!-- KPI row -->
@@ -2328,6 +2746,9 @@ function toggleFavorite(sym) {
 }
 window.toggleFavorite = toggleFavorite;
 let historyData = [], currentDateLabel = '', currentVix = null, currentDxy = null, currentTnx = null;
+let currentSpx = null;       // SPX snapshot: { price, chgPct, ma20, ma50, ma150, ma200, high52 }
+let optionsFlowRaw = null;   // parsed rows from spx-options-flow-*.csv (or null if missing)
+let currentMccScore = null;  // last computed MCC score (0-100), exposed for combined signal
 const trendCharts = {};
 
 /* ═══════════ HELPERS ═══════════ */
@@ -2503,6 +2924,12 @@ async function autoLoadData() {
         note.textContent = `נטען אוטומטית ✓ (${currentDateLabel})`;
         note.style.color = '#38a169';
 
+        // טען options flow (אם קיים לתאריך הנוכחי) ורנדר מחדש
+        loadOptionsFlow(currentDateLabel).then(rows => {
+            optionsFlowRaw = rows;
+            try { renderSignalRow(); } catch(e) { console.error('renderSignalRow (flow)', e); }
+        });
+
         // טען היסטוריה מ-index.json
         autoLoadHistory(t);
     } catch(e) {
@@ -2592,6 +3019,8 @@ function processData() {
     currentDxy = dxyRow ? parseFloat(dxyRow['Latest']) : null;
     const tnxRow = allParsed.find(d => d['Symbol'] === '$TNX');
     currentTnx = tnxRow ? parseFloat(tnxRow['Latest']) : null;
+    const spxRow = allParsed.find(d => d['Symbol'] === '$SPX');
+    currentSpx = spxRow ? parseSpxRow(spxRow) : null;
     const raw = allParsed.filter(d => /^[A-Z][A-Z0-9.]{0,4}$/.test(d['Symbol']));
 
     if (!raw.length) return alert('לא נמצאו נתונים תקינים');
@@ -2787,6 +3216,7 @@ function processData() {
     generateDailySummary();
     try { renderOverviewV2(); } catch (e) { console.error('renderOverviewV2', e); }
     try { renderMCC(); } catch (e) { console.error('renderMCC', e); }
+    try { renderSignalRow(); } catch (e) { console.error('renderSignalRow', e); }
     try { renderFavorites(); } catch (e) { console.error('renderFavorites', e); }
     try { if (window.updateMarketStatus) window.updateMarketStatus(); } catch(e) {}
 }
@@ -2883,6 +3313,434 @@ function fmtDelta(v, unit, digits) {
     return s + d.toFixed(digits == null ? 2 : digits) + (unit || '');
 }
 function deltaClass(v) { return v > 0 ? 'pos' : v < 0 ? 'neg' : 'muted'; }
+
+/* ═══════════════════════════════════════════════════════════
+   SPX + MARKET TECHNICALS + OPTIONS FLOW + COMBINED SIGNAL
+   New analytical layer: parses SPX row, loads options flow CSV,
+   computes three scores + divergences, renders under MCC.
+   ═══════════════════════════════════════════════════════════ */
+
+function parseSpxRow(row) {
+    const num = (v) => { const n = parseFloat(String(v || '').replace('%','')); return isNaN(n) ? null : n; };
+    const price = num(row['Latest']);
+    if (price == null) return null;
+    return {
+        price,
+        chgPct: num(row['%Change']),
+        ma20:   num(row['20D MA']),
+        ma50:   num(row['50D MA']),
+        ma150:  num(row['150D MA']),
+        ma200:  num(row['200D MA']),
+        high52: num(row['52W %/High']),  // negative = below high, e.g. -0.55
+    };
+}
+
+/* Load today's options-flow CSV from data/ folder (fallback: null = no data) */
+async function loadOptionsFlow(dateLabel) {
+    if (!dateLabel) return null;
+    const [y, m, d] = dateLabel.split('-');
+    if (!y || !m || !d) return null;
+    const filename = `spx-options-flow-${m}-${d}-${y}.csv`;
+    try {
+        const res = await fetch(`data/${filename}?t=${Date.now()}`);
+        if (!res.ok) return null;
+        const text = await res.text();
+        if (!text || text.length < 100) return null;
+        const lines = text.trim().split(/\r?\n/);
+        const headers = parseCSVLine(lines[0]);
+        const rows = lines.slice(1)
+            .filter(l => l && !l.startsWith('"Downloaded'))
+            .map(l => { const v = parseCSVLine(l), o = {}; headers.forEach((h, i) => o[h] = v[i] || ''); return o; });
+        return rows.length ? rows : null;
+    } catch(e) {
+        console.warn('Options flow load failed:', e.message);
+        return null;
+    }
+}
+
+/* ─── Technical score (0–100) from SPX technicals ─── */
+function computeTechnicalScore(spx) {
+    if (!spx || spx.price == null) return null;
+    const parts = [];
+    const add = (label, value, max) => parts.push({ label, value, max });
+
+    // 1. vs MA20
+    if (spx.ma20 > 0) add('vs MA20', spx.price > spx.ma20 ? 15 : 5, 15);
+    // 2. vs MA50
+    if (spx.ma50 > 0) add('vs MA50', spx.price > spx.ma50 ? 20 : 5, 20);
+    // 3. vs MA200
+    if (spx.ma200 > 0) add('vs MA200', spx.price > spx.ma200 ? 25 : 3, 25);
+    // 4. MA alignment
+    if (spx.ma20 > 0 && spx.ma50 > 0 && spx.ma200 > 0) {
+        let align;
+        if (spx.ma20 > spx.ma50 && spx.ma50 > spx.ma200)      align = 15;
+        else if (spx.ma20 < spx.ma50 && spx.ma50 < spx.ma200) align = 0;
+        else if (spx.ma20 > spx.ma50)                          align = 10;
+        else                                                    align = 5;
+        add('Alignment', align, 15);
+    }
+    // 5. 52W high distance (high52 is negative % below high, e.g. -0.55)
+    if (spx.high52 != null) {
+        const distHigh = Math.abs(spx.high52);
+        let hs = distHigh <= 5 ? 10 : distHigh <= 10 ? 7 : distHigh <= 20 ? 4 : 1;
+        add('52W High (' + (spx.high52<0?'':'+') + spx.high52.toFixed(2) + '%)', hs, 10);
+    }
+    // 6. Daily %change
+    if (spx.chgPct != null) {
+        let cs = spx.chgPct > 0.5 ? 5 : spx.chgPct >= -0.5 ? 3 : 0;
+        add('Daily (' + (spx.chgPct>0?'+':'') + spx.chgPct.toFixed(2) + '%)', cs, 5);
+    }
+
+    let earned = 0, maxAvail = 0;
+    parts.forEach(p => { earned += p.value; maxAvail += p.max; });
+    const score = maxAvail > 0 ? Math.max(0, Math.min(100, Math.round(earned / maxAvail * 100))) : null;
+
+    const classify = (s) => {
+        if (s == null) return { key: 'neutral', label: 'אין נתונים' };
+        if (s >= 80) return { key: 'bullish',      label: 'מגמה עולה חזקה' };
+        if (s >= 65) return { key: 'constructive', label: 'מגמה חיובית' };
+        if (s >= 45) return { key: 'neutral',      label: 'מגמה מעורבת' };
+        if (s >= 30) return { key: 'caution',      label: 'מגמה חלשה' };
+        return { key: 'riskoff', label: 'מגמה שלילית' };
+    };
+    return { score, parts, state: classify(score) };
+}
+
+/* ─── Options flow ratios + score (0–100) ─── */
+function computeOptionsFlowStats(rows) {
+    if (!rows || !rows.length) return null;
+    let callTrades = 0, putTrades = 0;
+    let callPremium = 0, putPremium = 0;
+    rows.forEach(r => {
+        const type = (r.Type || '').toLowerCase();
+        const prem = parseFloat(String(r.Premium || '').replace(/,/g, '')) || 0;
+        if (type === 'call') { callTrades++; callPremium += prem; }
+        else if (type === 'put') { putTrades++; putPremium += prem; }
+    });
+    const totalTrades = callTrades + putTrades;
+    const totalPremium = callPremium + putPremium;
+    if (totalTrades === 0) return null;
+
+    const pcTrades  = callTrades > 0 ? putTrades / callTrades : null;
+    const pcPremium = callPremium > 0 ? putPremium / callPremium : null;
+    const netPremium = callPremium - putPremium;
+
+    // Score components
+    const parts = [];
+    let tradesScore = pcTrades == null ? 0
+        : pcTrades < 0.70 ? 35 : pcTrades < 1.00 ? 27 : pcTrades < 1.30 ? 15 : 5;
+    parts.push({ label: 'Trades P/C (' + (pcTrades==null?'N/A':pcTrades.toFixed(2)) + ')', value: tradesScore, max: 35 });
+
+    let premiumScore = pcPremium == null ? 0
+        : pcPremium < 0.70 ? 50 : pcPremium < 1.00 ? 38 : pcPremium < 1.30 ? 22 : 5;
+    parts.push({ label: 'Premium P/C (' + (pcPremium==null?'N/A':pcPremium.toFixed(2)) + ')', value: premiumScore, max: 50 });
+
+    // Net premium — use ±10% of total as neutral band
+    const netPct = totalPremium > 0 ? netPremium / totalPremium : 0;
+    let netScore = netPct > 0.10 ? 15 : netPct > -0.10 ? 8 : 2;
+    parts.push({ label: 'Net Premium (' + (netPct>=0?'+':'') + (netPct*100).toFixed(1) + '%)', value: netScore, max: 15 });
+
+    const earned = tradesScore + premiumScore + netScore;
+    const score = Math.max(0, Math.min(100, Math.round(earned / 100 * 100)));
+
+    const classify = (s) => {
+        if (s >= 80) return { key: 'bullish',      label: 'זרימה שורית חזקה' };
+        if (s >= 65) return { key: 'constructive', label: 'זרימה שורית' };
+        if (s >= 45) return { key: 'neutral',      label: 'זרימה מעורבת' };
+        if (s >= 30) return { key: 'caution',      label: 'זרימה דפנסיבית' };
+        return { key: 'riskoff', label: 'זרימה דובית' };
+    };
+
+    return {
+        score, parts, state: classify(score),
+        callTrades, putTrades, totalTrades,
+        callPremium, putPremium, totalPremium, netPremium,
+        pcTrades, pcPremium,
+        callTradePct: callTrades / totalTrades * 100,
+        putTradePct:  putTrades / totalTrades * 100,
+        callPremiumPct: totalPremium > 0 ? callPremium / totalPremium * 100 : 0,
+        putPremiumPct:  totalPremium > 0 ? putPremium / totalPremium * 100 : 0,
+    };
+}
+
+/* ─── Combined signal — weighted blend of MCC + tech + flow ─── */
+function computeCombinedSignal(mccScore, techScore, flowScore) {
+    // Re-normalize weights based on what's available
+    const w = { mcc: 0.40, tech: 0.35, flow: 0.25 };
+    let total = 0, num = 0;
+    if (mccScore  != null) { num += w.mcc  * mccScore;  total += w.mcc; }
+    if (techScore != null) { num += w.tech * techScore; total += w.tech; }
+    if (flowScore != null) { num += w.flow * flowScore; total += w.flow; }
+    if (total === 0) return null;
+    const score = Math.max(0, Math.min(100, Math.round(num / total)));
+
+    let state, desc;
+    if (score >= 80) {
+        state = { key: 'bullish',      label: 'שורי מאומת חזק' };
+        desc  = 'Breadth, טכני וזרימת אופציות — כולם מיושרים חיובית';
+    } else if (score >= 65) {
+        state = { key: 'constructive', label: 'אישור חיובי' };
+        desc  = 'מגמה וזרימה תומכות — עקוב אחר סימני סיכון';
+    } else if (score >= 45) {
+        state = { key: 'neutral',      label: 'מעורב ללא יתרון ברור' };
+        desc  = 'איתותים לא מיושרים — הימנע ממסקנות רחבות';
+    } else if (score >= 30) {
+        state = { key: 'caution',      label: 'זהירות / סטייה' };
+        desc  = 'breadth, טכני או flow לא מסתדרים יחד';
+    } else {
+        state = { key: 'riskoff',      label: 'דפנסיבי / סיכון גבוה' };
+        desc  = 'טכניקה חלשה + זרימה דפנסיבית מאשרים סיכון מוגבר';
+    }
+    return { score, state, desc };
+}
+
+/* ─── Divergence / confluence warnings ─── */
+function detectDivergences(mccScore, techScore, flow) {
+    const warnings = [];
+    const pcPrem = flow ? flow.pcPremium : null;
+    const callPremPct = flow ? flow.callPremiumPct : null;
+    const flowScore = flow ? flow.score : null;
+
+    if (techScore != null && flowScore != null && techScore >= 65 && flowScore < 45) {
+        warnings.push({ type:'warn', text:'טכניקה חזקה אך זרימת אופציות לא מאשרת' });
+    }
+    if (techScore != null && flowScore != null && techScore < 45 && flowScore >= 65) {
+        warnings.push({ type:'warn', text:'זרימה שורית מול טכניקה חלשה — היזהר' });
+    }
+    if (mccScore != null && techScore != null && mccScore >= 65 && techScore < 45) {
+        warnings.push({ type:'warn', text:'רוחב שוק תומך אך המדד עצמו במגמה חלשה' });
+    }
+    if (flowScore != null && pcPrem != null && flowScore < 35 && pcPrem > 1.30) {
+        warnings.push({ type:'neg', text:'ביקוש הגנות גבוה — לחץ הגנתי משמעותי' });
+    }
+    if (flowScore != null && callPremPct != null && flowScore >= 75 && callPremPct > 65) {
+        warnings.push({ type:'pos', text:'מנהיגות פרמיית Call — זרימה תוקפנית שורית' });
+    }
+    return warnings;
+}
+
+/* ─── Render helpers ─── */
+function fmtMoney(v) {
+    if (v == null || isNaN(v)) return '—';
+    const abs = Math.abs(v);
+    if (abs >= 1e9) return (v/1e9).toFixed(2) + 'B';
+    if (abs >= 1e6) return (v/1e6).toFixed(1) + 'M';
+    if (abs >= 1e3) return (v/1e3).toFixed(0) + 'K';
+    return v.toFixed(0);
+}
+
+function renderSignalRow() {
+    // Market Technicals
+    const tech = computeTechnicalScore(currentSpx);
+    renderTechPanel(tech);
+
+    // Options Flow
+    const flow = computeOptionsFlowStats(optionsFlowRaw);
+    renderFlowPanel(flow);
+
+    // Combined
+    const combined = computeCombinedSignal(
+        currentMccScore,
+        tech ? tech.score : null,
+        flow ? flow.score : null
+    );
+    const warnings = detectDivergences(currentMccScore, tech ? tech.score : null, flow);
+    renderCombinedPanel(combined, warnings, { mcc: currentMccScore, tech: tech ? tech.score : null, flow: flow ? flow.score : null });
+}
+
+function renderTechPanel(tech) {
+    const root = document.getElementById('sigTech');
+    if (!root) return;
+    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    if (!tech || !currentSpx) {
+        root.dataset.state = 'neutral';
+        setText('techState', 'אין נתוני SPX');
+        setText('techScore', '—');
+        const fill = document.getElementById('techBarFill'); if (fill) fill.style.width = '0%';
+        return;
+    }
+    root.dataset.state = tech.state.key;
+    setText('techState', tech.state.label);
+    setText('techScore', tech.score != null ? tech.score : '—');
+    const fill = document.getElementById('techBarFill'); if (fill) fill.style.width = (tech.score || 0) + '%';
+
+    // SPX price + change
+    setText('techSpxPrice', currentSpx.price.toLocaleString('en-US', { maximumFractionDigits: 2 }));
+    const chgEl = document.getElementById('techSpxChg');
+    if (chgEl && currentSpx.chgPct != null) {
+        chgEl.textContent = (currentSpx.chgPct>0?'+':'') + currentSpx.chgPct.toFixed(2) + '%';
+        chgEl.className = 'tech-price-chg ' + (currentSpx.chgPct>0?'pos':currentSpx.chgPct<0?'neg':'muted');
+    }
+
+    // MA chips
+    const setMa = (id, label, maVal) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (!maVal || maVal <= 0) { el.textContent = label + ' N/A'; el.className = 'tech-ma'; return; }
+        const dist = (currentSpx.price - maVal) / maVal * 100;
+        const cls = dist >= 0 ? 'pos' : 'neg';
+        const sign = dist >= 0 ? '+' : '';
+        el.innerHTML = `${label} <span class="${cls}">${sign}${dist.toFixed(1)}%</span>`;
+        el.className = 'tech-ma tech-ma-' + cls;
+    };
+    setMa('techMa20', 'MA20', currentSpx.ma20);
+    setMa('techMa50', 'MA50', currentSpx.ma50);
+    setMa('techMa200', 'MA200', currentSpx.ma200);
+
+    // 52W high
+    const high52El = document.getElementById('tech52w');
+    if (high52El) {
+        const h = currentSpx.high52;
+        high52El.textContent = h != null ? (h>0?'+':'') + h.toFixed(2) + '%' : '—';
+        high52El.className = 'ex-val ' + (h != null && Math.abs(h) <= 5 ? 'pos' : h != null && Math.abs(h) <= 15 ? '' : 'warn');
+    }
+
+    // Alignment text
+    const alignEl = document.getElementById('techAlign');
+    if (alignEl) {
+        const s = currentSpx;
+        let txt = '—', cls = '';
+        if (s.ma20 > 0 && s.ma50 > 0 && s.ma200 > 0) {
+            if (s.ma20 > s.ma50 && s.ma50 > s.ma200)      { txt = '20>50>200'; cls = 'pos'; }
+            else if (s.ma20 < s.ma50 && s.ma50 < s.ma200) { txt = '20<50<200'; cls = 'neg'; }
+            else { txt = 'Mixed'; cls = 'warn'; }
+        }
+        alignEl.textContent = txt;
+        alignEl.className = 'ex-val ' + cls;
+    }
+
+    // Tooltip
+    buildScoreTooltip('techTooltip', 'Market Technical Score', tech.parts, tech.score);
+}
+
+function renderFlowPanel(flow) {
+    const root = document.getElementById('sigFlow');
+    if (!root) return;
+    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    if (!flow) {
+        root.dataset.state = 'neutral';
+        setText('flowState', 'אין נתוני Flow להיום');
+        setText('flowScore', '—');
+        const fill = document.getElementById('flowBarFill'); if (fill) fill.style.width = '0%';
+        setText('flowPcPremium', 'P/C —');
+        setText('flowPcTrades', 'P/C —');
+        setText('flowCallPremPct', '—');
+        setText('flowPutPremPct', '—');
+        setText('flowNetPremium', '—');
+        setText('flowCallTradePct', '—');
+        setText('flowPutTradePct', '—');
+        const bc = document.getElementById('flowCallPremBar'); if (bc) bc.style.width = '0%';
+        const bp = document.getElementById('flowPutPremBar');  if (bp) bp.style.width = '0%';
+        return;
+    }
+    root.dataset.state = flow.state.key;
+    setText('flowState', flow.state.label);
+    setText('flowScore', flow.score);
+    const fill = document.getElementById('flowBarFill'); if (fill) fill.style.width = flow.score + '%';
+
+    // Premium section
+    setText('flowPcPremium', 'P/C ' + flow.pcPremium.toFixed(2));
+    setText('flowCallPremPct', flow.callPremiumPct.toFixed(1) + '%');
+    setText('flowPutPremPct',  flow.putPremiumPct.toFixed(1) + '%');
+    const bc = document.getElementById('flowCallPremBar'); if (bc) bc.style.width = flow.callPremiumPct + '%';
+    const bp = document.getElementById('flowPutPremBar');  if (bp) bp.style.width = flow.putPremiumPct + '%';
+
+    const netEl = document.getElementById('flowNetPremium');
+    if (netEl) {
+        const v = flow.netPremium;
+        const sign = v >= 0 ? '+$' : '−$';
+        netEl.textContent = sign + fmtMoney(Math.abs(v));
+        netEl.className = 'flow-net-val ' + (v > 0 ? 'pos' : v < 0 ? 'neg' : 'muted');
+    }
+
+    // Trades section
+    setText('flowPcTrades', 'P/C ' + flow.pcTrades.toFixed(2));
+    setText('flowCallTradePct', flow.callTradePct.toFixed(1) + '%');
+    setText('flowPutTradePct',  flow.putTradePct.toFixed(1) + '%');
+
+    // Tooltip
+    buildScoreTooltip('flowTooltip', 'Options Flow Score', flow.parts, flow.score);
+}
+
+function renderCombinedPanel(combined, warnings, ctx) {
+    const root = document.getElementById('sigCombined');
+    if (!root) return;
+    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    if (!combined) {
+        root.dataset.state = 'neutral';
+        setText('combinedState', 'אין נתונים מספיקים');
+        setText('combinedScore', '—');
+        setText('combinedDesc', '');
+        const w = document.getElementById('combinedWarnings'); if (w) w.innerHTML = '';
+        return;
+    }
+    root.dataset.state = combined.state.key;
+    setText('combinedState', combined.state.label);
+    setText('combinedScore', combined.score);
+    setText('combinedDesc', combined.desc);
+    const fill = document.getElementById('combinedBarFill'); if (fill) fill.style.width = combined.score + '%';
+
+    const wEl = document.getElementById('combinedWarnings');
+    if (wEl) {
+        wEl.innerHTML = warnings.length
+            ? warnings.map(w => `<div class="combined-warn combined-warn-${w.type}">${w.text}</div>`).join('')
+            : '';
+    }
+
+    // Tooltip — show the three component scores + weights
+    const tt = document.getElementById('combinedTooltip');
+    if (tt) {
+        const fmt = v => v == null ? 'N/A' : v;
+        tt.innerHTML = `
+            <div class="tt-title">Combined Signal Weighting</div>
+            <div class="tt-row"><span class="tt-lbl">Market Score (40%)</span><span class="tt-val">${fmt(ctx.mcc)}</span></div>
+            <div class="tt-row"><span class="tt-lbl">Technical Score (35%)</span><span class="tt-val">${fmt(ctx.tech)}</span></div>
+            <div class="tt-row"><span class="tt-lbl">Options Flow Score (25%)</span><span class="tt-val">${fmt(ctx.flow)}</span></div>
+            <div class="tt-row tt-total"><span>Combined</span><span>${combined.score} / 100</span></div>
+            <div class="tt-note">משקלים מנורמלים אוטומטית אם חסר רכיב</div>
+        `;
+    }
+}
+
+function buildScoreTooltip(id, title, parts, finalScore) {
+    const tt = document.getElementById(id);
+    if (!tt) return;
+    const rows = parts.map(p => {
+        const v = p.value == null ? 'N/A' : ('+' + p.value);
+        const suffix = p.max != null ? ' / ' + p.max : '';
+        return `<div class="tt-row"><span class="tt-lbl">${p.label}</span><span class="tt-val">${v}${suffix}</span></div>`;
+    }).join('');
+    tt.innerHTML = `
+        <div class="tt-title">${title}</div>
+        ${rows}
+        <div class="tt-row tt-total"><span>Normalized</span><span>${finalScore != null ? finalScore + ' / 100' : 'N/A'}</span></div>
+    `;
+}
+
+/* Signal-panel tooltip open/close (unified for all three panels) */
+(function initSigTooltips() {
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.sig-why');
+        const ids = ['techTooltip', 'flowTooltip', 'combinedTooltip'];
+        if (btn) {
+            const targetId = btn.dataset.target;
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (id === targetId) el.hidden = !el.hidden;
+                else el.hidden = true;
+            });
+            e.stopPropagation();
+            return;
+        }
+        // Click outside any tooltip closes all
+        const insideTip = ids.some(id => {
+            const el = document.getElementById(id);
+            return el && !el.hidden && el.contains(e.target);
+        });
+        if (!insideTip) ids.forEach(id => { const el = document.getElementById(id); if (el) el.hidden = true; });
+    });
+})();
 
 /* ═══════════════════════════════════════════════════════════
    MARKET CONTROL CENTER · top command strip
@@ -3043,6 +3901,7 @@ function renderMCC() {
     });
 
     // ─── Apply to DOM ───
+    currentMccScore = score;  // expose for combined signal
     root.dataset.state = state.key;
     const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     setText('mccState', state.label);
