@@ -1438,34 +1438,6 @@
 
         <div class="stats-grid" id="statsGrid"></div>
 
-        <div class="section-group-label">Market Movers · מסננים וסט-אפים</div>
-
-        <!-- Setup Screener -->
-        <div class="card">
-            <h3 class="section-title">מסנן Setup אידיאלי — מועמדות לריבאונד עם נפח</h3>
-            <p style="font-size:12px;color:var(--text-muted);margin:0 0 12px;">RSI חלש/oversold + MA Score ≥ 1 + RVOL &gt; 1.2 · ממוין לפי ציון מתנע</p>
-            <div id="setupScreener"></div>
-        </div>
-
-        <!-- חזרה לממוצעים -->
-        <div class="card">
-            <h3 class="section-title">מסנן "חזרה לממוצעים" — מעל 20D MA, מתחת ל-50D MA עם נפח</h3>
-            <p style="font-size:12px;color:var(--text-muted);margin:0 0 12px;">Latest &gt; 20D MA AND Latest &lt; 50D MA AND RVOL &gt; 1.0 — מועמדות לריבאונד קצר טווח</p>
-            <div id="ma20screener"></div>
-        </div>
-
-        <!-- Above 200D MA Crossers -->
-        <div class="card">
-            <h3 class="section-title">מניות שחזרו מעל 200D MA — חציה טרייה (עד 5% מעליו)</h3>
-            <div id="above200Screener"></div>
-        </div>
-
-        <!-- Rising Momentum -->
-        <div class="card">
-            <h3 class="section-title">מניות עם מומנטום עולה — Top 10 שינוי יומי (ציון מעל 40)</h3>
-            <div id="momentumRisingScreener"></div>
-        </div>
-
         <div class="section-group-label">Analysis &amp; Summary · ניתוח וסיכום</div>
 
         <!-- Market Summary -->
@@ -1653,9 +1625,38 @@
             </div>
         </section>
         <section class="tab-view" data-tab-view="screeners">
-            <div class="tab-placeholder">
-                <h2>סינונים — Screeners</h2>
-                <p>בשלב הבא: Setup, MA20, Above 200, Momentum, Rebound, Smart Track.</p>
+            <div class="container">
+
+                <div class="section-group-label">Setup · מועמדות לריבאונד</div>
+
+                <div class="card">
+                    <h3 class="section-title">מסנן Setup אידיאלי — מועמדות לריבאונד עם נפח</h3>
+                    <p style="font-size:12px;color:var(--text-muted);margin:0 0 12px;">RSI חלש/oversold + MA Score ≥ 1 + RVOL &gt; 1.2 · ממוין לפי ציון מתנע</p>
+                    <div id="setupScreener"></div>
+                </div>
+
+                <div class="section-group-label">Mean Reversion · חזרה לממוצעים</div>
+
+                <div class="card">
+                    <h3 class="section-title">מסנן "חזרה לממוצעים" — מעל 20D MA, מתחת ל-50D MA עם נפח</h3>
+                    <p style="font-size:12px;color:var(--text-muted);margin:0 0 12px;">Latest &gt; 20D MA AND Latest &lt; 50D MA AND RVOL &gt; 1.0 — מועמדות לריבאונד קצר טווח</p>
+                    <div id="ma20screener"></div>
+                </div>
+
+                <div class="section-group-label">Fresh Crossovers · חציות טריות</div>
+
+                <div class="card">
+                    <h3 class="section-title">מניות שחזרו מעל 200D MA — חציה טרייה (עד 5% מעליו)</h3>
+                    <div id="above200Screener"></div>
+                </div>
+
+                <div class="section-group-label">Rising Momentum · מומנטום עולה</div>
+
+                <div class="card">
+                    <h3 class="section-title">מניות עם מומנטום עולה — Top 10 שינוי יומי (ציון מעל 40)</h3>
+                    <div id="momentumRisingScreener"></div>
+                </div>
+
             </div>
         </section>
         <section class="tab-view" data-tab-view="alerts">
