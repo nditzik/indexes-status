@@ -281,86 +281,127 @@ STATE_COLORS = {
 accent = STATE_COLORS.get(state_key, '#64748b')
 
 # ═══════════════════════════════════════════════════
-#  Section 1 narrative (2 short sentences)
+#  Section 1 narrative — 1-2 sentences, trader tone
 # ═══════════════════════════════════════════════════
 def narrative():
-    bits = []
-    if vix is not None:
-        if   vix < 15:  bits.append(f'VIX רגוע ({vix:.1f})')
-        elif vix < 20:  bits.append(f'VIX ב-{vix:.1f}')
-        elif vix < 25:  bits.append(f'VIX ב-{vix:.1f} — ערנות')
-        else:           bits.append(f'VIX גבוה ({vix:.1f})')
-    if   p200 >= 60: bits.append(f'{int(p200)}% מהמניות מעל MA200 — רוחב חיובי')
-    elif p200 >= 45: bits.append(f'{int(p200)}% מעל MA200 — רוחב מעורב')
-    else:            bits.append(f'רק {int(p200)}% מעל MA200 — רוחב חלש')
-    if spx and spx['chgPct'] is not None:
-        direction = 'עלה' if spx['chgPct'] > 0 else 'ירד' if spx['chgPct'] < 0 else 'ללא שינוי'
-        bits.append(f'SPX {direction} ב-{abs(spx["chgPct"]):.2f}% היום')
-    return '. '.join(bits[:3]) + '.'
+    # Pick a lead sentence based on state, then add one qualifying sentence
+    lead = ''
+    if state_key == 'bullish':
+        lead = 'שוק חזק ורחב'
+    elif state_key == 'constructive':
+        lead = 'שוק חיובי'
+    elif state_key == 'neutral':
+        lead = 'שוק ללא כיוון ברור'
+    elif state_key == 'caution':
+        lead = 'שוק נחלש'
+    else:  # riskoff
+        lead = 'לחץ מכירות רחב בשוק'
+
+    # Qualifier — what it means / what to watch
+    tail = ''
+    if state_key in ('bullish','constructive'):
+        if len(last25) >= 5 and dist_days >= 3:
+            tail = 'אבל יש לחץ מכירות — סלקטיביות'
+        elif f_score is not None and f_score < 45:
+            tail = 'אבל Flow לא מאשר — זהירות'
+        elif flow and flow['pc_p'] is not None and flow['pc_p'] > 1.2:
+            tail = 'אבל הגנות מוגברות — לא לרדוף'
+        elif vix is not None and vix > 22:
+            tail = 'אבל תנודתיות עולה — לא להתפזר'
+        elif f_score is not None and f_score >= 65:
+            tail = 'Flow מאשר — מגמה תומכת'
+        else:
+            tail = 'מגמה תומכת'
+    elif state_key == 'neutral':
+        if f_score is not None and f_score >= 65:
+            tail = 'Flow שורי — סימן חיובי'
+        elif f_score is not None and f_score < 40:
+            tail = 'Flow דפנסיבי — עדיף להמתין'
+        elif vix is not None and vix > 22:
+            tail = 'תנודתיות גבוהה — מחכה לכיוון'
+        else:
+            tail = 'מחכה לאות ברור'
+    elif state_key == 'caution':
+        if vix is not None and vix > 22:
+            tail = 'תנודתיות עולה — להקטין סיכון'
+        elif p200 < 45:
+            tail = 'רוב המניות מתחת ל-200MA — לא לקנות'
+        else:
+            tail = 'להיזהר מהתרחבות חשיפה'
+    else:  # riskoff
+        if vix is not None and vix > 28:
+            tail = 'פאניקה — לחכות שהאבק ישקע'
+        else:
+            tail = 'עדיף להיות בצד'
+
+    return f'{lead}. {tail}.'
 
 # ═══════════════════════════════════════════════════
-#  Section 2 — Key signals (merged technical + flow)
+#  Section 2 — Key signals (short, trader-voice)
 # ═══════════════════════════════════════════════════
 def key_signals():
     items = []
-    # SPX vs MAs (single compact bullet)
+    # SPX vs MAs — one clean bullet based on how many MAs price is above
     if spx and spx['price']:
-        parts = []
-        for lbl, v in [('MA20', spx['ma20']), ('MA50', spx['ma50']), ('MA200', spx['ma200'])]:
-            if v:
-                diff = (spx['price']/v - 1) * 100
-                parts.append(f"{lbl} {'+' if diff >= 0 else ''}{diff:.1f}%")
-        if parts:
-            items.append('SPX מול ממוצעים — ' + ' · '.join(parts))
-    # Alignment
+        ok = sum(1 for v in (spx['ma20'], spx['ma50'], spx['ma200']) if v and spx['price'] > v)
+        if ok == 3:
+            items.append('SPX מעל כל הממוצעים — מגמה חיובית')
+        elif ok == 2:
+            items.append('SPX מעל 2 ממוצעים — מגמה חלקית')
+        elif ok == 1:
+            items.append('SPX מעל ממוצע אחד — מגמה חלשה')
+        else:
+            items.append('SPX מתחת לכל הממוצעים — מגמה שלילית')
+    # Alignment — only mention if clear
     if spx and spx['ma20'] and spx['ma50'] and spx['ma200']:
         if spx['ma20'] > spx['ma50'] > spx['ma200']:
-            items.append('מבנה ממוצעים שורי (20&gt;50&gt;200) — מגמה עולה תומכת')
+            items.append('סידור ממוצעים שורי — 20 מעל 50 מעל 200')
         elif spx['ma20'] < spx['ma50'] < spx['ma200']:
-            items.append('מבנה ממוצעים דובי (20&lt;50&lt;200) — מגמה יורדת')
-    # Dist days
+            items.append('סידור ממוצעים דובי — 20 מתחת 50 מתחת 200')
+    # Distribution days
     if len(last25) >= 5 and dist_days >= 3:
-        items.append(f'{dist_days} ימי חלוקה ב-25 סשנים — לחץ מוסדי')
-    # Flow premium
+        items.append(f'{dist_days} ימי מכירות כבדים — לחץ מוסדי')
+    # Flow premium (primary signal)
     if flow and flow['pc_p'] is not None:
         if flow['pc_p'] < 0.70:
-            items.append(f'Put/Call Premium {flow["pc_p"]:.2f} — זרימה שורית חזקה')
+            items.append('פרמיות Call מובילות בגדול — כסף שורי חזק')
         elif flow['pc_p'] < 1.00:
-            items.append(f'Put/Call Premium {flow["pc_p"]:.2f} — נטייה שורית')
+            items.append('פרמיות Call מובילות — כסף שורי')
         elif flow['pc_p'] < 1.30:
-            items.append(f'Put/Call Premium {flow["pc_p"]:.2f} — מאוזן / הגנות')
+            items.append('פרמיות מאוזנות — ללא כיוון ברור')
         else:
-            items.append(f'Put/Call Premium גבוה ({flow["pc_p"]:.2f}) — ביקוש הגנות משמעותי')
-    # Flow trades
+            items.append('פרמיות Put גבוהות — ביקוש הגנות')
+    # Flow trades (crowd)
     if flow and flow['pc_tr'] is not None:
-        items.append(f'Put/Call Trades {flow["pc_tr"]:.2f} · Call {flow["call_tr_pct"]:.0f}% / Put {flow["put_tr_pct"]:.0f}%')
-    # Net premium
-    if flow:
-        direction = 'חיובי — נהיגת Calls' if flow['net_p'] > 0 else 'שלילי — נהיגת Puts'
-        items.append(f'Net Premium: {fmt_money(flow["net_p"])} ({direction})')
-    # Divergences
+        if flow['pc_tr'] < 0.70:
+            items.append('גם הקהל שורי — טריידים ל-Call')
+        elif flow['pc_tr'] >= 1.30:
+            items.append('טריידים נוטים ל-Put — קהל זהיר')
+    # Divergences (high priority, override if present)
     if t_score is not None and f_score is not None:
         if t_score >= 65 and f_score < 45:
-            items.append('⚠ סטייה: טכניקה חזקה אך הזרימה לא מאשרת')
+            items.append('⚠ מחיר חזק, זרימה חלשה — סטייה')
         elif t_score < 45 and f_score >= 65:
-            items.append('⚠ סטייה: זרימה שורית מול טכניקה חלשה')
-    return items[:6]
+            items.append('⚠ זרימה שורית מול מחיר חלש — סטייה')
+    return items[:5]
 
 def signals_conclusion():
-    # One-line interpretation
+    # One punchy line — trader interpretation
     if flow is None: return ''
     if m_score is None or f_score is None: return ''
     if f_score >= 65 and m_score < 50:
-        return 'Flow מעורב — כסף גדול שורי, breadth קהה'
+        return 'כסף גדול שורי, breadth מפגר'
     if f_score < 40 and m_score >= 60:
-        return 'Breadth תומך אך זרימה דפנסיבית — בחר בקפידה'
+        return 'השוק נראה יפה — אבל הזרימה לא נקייה'
     if f_score >= 70 and m_score >= 65:
-        return 'זרימה ו-breadth מיושרים — תמונה שורית עקבית'
+        return 'הכל מיושר — תמונה חיובית'
+    if t_score is not None and f_score is not None and abs(t_score - f_score) >= 25:
+        return 'המחיר והזרימה לא מסתדרים — זהירות'
     if f_score < 35:
-        return 'זרימה דובית — זהירות מוגברת'
+        return 'הזרימה דובית — להיזהר'
     if flow['pc_p'] is not None and flow['pc_p'] > 1.30:
-        return 'ביקוש הגנות מוגבר — סביבה מחייבת ערנות'
-    return 'Flow מאוזן ביחס ל-breadth — ללא סטייה ברורה'
+        return 'קהל קונה הגנות — סימן לערנות'
+    return 'הזרימה מאוזנת — ללא הכרעה'
 
 signals_items = key_signals()
 conclusion   = signals_conclusion()
@@ -386,6 +427,39 @@ def weakness(s):
     if s['rvol'] > 1.2: sc += 10
     return sc
 
+# Short human-readable meaning per stock (trader voice)
+def strong_meaning(s):
+    chg = s['chg'] or 0
+    if s['rvol'] > 2 and chg > 2:
+        return 'פריצה חזקה היום'
+    if chg > 4:
+        return 'עלייה חדה היום'
+    if s['w52'] >= -3:
+        return 'קרובה לשיא — חזקה'
+    if s['rsi'] in ('Above 70','New Above 70','New Above 80'):
+        return 'במומנטום שורי'
+    if s['rsi'] == 'Above 80':
+        return 'מומנטום חזק מאוד'
+    if s['dist200'] is not None and s['dist200'] > 30:
+        return 'הרחק מעל 200MA'
+    return 'ממשיכה להוביל'
+
+def weak_meaning(s):
+    chg = s['chg'] or 0
+    if chg < -5:
+        return 'נפילה חדה היום'
+    if s['w52'] <= -45:
+        return 'רחוקה מהשיא — חולשה עמוקה'
+    if s['rsi'] in ('Below 30','New Below 30','Below 20'):
+        return 'במכירת יתר'
+    if s['ma_score'] == 0:
+        return 'מתחת לכל הממוצעים'
+    if chg < -2:
+        return 'יורדת היום'
+    if s['w52'] <= -30:
+        return 'חולשה ברורה'
+    return 'נחלשת'
+
 strong = sorted(stocks, key=momentum, reverse=True)[:5]
 weak   = sorted(stocks, key=weakness, reverse=True)[:5]
 
@@ -395,16 +469,16 @@ weak   = sorted(stocks, key=weakness, reverse=True)[:5]
 def alerts():
     al = []
     if vix is not None and vix > 25:
-        al.append(f'VIX מעל 25 ({vix:.1f}) — תנודתיות חריגה')
+        al.append('VIX מעל 25 — תנודתיות חריגה')
     if flow and flow['pc_p'] is not None and flow['pc_p'] > 1.30:
-        al.append(f'P/C Premium {flow["pc_p"]:.2f} — ביקוש הגנות יוצא-דופן')
+        al.append('ביקוש הגנות גבוה — קהל חושש')
     if len(last25) >= 5 and dist_days >= 5:
-        al.append(f'{dist_days} ימי חלוקה ב-25 סשנים — לחץ מכירות מצטבר')
+        al.append(f'{dist_days} ימי מכירות כבדים — לחץ מוסדי מצטבר')
     if t_score is not None and f_score is not None and abs(t_score - f_score) >= 30:
-        al.append(f'סטייה חריפה בין טכניקה ל-Flow ({t_score} vs {f_score})')
+        al.append('סטייה חריפה בין מחיר לזרימה')
     if nl >= 30 and nh_nl < 0.5 and nh_nl != 99:
-        al.append(f'NL מוגבר — {nl} מניות בירידה חריפה מהשיא')
-    return al[:4]
+        al.append(f'{nl} מניות רחוקות מהשיא — חולשה רחבה')
+    return al[:3]
 
 alerts_list = alerts()
 
@@ -413,14 +487,11 @@ alerts_list = alerts()
 # ═══════════════════════════════════════════════════
 def action_line():
     if c_score is None: return '—'
-    if c_score >= 80: return 'מגמה תומכת — ניתן להגדיל חשיפה בהדרגה למובילים'
-    if c_score >= 65: return 'לונגים סלקטיביים — להתמקד בחזקות ולנהל סיכון'
-    if c_score >= 45:
-        if flow and flow['pc_p'] is not None and flow['pc_p'] > 1.2:
-            return 'סלקטיביות — להימנע מחשיפה רחבה, Flow דורש ערנות'
-        return 'סלקטיביות — להעדיף חזקות מאומתות, להימנע מהתרחבות רחבה'
-    if c_score >= 30: return 'גישה דפנסיבית — עדיף להקטין חשיפה'
-    return 'הגנתי — להעדיף מזומן ולחכות להתבהרות'
+    if c_score >= 80: return 'מגמה תומכת — אפשר להגדיל חשיפה בהדרגה'
+    if c_score >= 65: return 'לונגים סלקטיביים — להיזהר מהתרחבות'
+    if c_score >= 45: return 'סלקטיביות — להעדיף חזקות ברורות'
+    if c_score >= 30: return 'גישה דפנסיבית — להקטין סיכון'
+    return 'הגנתי — עדיף להיות בצד'
 
 # ═══════════════════════════════════════════════════
 #  Date label
@@ -444,14 +515,11 @@ def score_block(lbl, v):
             f'</td>')
 
 def stock_row(s, pos=True):
-    c = '#10b981' if pos else '#ef4444'
-    chg_str  = pct(s['chg'], 2) if s['chg'] is not None else '—'
-    dist_str = pct(s['dist200'], 1) if s['dist200'] is not None else '—'
+    meaning = strong_meaning(s) if pos else weak_meaning(s)
+    meaning_color = '#2f855a' if pos else '#c53030'
     return (f'<tr>'
-            f'<td align="right" dir="ltr" style="padding:7px 10px;font-weight:700;color:#2b6cb0;width:56px;text-align:right;">{s["sym"]}</td>'
-            f'<td align="right" style="padding:7px 10px;color:#2d3748;font-size:12px;text-align:right;">{s["name"][:30]}</td>'
-            f'<td align="left" dir="ltr" style="padding:7px 10px;text-align:left;color:{c};font-weight:600;font-size:12px;font-variant-numeric:tabular-nums;">{chg_str}</td>'
-            f'<td align="left" dir="ltr" style="padding:7px 10px;text-align:left;color:{c};font-weight:600;font-size:12px;font-variant-numeric:tabular-nums;">{dist_str}</td>'
+            f'<td align="right" dir="ltr" style="padding:8px 10px;font-weight:700;color:#2b6cb0;width:70px;text-align:right;font-size:13px;">{s["sym"]}</td>'
+            f'<td align="right" style="padding:8px 10px;color:{meaning_color};font-size:13px;font-weight:500;text-align:right;">— {meaning}</td>'
             f'</tr>')
 
 # Build each section
@@ -525,9 +593,9 @@ s4_html = f"""
 <div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
   <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:12px;text-align:right;">מניות — חוזק / חולשה</div>
   <table dir="rtl" style="width:100%;border-collapse:collapse;direction:rtl;">
-    <tr style="background:#f0fdf4;"><td align="right" colspan="4" style="padding:7px 10px;font-size:12px;color:#2f855a;font-weight:700;text-align:right;">▲ חזקות</td></tr>
+    <tr style="background:#f0fdf4;"><td align="right" colspan="2" style="padding:8px 10px;font-size:12px;color:#2f855a;font-weight:700;text-align:right;">▲ חזקות</td></tr>
     {strong_rows}
-    <tr style="background:#fef2f2;"><td align="right" colspan="4" style="padding:7px 10px;font-size:12px;color:#c53030;font-weight:700;text-align:right;">▼ חלשות</td></tr>
+    <tr style="background:#fef2f2;"><td align="right" colspan="2" style="padding:8px 10px;font-size:12px;color:#c53030;font-weight:700;text-align:right;">▼ חלשות</td></tr>
     {weak_rows}
   </table>
 </div>
