@@ -341,8 +341,11 @@
             flex-shrink: 0;
         }
         .market-status.closed .dot { background: var(--neg); box-shadow: 0 0 0 3px rgba(239,68,68,.15); }
+        .market-status .status-col { display: flex; flex-direction: column; gap: 1px; line-height: 1.15; }
         .market-status .label { color: var(--text); font-weight: 500; }
-        .market-status .date  { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        .market-status .status-sub { display: flex; gap: 6px; color: var(--text-muted); font-variant-numeric: tabular-nums; font-size: 11px; }
+        .market-status .data-date { color: var(--text-dim); }
+        .market-status .data-date:not(:empty)::before { content: 'נתונים '; color: var(--text-dim); }
         .topbar-actions {
             display: flex;
             align-items: center;
@@ -1106,8 +1109,10 @@
             </div>
             <div class="market-status" id="marketStatus">
                 <span class="dot"></span>
-                <span class="label">טוען...</span>
-                <span class="date" id="marketDate">—</span>
+                <div class="status-col">
+                    <span class="label">טוען...</span>
+                    <span class="status-sub"><span id="marketDate">—</span><span class="data-date" id="dataDate"></span></span>
+                </div>
             </div>
             <div class="topbar-actions">
                 <div class="theme-segment" role="group" aria-label="ערכת נושא">
@@ -1755,6 +1760,7 @@
     function updateMarketStatus() {
         const el = document.getElementById('marketStatus');
         const dateEl = document.getElementById('marketDate');
+        const dataDateEl = document.getElementById('dataDate');
         if (!el) return;
         // Market open/closed — live (US ET session 09:30–16:00 weekdays)
         const now = new Date();
@@ -1764,13 +1770,22 @@
         const open = day >= 1 && day <= 5 && mins >= 570 && mins < 960;
         el.classList.toggle('closed', !open);
         el.querySelector('.label').textContent = open ? 'שוק פתוח' : 'שוק סגור';
-        // Date — from the report (CSV), not the live wall clock
+        // Main date — today (live, local)
+        const dd = String(now.getDate()).padStart(2,'0');
+        const mm = String(now.getMonth()+1).padStart(2,'0');
+        const yyyy = now.getFullYear();
+        if (dateEl) dateEl.textContent = `${dd}/${mm}/${yyyy}`;
+        // Sub date — CSV report date (previous close if market hasn't updated today)
         const label = (typeof currentDateLabel !== 'undefined' && currentDateLabel) ? currentDateLabel : '';
-        if (label) {
-            const m = label.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-            dateEl.textContent = m ? `${m[3]}/${m[2]}/${m[1]}` : label;
-        } else {
-            dateEl.textContent = '—';
+        if (dataDateEl) {
+            if (label) {
+                const m = label.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                const formatted = m ? `${m[3]}/${m[2]}/${m[1]}` : label;
+                const liveLabel = `${yyyy}-${mm}-${dd}`;
+                dataDateEl.textContent = (label === liveLabel) ? '' : formatted;
+            } else {
+                dataDateEl.textContent = '';
+            }
         }
     }
     updateMarketStatus();
@@ -2726,20 +2741,14 @@ function renderAlertsPanelV2() {
     const list = document.getElementById('alertsList');
     if (!list) return;
     const alerts = [];
-    const now = new Date();
-    const tstamp = d => {
-        const hh = String(d.getHours()).padStart(2,'0');
-        const mi = String(d.getMinutes()).padStart(2,'0');
-        return hh + ':' + mi;
-    };
     const hist = (typeof historyData !== 'undefined' && Array.isArray(historyData)) ? historyData : [];
     const prev = hist.length >= 2 ? hist[hist.length - 2].metrics : null;
 
     // VIX spike
     if (M.vix != null && prev && prev.vix != null) {
         const pctChg = (M.vix - prev.vix) / prev.vix * 100;
-        if (pctChg >= 10) alerts.push({ type:'neg', title:`VIX בעליה חדה`, meta:`עלייה של ${pctChg.toFixed(1)}% מעל הממוצע · ${tstamp(now)}` });
-        else if (pctChg <= -10) alerts.push({ type:'pos', title:`VIX בירידה חדה`, meta:`ירידה של ${Math.abs(pctChg).toFixed(1)}% · ${tstamp(now)}` });
+        if (pctChg >= 10) alerts.push({ type:'neg', title:'VIX בעלייה חדה', meta:`קפיצה של ${pctChg.toFixed(1)}% — אינדיקציה לעצבנות בשוק` });
+        else if (pctChg <= -10) alerts.push({ type:'pos', title:'VIX בירידה חדה', meta:`ירידה של ${Math.abs(pctChg).toFixed(1)}% — רגיעה בציפיות לתנודתיות` });
     }
 
     // Breadth shift
@@ -2748,29 +2757,29 @@ function renderAlertsPanelV2() {
         if (Math.abs(d) >= 3) {
             alerts.push({
                 type: d > 0 ? 'pos' : 'neg',
-                title: `% מניות מתחת ל-MA 200 ${d>0?'עולה':'יורדת'}`,
-                meta: `${pct(M.a200,M.total)}% — מגמה ${d>0?'חיובית':'שלילית'} · ${tstamp(now)}`
+                title: `שיעור מניות מעל MA 200 ${d>0?'עולה':'יורד'} בחדות`,
+                meta: `${pct(M.a200,M.total)}% מהשוק מעל הממוצע ארוך הטווח (${d>0?'+':''}${d.toFixed(1)} נק׳ אתמול)`
             });
         }
     }
 
     // NH/NL extremes
-    if (M.nhNlRatio === 99) alerts.push({ type:'pos', title:'יחס NH/NL אינסופי', meta:`${M.nhCount} מניות חזקות, 0 חלשות · ${tstamp(now)}` });
-    else if (M.nhNlRatio > 0 && M.nhNlRatio < 0.5) alerts.push({ type:'neg', title:'NH/NL נמוך מאוד', meta:`רק ${M.nhNlRatio.toFixed(2)} — לחץ מכירות רחב · ${tstamp(now)}` });
+    if (M.nhNlRatio === 99) alerts.push({ type:'pos', title:'יחס NH/NL חיובי במיוחד', meta:`${M.nhCount} מניות בשיא חדש של 52 שבועות, 0 מניות בשפל — חוזק רחב בשוק` });
+    else if (M.nhNlRatio > 0 && M.nhNlRatio < 0.5) alerts.push({ type:'neg', title:'יחס NH/NL נמוך מאוד', meta:`רק ${M.nhNlRatio.toFixed(2)} — מספר המניות בשפלים חדשים גבוה מהמניות בשיאים, לחץ מכירות רחב` });
 
-    // Breadth thrust
-    if (M.breadthThrust >= 30) alerts.push({ type:'pos', title:'Breadth Thrust חזק', meta:`${M.breadthThrust} מניות חוצות RSI · ${tstamp(now)}` });
+    // Breadth thrust — stocks reclaiming RSI 30 or 50 from below (Zweig-style momentum reclaim)
+    if (M.breadthThrust >= 30) alerts.push({ type:'pos', title:'Breadth Thrust — התעוררות מומנטום', meta:`${M.breadthThrust} מניות חצו כלפי מעלה את RSI 30 או 50 — סימן לריבאונד רחב בשוק` });
 
     // Oversold cluster
-    if (M.pOversold >= 15) alerts.push({ type:'warn', title:'ריבוי מניות ב-Oversold', meta:`${M.pOversold}% מהשוק בתחתית RSI · ${tstamp(now)}` });
+    if (M.pOversold >= 15) alerts.push({ type:'warn', title:'ריכוז מניות במכירת-יתר', meta:`${M.pOversold}% מהשוק ב-RSI מתחת ל-30 — סיכון להמשך ירידות או הזדמנות לריבאונד` });
 
     // Health regime change
     if (prev && prev.healthScore != null) {
         const d = M.healthScore - prev.healthScore;
         if (Math.abs(d) >= 10) alerts.push({
             type: d > 0 ? 'pos' : 'neg',
-            title: `ציון בריאות ${d>0?'משתפר':'מתדרדר'}`,
-            meta: `${d>0?'+':''}${d} נק׳ מאתמול (${M.healthScore}) · ${tstamp(now)}`
+            title: `ציון בריאות השוק ${d>0?'משתפר':'מתדרדר'}`,
+            meta: `${d>0?'+':''}${d} נקודות מאתמול — כעת ${M.healthScore}/100`
         });
     }
 
