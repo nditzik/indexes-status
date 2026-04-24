@@ -438,9 +438,9 @@ def score_block(lbl, v):
     else:
         color = '#10b981' if v >= 65 else '#f59e0b' if v >= 45 else '#ef4444'
         txt = str(v)
-    return (f'<td style="padding:12px 8px;text-align:center;width:33%;">'
-            f'<div style="font-size:10px;color:#718096;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">{lbl}</div>'
-            f'<div style="font-size:26px;font-weight:700;color:{color};line-height:1;">{txt}</div>'
+    return (f'<td align="center" style="padding:12px 8px;text-align:center;width:33%;">'
+            f'<div style="font-size:10px;color:#718096;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;text-align:center;">{lbl}</div>'
+            f'<div style="font-size:26px;font-weight:700;color:{color};line-height:1;text-align:center;">{txt}</div>'
             f'</td>')
 
 def stock_row(s, pos=True):
@@ -448,40 +448,40 @@ def stock_row(s, pos=True):
     chg_str  = pct(s['chg'], 2) if s['chg'] is not None else '—'
     dist_str = pct(s['dist200'], 1) if s['dist200'] is not None else '—'
     return (f'<tr>'
-            f'<td style="padding:7px 10px;font-weight:700;color:#2b6cb0;width:56px;">{s["sym"]}</td>'
-            f'<td style="padding:7px 10px;color:#2d3748;font-size:12px;">{s["name"][:30]}</td>'
-            f'<td style="padding:7px 10px;text-align:center;color:{c};font-weight:600;font-size:12px;">{chg_str}</td>'
-            f'<td style="padding:7px 10px;text-align:center;color:{c};font-weight:600;font-size:12px;">{dist_str}</td>'
+            f'<td align="right" dir="ltr" style="padding:7px 10px;font-weight:700;color:#2b6cb0;width:56px;text-align:right;">{s["sym"]}</td>'
+            f'<td align="right" style="padding:7px 10px;color:#2d3748;font-size:12px;text-align:right;">{s["name"][:30]}</td>'
+            f'<td align="left" dir="ltr" style="padding:7px 10px;text-align:left;color:{c};font-weight:600;font-size:12px;font-variant-numeric:tabular-nums;">{chg_str}</td>'
+            f'<td align="left" dir="ltr" style="padding:7px 10px;text-align:left;color:{c};font-weight:600;font-size:12px;font-variant-numeric:tabular-nums;">{dist_str}</td>'
             f'</tr>')
 
 # Build each section
-CARD = 'background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:12px;'
+CARD = 'background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:12px;direction:rtl;'
 
 s1_html = f"""
-<div style="{CARD}padding:20px 22px;border-top:3px solid {accent};">
-  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:6px;">סיכום השוק</div>
-  <div style="font-size:22px;font-weight:700;color:{accent};line-height:1.1;margin-bottom:10px;">{state_label}</div>
-  <table style="width:100%;font-size:12px;color:#2d3748;border-collapse:collapse;margin-bottom:10px;">
+<div dir="rtl" style="{CARD}padding:20px 22px;border-top:3px solid {accent};text-align:right;">
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:6px;text-align:right;">סיכום השוק</div>
+  <div style="font-size:22px;font-weight:700;color:{accent};line-height:1.1;margin-bottom:10px;text-align:right;">{state_label}</div>
+  <table dir="rtl" align="right" style="width:100%;font-size:12px;color:#2d3748;border-collapse:collapse;margin-bottom:10px;direction:rtl;">
     <tr>
-      <td style="padding:2px 0;color:#718096;width:80px;">רמת סיכון</td>
-      <td style="padding:2px 0;font-weight:600;">{risk_level}</td>
+      <td align="right" style="padding:2px 0;color:#718096;width:80px;text-align:right;">רמת סיכון</td>
+      <td align="right" style="padding:2px 0;font-weight:600;text-align:right;">{risk_level}</td>
     </tr>
     <tr>
-      <td style="padding:2px 0;color:#718096;">הטיית פוזיציה</td>
-      <td style="padding:2px 0;font-weight:600;">{bias_text}</td>
+      <td align="right" style="padding:2px 0;color:#718096;text-align:right;">הטיית פוזיציה</td>
+      <td align="right" style="padding:2px 0;font-weight:600;text-align:right;">{bias_text}</td>
     </tr>
   </table>
-  <div style="font-size:13px;color:#4a5568;line-height:1.55;border-top:1px solid #edf2f7;padding-top:10px;">{narrative()}</div>
+  <div dir="rtl" style="font-size:13px;color:#4a5568;line-height:1.55;border-top:1px solid #edf2f7;padding-top:10px;text-align:right;">{narrative()}</div>
 </div>
 """
 
-s2_items_html = ''.join(f'<li style="padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:13px;color:#2d3748;">{it}</li>' for it in signals_items)
-s2_conclusion_html = (f'<div style="margin-top:12px;padding:10px 14px;background:#f7fafc;border-right:3px solid {accent};font-size:13px;color:#2d3748;font-weight:600;">{conclusion}</div>'
+s2_items_html = ''.join(f'<li style="padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:13px;color:#2d3748;text-align:right;direction:rtl;">{it}</li>' for it in signals_items)
+s2_conclusion_html = (f'<div dir="rtl" style="margin-top:12px;padding:10px 14px;background:#f7fafc;border-right:3px solid {accent};font-size:13px;color:#2d3748;font-weight:600;text-align:right;">{conclusion}</div>'
                      if conclusion else '')
 s2_html = f"""
-<div style="{CARD}padding:20px 22px;">
-  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:10px;">איתותים מרכזיים</div>
-  <ul style="margin:0;padding:0;list-style:none;">{s2_items_html}</ul>
+<div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:10px;text-align:right;">איתותים מרכזיים</div>
+  <ul dir="rtl" style="margin:0;padding:0;list-style:none;text-align:right;">{s2_items_html}</ul>
   {s2_conclusion_html}
 </div>
 """
@@ -493,27 +493,27 @@ nh_nl_str     = '∞' if nh_nl == 99 else f'{nh_nl:.2f}'
 vix_str       = f'{vix:.2f}' if vix is not None else '—'
 
 s3_html = f"""
-<div style="{CARD}padding:20px 22px;">
-  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:12px;">נתוני שוק</div>
-  <table style="width:100%;border-collapse:collapse;border:1px solid #edf2f7;border-radius:8px;overflow:hidden;background:#f7fafc;">
+<div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:12px;text-align:right;">נתוני שוק</div>
+  <table dir="rtl" style="width:100%;border-collapse:collapse;border:1px solid #edf2f7;border-radius:8px;overflow:hidden;background:#f7fafc;direction:rtl;">
     <tr>
       {score_block('Market', m_score)}
       {score_block('Technical', t_score)}
       {score_block('Options Flow', f_score)}
     </tr>
   </table>
-  <table style="width:100%;font-size:13px;color:#2d3748;margin-top:14px;border-collapse:collapse;">
+  <table dir="rtl" style="width:100%;font-size:13px;color:#2d3748;margin-top:14px;border-collapse:collapse;direction:rtl;">
     <tr style="background:#f7fafc;">
-      <td style="padding:8px 12px;color:#718096;width:80px;">SPX</td>
-      <td style="padding:8px 12px;font-weight:600;font-variant-numeric:tabular-nums;">{spx_price_str} <span style="color:{spx_chg_color};font-weight:600;">{spx_chg_str}</span></td>
-      <td style="padding:8px 12px;color:#718096;width:60px;">VIX</td>
-      <td style="padding:8px 12px;font-weight:600;">{vix_str}</td>
+      <td align="right" style="padding:8px 12px;color:#718096;width:80px;text-align:right;">SPX</td>
+      <td align="right" style="padding:8px 12px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right;"><span dir="ltr" style="unicode-bidi:isolate;">{spx_price_str}</span> <span dir="ltr" style="color:{spx_chg_color};font-weight:600;unicode-bidi:isolate;">{spx_chg_str}</span></td>
+      <td align="right" style="padding:8px 12px;color:#718096;width:60px;text-align:right;">VIX</td>
+      <td align="right" style="padding:8px 12px;font-weight:600;text-align:right;"><span dir="ltr" style="unicode-bidi:isolate;">{vix_str}</span></td>
     </tr>
     <tr>
-      <td style="padding:8px 12px;color:#718096;">% מעל MA200</td>
-      <td style="padding:8px 12px;font-weight:600;">{int(p200)}% ({a200}/{total})</td>
-      <td style="padding:8px 12px;color:#718096;">NH/NL</td>
-      <td style="padding:8px 12px;font-weight:600;">{nh}/{nl} = {nh_nl_str}</td>
+      <td align="right" style="padding:8px 12px;color:#718096;text-align:right;">% מעל MA200</td>
+      <td align="right" style="padding:8px 12px;font-weight:600;text-align:right;"><span dir="ltr" style="unicode-bidi:isolate;">{int(p200)}% ({a200}/{total})</span></td>
+      <td align="right" style="padding:8px 12px;color:#718096;text-align:right;">NH/NL</td>
+      <td align="right" style="padding:8px 12px;font-weight:600;text-align:right;"><span dir="ltr" style="unicode-bidi:isolate;">{nh}/{nl} = {nh_nl_str}</span></td>
     </tr>
   </table>
 </div>
@@ -522,12 +522,12 @@ s3_html = f"""
 strong_rows = ''.join(stock_row(s, True) for s in strong)
 weak_rows   = ''.join(stock_row(s, False) for s in weak)
 s4_html = f"""
-<div style="{CARD}padding:20px 22px;">
-  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:12px;">מניות — חוזק / חולשה</div>
-  <table style="width:100%;border-collapse:collapse;">
-    <tr style="background:#f0fdf4;"><td colspan="4" style="padding:7px 10px;font-size:12px;color:#2f855a;font-weight:700;">▲ חזקות</td></tr>
+<div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:12px;text-align:right;">מניות — חוזק / חולשה</div>
+  <table dir="rtl" style="width:100%;border-collapse:collapse;direction:rtl;">
+    <tr style="background:#f0fdf4;"><td align="right" colspan="4" style="padding:7px 10px;font-size:12px;color:#2f855a;font-weight:700;text-align:right;">▲ חזקות</td></tr>
     {strong_rows}
-    <tr style="background:#fef2f2;"><td colspan="4" style="padding:7px 10px;font-size:12px;color:#c53030;font-weight:700;">▼ חלשות</td></tr>
+    <tr style="background:#fef2f2;"><td align="right" colspan="4" style="padding:7px 10px;font-size:12px;color:#c53030;font-weight:700;text-align:right;">▼ חלשות</td></tr>
     {weak_rows}
   </table>
 </div>
@@ -535,40 +535,40 @@ s4_html = f"""
 
 s5_html = ''
 if alerts_list:
-    al_items = ''.join(f'<li style="padding:5px 0;font-size:13px;color:#744210;">• {a}</li>' for a in alerts_list)
+    al_items = ''.join(f'<li style="padding:5px 0;font-size:13px;color:#744210;text-align:right;direction:rtl;">• {a}</li>' for a in alerts_list)
     s5_html = f"""
-<div style="background:#fffaf0;border-radius:10px;border-right:4px solid #f59e0b;padding:16px 22px;margin-bottom:12px;">
-  <div style="font-size:11px;color:#c05621;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;margin-bottom:6px;">⚡ התראות</div>
-  <ul style="margin:0;padding:0;list-style:none;">{al_items}</ul>
+<div dir="rtl" style="background:#fffaf0;border-radius:10px;border-right:4px solid #f59e0b;padding:16px 22px;margin-bottom:12px;direction:rtl;text-align:right;">
+  <div style="font-size:11px;color:#c05621;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;margin-bottom:6px;text-align:right;">⚡ התראות</div>
+  <ul dir="rtl" style="margin:0;padding:0;list-style:none;text-align:right;">{al_items}</ul>
 </div>
 """
 
 s6_html = f"""
-<div style="background:{accent};color:#fff;border-radius:10px;padding:18px 22px;margin-bottom:12px;">
-  <div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;opacity:0.85;margin-bottom:4px;font-weight:600;">גישה להיום</div>
-  <div style="font-size:15px;font-weight:600;line-height:1.4;">{action_line()}</div>
+<div dir="rtl" style="background:{accent};color:#fff;border-radius:10px;padding:18px 22px;margin-bottom:12px;direction:rtl;text-align:right;">
+  <div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;opacity:0.85;margin-bottom:4px;font-weight:600;text-align:right;">גישה להיום</div>
+  <div style="font-size:15px;font-weight:600;line-height:1.4;text-align:right;">{action_line()}</div>
 </div>
 """
 
 html = f"""<!DOCTYPE html>
 <html dir="rtl" lang="he">
 <head><meta charset="utf-8"></head>
-<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#f4f6f9;padding:16px;color:#1a202c;margin:0;">
-<div style="max-width:620px;margin:auto;">
+<body dir="rtl" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#f4f6f9;padding:16px;color:#1a202c;margin:0;direction:rtl;text-align:right;">
+<div dir="rtl" style="max-width:620px;margin:auto;direction:rtl;text-align:right;">
 
   <!-- Header -->
-  <div style="background:#0f0f11;padding:16px 22px;color:#fff;border-radius:10px;margin-bottom:12px;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+  <div dir="rtl" style="background:#0f0f11;padding:16px 22px;color:#fff;border-radius:10px;margin-bottom:12px;direction:rtl;">
+    <table dir="rtl" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;direction:rtl;">
       <tr>
-        <td style="vertical-align:middle;width:64px;">
+        <td align="right" style="vertical-align:middle;width:64px;text-align:right;">
           <img src="https://nditzik.github.io/indexes-status/logo.png" alt="Logo" width="56" height="auto" style="display:block;height:auto;width:56px;max-width:56px;border:0;">
         </td>
-        <td style="vertical-align:middle;padding-right:14px;">
-          <div style="font-size:10px;opacity:0.65;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:3px;">Daily Briefing</div>
-          <div style="font-size:16px;font-weight:600;">S&amp;P 500 · {date_label}</div>
+        <td align="right" style="vertical-align:middle;padding-right:0;padding-left:14px;text-align:right;">
+          <div style="font-size:10px;opacity:0.65;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:3px;text-align:right;">Daily Briefing</div>
+          <div style="font-size:16px;font-weight:600;text-align:right;">S&amp;P 500 · {date_label}</div>
         </td>
-        <td style="vertical-align:middle;text-align:left;">
-          <a href="https://nditzik.github.io/indexes-status/" style="color:#fff;background:#3b82f6;padding:6px 12px;border-radius:6px;font-size:11px;text-decoration:none;font-weight:500;">דשבורד ←</a>
+        <td align="left" style="vertical-align:middle;text-align:left;">
+          <a href="https://nditzik.github.io/indexes-status/" style="color:#fff;background:#3b82f6;padding:6px 12px;border-radius:6px;font-size:11px;text-decoration:none;font-weight:500;white-space:nowrap;">דשבורד ←</a>
         </td>
       </tr>
     </table>
