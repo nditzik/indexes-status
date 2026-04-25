@@ -791,7 +791,7 @@ html = f"""<!DOCTYPE html>
   <!-- Disclaimer — red bold, RTL -->
   <div dir="rtl" style="padding:14px 20px;margin-bottom:12px;background:#fef2f2;border-radius:8px;border-right:4px solid #dc2626;text-align:right;direction:rtl;">
     <p style="margin:0;color:#dc2626;font-size:13px;font-weight:700;line-height:1.55;text-align:right;direction:rtl;">
-      הדשבורד נערך והוכן על ידי איציק נידם החתיך והחכם. מקווה שאדי יצליח להבין הנתונים. בכל מקרה הנתונים נועדו להעביר הזמן במקום פורנו ולא נועדו להיות המלצה להשקעה או לטרייד.
+      הדשבורד נבנה על ידי איציק נידם עם לוגו הזרע העיראקי השעיר ונועד לצרכים אישיים בלבד. וברוך הבא אסף נבות.
     </p>
   </div>
 
@@ -824,7 +824,8 @@ else:
         {"email": "nditzik@gmail.com"},
         {"email": "eddie@teco.org.il"},
         {"email": "yakiryona3@gmail.com"},
-        {"email": "ofeknidam@gmail.com"}
+        {"email": "ofeknidam@gmail.com"},
+        {"email": "anavot70@gmail.com"}
     ]
     subject_prefix = "📊 "
 
