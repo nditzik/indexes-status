@@ -549,9 +549,47 @@ def rebound_meaning(s):
         return 'נחלשה אך מחזיקה תמיכות'
     return 'מכירת יתר — נפח מצטבר'
 
-strong   = sorted(stocks, key=momentum, reverse=True)[:5]
-weak     = sorted(stocks, key=weakness, reverse=True)[:5]
-rebound  = sorted([s for s in stocks if is_rebound(s)], key=rebound_score, reverse=True)[:5]
+def is_early_bounce(s):
+    """
+    Above MA20 but below MA50, MA150, MA200 — first sign of recovery in a downtrend.
+    Stock has lifted off short-term lows but long-term trend still negative.
+    """
+    if not all([s['ma20'], s['ma50'], s['ma150'], s['ma200']]):
+        return False
+    p = s['latest']
+    return (p > s['ma20']
+            and p < s['ma50']
+            and p < s['ma150']
+            and p < s['ma200'])
+
+def early_bounce_meaning(s):
+    chg = s['chg'] or 0
+    if s['rvol'] > 2 and chg > 1:
+        return 'חצתה ממוצע 20 בנפח חזק'
+    if chg > 2:
+        return 'מהלך עלייה ראשון — קפיצה היום'
+    if s['rsi'] in ('Below 30','New Below 30'):
+        return 'יוצאת ממכירת יתר — מעל ממוצע 20'
+    if s['rvol'] > 1.5:
+        return 'מעל ממוצע 20 בנפח מצטבר'
+    return 'תחילת התאוששות — מעל ממוצע 20 בלבד'
+
+def early_bounce_score(s):
+    sc = 0
+    if s['rvol'] > 1.5: sc += 30
+    if s['chg'] is not None and s['chg'] > 0: sc += 25
+    if s['rsi'] in ('Below 30','New Below 30','Below 50','New Below 50'): sc += 20
+    # Closer to bottom = higher rebound potential (less negative w52)
+    if s['w52'] is not None: sc += max(0, (s['w52'] + 50) / 2)
+    return sc
+
+strong       = sorted(stocks, key=momentum, reverse=True)[:5]
+weak         = sorted(stocks, key=weakness, reverse=True)[:5]
+rebound      = sorted([s for s in stocks if is_rebound(s)], key=rebound_score, reverse=True)[:5]
+_rebound_syms = {s['sym'] for s in rebound}
+# Early bounce excludes rebound candidates (avoid duplication)
+early_bounce = sorted([s for s in stocks if is_early_bounce(s) and s['sym'] not in _rebound_syms],
+                      key=early_bounce_score, reverse=True)[:5]
 
 # ═══════════════════════════════════════════════════
 #  Section 5 — alerts (only if relevant)
@@ -645,16 +683,22 @@ def scores_interpretation():
     return 'תמונה מעורבת — כדאי לעקוב לפני פעולה'
 
 def stock_row(s, kind='strong'):
-    """kind: 'strong' | 'weak' | 'rebound' — determines meaning + color"""
+    """kind: 'strong' | 'weak' | 'rebound' | 'early' — determines meaning + color"""
     if kind == 'strong':
         meaning = strong_meaning(s); meaning_color = '#2f855a'
     elif kind == 'rebound':
-        meaning = rebound_meaning(s); meaning_color = '#b7791f'  # amber/gold
+        meaning = rebound_meaning(s); meaning_color = '#b7791f'
+    elif kind == 'early':
+        meaning = early_bounce_meaning(s); meaning_color = '#0d9488'  # teal
     else:
         meaning = weak_meaning(s); meaning_color = '#c53030'
+    sec_code = SECTOR_MAP.get(s['sym'], '')
+    sec_he = SECTOR_HE.get(sec_code, '')
+    sec_chip = (f'<span style="display:inline-block;font-size:10px;color:#718096;background:#edf2f7;padding:2px 7px;border-radius:10px;margin-right:6px;font-weight:500;">{sec_he}</span>'
+                if sec_he else '')
     return (f'<tr>'
-            f'<td align="right" dir="ltr" style="padding:8px 10px;font-weight:700;color:#2b6cb0;width:70px;text-align:right;font-size:13px;">{s["sym"]}</td>'
-            f'<td align="right" style="padding:8px 10px;color:{meaning_color};font-size:13px;font-weight:500;text-align:right;">— {meaning}</td>'
+            f'<td align="right" dir="ltr" style="padding:8px 10px;font-weight:700;color:#2b6cb0;width:70px;text-align:right;font-size:13px;vertical-align:middle;">{s["sym"]}</td>'
+            f'<td align="right" style="padding:8px 10px;color:{meaning_color};font-size:13px;font-weight:500;text-align:right;vertical-align:middle;">{sec_chip}— {meaning}</td>'
             f'</tr>')
 
 # Build each section
@@ -727,22 +771,29 @@ s3_html = f"""
 </div>
 """
 
-strong_rows  = ''.join(stock_row(s, 'strong') for s in strong)
-weak_rows    = ''.join(stock_row(s, 'weak') for s in weak)
-rebound_rows = ''.join(stock_row(s, 'rebound') for s in rebound)
-rebound_section_html = (f'''<tr style="background:#fffbeb;"><td align="right" colspan="2" style="padding:8px 10px;font-size:12px;color:#b7791f;font-weight:700;text-align:right;">↺ מועמדות לריבאונד</td></tr>
+strong_rows       = ''.join(stock_row(s, 'strong') for s in strong)
+weak_rows         = ''.join(stock_row(s, 'weak') for s in weak)
+rebound_rows      = ''.join(stock_row(s, 'rebound') for s in rebound)
+early_bounce_rows = ''.join(stock_row(s, 'early') for s in early_bounce)
+
+rebound_section_html = (f'''<tr style="background:#fffbeb;"><td align="right" colspan="2" style="padding:8px 10px;font-size:12px;color:#b7791f;font-weight:700;text-align:right;">↺ מועמדות לריבאונד — מכירת יתר + נפח</td></tr>
     <tr><td align="right" colspan="2" style="padding:2px 10px 6px;font-size:11px;color:#92400e;text-align:right;font-style:italic;">מניות במכירת יתר עם נפח שעולה — עשויות להתהפך</td></tr>
     {rebound_rows}''' if rebound else '')
 
+early_bounce_section_html = (f'''<tr style="background:#f0fdfa;"><td align="right" colspan="2" style="padding:8px 10px;font-size:12px;color:#0d9488;font-weight:700;text-align:right;">↗ תחילת התאוששות — חצו ממוצע 20</td></tr>
+    <tr><td align="right" colspan="2" style="padding:2px 10px 6px;font-size:11px;color:#0f766e;text-align:right;font-style:italic;">מעל ממוצע 20 ימים, עדיין מתחת לממוצעים הארוכים — סימן ראשון של מהלך</td></tr>
+    {early_bounce_rows}''' if early_bounce else '')
+
 s4_html = f"""
 <div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
-  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:12px;text-align:right;">מניות — חוזק / חולשה / ריבאונד</div>
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:12px;text-align:right;">מניות — חוזק / חולשה / מועמדות</div>
   <table dir="rtl" style="width:100%;border-collapse:collapse;direction:rtl;">
     <tr style="background:#f0fdf4;"><td align="right" colspan="2" style="padding:8px 10px;font-size:12px;color:#2f855a;font-weight:700;text-align:right;">▲ חזקות</td></tr>
     {strong_rows}
     <tr style="background:#fef2f2;"><td align="right" colspan="2" style="padding:8px 10px;font-size:12px;color:#c53030;font-weight:700;text-align:right;">▼ חלשות</td></tr>
     {weak_rows}
     {rebound_section_html}
+    {early_bounce_section_html}
   </table>
 </div>
 """
