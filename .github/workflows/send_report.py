@@ -696,8 +696,11 @@ def stock_row(s, kind='strong'):
     sec_he = SECTOR_HE.get(sec_code, '')
     sec_chip = (f'<span style="display:inline-block;font-size:10px;color:#718096;background:#edf2f7;padding:2px 7px;border-radius:10px;margin-right:6px;font-weight:500;">{sec_he}</span>'
                 if sec_he else '')
+    # TradingView chart link — symbol page opens the chart
+    tv_url = f'https://www.tradingview.com/chart/?symbol={s["sym"]}'
+    sym_link = f'<a href="{tv_url}" target="_blank" style="color:#2b6cb0;text-decoration:none;font-weight:700;border-bottom:1px dotted #cbd5e0;">{s["sym"]}</a>'
     return (f'<tr>'
-            f'<td align="right" dir="ltr" style="padding:8px 10px;font-weight:700;color:#2b6cb0;width:70px;text-align:right;font-size:13px;vertical-align:middle;">{s["sym"]}</td>'
+            f'<td align="right" dir="ltr" style="padding:8px 10px;width:70px;text-align:right;font-size:13px;vertical-align:middle;">{sym_link}</td>'
             f'<td align="right" style="padding:8px 10px;color:{meaning_color};font-size:13px;font-weight:500;text-align:right;vertical-align:middle;">{sec_chip}— {meaning}</td>'
             f'</tr>')
 
