@@ -845,7 +845,7 @@ html = f"""<!DOCTYPE html>
   <!-- Disclaimer — red bold, RTL -->
   <div dir="rtl" style="padding:14px 20px;margin-bottom:12px;background:#fef2f2;border-radius:8px;border-right:4px solid #dc2626;text-align:right;direction:rtl;">
     <p style="margin:0;color:#dc2626;font-size:13px;font-weight:700;line-height:1.55;text-align:right;direction:rtl;">
-      עדכון: לחיצה על הטיקר פותחת את הגרף. מי שטרם הסדיר את התשלום מתבקש להעביר התשלום בהקדם.
+      בוקר טוב, מקווה שאתם נהנים מהמידע ומעדיפים אותו על פורנו. שרדנו את דיווחי החברות הגדולות יחסית בסדר, גוגל מסתבר מפלצת. מאחל לנו סופש ירוק.
     </p>
   </div>
 
