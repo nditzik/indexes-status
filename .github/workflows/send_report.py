@@ -6,7 +6,8 @@ Replicates the dashboard's scoring logic (MCC, Technical, Options Flow)
 and renders as a compact HTML email sent via Brevo on every CSV push.
 """
 
-import csv, json, os, urllib.request, urllib.error, glob, io
+import csv, json, os, urllib.request, urllib.error, glob, io, hashlib
+from datetime import date as _date
 
 # ═══════════════════════════════════════════════════
 #  Helpers
@@ -639,6 +640,40 @@ if hist_files:
         date_label = raw
 
 # ═══════════════════════════════════════════════════
+#  Daily quote — rotates by date, supports manual override
+#  Override file: data/today_quote.txt (if non-empty, used instead of rotation)
+# ═══════════════════════════════════════════════════
+def get_daily_quote():
+    # 1. Manual override file
+    try:
+        with open('data/today_quote.txt', encoding='utf-8') as f:
+            override = f.read().strip()
+        if override:
+            return override
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        print(f'Override read error: {e}')
+
+    # 2. Curated rotating list
+    try:
+        with open('data/quotes.json', encoding='utf-8') as f:
+            quotes = json.load(f)
+    except Exception as e:
+        print(f'Quotes load error: {e}')
+        return ''
+    if not quotes:
+        return ''
+
+    # Deterministic by date — same day = same quote, different days well-distributed
+    seed_str = date_label or _date.today().isoformat()
+    h = int(hashlib.md5(seed_str.encode('utf-8')).hexdigest(), 16)
+    return quotes[h % len(quotes)]
+
+daily_quote = get_daily_quote()
+print(f'Daily quote: {daily_quote[:80]}...')
+
+# ═══════════════════════════════════════════════════
 #  HTML build
 # ═══════════════════════════════════════════════════
 def score_qualifier(v):
@@ -842,10 +877,10 @@ html = f"""<!DOCTYPE html>
     </table>
   </div>
 
-  <!-- Disclaimer — red bold, RTL -->
+  <!-- Daily quote — red bold, RTL (rotates by date, override via data/today_quote.txt) -->
   <div dir="rtl" style="padding:14px 20px;margin-bottom:12px;background:#fef2f2;border-radius:8px;border-right:4px solid #dc2626;text-align:right;direction:rtl;">
     <p style="margin:0;color:#dc2626;font-size:13px;font-weight:700;line-height:1.55;text-align:right;direction:rtl;">
-      בוקר טוב, מקווה שאתם נהנים מהמידע ומעדיפים אותו על פורנו. שרדנו את דיווחי החברות הגדולות יחסית בסדר, גוגל מסתבר מפלצת. מאחל לנו סופש ירוק.
+      {daily_quote}
     </p>
   </div>
 
