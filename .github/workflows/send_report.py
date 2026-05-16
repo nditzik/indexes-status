@@ -671,6 +671,8 @@ def get_daily_quote():
     return quotes[h % len(quotes)]
 
 daily_quote = get_daily_quote()
+if _date.today() == _date(2026, 5, 16):
+    daily_quote = 'ברוך הבא לקבוצה שלומי רואה החשבון העיראקי שלנו<br><br>' + daily_quote
 print(f'Daily quote: {daily_quote[:80]}...')
 
 # ═══════════════════════════════════════════════════
@@ -914,7 +916,8 @@ else:
         {"email": "eddie@teco.org.il"},
         {"email": "yakiryona3@gmail.com"},
         {"email": "ofeknidam@gmail.com"},
-        {"email": "anavot70@gmail.com"}
+        {"email": "anavot70@gmail.com"},
+        {"email": "shlomo@nimrodi.co.il"}
     ]
     subject_prefix = "📊 "
 
