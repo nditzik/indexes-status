@@ -584,13 +584,24 @@ def early_bounce_score(s):
     if s['w52'] is not None: sc += max(0, (s['w52'] + 50) / 2)
     return sc
 
-strong       = sorted(stocks, key=momentum, reverse=True)[:5]
-weak         = sorted(stocks, key=weakness, reverse=True)[:5]
-rebound      = sorted([s for s in stocks if is_rebound(s)], key=rebound_score, reverse=True)[:5]
-_rebound_syms = {s['sym'] for s in rebound}
-# Early bounce excludes rebound candidates (avoid duplication)
-early_bounce = sorted([s for s in stocks if is_early_bounce(s) and s['sym'] not in _rebound_syms],
-                      key=early_bounce_score, reverse=True)[:5]
+strong = sorted(stocks, key=momentum, reverse=True)[:5]
+
+# Unified "מומלצות לקנייה" — rebound (oversold + volume + MA support) and
+# early-bounce (above MA20, below long-term MAs) merged. Rebound is the stronger
+# setup, so we boost its score before ranking.
+def buy_score(s):
+    if is_rebound(s):
+        return rebound_score(s) + 20
+    return early_bounce_score(s)
+
+def buy_kind(s):
+    return 'rebound' if is_rebound(s) else 'early'
+
+def buy_meaning(s):
+    return rebound_meaning(s) if is_rebound(s) else early_bounce_meaning(s)
+
+buy_candidates = [s for s in stocks if is_rebound(s) or is_early_bounce(s)]
+buy_picks = sorted(buy_candidates, key=buy_score, reverse=True)[:5]
 
 # ═══════════════════════════════════════════════════
 #  Section 5 — alerts (only if relevant)
@@ -720,13 +731,11 @@ def scores_interpretation():
     return 'תמונה מעורבת — כדאי לעקוב לפני פעולה'
 
 def stock_row(s, kind='strong'):
-    """kind: 'strong' | 'weak' | 'rebound' | 'early' — determines meaning + color"""
+    """kind: 'strong' | 'buy' | 'weak' — determines meaning + color"""
     if kind == 'strong':
         meaning = strong_meaning(s); meaning_color = '#2f855a'
-    elif kind == 'rebound':
-        meaning = rebound_meaning(s); meaning_color = '#b7791f'
-    elif kind == 'early':
-        meaning = early_bounce_meaning(s); meaning_color = '#0d9488'  # teal
+    elif kind == 'buy':
+        meaning = buy_meaning(s); meaning_color = '#b7791f'
     else:
         meaning = weak_meaning(s); meaning_color = '#c53030'
     sec_code = SECTOR_MAP.get(s['sym'], '')
@@ -811,29 +820,20 @@ s3_html = f"""
 </div>
 """
 
-strong_rows       = ''.join(stock_row(s, 'strong') for s in strong)
-weak_rows         = ''.join(stock_row(s, 'weak') for s in weak)
-rebound_rows      = ''.join(stock_row(s, 'rebound') for s in rebound)
-early_bounce_rows = ''.join(stock_row(s, 'early') for s in early_bounce)
+strong_rows = ''.join(stock_row(s, 'strong') for s in strong)
+buy_rows    = ''.join(stock_row(s, 'buy')    for s in buy_picks)
 
-rebound_section_html = (f'''<tr style="background:#fffbeb;"><td align="right" colspan="2" style="padding:8px 10px;font-size:12px;color:#b7791f;font-weight:700;text-align:right;">↺ מועמדות לריבאונד — מכירת יתר + נפח</td></tr>
-    <tr><td align="right" colspan="2" style="padding:2px 10px 6px;font-size:11px;color:#92400e;text-align:right;font-style:italic;">מניות במכירת יתר עם נפח שעולה — עשויות להתהפך</td></tr>
-    {rebound_rows}''' if rebound else '')
-
-early_bounce_section_html = (f'''<tr style="background:#f0fdfa;"><td align="right" colspan="2" style="padding:8px 10px;font-size:12px;color:#0d9488;font-weight:700;text-align:right;">↗ תחילת התאוששות — חצו ממוצע 20</td></tr>
-    <tr><td align="right" colspan="2" style="padding:2px 10px 6px;font-size:11px;color:#0f766e;text-align:right;font-style:italic;">מעל ממוצע 20 ימים, עדיין מתחת לממוצעים הארוכים — סימן ראשון של מהלך</td></tr>
-    {early_bounce_rows}''' if early_bounce else '')
+buy_section_html = (f'''<tr style="background:#fffbeb;"><td align="right" colspan="2" style="padding:8px 10px;font-size:12px;color:#b7791f;font-weight:700;text-align:right;">★ מומלצות לקנייה — נקודת כניסה</td></tr>
+    <tr><td align="right" colspan="2" style="padding:2px 10px 6px;font-size:11px;color:#92400e;text-align:right;font-style:italic;">מכירת יתר עם נפח, או תחילת התאוששות מעל ממוצע 20 — מועמדות לכניסה</td></tr>
+    {buy_rows}''' if buy_picks else '')
 
 s4_html = f"""
 <div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
-  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:12px;text-align:right;">מניות — חוזק / חולשה / מועמדות</div>
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:12px;text-align:right;">מניות</div>
   <table dir="rtl" style="width:100%;border-collapse:collapse;direction:rtl;">
     <tr style="background:#f0fdf4;"><td align="right" colspan="2" style="padding:8px 10px;font-size:12px;color:#2f855a;font-weight:700;text-align:right;">▲ חזקות</td></tr>
     {strong_rows}
-    <tr style="background:#fef2f2;"><td align="right" colspan="2" style="padding:8px 10px;font-size:12px;color:#c53030;font-weight:700;text-align:right;">▼ חלשות</td></tr>
-    {weak_rows}
-    {rebound_section_html}
-    {early_bounce_section_html}
+    {buy_section_html}
   </table>
 </div>
 """
@@ -887,10 +887,8 @@ html = f"""<!DOCTYPE html>
   </div>
 
   {s1_html}
-  {s2_html}
   {s3_html}
   {s4_html}
-  {s5_html}
   {s6_html}
 
   <div style="text-align:center;font-size:10px;color:#a0aec0;padding:8px;line-height:1.4;">
