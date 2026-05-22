@@ -937,6 +937,69 @@
     font-weight: 500;
 }
 
+/* Call/Put breakdown inside Flow card */
+.overview-prod-root .ov2-flow-cp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--ov2-space-3);
+    margin-bottom: var(--ov2-space-3);
+}
+@media (max-width: 700px) {
+    .overview-prod-root .ov2-flow-cp-grid { grid-template-columns: 1fr; }
+}
+.overview-prod-root .ov2-flow-cp-card {
+    background: var(--ov2-bg-2);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-3);
+    cursor: help;
+}
+.overview-prod-root .ov2-flow-cp-card.cp-call { border-right: 3px solid var(--ov2-pos); }
+.overview-prod-root .ov2-flow-cp-card.cp-put  { border-right: 3px solid var(--ov2-neg); }
+.overview-prod-root .ov2-flow-cp-head {
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-flow-cp-label {
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    font-size: 13px;
+}
+.overview-prod-root .ov2-flow-cp-card.cp-call .ov2-flow-cp-label { color: var(--ov2-pos-bright); }
+.overview-prod-root .ov2-flow-cp-card.cp-put  .ov2-flow-cp-label { color: var(--ov2-neg-bright); }
+.overview-prod-root .ov2-flow-cp-rows { display: flex; flex-direction: column; gap: 6px; }
+.overview-prod-root .ov2-flow-cp-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 12px;
+    color: var(--ov2-text-2);
+}
+.overview-prod-root .ov2-flow-cp-row b {
+    font-family: var(--ov2-font-mono);
+    color: var(--ov2-text-1);
+    font-weight: 700;
+    font-size: 14px;
+}
+.overview-prod-root .ov2-flow-cp-mono {
+    font-family: var(--ov2-font-mono);
+    color: var(--ov2-text-1);
+    font-size: 11px;
+    font-weight: 600;
+}
+.overview-prod-root .ov2-flow-agg-interp {
+    background: var(--ov2-bg-2);
+    padding: 10px 14px;
+    border-radius: var(--ov2-radius-sm);
+    font-size: 13px;
+    color: var(--ov2-text-1);
+    font-weight: 500;
+    margin-bottom: var(--ov2-space-3);
+    border-right: 3px solid var(--ov2-cat-flow);
+    cursor: help;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    DAILY SUMMARY PANEL (bottom — deterministic narrative)
    ═══════════════════════════════════════════════════════════════════════ */

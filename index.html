@@ -1782,23 +1782,23 @@
                     שווקים חיים
                 </div>
                 <div class="ov2-ticker-items">
-                    <div class="ov2-ticker-item">
-                        <span class="ov2-ticker-name">S&amp;P 500</span>
-                        <span class="ov2-ticker-val" id="ov2_tkSPX">—</span>
-                        <span class="ov2-ticker-chg" id="ov2_tkSPXChg">—</span>
+                    <div class="ov2-ticker-item" data-tooltip="SPY · ה-ETF של S&P 500 — סוחר בשעות מורחבות, נתון יותר עדכני מ-SPX">
+                        <span class="ov2-ticker-name">SPY · S&amp;P 500</span>
+                        <span class="ov2-ticker-val" id="ov2_tkSPY">—</span>
+                        <span class="ov2-ticker-chg" id="ov2_tkSPYChg">—</span>
                     </div>
-                    <div class="ov2-ticker-item">
-                        <span class="ov2-ticker-name">NASDAQ (QQQ)</span>
+                    <div class="ov2-ticker-item" data-tooltip="QQQ · ה-ETF של ה-NASDAQ 100">
+                        <span class="ov2-ticker-name">QQQ · NASDAQ</span>
                         <span class="ov2-ticker-val" id="ov2_tkNDX">—</span>
                         <span class="ov2-ticker-chg" id="ov2_tkNDXChg">—</span>
                     </div>
-                    <div class="ov2-ticker-item">
-                        <span class="ov2-ticker-name">DOW</span>
+                    <div class="ov2-ticker-item" data-tooltip="DIA · ה-ETF של ה-Dow Jones">
+                        <span class="ov2-ticker-name">DIA · DOW</span>
                         <span class="ov2-ticker-val" id="ov2_tkDJI">—</span>
                         <span class="ov2-ticker-chg" id="ov2_tkDJIChg">—</span>
                     </div>
-                    <div class="ov2-ticker-item">
-                        <span class="ov2-ticker-name">Russell 2000</span>
+                    <div class="ov2-ticker-item" data-tooltip="IWM · ה-ETF של ה-Russell 2000 (חברות קטנות)">
+                        <span class="ov2-ticker-name">IWM · Russell 2000</span>
                         <span class="ov2-ticker-val" id="ov2_tkRUT">—</span>
                         <span class="ov2-ticker-chg" id="ov2_tkRUTChg">—</span>
                     </div>
@@ -1882,7 +1882,7 @@
                         <div>
                             <div class="ov2-eyebrow" style="color:var(--ov2-cat-flow); margin-bottom:4px;">זרימת אופציות SPX</div>
                             <div class="ov2-title-m">לאן הכסף הגדול נע</div>
-                            <div class="ov2-subtitle">ניתוח SPX options flow · השוואה ל-baseline נע של 22 יום</div>
+                            <div class="ov2-subtitle">ניתוח עסקאות options על SPX/SPXW · השוואה ל-baseline נע של 22 יום</div>
                         </div>
 
                         <div class="ov2-flow-grid">
@@ -1914,6 +1914,59 @@
                                 <div class="ov2-flow-metric-label">עסקאות גדולות</div>
                                 <div class="ov2-flow-metric-value" id="ov2_flowBigTradesVal">—</div>
                                 <div class="ov2-flow-metric-sub" id="ov2_flowBigTradesSub">—</div>
+                            </div>
+                        </div>
+
+                        <!-- ─── Call vs Put breakdown ─── -->
+                        <div class="ov2-panel-divider"></div>
+                        <div class="ov2-eyebrow" style="color:var(--ov2-text-2); margin-bottom:8px;">פירוט CALL vs PUT</div>
+                        <div class="ov2-flow-cp-grid">
+                            <div class="ov2-flow-cp-card cp-call" data-tooltip="עסקאות CALL — הימור על עלייה. הפירוט מציג: מספר עסקאות, סך פרמיה, ופירוק לפי Side (Ask = קונה אגרסיבי, Bid = מוכר אגרסיבי, Mid = ניטרלי)">
+                                <div class="ov2-flow-cp-head">
+                                    <span class="ov2-flow-cp-label">▲ Calls (הימור עלייה)</span>
+                                </div>
+                                <div class="ov2-flow-cp-rows">
+                                    <div class="ov2-flow-cp-row"><span>עסקאות</span><b id="ov2_flowCallTrades">—</b></div>
+                                    <div class="ov2-flow-cp-row"><span>פרמיה</span><b id="ov2_flowCallPremium">—</b></div>
+                                    <div class="ov2-flow-cp-row"><span>פירוק Side</span><span class="ov2-flow-cp-mono" id="ov2_flowCallSides">—</span></div>
+                                    <div class="ov2-flow-cp-row"><span>% תוקף בקנייה (Ask)</span><b id="ov2_flowCallAskPct">—</b></div>
+                                </div>
+                            </div>
+                            <div class="ov2-flow-cp-card cp-put" data-tooltip="עסקאות PUT — הימור על ירידה / הגנה. % Ask גבוה = כסף קונה הגנות באגרסיביות (סימן הגנתי)">
+                                <div class="ov2-flow-cp-head">
+                                    <span class="ov2-flow-cp-label">▼ Puts (הימור ירידה / הגנה)</span>
+                                </div>
+                                <div class="ov2-flow-cp-rows">
+                                    <div class="ov2-flow-cp-row"><span>עסקאות</span><b id="ov2_flowPutTrades">—</b></div>
+                                    <div class="ov2-flow-cp-row"><span>פרמיה</span><b id="ov2_flowPutPremium">—</b></div>
+                                    <div class="ov2-flow-cp-row"><span>פירוק Side</span><span class="ov2-flow-cp-mono" id="ov2_flowPutSides">—</span></div>
+                                    <div class="ov2-flow-cp-row"><span>% תוקף בקנייה (Ask)</span><b id="ov2_flowPutAskPct">—</b></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ov2-flow-agg-interp" data-tooltip="פירוש מסחר Ask/Bid: כשעסקה מתבצעת ב-Ask = הקונה היה אגרסיבי (כסף נכנס לכיוון). ב-Bid = המוכר היה אגרסיבי. Mid = ניטרלי">
+                            <span class="ov2-eyebrow" style="color:var(--ov2-text-3); margin-left:8px;">פירוש</span>
+                            <span id="ov2_flowAggInterp">—</span>
+                        </div>
+
+                        <!-- ─── How the score is calculated ─── -->
+                        <div class="ov2-collapsible" id="ov2_flowFormulaCollapse">
+                            <div class="ov2-collapsible-head" onclick="this.parentElement.classList.toggle('open')" style="background:var(--ov2-bg-2);">
+                                <div class="ov2-collapsible-head-text">
+                                    <div class="ov2-eyebrow" style="color:var(--ov2-cat-action)">איך הציון מחושב?</div>
+                                    <div class="ov2-title-s" style="font-weight:500;">פירוט מלא של הנוסחה — לחץ להרחבה</div>
+                                </div>
+                                <span class="ov2-collapsible-chev">▼</span>
+                            </div>
+                            <div class="ov2-collapsible-body">
+                                <div class="ov2-formula">
+                                    <div style="margin-bottom:8px;" id="ov2_flowFormulaCombined">—</div>
+                                    <div style="border-top:1px dashed var(--ov2-border); padding-top:8px;" id="ov2_flowFormulaInternal">—</div>
+                                    <div style="margin-top:8px; font-size:11px; color:var(--ov2-text-3);">
+                                        ה-z-scores מחושבים מול baseline של 22 ימי מסחר אחורנית.
+                                        מטריקה שזזה +1σ פירושה היא רחוקה סטיית-תקן אחת מהממוצע — חריגה בולטת.
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2785,13 +2838,13 @@
 
         </main><!-- /app-content -->
 
-        <!-- FOOTER: Live index ticker (Stooq via CORS proxy) -->
-        <footer class="index-ticker" id="indexTicker">
-            <div class="ix-item"><span class="ix-name">S&amp;P 500</span><span class="ix-value" id="ixSPX">—</span><span class="ix-change" id="ixSPXChg">—</span></div>
+        <!-- (legacy bottom ticker removed — replaced by ov2-ticker inside Overview) -->
+        <footer class="index-ticker" id="indexTicker" style="display:none !important;">
+            <div class="ix-item"><span class="ix-name">SPX</span><span class="ix-value" id="ixSPX">—</span><span class="ix-change" id="ixSPXChg">—</span></div>
             <div class="ix-item"><span class="ix-name">NASDAQ</span><span class="ix-value" id="ixIXIC">—</span><span class="ix-change" id="ixIXICChg">—</span></div>
             <div class="ix-item"><span class="ix-name">DOW</span><span class="ix-value" id="ixDJI">—</span><span class="ix-change" id="ixDJIChg">—</span></div>
             <div class="ix-item"><span class="ix-name">RUSSELL 2000</span><span class="ix-value" id="ixRUT">—</span><span class="ix-change" id="ixRUTChg">—</span></div>
-            <div class="ix-item" id="ixUpdatedWrap" style="opacity:0.6"><span class="ix-name">עודכן</span><span class="ix-value" id="ixUpdated">—</span></div>
+            <div class="ix-item" id="ixUpdatedWrap"><span class="ix-name">עודכן</span><span class="ix-value" id="ixUpdated">—</span></div>
         </footer>
 
     </div><!-- /app-main -->

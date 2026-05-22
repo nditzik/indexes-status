@@ -371,22 +371,34 @@ function emaSeries(values, alpha) {
 }
 
 // Per-day flow metric extraction (one day's worth of flow rows)
+// Extended 2026-05-22: tracks Side (ask/bid/mid) per Call/Put for aggressive direction
 function computeFlowDay(rows) {
     if (!rows || !rows.length) return null;
     let callTr = 0, putTr = 0, callP = 0, putP = 0, bigTrades = 0;
+    let callAsk = 0, callBid = 0, callMid = 0;
+    let putAsk = 0, putBid = 0, putMid = 0;
+    let callAskP = 0, callBidP = 0, callMidP = 0;
+    let putAskP = 0, putBidP = 0, putMidP = 0;
     const ivsCall = [], ivsPut = [];
 
     for (const r of rows) {
         const t = String(r.Type || '').trim().toLowerCase();
         const prem = num(r.Premium) || 0;
+        const side = String(r.Side || '').trim().toLowerCase();
         const ivStr = String(r.IV || '').replace('%', '').trim();
         const iv = parseFloat(ivStr);
 
         if (t === 'call') {
             callTr++; callP += prem;
+            if (side === 'ask') { callAsk++; callAskP += prem; }
+            else if (side === 'bid') { callBid++; callBidP += prem; }
+            else if (side === 'mid') { callMid++; callMidP += prem; }
             if (Number.isFinite(iv) && iv > 0) ivsCall.push(iv);
         } else if (t === 'put') {
             putTr++; putP += prem;
+            if (side === 'ask') { putAsk++; putAskP += prem; }
+            else if (side === 'bid') { putBid++; putBidP += prem; }
+            else if (side === 'mid') { putMid++; putMidP += prem; }
             if (Number.isFinite(iv) && iv > 0) ivsPut.push(iv);
         }
         if (prem >= 5_000_000) bigTrades++;
@@ -398,6 +410,12 @@ function computeFlowDay(rows) {
 
     const ivCallMed = median(ivsCall);
     const ivPutMed  = median(ivsPut);
+
+    // Directional metrics (only counting bid/ask, ignoring mid)
+    const callDirTr = callAsk + callBid;
+    const putDirTr  = putAsk + putBid;
+    const callAskPct = callDirTr ? callAsk / callDirTr * 100 : null;
+    const putAskPct  = putDirTr  ? putAsk  / putDirTr  * 100 : null;
 
     return {
         n_trades: rows.length,
@@ -412,6 +430,13 @@ function computeFlowDay(rows) {
         iv_put_med:       ivPutMed,
         iv_skew:          (ivCallMed != null && ivPutMed != null) ? ivPutMed - ivCallMed : null,
         big_trades:       bigTrades,
+        // NEW · Side breakdown
+        callAsk, callBid, callMid,
+        putAsk,  putBid,  putMid,
+        callAskP, callBidP, callMidP,
+        putAskP,  putBidP,  putMidP,
+        callAskPct,            // % of directional call trades that hit ASK (aggressive buy)
+        putAskPct,             // % of directional put trades that hit ASK (aggressive buy = hedging)
     };
 }
 
@@ -968,6 +993,8 @@ function renderAlertsRail(chips, metrics) {
                 <span>עדיפות ${c.priority}</span>
             </div>
         `;
+        // Keep tooltip for additional hover context (some users prefer popover)
+        if (c.meaning) el.setAttribute('data-tooltip', c.meaning);
         rail.appendChild(el);
     }
 
@@ -976,6 +1003,7 @@ function renderAlertsRail(chips, metrics) {
 
 // ═════════════════════════════════════════════════════════════════════
 // FLOW CARD — surfaces SPX options flow as a first-class section
+// Extended 2026-05-22: Call/Put breakdown + Ask/Bid direction + formula
 // ═════════════════════════════════════════════════════════════════════
 function renderFlowCard(metrics) {
     const wrap = $('flowCard');
@@ -998,12 +1026,12 @@ function renderFlowCard(metrics) {
     else if (score >= 30)     { status = 'הגנתי · כסף קונה protection';        statusClass = 'ov2-warn'; }
     else                       { status = 'הגנה אגרסיבית · חששות';             statusClass = 'ov2-neg'; }
 
-    // Build markup
+    // Top score block
     $('flowScoreVal').textContent = score != null ? score : '—';
     $('flowStatus').textContent = status;
     $('flowStatus').className = 'ov2-flow-status ' + statusClass;
 
-    // Metrics
+    // Top metrics row
     $('flowPcPremiumVal').textContent = raw.pc_premium != null ? raw.pc_premium.toFixed(2) : '—';
     const zPc = z.pc_premium;
     $('flowPcPremiumSub').textContent = zPc != null
@@ -1024,6 +1052,72 @@ function renderFlowCard(metrics) {
     $('flowBigTradesSub').textContent = raw.big_trades >= 140 ? 'פעילות מוסדית חזקה'
                                        : raw.big_trades >= 100 ? 'פעילות מוסדית נורמלית'
                                        : 'פעילות שקטה';
+
+    // ─── NEW: Call vs Put breakdown ───
+    const fmtBn = v => v != null ? '$' + (v / 1e9).toFixed(2) + 'B' : '—';
+    const fmtMn = v => v != null ? '$' + (v / 1e6).toFixed(0) + 'M' : '—';
+    const fmtSide = (ask, bid, mid) => {
+        const tot = ask + bid + mid;
+        if (!tot) return '—';
+        return `Ask ${ask} · Bid ${bid} · Mid ${mid}`;
+    };
+
+    setEl('flowCallTrades', raw.callTr);
+    setEl('flowCallPremium', raw.callP >= 1e9 ? fmtBn(raw.callP) : fmtMn(raw.callP));
+    setEl('flowCallSides', fmtSide(raw.callAsk, raw.callBid, raw.callMid));
+    setEl('flowCallAskPct', raw.callAskPct != null ? Math.round(raw.callAskPct) + '%' : '—');
+
+    setEl('flowPutTrades', raw.putTr);
+    setEl('flowPutPremium', raw.putP >= 1e9 ? fmtBn(raw.putP) : fmtMn(raw.putP));
+    setEl('flowPutSides', fmtSide(raw.putAsk, raw.putBid, raw.putMid));
+    setEl('flowPutAskPct', raw.putAskPct != null ? Math.round(raw.putAskPct) + '%' : '—');
+
+    // ─── NEW: Aggressive direction interpretation ───
+    let aggInterpretation;
+    if (raw.callAskPct == null || raw.putAskPct == null) {
+        aggInterpretation = 'אין מספיק עסקאות directional לקריאה ברורה';
+    } else if (raw.callAskPct >= 60 && raw.putAskPct < 50) {
+        aggInterpretation = 'אגרסיביות שורית — כסף קונה calls וכותב puts';
+    } else if (raw.callAskPct < 50 && raw.putAskPct >= 60) {
+        aggInterpretation = 'אגרסיביות הגנתית — כסף קונה puts (hedging)';
+    } else if (raw.callAskPct >= 55 && raw.putAskPct >= 55) {
+        aggInterpretation = 'מתח דו-כיווני — כסף קונה גם calls וגם puts';
+    } else {
+        aggInterpretation = 'מאוזן · ללא דומיננטיות של צד אחד';
+    }
+    setEl('flowAggInterp', aggInterpretation);
+
+    // ─── NEW: Score formula breakdown ───
+    const t = metrics.techScore, b = metrics.breadthScore, fScore = f.score, combined = metrics.combined;
+    const breakdown = $('flowFormulaCombined');
+    if (breakdown) {
+        breakdown.innerHTML = `
+            <b>הציון המשולב (${combined != null ? combined : '—'})</b> =
+            40% × Tech (${t != null ? t : '—'}) +
+            35% × Flow (${fScore != null ? fScore : '—'}) +
+            25% × Breadth (${b != null ? b : '—'})
+        `;
+    }
+
+    // Flow internal formula
+    const zCall = z.call_premium_pct, zPCp = z.pc_premium, zNet = z.net_premium_pct, zSkew = z.iv_skew;
+    const flowFormula = $('flowFormulaInternal');
+    if (flowFormula) {
+        const fmtZ = v => v != null ? (v >= 0 ? '+' : '') + v.toFixed(2) + 'σ' : '—';
+        flowFormula.innerHTML = `
+            ציון Flow מתחיל מ-50 ועובר תיקונים:<br>
+            <b>+ Call %</b> (${fmtZ(zCall)} × 12, capped ±25)
+            <b>- P/C Premium</b> (${fmtZ(zPCp)} × 8, capped ±15)
+            <b>+ Net Premium</b> (${fmtZ(zNet)} × 5, capped ±10)
+            <b>- IV Skew</b> (${fmtZ(zSkew)} × 3, capped ±5)
+            <br>= <b>${fScore != null ? fScore : '—'}/100</b>
+        `;
+    }
+}
+
+function setEl(id, text) {
+    const el = $(id);
+    if (el) el.textContent = text;
 }
 
 // ═════════════════════════════════════════════════════════════════════
@@ -1127,24 +1221,25 @@ function renderDailySummary(phase, m, chips, duration, sectorsMap) {
 let _tickerTimer = null;
 
 async function startLiveTicker(metrics) {
-    // Initial render uses today's snapshot SPX from data; live values via Stooq
+    // Initial fallback for SPY — uses today's SPX snapshot until live fetch arrives
     if (metrics.spx && metrics.spx.price != null) {
-        const spxEl = $('tkSPX');
-        const spxChgEl = $('tkSPXChg');
-        if (spxEl) spxEl.textContent = metrics.spx.price.toFixed(2);
-        if (spxChgEl) {
-            spxChgEl.textContent = (metrics.spx.chgPct >= 0 ? '+' : '') + metrics.spx.chgPct.toFixed(2) + '%';
-            spxChgEl.style.color = metrics.spx.chgPct >= 0 ? 'var(--ov2-pos)' : 'var(--ov2-neg)';
+        const spyEl = $('tkSPY');
+        const spyChgEl = $('tkSPYChg');
+        if (spyEl) spyEl.textContent = (metrics.spx.price / 10).toFixed(2);  // SPY ≈ SPX/10
+        if (spyChgEl) {
+            spyChgEl.textContent = (metrics.spx.chgPct >= 0 ? '+' : '') + metrics.spx.chgPct.toFixed(2) + '%';
+            spyChgEl.style.color = metrics.spx.chgPct >= 0 ? 'var(--ov2-pos)' : 'var(--ov2-neg)';
         }
     }
     await fetchLiveIndices();
-    // Refresh every 2 min
+    // Refresh every 60 seconds (was 120s — user wants more responsive)
     if (_tickerTimer) clearInterval(_tickerTimer);
-    _tickerTimer = setInterval(fetchLiveIndices, 120000);
+    _tickerTimer = setInterval(fetchLiveIndices, 60000);
 }
 
 async function fetchLiveIndices() {
-    const symbols = { SPX: '^spx', NDX: 'qqq.us', DJI: '^dji', RUT: 'iwm.us' };
+    // Use ETFs instead of indices — they have extended hours + frequent updates on Stooq
+    const symbols = { SPY: 'spy.us', NDX: 'qqq.us', DJI: 'dia.us', RUT: 'iwm.us' };
     const query = Object.values(symbols).join('+');
     const stooq = `https://stooq.com/q/l/?s=${query}&f=snd2t2ohlcpv&h&e=csv`;
     const url = 'https://corsproxy.io/?' + encodeURIComponent(stooq);
