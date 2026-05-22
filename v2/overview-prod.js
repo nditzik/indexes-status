@@ -1241,70 +1241,104 @@ function renderFlowCard(metrics) {
     const cAskTr = raw.callAskPct;
     const pAskTr = raw.putAskPct;
 
-    let headline = '', meaning = '', evidence = '';
+    let headline = '', meaning = '';
     if (cAskPm == null || pAskPm == null) {
         headline = 'אין מספיק עסקאות directional לקריאה ברורה';
     } else {
         const cHigh = cAskPm >= 60, cLow = cAskPm <= 40;
         const pHigh = pAskPm >= 60, pLow = pAskPm <= 40;
-        const cBidPm = 100 - cAskPm;
-        const pBidPm = 100 - pAskPm;
 
         if (cHigh && pLow) {
-            headline = '📈 שורי חזק';
-            meaning = 'הכסף הגדול קונה calls וכותב puts — מהמרים על עלייה';
-            evidence = `Ask ${Math.round(cAskPm)}% פרמיה ב-calls · Bid ${Math.round(pBidPm)}% פרמיה ב-puts`;
+            headline = 'שורי חזק 📈';
+            meaning = 'הכסף הגדול קונה calls וכותב puts — מהמרים על עלייה.';
         } else if (cLow && pHigh) {
-            headline = '📉 הגנתי / דובי';
-            meaning = 'הכסף הגדול כותב calls וקונה puts — נערכים לירידה או הגנה';
-            evidence = `Bid ${Math.round(cBidPm)}% פרמיה ב-calls · Ask ${Math.round(pAskPm)}% פרמיה ב-puts`;
+            headline = 'הגנתי / דובי 📉';
+            meaning = 'הכסף הגדול כותב calls וקונה puts — נערכים לירידה או הגנה.';
         } else if (cLow && pLow) {
-            headline = '⚖️ Short Volatility — הימור על שוק טווח';
-            meaning = 'הכסף הגדול מוכר פרמיה בשני הצדדים — לא מהמרים על כיוון, מהמרים שלא תהיה תנודה';
-            evidence = `Bid ${Math.round(cBidPm)}% פרמיה ב-calls · Bid ${Math.round(pBidPm)}% פרמיה ב-puts`;
+            headline = 'Short Volatility — הימור על שוק טווח ⚖️';
+            meaning = 'הכסף הגדול מוכר פרמיה בשני הצדדים — לא מהמרים על כיוון, מהמרים שלא תהיה תנודה.';
         } else if (cHigh && pHigh) {
-            headline = '⚡ Long Volatility — צופים תנודה חזקה';
-            meaning = 'הכסף הגדול קונה פרמיה בשני הצדדים — מצפים לזעזוע (כיוון לא ידוע)';
-            evidence = `Ask ${Math.round(cAskPm)}% פרמיה ב-calls · Ask ${Math.round(pAskPm)}% פרמיה ב-puts`;
+            headline = 'Long Volatility — צופים תנודה חזקה ⚡';
+            meaning = 'הכסף הגדול קונה פרמיה בשני הצדדים — מצפים לזעזוע (כיוון לא ידוע).';
         } else if (cAskPm >= 55) {
-            headline = '📈 שורי מתון';
-            meaning = 'נטייה לקנייה ב-calls. puts מאוזנים';
-            evidence = `calls Ask ${Math.round(cAskPm)}% · puts ${Math.round(pAskPm)}%`;
+            headline = 'שורי מתון 📈';
+            meaning = 'נטייה לקנייה ב-calls, puts מאוזנים.';
         } else if (cAskPm <= 45) {
-            headline = '🔻 מטה למכירת calls';
-            meaning = 'הכסף הגדול כותב calls — סימן ל-cap על העלייה';
-            evidence = `calls Bid ${Math.round(cBidPm)}% פרמיה · puts ${Math.round(pAskPm)}%`;
+            headline = 'מטה למכירת calls 🔻';
+            meaning = 'הכסף הגדול כותב calls — סימן ל-cap על העלייה.';
         } else if (pAskPm >= 55) {
-            headline = '🛡 דרישת הגנה';
-            meaning = 'הכסף הגדול קונה puts. calls מאוזנים';
-            evidence = `puts Ask ${Math.round(pAskPm)}% · calls ${Math.round(cAskPm)}%`;
+            headline = 'דרישת הגנה 🛡';
+            meaning = 'הכסף הגדול קונה puts, calls מאוזנים.';
         } else if (pAskPm <= 45) {
-            headline = '📈 כותבי puts פעילים';
-            meaning = 'הכסף הגדול כותב puts — אופטימיות שקטה (סימן ל"השוק לא יירד")';
-            evidence = `puts Bid ${Math.round(pBidPm)}% פרמיה · calls ${Math.round(cAskPm)}%`;
+            headline = 'כותבי puts פעילים 📈';
+            meaning = 'הכסף הגדול כותב puts — אופטימיות שקטה (סימן ל"השוק לא יירד").';
         } else {
-            headline = '🔄 מאוזן';
-            meaning = 'אין דומיננטיות ברורה';
-            evidence = `calls Ask ${Math.round(cAskPm)}% · puts Ask ${Math.round(pAskPm)}% פרמיה`;
+            headline = 'מאוזן 🔄';
+            meaning = 'אין דומיננטיות ברורה.';
         }
     }
 
-    // Divergence notes — when trade-count signal ≠ premium signal (BIG money differs from crowd)
-    const divergences = [];
-    if (cAskTr != null && cAskPm != null && Math.abs(cAskPm - cAskTr) >= 15) {
-        divergences.push(`<b>בקאלים:</b> ${Math.round(cAskTr)}% מהעסקאות ב-Ask, אבל רק ${Math.round(cAskPm)}% מהפרמיה — <b>הכסף הגדול שונה מהקהל</b>`);
-    }
-    if (pAskTr != null && pAskPm != null && Math.abs(pAskPm - pAskTr) >= 15) {
-        divergences.push(`<b>ב-puts:</b> ${Math.round(pAskTr)}% עסקאות ↔ ${Math.round(pAskPm)}% פרמיה`);
+    // ── Evidence table (Hebrew-leading, no inline mixing) ──
+    let evidenceHtml = '';
+    if (cAskPm != null && pAskPm != null) {
+        evidenceHtml = `
+            <table class="ov2-flow-evidence-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Ask (קונה)</th>
+                        <th>Bid (מוכר)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><b>Calls</b></td>
+                        <td>${Math.round(cAskPm)}% פרמיה</td>
+                        <td>${Math.round(100 - cAskPm)}% פרמיה</td>
+                    </tr>
+                    <tr>
+                        <td><b>Puts</b></td>
+                        <td>${Math.round(pAskPm)}% פרמיה</td>
+                        <td>${Math.round(100 - pAskPm)}% פרמיה</td>
+                    </tr>
+                </tbody>
+            </table>`;
     }
 
-    // Render as structured multi-line HTML
+    // ── Divergence — explain clearly (crowd vs smart money) ──
+    const divergences = [];
+    if (cAskTr != null && cAskPm != null && Math.abs(cAskPm - cAskTr) >= 15) {
+        const crowdSide  = cAskTr >  50 ? 'קונה' : 'מוכר';
+        const moneySide  = cAskPm >  50 ? 'קונה' : 'מוכר';
+        divergences.push({
+            title: 'בקאלים — אי-התאמה',
+            body:  `<b>הקהל ${crowdSide}</b> (${Math.round(cAskTr)}% מהעסקאות) אבל <b>הכסף הגדול ${moneySide}</b> (${Math.round(cAskPm)}% מהפרמיה).`,
+            sub:   `הרבה סוחרים קטנים בכיוון אחד, מעט מוסדיים גדולים בכיוון השני. היסטורית — המוסדיים נוטים להיות צודקים.`
+        });
+    }
+    if (pAskTr != null && pAskPm != null && Math.abs(pAskPm - pAskTr) >= 15) {
+        const crowdSide  = pAskTr >  50 ? 'קונה' : 'מוכר';
+        const moneySide  = pAskPm >  50 ? 'קונה' : 'מוכר';
+        divergences.push({
+            title: 'ב-puts — אי-התאמה',
+            body:  `<b>הקהל ${crowdSide}</b> (${Math.round(pAskTr)}% עסקאות) אבל <b>הכסף הגדול ${moneySide}</b> (${Math.round(pAskPm)}% פרמיה).`,
+            sub:   ''
+        });
+    }
+
+    // Render as structured multi-line HTML — Hebrew-friendly, no inline LTR/RTL mixing
     const interpHtml = `
         <div class="ov2-flow-agg-headline">${headline}</div>
         <div class="ov2-flow-agg-meaning">${meaning}</div>
-        ${evidence ? `<div class="ov2-flow-agg-evidence">📊 ${evidence}</div>` : ''}
-        ${divergences.length ? `<div class="ov2-flow-agg-divergence-head">⚠ פערים בין עסקאות לפרמיה:</div>
-            ${divergences.map(d => `<div class="ov2-flow-agg-divergence">${d}</div>`).join('')}` : ''}
+        ${evidenceHtml}
+        ${divergences.length ? `<div class="ov2-flow-agg-divergence-head">⚠ אי-התאמה בין הקהל לכסף הגדול:</div>
+            ${divergences.map(d => `
+                <div class="ov2-flow-agg-divergence">
+                    <div class="ov2-flow-agg-div-title">${d.title}</div>
+                    <div class="ov2-flow-agg-div-body">${d.body}</div>
+                    ${d.sub ? `<div class="ov2-flow-agg-div-sub">${d.sub}</div>` : ''}
+                </div>
+            `).join('')}` : ''}
     `;
     setHTML('flowAggInterp', interpHtml);
 
@@ -1416,6 +1450,15 @@ function renderFlowQuality(raw) {
 
     const directional = (o.callBuy || 0) + (o.callSell || 0) + (o.putBuy || 0) + (o.putSell || 0);
     const generic = (o.callGeneric || 0) + (o.putGeneric || 0);
+    // Premium-weighted conviction (NEW · user feedback: count alone misleading)
+    const callBuyP_ = o.callBuyP || 0;
+    const callSellP_ = o.callSellP || 0;
+    const putBuyP_ = o.putBuyP || 0;
+    const putSellP_ = o.putSellP || 0;
+    const bullishP = callBuyP_ + putSellP_;   // buy calls + write puts = bullish $
+    const bearishP = callSellP_ + putBuyP_;   // write calls + buy puts = bearish $
+    const directionalP = bullishP + bearishP;
+
     const openTable = `
         <table class="ov2-flow-side-table">
             <thead><tr>
@@ -1427,14 +1470,14 @@ function renderFlowQuality(raw) {
             <tbody>
                 <tr class="ov2-flow-side-ask">
                     <td><b>Calls</b></td>
-                    <td><b>${o.callBuy || 0}</b><br><span class="ov2-flow-side-sub">conviction שורי</span></td>
-                    <td><b>${o.callSell || 0}</b><br><span class="ov2-flow-side-sub">naked sell / short-vol</span></td>
+                    <td><b>${o.callBuy || 0}</b> · <span class="ov2-flow-side-prem">${fmtP(callBuyP_)}</span><br><span class="ov2-flow-side-sub">conviction שורי</span></td>
+                    <td><b>${o.callSell || 0}</b> · <span class="ov2-flow-side-prem">${fmtP(callSellP_)}</span><br><span class="ov2-flow-side-sub">short-vol / כותב calls</span></td>
                     <td><b>${o.callGeneric || 0}</b></td>
                 </tr>
                 <tr class="ov2-flow-side-bid">
                     <td><b>Puts</b></td>
-                    <td><b>${o.putBuy || 0}</b><br><span class="ov2-flow-side-sub">hedge / bearish</span></td>
-                    <td><b>${o.putSell || 0}</b><br><span class="ov2-flow-side-sub">writing puts (שורי)</span></td>
+                    <td><b>${o.putBuy || 0}</b> · <span class="ov2-flow-side-prem">${fmtP(putBuyP_)}</span><br><span class="ov2-flow-side-sub">hedge / דובי</span></td>
+                    <td><b>${o.putSell || 0}</b> · <span class="ov2-flow-side-prem">${fmtP(putSellP_)}</span><br><span class="ov2-flow-side-sub">כותב puts (שורי)</span></td>
                     <td><b>${o.putGeneric || 0}</b></td>
                 </tr>
             </tbody>
@@ -1448,22 +1491,35 @@ function renderFlowQuality(raw) {
         </table>`;
     setHTML('flowQualityOpens', openTable);
 
-    // ── Opening-conviction interpretation ──
-    const bull = o.bullish || 0;
-    const bear = o.bearish || 0;
-    const conv = bull + bear;
+    // ── Opening-conviction interpretation — premium-weighted ──
     let openNote = '';
-    if (conv >= 8) {
-        const bullPct = Math.round(bull / conv * 100);
-        if (bullPct >= 65) {
-            openNote = `📈 <b>Conviction שורי</b> בפוזיציות פותחות: ${bullPct}% (קונים calls + כותבים puts) — ${conv} עסקאות מסוג זה.`;
-        } else if (bullPct <= 35) {
-            openNote = `📉 <b>Conviction דובי/הגנתי</b> בפוזיציות פותחות: ${100-bullPct}% (כותבים calls + קונים puts) — ${conv} עסקאות.`;
-        } else {
-            openNote = `Conviction מאוזן בפותחות (${bullPct}% שורי · ${100-bullPct}% דובי).`;
-        }
+    if (directionalP <= 0) {
+        openNote = `אין מספיק עסקאות פותחות עם כיוון ברור היום (${directional} מתויגות) — מגבלת איכות הנתון של Barchart.`;
     } else {
-        openNote = `מעט עסקאות עם סימון ToOpen היום (${conv} פתיחות מתויגות) — מגבלת איכות הנתון של Barchart.`;
+        const bullPctP = Math.round(bullishP / directionalP * 100);
+        const bearPctP = 100 - bullPctP;
+        // Compare with count-based for completeness
+        const bull = o.bullish || 0;
+        const bear = o.bearish || 0;
+        const conv = bull + bear;
+        const bullPctC = conv > 0 ? Math.round(bull / conv * 100) : 0;
+
+        let label, emoji;
+        if (bullPctP >= 65)        { label = 'Conviction שורי';        emoji = '📈'; }
+        else if (bullPctP <= 35)   { label = 'Conviction דובי/הגנתי'; emoji = '📉'; }
+        else                        { label = 'Conviction מאוזן';     emoji = '🔄'; }
+
+        openNote = `
+            <div class="ov2-conv-note-main">${emoji} <b>${label}</b> · לפי פרמיה: <b>${bullPctP}% שורי</b> · ${bearPctP}% דובי</div>
+            <div class="ov2-conv-note-detail">
+                שורי: ${fmtP(bullishP)} (קנייה calls + כתיבה puts) · דובי: ${fmtP(bearishP)} (כתיבה calls + קנייה puts)
+            </div>
+            ${conv > 0 && Math.abs(bullPctP - bullPctC) >= 10 ? `
+                <div class="ov2-conv-note-divergence">
+                    ⓘ לפי מספר עסקאות: ${bullPctC}% שורי — שונה מ-${bullPctP}% לפי פרמיה. הכסף הגדול מסתדר אחרת מהקהל.
+                </div>
+            ` : ''}
+        `;
     }
     setHTML('flowQualityOpenNote', openNote);
 }

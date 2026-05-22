@@ -1127,34 +1127,111 @@
     line-height: 1.5;
     font-weight: 500;
 }
-.overview-prod-root .ov2-flow-agg-evidence {
-    font-size: 12px;
-    color: var(--ov2-text-2);
-    font-family: var(--ov2-font-mono);
+/* Evidence table — Hebrew-leading, no inline mixing */
+.overview-prod-root .ov2-flow-evidence-table {
+    width: 100%;
+    border-collapse: collapse;
     background: var(--ov2-bg-1);
-    padding: 6px 10px;
-    border-radius: var(--ov2-radius-sm);
     border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    overflow: hidden;
+    margin-top: 4px;
 }
+.overview-prod-root .ov2-flow-evidence-table th {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.04em;
+    padding: 8px 12px;
+    text-align: center;
+    background: var(--ov2-bg-2);
+    border-bottom: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-flow-evidence-table th:first-child { text-align: right; }
+.overview-prod-root .ov2-flow-evidence-table td {
+    padding: 10px 12px;
+    font-size: 14px;
+    color: var(--ov2-text-1);
+    text-align: center;
+    font-family: var(--ov2-font-mono);
+    font-weight: 600;
+    border-bottom: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-flow-evidence-table tr:last-child td { border-bottom: none; }
+.overview-prod-root .ov2-flow-evidence-table td:first-child {
+    text-align: right;
+    font-family: var(--ov2-font-ui);
+    font-weight: 700;
+}
+
+/* Divergence — explainer cards */
 .overview-prod-root .ov2-flow-agg-divergence-head {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--ov2-warn);
-    margin-top: 6px;
-    letter-spacing: 0.04em;
+    margin-top: 8px;
+    letter-spacing: 0.02em;
 }
 .overview-prod-root .ov2-flow-agg-divergence {
-    font-size: 13px;
-    color: var(--ov2-text-1);
     background: var(--ov2-warn-bg);
-    padding: 6px 10px;
+    border-right: 4px solid var(--ov2-warn);
     border-radius: var(--ov2-radius-sm);
-    border-right: 3px solid var(--ov2-warn);
+    padding: 12px 16px;
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-flow-agg-div-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ov2-warn-bright);
+    margin-bottom: 4px;
+}
+.overview-prod-root .ov2-flow-agg-div-body {
+    font-size: 14px;
+    color: var(--ov2-text-1);
+    line-height: 1.6;
+    margin-bottom: 4px;
+}
+.overview-prod-root .ov2-flow-agg-div-body b {
+    font-weight: 700;
+}
+.overview-prod-root .ov2-flow-agg-div-sub {
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    line-height: 1.5;
+    font-style: italic;
+}
+
+/* Conviction note — premium-weighted (replaces old single-line) */
+.overview-prod-root .ov2-conv-note-main {
+    font-size: 14px;
+    color: var(--ov2-text-1);
+    font-weight: 600;
     line-height: 1.5;
 }
-.overview-prod-root .ov2-flow-agg-divergence b {
+.overview-prod-root .ov2-conv-note-main b {
+    font-weight: 800;
+}
+.overview-prod-root .ov2-conv-note-detail {
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    margin-top: 4px;
+    line-height: 1.5;
+}
+.overview-prod-root .ov2-conv-note-divergence {
+    background: var(--ov2-warn-bg);
+    border-right: 3px solid var(--ov2-warn);
+    border-radius: var(--ov2-radius-sm);
+    padding: 6px 10px;
+    margin-top: 8px;
+    font-size: 12px;
     color: var(--ov2-text-1);
-    font-weight: 700;
+    line-height: 1.5;
+}
+.overview-prod-root .ov2-flow-side-prem {
+    font-family: var(--ov2-font-mono);
+    font-size: 13px;
+    color: var(--ov2-text-2);
+    font-weight: 600;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
