@@ -1,50 +1,60 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   OVERVIEW PROD · combined visual grammar (from prototypes/shared.css +
-   v2/styles.css), scoped to .overview-prod-root to avoid clashing with
-   other dashboard tabs.
+   OVERVIEW PROD · v1.5 — Light theme + Hebrew RTL + high contrast.
+   Scoped to .overview-prod-root.
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* ── Design tokens (global :root — safe, just CSS variables) ── */
+/* ── Design tokens · LIGHT THEME (high contrast) ── */
 :root {
-    --ov2-bg-0:           #0a0a0c;
-    --ov2-bg-1:           #111114;
-    --ov2-bg-2:           #16171b;
-    --ov2-bg-3:           #1b1c22;
-    --ov2-border:         #22232a;
-    --ov2-border-strong:  #2e3038;
-    --ov2-border-bright:  #3e4150;
-    --ov2-text-1:         #e8e9ec;
-    --ov2-text-2:         #8a8c93;
-    --ov2-text-3:         #5a5c66;
+    /* Surfaces */
+    --ov2-bg-0:           #f8fafc;   /* page bg (cream/very light) */
+    --ov2-bg-1:           #ffffff;   /* card bg (pure white) */
+    --ov2-bg-2:           #f1f5f9;   /* nested / hover */
+    --ov2-bg-3:           #e2e8f0;   /* active / selected */
+    --ov2-bg-tooltip:     #1f2937;   /* dark tooltip background */
 
-    --ov2-pos:            #10b981;
-    --ov2-pos-bright:     #34d399;
-    --ov2-pos-bg:         rgba(16, 185, 129, 0.08);
-    --ov2-neg:            #ef4444;
-    --ov2-neg-bright:     #f87171;
-    --ov2-neg-bg:         rgba(239, 68, 68, 0.08);
-    --ov2-warn:           #f59e0b;
-    --ov2-warn-bright:    #fbbf24;
-    --ov2-warn-bg:        rgba(245, 158, 11, 0.08);
-    --ov2-neutral:        #64748b;
+    /* Borders */
+    --ov2-border:         #e5e7eb;
+    --ov2-border-strong:  #d1d5db;
+    --ov2-border-bright:  #9ca3af;
 
-    --ov2-cat-breadth:    #4f8af7;
-    --ov2-cat-momentum:   #10b981;
-    --ov2-cat-risk:       #ef4444;
-    --ov2-cat-flow:       #a78bfa;
-    --ov2-cat-sector:     #f59e0b;
-    --ov2-cat-macro:      #818cf8;
-    --ov2-cat-historical: #2dd4bf;
-    --ov2-cat-action:     #38bdf8;
+    /* Text — high contrast as requested */
+    --ov2-text-1:         #1F2937;   /* primary — near-black */
+    --ov2-text-2:         #4B5563;   /* secondary — medium-dark gray */
+    --ov2-text-3:         #6B7280;   /* tertiary — still readable on cream */
+    --ov2-text-inverse:   #f9fafb;   /* for dark surfaces */
 
-    --ov2-hm-strong-neg:  #7f1d1d;
-    --ov2-hm-neg:         #b91c1c;
-    --ov2-hm-weak-neg:    #a16207;
-    --ov2-hm-neutral:     #44403c;
-    --ov2-hm-weak-pos:    #15803d;
-    --ov2-hm-pos:         #059669;
-    --ov2-hm-strong-pos:  #047857;
+    /* State (value-driven) — DARKER variants for light bg */
+    --ov2-pos:            #059669;
+    --ov2-pos-bright:     #047857;
+    --ov2-pos-bg:         rgba(5, 150, 105, 0.10);
+    --ov2-neg:            #DC2626;
+    --ov2-neg-bright:     #B91C1C;
+    --ov2-neg-bg:         rgba(220, 38, 38, 0.10);
+    --ov2-warn:           #D97706;
+    --ov2-warn-bright:    #B45309;
+    --ov2-warn-bg:        rgba(217, 119, 6, 0.12);
+    --ov2-neutral:        #6B7280;
 
+    /* Category accents (system-driven) */
+    --ov2-cat-breadth:    #2563EB;
+    --ov2-cat-momentum:   #059669;
+    --ov2-cat-risk:       #DC2626;
+    --ov2-cat-flow:       #7C3AED;
+    --ov2-cat-sector:     #D97706;
+    --ov2-cat-macro:      #4F46E5;
+    --ov2-cat-historical: #0D9488;
+    --ov2-cat-action:     #0EA5E9;
+
+    /* Heatmap ramp */
+    --ov2-hm-strong-neg:  #991B1B;
+    --ov2-hm-neg:         #DC2626;
+    --ov2-hm-weak-neg:    #F59E0B;
+    --ov2-hm-neutral:     #D1D5DB;
+    --ov2-hm-weak-pos:    #4ADE80;
+    --ov2-hm-pos:         #16A34A;
+    --ov2-hm-strong-pos:  #15803D;
+
+    /* Spacing */
     --ov2-space-1: 4px;
     --ov2-space-2: 8px;
     --ov2-space-3: 12px;
@@ -55,23 +65,29 @@
     --ov2-radius:    6px;
     --ov2-radius-sm: 4px;
 
-    --ov2-font-ui:   'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --ov2-font-ui:   'Inter', 'Heebo', 'Segoe UI', system-ui, -apple-system, sans-serif;
     --ov2-font-mono: 'JetBrains Mono', ui-monospace, 'Menlo', 'Consolas', monospace;
+
+    --ov2-shadow-card:    0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.03);
+    --ov2-shadow-pop:     0 4px 12px rgba(15, 23, 42, 0.10);
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   ROOT scoping wrapper. Everything below is scoped to .overview-prod-root
-   so other tabs / global styles aren't affected.
+   SCOPED ROOT
    ───────────────────────────────────────────────────────────────────── */
 
 .overview-prod-root {
     font-family: var(--ov2-font-ui);
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.55;
     color: var(--ov2-text-1);
     direction: rtl;
+    text-align: right;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background: var(--ov2-bg-0);
+    padding: var(--ov2-space-4);
+    border-radius: var(--ov2-radius);
 }
 .overview-prod-root *, .overview-prod-root *::before, .overview-prod-root *::after { box-sizing: border-box; }
 .overview-prod-root button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
@@ -81,16 +97,18 @@
 /* ── Typography helpers ── */
 .overview-prod-root .ov2-eyebrow {
     font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
+    font-weight: 700;
+    letter-spacing: 0.10em;
     text-transform: uppercase;
     color: var(--ov2-text-2);
     line-height: 1.2;
+    direction: ltr;
+    text-align: right;
 }
-.overview-prod-root .ov2-title-l { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
-.overview-prod-root .ov2-title-m { font-size: 14px; font-weight: 600; line-height: 1.2; }
-.overview-prod-root .ov2-title-s { font-size: 12px; font-weight: 600; line-height: 1.2; }
-.overview-prod-root .ov2-subtitle { font-size: 12px; font-weight: 400; color: var(--ov2-text-2); line-height: 1.4; }
+.overview-prod-root .ov2-title-l { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25; color: var(--ov2-text-1); }
+.overview-prod-root .ov2-title-m { font-size: 15px; font-weight: 700; line-height: 1.3; color: var(--ov2-text-1); }
+.overview-prod-root .ov2-title-s { font-size: 13px; font-weight: 600; line-height: 1.3; color: var(--ov2-text-1); }
+.overview-prod-root .ov2-subtitle { font-size: 12px; font-weight: 500; color: var(--ov2-text-2); line-height: 1.45; }
 .overview-prod-root .ov2-num {
     font-family: var(--ov2-font-mono);
     font-variant-numeric: tabular-nums;
@@ -101,7 +119,7 @@
 .overview-prod-root .ov2-neg { color: var(--ov2-neg); }
 .overview-prod-root .ov2-warn { color: var(--ov2-warn); }
 
-/* ── Body layout (no full app shell — Overview lives within existing dashboard) ── */
+/* ── EXECUTIVE STRIP ── */
 .overview-prod-root .ov2-strip {
     background: var(--ov2-bg-1);
     border: 1px solid var(--ov2-border);
@@ -112,43 +130,48 @@
     align-items: center;
     gap: var(--ov2-space-5);
     margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
 }
 .overview-prod-root .ov2-strip-state {
     display: flex;
     align-items: center;
     gap: var(--ov2-space-3);
+    flex-wrap: wrap;
 }
 .overview-prod-root .ov2-state-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--ov2-warn-bright);
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--ov2-warn);
     box-shadow: 0 0 0 3px var(--ov2-warn-bg);
+    flex-shrink: 0;
 }
-.overview-prod-root .ov2-state-dot.ov2-pos { background: var(--ov2-pos-bright); box-shadow: 0 0 0 3px var(--ov2-pos-bg); }
-.overview-prod-root .ov2-state-dot.ov2-neg { background: var(--ov2-neg-bright); box-shadow: 0 0 0 3px var(--ov2-neg-bg); }
+.overview-prod-root .ov2-state-dot.ov2-pos { background: var(--ov2-pos); box-shadow: 0 0 0 3px var(--ov2-pos-bg); }
+.overview-prod-root .ov2-state-dot.ov2-neg { background: var(--ov2-neg); box-shadow: 0 0 0 3px var(--ov2-neg-bg); }
 
 .overview-prod-root .ov2-strip-state-label {
     font-size: 10px;
     color: var(--ov2-text-3);
-    letter-spacing: 0.08em;
+    letter-spacing: 0.10em;
     text-transform: uppercase;
+    font-weight: 600;
 }
 .overview-prod-root .ov2-strip-state-value {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
     color: var(--ov2-text-1);
 }
 .overview-prod-root .ov2-strip-state-score {
     font-family: var(--ov2-font-mono);
-    font-weight: 600;
-    color: var(--ov2-warn-bright);
+    font-weight: 700;
+    color: var(--ov2-text-1);
     margin-right: var(--ov2-space-2);
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .overview-prod-root .ov2-strip-indices {
     display: flex;
     gap: var(--ov2-space-5);
     align-items: center;
+    flex-wrap: wrap;
 }
 .overview-prod-root .ov2-idx {
     display: flex;
@@ -160,8 +183,9 @@
 .overview-prod-root .ov2-idx-name {
     font-size: 9px;
     color: var(--ov2-text-3);
-    letter-spacing: 0.08em;
+    letter-spacing: 0.10em;
     text-transform: uppercase;
+    font-weight: 700;
 }
 .overview-prod-root .ov2-idx-row {
     display: flex;
@@ -170,8 +194,8 @@
     font-family: var(--ov2-font-mono);
     font-variant-numeric: tabular-nums;
 }
-.overview-prod-root .ov2-idx-val { font-size: 13px; font-weight: 600; color: var(--ov2-text-1); }
-.overview-prod-root .ov2-idx-chg { font-size: 11px; font-weight: 500; }
+.overview-prod-root .ov2-idx-val { font-size: 14px; font-weight: 700; color: var(--ov2-text-1); }
+.overview-prod-root .ov2-idx-chg { font-size: 11px; font-weight: 600; }
 
 .overview-prod-root .ov2-icon-btn {
     width: 28px; height: 28px;
@@ -184,7 +208,7 @@
 }
 .overview-prod-root .ov2-icon-btn:hover { background: var(--ov2-bg-2); color: var(--ov2-text-1); }
 
-/* ── Body grid: main + alerts rail ── */
+/* ── BODY GRID ── */
 .overview-prod-root .ov2-body {
     display: grid;
     grid-template-columns: 1fr 320px;
@@ -195,23 +219,25 @@
     .overview-prod-root .ov2-body { grid-template-columns: 1fr; }
 }
 
-/* ── Panel canonical ── */
+/* ── PANEL ── */
 .overview-prod-root .ov2-panel {
     background: var(--ov2-bg-1);
     border: 1px solid var(--ov2-border);
     border-radius: var(--ov2-radius);
     padding: var(--ov2-space-4);
     position: relative;
-    transition: border-color 120ms ease;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
     margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
 }
-.overview-prod-root .ov2-panel:hover { border-color: var(--ov2-border-strong); }
+.overview-prod-root .ov2-panel:hover {
+    border-color: var(--ov2-border-strong);
+}
 .overview-prod-root .ov2-panel-accent {
     position: absolute;
     top: 0; right: 0; left: 0;
-    height: 2px;
+    height: 3px;
     border-radius: var(--ov2-radius) var(--ov2-radius) 0 0;
-    opacity: 0.7;
     background: var(--ov2-cat-breadth);
 }
 .overview-prod-root .ov2-panel-accent.cat-momentum   { background: var(--ov2-cat-momentum); }
@@ -239,11 +265,10 @@
     border-top: 1px solid var(--ov2-border);
     font-size: 12px;
     color: var(--ov2-text-2);
-    font-style: italic;
-    line-height: 1.4;
+    line-height: 1.5;
 }
 
-/* ── MCC card ── */
+/* ── MCC CARD ── */
 .overview-prod-root .ov2-mcc {
     background: linear-gradient(135deg, var(--ov2-bg-1) 0%, var(--ov2-bg-2) 100%);
     border: 1px solid var(--ov2-border-strong);
@@ -252,11 +277,12 @@
     position: relative;
     overflow: hidden;
     margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
 }
 .overview-prod-root .ov2-mcc-accent {
     position: absolute;
     top: 0; right: 0; left: 0;
-    height: 3px;
+    height: 4px;
     background: var(--ov2-cat-breadth);
     transition: background 200ms;
 }
@@ -269,54 +295,74 @@
     margin-bottom: 6px;
 }
 .overview-prod-root .ov2-mcc-glyph {
-    font-size: 26px;
+    font-size: 28px;
     line-height: 1;
     font-family: var(--ov2-font-mono);
     font-weight: 700;
-    color: var(--ov2-warn-bright);
+    color: var(--ov2-warn);
     transition: color 200ms;
 }
 .overview-prod-root .ov2-mcc-phase-label {
-    font-size: 16px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
     color: var(--ov2-text-1);
     text-transform: uppercase;
 }
 .overview-prod-root .ov2-mcc-phase-label-he {
-    font-size: 13px;
-    color: var(--ov2-text-2);
-    font-weight: 500;
+    font-size: 16px;
+    color: var(--ov2-text-1);
+    font-weight: 700;
 }
+.overview-prod-root .ov2-mcc-state-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--ov2-warn-bg);
+    color: var(--ov2-warn-bright);
+    border: 1px solid var(--ov2-warn);
+    margin-right: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-mcc-state-label.ov2-pos { background: var(--ov2-pos-bg); color: var(--ov2-pos-bright); border-color: var(--ov2-pos); }
+.overview-prod-root .ov2-mcc-state-label.ov2-neg { background: var(--ov2-neg-bg); color: var(--ov2-neg-bright); border-color: var(--ov2-neg); }
+
 .overview-prod-root .ov2-mcc-duration-row {
     display: flex;
     gap: var(--ov2-space-3);
     align-items: baseline;
     margin-bottom: var(--ov2-space-3);
+    flex-wrap: wrap;
 }
 .overview-prod-root .ov2-mcc-duration {
     font-size: 12px;
     font-family: var(--ov2-font-mono);
     color: var(--ov2-text-1);
-    font-weight: 600;
-    background: var(--ov2-bg-3);
-    padding: 3px 10px;
+    font-weight: 700;
+    background: var(--ov2-bg-2);
+    padding: 4px 10px;
     border-radius: 4px;
+    border: 1px solid var(--ov2-border);
 }
 .overview-prod-root .ov2-mcc-entered {
-    font-size: 11px;
-    color: var(--ov2-text-3);
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    font-weight: 500;
 }
 .overview-prod-root .ov2-mcc-narrative {
     font-size: 14px;
-    line-height: 1.55;
+    line-height: 1.7;
     color: var(--ov2-text-1);
-    background: var(--ov2-bg-2);
+    background: var(--ov2-bg-1);
     padding: var(--ov2-space-3) var(--ov2-space-4);
     border-radius: var(--ov2-radius);
     border-right: 3px solid var(--ov2-cat-breadth);
     margin-bottom: var(--ov2-space-4);
     font-weight: 500;
+    box-shadow: var(--ov2-shadow-card);
 }
 
 .overview-prod-root .ov2-mcc-grid {
@@ -325,6 +371,9 @@
     gap: var(--ov2-space-5);
     position: relative;
     margin-bottom: var(--ov2-space-4);
+}
+@media (max-width: 800px) {
+    .overview-prod-root .ov2-mcc-grid { grid-template-columns: 1fr; }
 }
 .overview-prod-root .ov2-mcc-block-state,
 .overview-prod-root .ov2-mcc-block-score,
@@ -338,13 +387,15 @@
     align-items: baseline;
     gap: var(--ov2-space-2);
     margin-bottom: var(--ov2-space-2);
+    flex-wrap: wrap;
 }
 .overview-prod-root .ov2-mcc-score-val {
-    font-size: 36px;
-    font-weight: 700;
+    font-size: 38px;
+    font-weight: 800;
     color: var(--ov2-text-1);
     font-family: var(--ov2-font-mono);
     line-height: 1;
+    letter-spacing: -0.02em;
 }
 .overview-prod-root .ov2-mcc-score-max {
     font-size: 16px;
@@ -352,47 +403,50 @@
     color: var(--ov2-text-3);
 }
 .overview-prod-root .ov2-mcc-bar {
-    height: 6px;
+    height: 8px;
     background: var(--ov2-bg-3);
-    border-radius: 3px;
+    border-radius: 4px;
     overflow: hidden;
+    border: 1px solid var(--ov2-border);
 }
 .overview-prod-root .ov2-mcc-bar-fill {
     height: 100%;
     background: linear-gradient(90deg, var(--ov2-neg) 0%, var(--ov2-warn) 50%, var(--ov2-pos) 100%);
-    border-radius: 3px;
+    border-radius: 4px;
     transition: width 400ms;
 }
 .overview-prod-root .ov2-mcc-meta-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--ov2-space-2) 0;
+    padding: 6px 0;
     border-bottom: 1px solid var(--ov2-border);
 }
 .overview-prod-root .ov2-mcc-meta-row:last-child { border-bottom: none; }
 .overview-prod-root .ov2-mcc-meta-label {
-    font-size: 10px;
-    color: var(--ov2-text-3);
-    letter-spacing: 0.08em;
+    font-size: 11px;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.05em;
     text-transform: uppercase;
+    font-weight: 600;
 }
 .overview-prod-root .ov2-mcc-meta-value {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
     color: var(--ov2-text-1);
 }
 .overview-prod-root .ov2-mcc-conf-bar {
-    height: 4px;
+    height: 6px;
     background: var(--ov2-bg-3);
-    border-radius: 2px;
+    border-radius: 3px;
     margin-top: 6px;
     overflow: hidden;
+    border: 1px solid var(--ov2-border);
 }
 .overview-prod-root .ov2-mcc-conf-bar-fill {
     height: 100%;
     background: var(--ov2-warn);
-    border-radius: 2px;
+    border-radius: 3px;
     transition: width 400ms, background 200ms;
 }
 
@@ -404,21 +458,26 @@
     border-top: 1px solid var(--ov2-border);
     position: relative;
 }
+@media (max-width: 800px) {
+    .overview-prod-root .ov2-mcc-drivers { grid-template-columns: repeat(3, 1fr); }
+}
 .overview-prod-root .ov2-driver {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    cursor: help;
 }
 .overview-prod-root .ov2-driver-lbl {
-    font-size: 10px;
-    color: var(--ov2-text-3);
-    letter-spacing: 0.08em;
+    font-size: 11px;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.04em;
     text-transform: uppercase;
+    font-weight: 700;
 }
 .overview-prod-root .ov2-driver-val {
     font-family: var(--ov2-font-mono);
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 700;
     color: var(--ov2-text-1);
 }
 
@@ -432,47 +491,49 @@
     position: relative;
 }
 
-/* ── Chips ── */
+/* ── CHIPS ── */
 .overview-prod-root .ov2-chip {
     display: inline-flex;
     align-items: center;
     gap: var(--ov2-space-2);
-    padding: 4px 10px;
-    background: var(--ov2-bg-3);
+    padding: 5px 12px;
+    background: var(--ov2-bg-2);
     border: 1px solid var(--ov2-border);
     border-radius: 999px;
     font-size: 11px;
-    color: var(--ov2-text-2);
-    font-weight: 500;
-}
-.overview-prod-root .ov2-chip-state {
-    background: var(--ov2-bg-3);
-    border: 1px solid var(--ov2-border);
     color: var(--ov2-text-1);
     font-weight: 600;
+    cursor: help;
+}
+.overview-prod-root .ov2-chip-state {
+    background: var(--ov2-bg-2);
+    border: 1px solid var(--ov2-border-strong);
+    color: var(--ov2-text-1);
+    font-weight: 700;
 }
 .overview-prod-root .ov2-chip-state::before {
     content: '● ';
     margin-left: 2px;
-    opacity: 0.7;
+    opacity: 0.6;
+    color: var(--ov2-text-2);
 }
 .overview-prod-root .ov2-chip-transition {
-    background: var(--ov2-bg-3);
+    background: var(--ov2-bg-2);
     border: 1px dashed var(--ov2-border-bright);
     color: var(--ov2-text-1);
-    font-weight: 500;
+    font-weight: 600;
 }
 .overview-prod-root .ov2-chip-warning {
     background: var(--ov2-warn-bg);
     border: 1px solid var(--ov2-warn);
     color: var(--ov2-warn-bright);
-    font-weight: 600;
+    font-weight: 700;
 }
 .overview-prod-root .ov2-chip-confirmation {
     background: var(--ov2-pos-bg);
     border: 1px solid var(--ov2-pos);
     color: var(--ov2-pos-bright);
-    font-weight: 600;
+    font-weight: 700;
 }
 .overview-prod-root .ov2-chip-cat-breadth    { box-shadow: inset 3px 0 0 var(--ov2-cat-breadth); }
 .overview-prod-root .ov2-chip-cat-momentum   { box-shadow: inset 3px 0 0 var(--ov2-cat-momentum); }
@@ -481,7 +542,7 @@
 .overview-prod-root .ov2-chip-cat-sector     { box-shadow: inset 3px 0 0 var(--ov2-cat-sector); }
 .overview-prod-root .ov2-chip-cat-action     { box-shadow: inset 3px 0 0 var(--ov2-cat-action); }
 
-/* ── KPI groups ── */
+/* ── KPI GROUPS ── */
 .overview-prod-root .ov2-kpi-groups {
     display: grid;
     grid-template-columns: 3fr 2fr 3fr;
@@ -499,15 +560,16 @@
     padding: 0 var(--ov2-space-1);
 }
 .overview-prod-root .ov2-kpi-group-tag {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--ov2-text-2);
-    padding: 2px 8px;
-    background: var(--ov2-bg-2);
-    border-radius: 3px;
-    border-right: 2px solid var(--ov2-cat-breadth);
+    color: var(--ov2-text-1);
+    padding: 3px 10px;
+    background: var(--ov2-bg-1);
+    border-radius: 4px;
+    border: 1px solid var(--ov2-border);
+    border-right: 3px solid var(--ov2-cat-breadth);
 }
 .overview-prod-root .ov2-kpi-group[data-cat="risk"] .ov2-kpi-group-tag { border-right-color: var(--ov2-cat-risk); }
 .overview-prod-root .ov2-kpi-group[data-cat="trend"] .ov2-kpi-group-tag { border-right-color: var(--ov2-cat-momentum); }
@@ -528,22 +590,27 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    transition: border-color 120ms ease, background 120ms ease;
-    cursor: default;
-    min-height: 108px;
+    transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+    cursor: help;
+    min-height: 110px;
+    box-shadow: var(--ov2-shadow-card);
 }
-.overview-prod-root .ov2-kpi:hover { border-color: var(--ov2-border-strong); background: var(--ov2-bg-2); }
+.overview-prod-root .ov2-kpi:hover {
+    border-color: var(--ov2-border-strong);
+    background: var(--ov2-bg-1);
+    transform: translateY(-1px);
+    box-shadow: var(--ov2-shadow-pop);
+}
 .overview-prod-root .ov2-kpi-label {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
-    color: var(--ov2-text-3);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.02em;
 }
 .overview-prod-root .ov2-kpi-value {
     font-family: var(--ov2-font-mono);
-    font-size: 20px;
-    font-weight: 600;
+    font-size: 22px;
+    font-weight: 700;
     color: var(--ov2-text-1);
     letter-spacing: -0.01em;
     line-height: 1.1;
@@ -551,7 +618,7 @@
 .overview-prod-root .ov2-kpi-delta {
     font-family: var(--ov2-font-mono);
     font-size: 11px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--ov2-text-2);
 }
 .overview-prod-root .ov2-kpi-delta.ov2-pos { color: var(--ov2-pos); }
@@ -561,16 +628,19 @@
 .overview-prod-root .ov2-kpi-value.ov2-neg { color: var(--ov2-neg); }
 .overview-prod-root .ov2-kpi-value.ov2-warn { color: var(--ov2-warn); }
 
-/* ── Sector heatmap compact ── */
+/* ── SECTOR HEATMAP ── */
 .overview-prod-root .ov2-heatmap-compact {
     display: grid;
     grid-template-columns: repeat(11, 1fr);
-    gap: 2px;
+    gap: 3px;
+}
+@media (max-width: 800px) {
+    .overview-prod-root .ov2-heatmap-compact { grid-template-columns: repeat(4, 1fr); }
 }
 .overview-prod-root .ov2-hm-cell {
-    aspect-ratio: 1 / 0.65;
-    min-height: 56px;
-    border-radius: 3px;
+    aspect-ratio: 1 / 0.7;
+    min-height: 64px;
+    border-radius: 4px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -580,32 +650,32 @@
     font-variant-numeric: tabular-nums;
     transition: transform 120ms;
     cursor: pointer;
-    color: #fff;
+    color: #ffffff;
 }
 .overview-prod-root .ov2-hm-cell:hover {
-    transform: scale(1.05);
+    transform: scale(1.06);
     z-index: 5;
-    box-shadow: 0 0 0 2px var(--ov2-border-bright);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
 }
-.overview-prod-root .ov2-hm-sym { font-size: 10px; font-weight: 600; opacity: 0.85; letter-spacing: 0.04em; text-transform: uppercase; }
-.overview-prod-root .ov2-hm-val { font-size: 13px; font-weight: 700; margin-top: 2px; }
+.overview-prod-root .ov2-hm-sym { font-size: 10px; font-weight: 700; opacity: 0.95; letter-spacing: 0.04em; text-transform: uppercase; }
+.overview-prod-root .ov2-hm-val { font-size: 13px; font-weight: 800; margin-top: 2px; }
 .overview-prod-root .ov2-hm-bg-strong-neg { background: var(--ov2-hm-strong-neg); }
 .overview-prod-root .ov2-hm-bg-neg        { background: var(--ov2-hm-neg); }
 .overview-prod-root .ov2-hm-bg-weak-neg   { background: var(--ov2-hm-weak-neg); }
-.overview-prod-root .ov2-hm-bg-neutral    { background: var(--ov2-hm-neutral); color: var(--ov2-text-2); }
-.overview-prod-root .ov2-hm-bg-weak-pos   { background: var(--ov2-hm-weak-pos); }
+.overview-prod-root .ov2-hm-bg-neutral    { background: var(--ov2-hm-neutral); color: var(--ov2-text-1); }
+.overview-prod-root .ov2-hm-bg-weak-pos   { background: var(--ov2-hm-weak-pos); color: var(--ov2-text-1); }
 .overview-prod-root .ov2-hm-bg-pos        { background: var(--ov2-hm-pos); }
 .overview-prod-root .ov2-hm-bg-strong-pos { background: var(--ov2-hm-strong-pos); }
 
-/* ── Status pills ── */
+/* ── PILL ── */
 .overview-prod-root .ov2-pill {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 10px;
-    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     font-family: var(--ov2-font-mono);
@@ -614,7 +684,7 @@
 .overview-prod-root .ov2-pill.ov2-neg  { background: var(--ov2-neg-bg);  color: var(--ov2-neg-bright); }
 .overview-prod-root .ov2-pill.ov2-warn { background: var(--ov2-warn-bg); color: var(--ov2-warn-bright); }
 
-/* ── Alerts rail (right side) ── */
+/* ── ALERTS RAIL ── */
 .overview-prod-root .ov2-rail {
     background: var(--ov2-bg-1);
     border: 1px solid var(--ov2-border);
@@ -622,6 +692,7 @@
     padding: var(--ov2-space-4);
     position: sticky;
     top: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
 }
 .overview-prod-root .ov2-rail-head {
     display: flex;
@@ -630,31 +701,33 @@
     margin-bottom: var(--ov2-space-4);
 }
 .overview-prod-root .ov2-rail-title {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--ov2-text-2);
+    color: var(--ov2-text-1);
 }
 .overview-prod-root .ov2-rail-count {
     font-family: var(--ov2-font-mono);
     font-size: 11px;
     color: var(--ov2-text-1);
-    background: var(--ov2-bg-3);
-    padding: 2px 8px;
+    background: var(--ov2-bg-2);
+    padding: 3px 10px;
     border-radius: 10px;
-    font-weight: 600;
+    font-weight: 700;
+    border: 1px solid var(--ov2-border);
 }
 
 .overview-prod-root .ov2-alert {
     background: var(--ov2-bg-2);
     border-radius: var(--ov2-radius);
     padding: var(--ov2-space-3);
-    border-right: 3px solid var(--ov2-warn);
+    border-right: 4px solid var(--ov2-warn);
     margin-bottom: var(--ov2-space-2);
-    transition: border-color 120ms, background 120ms;
+    transition: border-color 120ms, background 120ms, transform 120ms;
+    cursor: help;
 }
-.overview-prod-root .ov2-alert:hover { background: var(--ov2-bg-3); }
+.overview-prod-root .ov2-alert:hover { background: var(--ov2-bg-3); transform: translateX(-2px); }
 .overview-prod-root .ov2-alert.ov2-severity-warn { border-right-color: var(--ov2-warn); }
 .overview-prod-root .ov2-alert.ov2-severity-pos  { border-right-color: var(--ov2-pos); }
 .overview-prod-root .ov2-alert.ov2-severity-neg  { border-right-color: var(--ov2-neg); }
@@ -666,18 +739,19 @@
     margin-bottom: 4px;
 }
 .overview-prod-root .ov2-alert-icon {
-    font-size: 11px;
-    color: var(--ov2-warn);
+    font-size: 12px;
+    color: var(--ov2-warn-bright);
     font-family: var(--ov2-font-mono);
-    width: 12px;
+    width: 14px;
     text-align: center;
+    font-weight: 700;
 }
-.overview-prod-root .ov2-alert.ov2-severity-pos .ov2-alert-icon { color: var(--ov2-pos); }
-.overview-prod-root .ov2-alert.ov2-severity-neg .ov2-alert-icon { color: var(--ov2-neg); }
+.overview-prod-root .ov2-alert.ov2-severity-pos .ov2-alert-icon { color: var(--ov2-pos-bright); }
+.overview-prod-root .ov2-alert.ov2-severity-neg .ov2-alert-icon { color: var(--ov2-neg-bright); }
 .overview-prod-root .ov2-alert.ov2-severity-info .ov2-alert-icon { color: var(--ov2-cat-action); }
 .overview-prod-root .ov2-alert-title {
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--ov2-text-2);
@@ -685,8 +759,9 @@
 .overview-prod-root .ov2-alert-body {
     font-size: 13px;
     color: var(--ov2-text-1);
-    line-height: 1.4;
+    line-height: 1.45;
     margin-bottom: var(--ov2-space-2);
+    font-weight: 500;
 }
 .overview-prod-root .ov2-alert-meta {
     display: flex;
@@ -694,9 +769,14 @@
     align-items: center;
     font-size: 11px;
     color: var(--ov2-text-3);
+    font-weight: 500;
+}
+.overview-prod-root .ov2-alert-action {
+    color: var(--ov2-cat-action);
+    font-weight: 600;
 }
 
-/* ── Collapsible ── */
+/* ── COLLAPSIBLE ── */
 .overview-prod-root .ov2-collapsible {
     margin-bottom: var(--ov2-space-4);
 }
@@ -710,6 +790,7 @@
     border: 1px solid var(--ov2-border);
     border-radius: var(--ov2-radius);
     transition: border-color 120ms, background 120ms;
+    box-shadow: var(--ov2-shadow-card);
 }
 .overview-prod-root .ov2-collapsible-head:hover { border-color: var(--ov2-border-strong); background: var(--ov2-bg-2); }
 .overview-prod-root .ov2-collapsible-head-text { display: flex; flex-direction: column; gap: 2px; }
@@ -725,7 +806,7 @@
 }
 .overview-prod-root .ov2-collapsible.open .ov2-collapsible-body { display: block; }
 
-/* ── Loading state ── */
+/* ── LOADING ── */
 .overview-prod-root .ov2-loading {
     padding: var(--ov2-space-6) var(--ov2-space-5);
     text-align: center;
@@ -733,10 +814,10 @@
 }
 .overview-prod-root .ov2-loading-dot {
     display: inline-block;
-    width: 8px; height: 8px;
+    width: 10px; height: 10px;
     border-radius: 50%;
     background: var(--ov2-cat-action);
-    margin: 0 3px;
+    margin: 0 4px;
     animation: ov2-pulse 1.2s ease-in-out infinite;
 }
 .overview-prod-root .ov2-loading-dot:nth-child(2) { animation-delay: 0.15s; }
@@ -746,14 +827,15 @@
     40%           { transform: scale(1);   opacity: 1;   }
 }
 
-/* ── Error panel ── */
+/* ── ERROR PANEL ── */
 .overview-prod-root .ov2-error-panel {
     background: var(--ov2-bg-1);
-    border: 1px solid var(--ov2-neg);
+    border: 2px solid var(--ov2-neg);
     border-radius: var(--ov2-radius);
     padding: var(--ov2-space-4);
     margin: var(--ov2-space-5) auto;
     max-width: 600px;
+    box-shadow: var(--ov2-shadow-card);
 }
 .overview-prod-root .ov2-error-panel pre {
     background: var(--ov2-bg-2);
@@ -761,5 +843,50 @@
     border-radius: 6px;
     font-size: 12px;
     overflow: auto;
-    color: var(--ov2-text-2);
+    color: var(--ov2-text-1);
+    border: 1px solid var(--ov2-border);
+    direction: ltr;
+    text-align: left;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CUSTOM TOOLTIP SYSTEM
+   Activated by data-tooltip="..." attribute. Shows on hover.
+   ═══════════════════════════════════════════════════════════════════════ */
+.overview-prod-root [data-tooltip] { position: relative; }
+.overview-prod-root [data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    right: 0;
+    background: var(--ov2-bg-tooltip);
+    color: var(--ov2-text-inverse);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    font-weight: 500;
+    width: 260px;
+    max-width: 320px;
+    z-index: 1000;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.20);
+    direction: rtl;
+    text-align: right;
+    white-space: normal;
+    pointer-events: none;
+    animation: ov2-tooltip-in 120ms ease-out;
+}
+.overview-prod-root [data-tooltip]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 2px);
+    right: 12px;
+    border: 6px solid transparent;
+    border-top-color: var(--ov2-bg-tooltip);
+    z-index: 1000;
+    pointer-events: none;
+}
+@keyframes ov2-tooltip-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
 }

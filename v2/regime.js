@@ -15,6 +15,9 @@ const PHASES = {
         glyph: '❶',
         labelEn: 'CONFIRMED UPTREND',
         labelHe: 'מגמה חיובית מאושרת',
+        stateLabel: 'חיובי',
+        stateClass: 'pos',
+        description: 'רוב המניות במגמה עולה · VIX נמוך · בריאות שוק חזקה',
         color: '#10b981',
         bg: 'rgba(16, 185, 129, 0.10)',
         bias: 'לתמוך בחזקות, להוסיף חשיפה בהדרגה',
@@ -26,6 +29,9 @@ const PHASES = {
         glyph: '❷',
         labelEn: 'UPTREND UNDER PRESSURE',
         labelHe: 'מגמה תחת לחץ',
+        stateLabel: 'זהיר',
+        stateClass: 'warn',
+        description: 'השוק עדיין חיובי אך חולשה מתחת לפני השטח · רוחב נעצר',
         color: '#f59e0b',
         bg: 'rgba(245, 158, 11, 0.10)',
         bias: 'להתמקד בחזקות, לא לקנות הכל',
@@ -36,7 +42,10 @@ const PHASES = {
         id: 'distribution',
         glyph: '❸',
         labelEn: 'DISTRIBUTION ACTIVE',
-        labelHe: 'distribution פעיל',
+        labelHe: 'הפצה פעילה',
+        stateLabel: 'תחת לחץ',
+        stateClass: 'warn',
+        description: 'מוסדיים מוכרים בשקט · ימי distribution מצטברים · רוחב מתחיל להתפורר',
         color: '#ea580c',
         bg: 'rgba(234, 88, 12, 0.10)',
         bias: 'להגן ולקצץ חשיפה',
@@ -48,6 +57,9 @@ const PHASES = {
         glyph: '❹',
         labelEn: 'CORRECTION',
         labelHe: 'תיקון רחב',
+        stateLabel: 'שלילי',
+        stateClass: 'neg',
+        description: 'ירידה רחבה · VIX מוגבר · רוב המניות מתחת לממוצעים',
         color: '#ef4444',
         bg: 'rgba(239, 68, 68, 0.10)',
         bias: 'להקטין סיכון, לא להוסיף פוזיציות',
@@ -59,6 +71,9 @@ const PHASES = {
         glyph: '❺',
         labelEn: 'CAPITULATION',
         labelHe: 'שיא הפחד',
+        stateLabel: 'Risk-Off',
+        stateClass: 'neg',
+        description: 'מכירת פאניקה · VIX קיצוני · שיאי שפל חדשים נרחבים',
         color: '#991b1b',
         bg: 'rgba(153, 27, 27, 0.10)',
         bias: 'לחפש סימני היפוך, להמתין לאישור',
@@ -70,9 +85,12 @@ const PHASES = {
         glyph: '❻',
         labelEn: 'BASE BUILDING',
         labelHe: 'בניית בסיס',
+        stateLabel: 'התייצבות',
+        stateClass: 'warn',
+        description: 'התאוששות ראשונית · רוחב משתפר באיטיות · מובילים חדשים מתעוררים',
         color: '#64748b',
         bg: 'rgba(100, 116, 139, 0.10)',
-        bias: 'לעקוב אחרי leaders חדשים מתעוררים',
+        bias: 'לעקוב אחרי מובילים חדשים',
         risk: 'בינוני',
         priority: 6
     },
@@ -81,6 +99,9 @@ const PHASES = {
         glyph: '❼',
         labelEn: 'THRUST · FOLLOW-THROUGH',
         labelHe: 'פריצה ראשונית',
+        stateLabel: 'פריצה חיובית',
+        stateClass: 'pos',
+        description: 'מומנטום רחב מתפרץ · מספר רב של מניות חוצות סף · אישור בריצה',
         color: '#06b6d4',
         bg: 'rgba(6, 182, 212, 0.10)',
         bias: 'לחפש כניסות בחזקות עם נפח',
@@ -125,8 +146,8 @@ function classifyPhase(m) {
             phase: PHASES.thrust,
             confidence: Math.round(conf),
             reasons: [
-                `${m.rsiThrust} stocks crossing RSI thresholds (≥30 required)`,
-                `Previous phase was ${m.previousPhase}`
+                `${m.rsiThrust} מניות חוצות סף RSI כלפי מעלה (נדרש ≥30)`,
+                `השלב הקודם היה ${(PHASES[m.previousPhase] || {}).labelHe || m.previousPhase}`
             ]
         };
     }
@@ -138,9 +159,9 @@ function classifyPhase(m) {
             phase: PHASES.capitulation,
             confidence: Math.round(conf),
             reasons: [
-                `Combined score ${m.combined} (< 30 threshold)`,
-                `VIX ${m.vix.toFixed(1)} (> 30 crisis level)`,
-                `Net NH-NL ${m.nhMinusNl} (< -50 — broad weakness)`
+                `ציון משולב ${m.combined} (מתחת ל-30 — חולשה קיצונית)`,
+                `VIX ${m.vix.toFixed(1)} (מעל 30 — רמת משבר)`,
+                `שיאים פחות שפלים ${m.nhMinusNl} (מתחת ל-50- — חולשה רחבה)`
             ]
         };
     }
@@ -152,8 +173,8 @@ function classifyPhase(m) {
             phase: PHASES.correction,
             confidence: Math.round(conf),
             reasons: [
-                `Combined score ${m.combined} (< 40 — weak)`,
-                `VIX ${m.vix.toFixed(1)} (> 22 — elevated)`
+                `ציון משולב ${m.combined} (מתחת ל-40 — חלש)`,
+                `VIX ${m.vix.toFixed(1)} (מעל 22 — מוגבר)`
             ]
         };
     }
@@ -165,9 +186,9 @@ function classifyPhase(m) {
             phase: PHASES.distribution,
             confidence: Math.min(90, Math.round(conf)),
             reasons: [
-                `${m.distributionDays}/25 distribution days (≥ 4 threshold)`,
-                `Breadth deteriorating ${m.breadth5dDelta.toFixed(1)}pp / 5d`,
-                `Combined score ${m.combined} (below uptrend zone)`
+                `${m.distributionDays}/25 ימי הפצה (סף ≥ 4)`,
+                `רוחב מתדרדר ${m.breadth5dDelta.toFixed(1)} נק' ב-5 ימים`,
+                `ציון משולב ${m.combined} (מתחת לזון של מגמה חיובית)`
             ]
         };
     }
@@ -179,8 +200,8 @@ function classifyPhase(m) {
             phase: PHASES.base_building,
             confidence: Math.round(conf),
             reasons: [
-                `Combined score ${m.combined} (in 30-50 recovery band)`,
-                `Breadth improving +${m.breadth5dDelta.toFixed(1)}pp / 5d`
+                `ציון משולב ${m.combined} (בטווח 30-50 של התאוששות)`,
+                `רוחב משתפר +${m.breadth5dDelta.toFixed(1)} נק' ב-5 ימים`
             ]
         };
     }
@@ -192,12 +213,12 @@ function classifyPhase(m) {
             phase: PHASES.confirmed_uptrend,
             confidence: Math.min(95, Math.round(conf)),
             reasons: [
-                `Combined score ${m.combined} (≥ 70 strong)`,
-                `Only ${m.distributionDays}/25 distribution days (≤ 2)`,
-                `VIX ${m.vix.toFixed(1)} (< 20 — calm)`,
+                `ציון משולב ${m.combined} (≥ 70 — חזק)`,
+                `רק ${m.distributionDays}/25 ימי הפצה (סף ≤ 2)`,
+                `VIX ${m.vix.toFixed(1)} (מתחת ל-20 — רגוע)`,
                 m.breadth5dDelta >= 0
-                    ? `Breadth stable / improving (+${m.breadth5dDelta.toFixed(1)}pp)`
-                    : `Breadth holding`
+                    ? `רוחב יציב / משתפר (+${m.breadth5dDelta.toFixed(1)} נק')`
+                    : `רוחב מחזיק`
             ]
         };
     }
@@ -206,11 +227,11 @@ function classifyPhase(m) {
     if (m.combined >= 50) {
         const conf = 55 + strength(m.combined, 50, 20) * 25;
         const why = [
-            `Combined score ${m.combined} (50-70 cautious band)`
+            `ציון משולב ${m.combined} (טווח 50-70 — זהיר)`
         ];
-        if (m.vix >= 18) why.push(`VIX ${m.vix.toFixed(1)} (rising — risk gauge active)`);
-        if (m.distributionDays >= 3) why.push(`${m.distributionDays}/25 distribution days (watch)`);
-        if (m.breadth5dDelta < 1) why.push(`Breadth not accelerating (${m.breadth5dDelta.toFixed(1)}pp/5d)`);
+        if (m.vix >= 18) why.push(`VIX ${m.vix.toFixed(1)} (עולה — מד סיכון פעיל)`);
+        if (m.distributionDays >= 3) why.push(`${m.distributionDays}/25 ימי הפצה (לעקוב)`);
+        if (m.breadth5dDelta < 1) why.push(`רוחב לא מאיץ (${m.breadth5dDelta.toFixed(1)} נק' ב-5 ימים)`);
         return {
             phase: PHASES.uptrend_pressure,
             confidence: Math.round(conf),
@@ -218,11 +239,11 @@ function classifyPhase(m) {
         };
     }
 
-    // Fallback: low score, no other phase fits — treat as pressure
+    // Fallback
     return {
         phase: PHASES.uptrend_pressure,
         confidence: 45,
-        reasons: ['Default classification — no phase fits decisively']
+        reasons: ['סיווג ברירת מחדל — לא נמצאה התאמה החלטית לאף שלב']
     };
 }
 
@@ -243,64 +264,76 @@ const CHIP_RULES = [
     {
         id: 'risk-on', type: 'state', category: 'flow', priority: 60,
         trigger: m => m.cyclicalLeadership >= 0.67,
-        text: m => `RISK-ON`
+        text: m => `Risk-On · רוטציה לסיכון`,
+        meaning: 'הסקטורים המחזוריים (טכנולוגיה, אנרגיה, פיננסים) מובילים — סימן שהמשקיעים מוכנים לקחת סיכון.'
     },
     {
         id: 'risk-off', type: 'state', category: 'flow', priority: 75,
         trigger: m => m.defensiveLeadership >= 0.67,
-        text: m => `RISK-OFF`
+        text: m => `Risk-Off · בריחה להגנה`,
+        meaning: 'הסקטורים ההגנתיים (תרופות, חשמל, מזון) מובילים — סימן שהמשקיעים בורחים לבטוח.'
     },
     {
         id: 'mixed-rotation', type: 'state', category: 'flow', priority: 40,
         trigger: m => m.cyclicalLeadership < 0.67 && m.defensiveLeadership < 0.67,
-        text: m => `MIXED ROTATION`
+        text: m => `רוטציה מעורבת`,
+        meaning: 'אין כיוון ברור בין סקטורים מחזוריים להגנתיים — סנטימנט מבולבל.'
     },
     {
         id: 'broad-leadership', type: 'state', category: 'breadth', priority: 65,
         trigger: m => m.pctMa200 >= 65,
-        text: m => `BROAD LEADERSHIP · ${Math.round(m.pctMa200)}%`
+        text: m => `השתתפות רחבה · ${Math.round(m.pctMa200)}%`,
+        meaning: 'יותר מ-65% מהמניות נסחרות מעל ממוצע 200 ימים — המגמה החיובית רחבה ובריאה.'
     },
     {
         id: 'narrow-leadership', type: 'state', category: 'breadth', priority: 70,
         trigger: m => m.pctMa200 <= 40 && m.pctMa200 > 0,
-        text: m => `NARROW LEADERSHIP · ${Math.round(m.pctMa200)}%`
+        text: m => `מובילות צרה · ${Math.round(m.pctMa200)}%`,
+        meaning: 'פחות מ-40% מהמניות מעל ממוצע 200 — המדד עולה אבל רק מעטות מובילות (סימן אזהרה).'
     },
     {
         id: 'low-vol', type: 'state', category: 'risk', priority: 35,
         trigger: m => m.vix > 0 && m.vix < 15,
-        text: m => `LOW VOL · VIX ${m.vix.toFixed(1)}`
+        text: m => `תנודתיות נמוכה · VIX ${m.vix.toFixed(1)}`,
+        meaning: 'מד הפחד (VIX) מתחת ל-15 — שוק רגוע, ביטחון גבוה של משקיעים.'
     },
     {
         id: 'elevated-vol', type: 'state', category: 'risk', priority: 72,
         trigger: m => m.vix >= 20 && m.vix < 30,
-        text: m => `ELEVATED VOL · VIX ${m.vix.toFixed(1)}`
+        text: m => `תנודתיות מוגברת · VIX ${m.vix.toFixed(1)}`,
+        meaning: 'מד הפחד בין 20-30 — לחץ מוגבר בשוק, המשקיעים מתחילים להגן על עצמם.'
     },
     {
         id: 'crisis-vol', type: 'state', category: 'risk', priority: 95,
         trigger: m => m.vix >= 30,
-        text: m => `CRISIS VOL · VIX ${m.vix.toFixed(1)}`
+        text: m => `תנודתיות משבר · VIX ${m.vix.toFixed(1)}`,
+        meaning: 'מד הפחד מעל 30 — רמת משבר, פאניקה. היסטורית מסמן חולשת שוק חזקה.'
     },
 
     // ── TRANSITION chips ──
     {
         id: 'breadth-widening', type: 'transition', category: 'breadth', priority: 68,
         trigger: m => m.breadth5dDelta >= 5,
-        text: m => `↗ BREADTH WIDENING · ${m.breadth5dDelta.toFixed(0)}pp/5d`
+        text: m => `↗ רוחב מתרחב · +${m.breadth5dDelta.toFixed(0)} נק' ב-5 ימים`,
+        meaning: 'יותר מניות מצטרפות למגמה החיובית בשבוע האחרון — בריאות פנימית משתפרת.'
     },
     {
         id: 'breadth-narrowing', type: 'transition', category: 'breadth', priority: 80,
         trigger: m => m.breadth5dDelta <= -5,
-        text: m => `↘ BREADTH NARROWING · ${Math.abs(m.breadth5dDelta).toFixed(0)}pp/5d`
+        text: m => `↘ רוחב מצטמצם · -${Math.abs(m.breadth5dDelta).toFixed(0)} נק' ב-5 ימים`,
+        meaning: 'פחות מניות משתתפות בעלייה — המדד עולה אבל המבנה הפנימי נחלש.'
     },
     {
         id: 'vix-compressing', type: 'transition', category: 'risk', priority: 45,
         trigger: m => m.vix5dDelta <= -2 && m.vix > 0,
-        text: m => `↘ VIX COMPRESSING · ${m.vix5dDelta.toFixed(1)}`
+        text: m => `↘ VIX מתכווץ · ${m.vix5dDelta.toFixed(1)}`,
+        meaning: 'מד הפחד יורד — חששות המשקיעים מתפוגגים, סנטימנט משתפר.'
     },
     {
         id: 'vix-expanding', type: 'transition', category: 'risk', priority: 78,
         trigger: m => m.vix5dDelta >= 2 && m.vix > 0,
-        text: m => `↗ VIX EXPANDING · +${m.vix5dDelta.toFixed(1)}`
+        text: m => `↗ VIX מתרחב · +${m.vix5dDelta.toFixed(1)}`,
+        meaning: 'מד הפחד עולה — לחץ הולך וגובר בשוק, המשקיעים קונים הגנה.'
     },
 
     // ── WARNING chips ──
@@ -308,68 +341,78 @@ const CHIP_RULES = [
         id: 'tech-flow-divergent', type: 'warning', category: 'flow', priority: 82,
         trigger: m => m.techScore !== null && m.flowScore !== null
                   && Math.abs(m.techScore - m.flowScore) >= 14,
-        text: m => `⚠ TECH↔FLOW DIVERGENT · ${Math.abs(m.techScore - m.flowScore)}pt`
+        text: m => `⚠ סטייה: מחיר↔כסף · ${Math.abs(m.techScore - m.flowScore)} נק'`,
+        meaning: 'הטכניקה של המחיר חזקה אבל זרימת הכסף באופציות סותרת — לעיתים תיקון מקדים.'
     },
     {
         id: 'price-breadth-divergent', type: 'warning', category: 'breadth', priority: 78,
         trigger: m => m.techScore !== null
                   && m.techScore >= 65 && m.breadthScore !== null && m.breadthScore <= 45,
-        text: m => `⚠ PRICE↔BREADTH DIVERGENT`
+        text: m => `⚠ סטייה: מחיר↔רוחב`,
+        meaning: 'המדד עולה אבל רוב המניות לא משתתפות — עלייה מובלת ע"י מעטים, פגיע.'
     },
     {
         // RECALIBRATED 2026-05-22 after data audit:
         // Old threshold pcPremium > 1.15 NEVER fired on real SPX flow data
         // (real range 0.13-0.81, median 0.30 — SPX flow is structurally call-heavy).
         // New trigger: today's pc_premium > 1.5σ above rolling 22d baseline.
-        // Hysteresis: enter z>1.5, exit z<0.7.
         id: 'hedges-elevated', type: 'warning', category: 'flow', priority: 76,
         trigger: m => m.flow && m.flow.z && m.flow.z.pc_premium != null
                   && m.flow.z.pc_premium > 1.5,
-        text: m => `⚠ HEDGES ELEVATED · P/C ${m.flow.raw.pc_premium.toFixed(2)} · z=+${m.flow.z.pc_premium.toFixed(1)}σ`
+        text: m => `⚠ הגנות מוגברות · P/C ${m.flow.raw.pc_premium.toFixed(2)} (z=+${m.flow.z.pc_premium.toFixed(1)}σ)`,
+        meaning: 'המשקיעים קונים יותר אופציות PUT מהרגיל ביחס ל-CALL — סימן ל-hedging חזק, חששות מתקרבים.'
     },
     {
         id: 'distribution-day', type: 'warning', category: 'momentum', priority: 85,
         trigger: m => m.distributionDays >= 3,
-        text: m => `⚠ DISTRIBUTION DAYS · ${m.distributionDays}/25`
+        text: m => `⚠ ימי הפצה · ${m.distributionDays}/25`,
+        meaning: 'מספר ימים בהם המדד ירד במחזור מסחר גבוה ב-25 הימים האחרונים — סימן ללחץ מכירות מוסדי.'
     },
     {
         id: 'new-lows-rising', type: 'warning', category: 'breadth', priority: 88,
         trigger: m => m.newLows >= 20,
-        text: m => `⚠ NEW LOWS RISING · ${m.newLows}`
+        text: m => `⚠ עלייה בשפלים חדשים · ${m.newLows}`,
+        meaning: 'יותר מ-20 מניות בשיא שפל של 52 שבועות — חולשה רחבה מתחת לפני השטח.'
     },
     {
         id: 'overbought-concentration', type: 'warning', category: 'momentum', priority: 50,
         trigger: m => m.overboughtCount >= 40,
-        text: m => `⚠ OVERBOUGHT CONCENTRATION · ${m.overboughtCount}`
+        text: m => `⚠ ריכוז קניית-יתר · ${m.overboughtCount} מניות`,
+        meaning: 'מעל 40 מניות עם RSI > 70 — חוזק רב אבל סיכון מוגבר לתיקון.'
     },
 
     // ── CONFIRMATION chips ──
     {
         id: 'thrust-confirmed', type: 'confirmation', category: 'momentum', priority: 92,
         trigger: m => m.rsiThrust >= 30,
-        text: m => `✓ THRUST CONFIRMED · ${m.rsiThrust} stocks`
+        text: m => `✓ מומנטום רחב אושר · ${m.rsiThrust} מניות`,
+        meaning: 'מעל 30 מניות חוצות סף RSI כלפי מעלה היום — מומנטום חזק ורחב, אישור היפוך חיובי.'
     },
     {
         id: 'golden-widespread', type: 'confirmation', category: 'breadth', priority: 62,
         trigger: m => m.pctGolden >= 60,
-        text: m => `✓ GOLDEN CROSS WIDESPREAD · ${Math.round(m.pctGolden)}%`
+        text: m => `✓ Golden Cross נרחב · ${Math.round(m.pctGolden)}%`,
+        meaning: 'יותר מ-60% מהמניות עם ממוצע 50 מעל ממוצע 200 — מבנה ארוך-טווח חזק.'
     },
     {
         id: 'no-new-lows', type: 'confirmation', category: 'breadth', priority: 58,
         trigger: m => m.newLows === 0 && m.daysSinceNewLow >= 5,
-        text: m => `✓ NO NEW LOWS · ${m.daysSinceNewLow}d`
+        text: m => `✓ אין שפלים חדשים · ${m.daysSinceNewLow} ימים`,
+        meaning: 'אף מניה לא בשיא שפל של 52 שבועות — בריאות תחתית, סימן חיובי ליציבות.'
     },
     {
         id: 'broad-participation', type: 'confirmation', category: 'breadth', priority: 55,
         trigger: m => m.pctMa50 >= 70,
-        text: m => `✓ BROAD PARTICIPATION · ${Math.round(m.pctMa50)}% > MA50`
+        text: m => `✓ השתתפות רחבה · ${Math.round(m.pctMa50)}% מעל MA50`,
+        meaning: 'יותר מ-70% מהמניות מעל ממוצע 50 ימים — תמיכה רחבה למגמה לטווח הבינוני.'
     },
     {
         id: 'flow-aligned', type: 'confirmation', category: 'flow', priority: 72,
         trigger: m => m.techScore !== null && m.flowScore !== null
                   && m.techScore >= 60 && m.flowScore >= 60
                   && Math.abs(m.techScore - m.flowScore) <= 8,
-        text: m => `✓ FLOW + PRICE ALIGNED`
+        text: m => `✓ מחיר וכסף מתואמים`,
+        meaning: 'הטכניקה של המחיר וזרימת הכסף באופציות מצביעים שניהם חיובי — אישור חזק.'
     }
 ];
 

@@ -756,12 +756,12 @@ function sectorHmClass(chg) {
     return 'ov2-hm-bg-strong-pos';
 }
 
-function renderStrip(m) {
-    // State badge dot color by combined score
-    const dot = $('stateDot');
-    const phaseColor = m.combined >= 70 ? 'pos' : m.combined >= 50 ? 'warn' : 'neg';
-    dot.className = `ov2-state-dot ${phaseColor}`;
-
+function renderStrip(m, phase) {
+    // Use phase.stateClass for the dot — drives color from regime, not raw score
+    const p = phase && phase.phase ? phase.phase : null;
+    const stateClass = p ? p.stateClass : (m.combined >= 70 ? 'pos' : m.combined >= 50 ? 'warn' : 'neg');
+    $('stateDot').className = `ov2-state-dot ov2-${stateClass}`;
+    $('stateName').textContent = p ? p.stateLabel : '—';
     $('stateScore').textContent = m.combined != null ? m.combined : '—';
 
     $('idxSpxVal').textContent = m.spx && m.spx.price != null ? m.spx.price.toFixed(2) : '—';
@@ -777,16 +777,6 @@ function renderStrip(m) {
     $('idxTnxVal').textContent = m.tnx ? m.tnx.toFixed(2) : '—';
 
     $('dataDate').textContent = fmtDate(m.dataDate);
-    $('stateName').textContent = (Regime.classifyPhase({
-        combined: m.combined != null ? m.combined : 50,
-        breadth5dDelta: m.breadth5dDelta,
-        vix: m.vix,
-        distributionDays: m.distributionDays,
-        nhMinusNl: m.nhMinusNl,
-        rsiThrust: m.rsiThrust,
-        pctMa200: m.pctMa200,
-        previousPhase: m.previousPhase
-    }).phase.labelHe);
 }
 
 function renderMCC(phase, metrics, chips, phaseDuration) {
@@ -797,15 +787,14 @@ function renderMCC(phase, metrics, chips, phaseDuration) {
     $('mccPhaseLabel').textContent = p.labelEn;
     $('mccPhaseLabelHe').textContent = p.labelHe;
     $('mccPhaseAccent').style.background = p.color;
-    $('mcc').style.background = `linear-gradient(135deg, var(--bg-1) 0%, ${p.bg} 100%)`;
 
-    // Duration
+    // Duration — Hebrew
     if (phaseDuration && phaseDuration.days >= 0) {
         $('mccDuration').textContent = phaseDuration.days === 0
-            ? '⏱ Just transitioned'
-            : `⏱ ${phaseDuration.days}d in phase`;
+            ? '⏱ זה עתה שינוי שלב'
+            : `⏱ ${phaseDuration.days} ימים בשלב`;
         $('mccEntered').textContent = phaseDuration.entered
-            ? `since ${fmtDate(phaseDuration.entered)}`
+            ? `מאז ${fmtDate(phaseDuration.entered)}`
             : '';
     }
 
@@ -818,13 +807,14 @@ function renderMCC(phase, metrics, chips, phaseDuration) {
     $('mccScoreVal').textContent = metrics.combined != null ? metrics.combined : '—';
     $('mccBarFill').style.width = (metrics.combined || 0) + '%';
 
-    // Risk + bias
+    // Risk + bias (already Hebrew from regime.js)
     $('mccRisk').textContent = p.risk;
     $('mccBias').textContent = p.bias;
 
-    // Narrative subtitle — deterministic, from reasons
-    const narr = phase.reasons[0] || '';
-    $('mccNarrative').textContent = narr;
+    // Narrative — use phase.description (cleaner than reasons[0]) + first reason as context
+    const desc = p.description || '';
+    const firstReason = phase.reasons[0] || '';
+    $('mccNarrative').textContent = desc + (firstReason ? ' · ' + firstReason : '');
 
     // Drivers
     $('drvNhnl').textContent = metrics.nhNlRatio === 99 ? '∞' : metrics.nhNlRatio.toFixed(2);
@@ -842,14 +832,15 @@ function renderChips(chips) {
     const wrap = $('mccChips');
     wrap.innerHTML = '';
     if (!chips.length) {
-        wrap.innerHTML = '<span class="ov2-chip">no active signals</span>';
+        wrap.innerHTML = '<span class="ov2-chip">אין סיגנלים פעילים</span>';
         return;
     }
     for (const c of chips) {
         const el = document.createElement('span');
         el.className = `ov2-chip ov2-chip-${c.type} ov2-chip-cat-${c.category}`;
         el.textContent = c.text;
-        el.title = `${c.type.toUpperCase()} · ${c.category} · priority ${c.priority}`;
+        // Tooltip = Hebrew meaning (custom CSS tooltip from data-tooltip)
+        if (c.meaning) el.setAttribute('data-tooltip', c.meaning);
         wrap.appendChild(el);
     }
 }
@@ -865,27 +856,27 @@ function renderKPIs(m) {
 
     $('kpiAvgChgVal').textContent = m.avgChange != null ? fmtPct(m.avgChange, 2) : '—';
     $('kpiAvgChgVal').className = 'ov2-kpi-value ' + 'ov2-' + deltaClass(m.avgChange);
-    $('kpiAvgChgDelta').textContent = `${m.advancing}↑ / ${m.declining}↓`;
+    $('kpiAvgChgDelta').textContent = `${m.advancing} עולות / ${m.declining} יורדות`;
 
     $('kpiVixVal').textContent = m.vix ? m.vix.toFixed(2) : '—';
-    $('kpiVixDelta').textContent = m.vix5dDelta ? `${deltaArrow(-m.vix5dDelta)} ${fmtSigned(m.vix5dDelta, 1)} / 5d` : '—';
+    $('kpiVixDelta').textContent = m.vix5dDelta ? `${deltaArrow(-m.vix5dDelta)} ${fmtSigned(m.vix5dDelta, 1)} ב-5 ימים` : '—';
     $('kpiVixDelta').className = 'ov2-kpi-delta ' + 'ov2-' + deltaClass(-m.vix5dDelta);
 
     $('kpiDistVal').textContent = `${m.distributionDays}/25`;
-    $('kpiDistDelta').textContent = m.distributionDays >= 4 ? 'elevated' : m.distributionDays >= 2 ? 'in range' : 'healthy';
+    $('kpiDistDelta').textContent = m.distributionDays >= 4 ? 'מוגבר — לעקוב' : m.distributionDays >= 2 ? 'בטווח תקין' : 'בריא';
     $('kpiDistDelta').className = 'ov2-kpi-delta ' + (m.distributionDays >= 4 ? 'ov2-neg' : m.distributionDays >= 2 ? 'ov2-warn' : 'ov2-pos');
 
     $('kpiHealthVal').textContent = m.healthScore != null ? m.healthScore : '—';
-    $('kpiHealthDelta').textContent = m.healthScore >= 70 ? 'strong' : m.healthScore >= 55 ? 'fair' : m.healthScore >= 40 ? 'weak' : 'poor';
+    $('kpiHealthDelta').textContent = m.healthScore >= 70 ? 'חזק' : m.healthScore >= 55 ? 'הוגן' : m.healthScore >= 40 ? 'חלש' : 'שלילי';
     $('kpiHealthDelta').className = 'ov2-kpi-delta ' + (m.healthScore >= 70 ? 'ov2-pos' : m.healthScore >= 55 ? 'ov2-warn' : 'ov2-neg');
 
     $('kpiThrustVal').textContent = m.rsiThrust;
-    $('kpiThrustDelta').textContent = m.rsiThrust >= 30 ? 'thrust ✓' : m.rsiThrust >= 15 ? 'building' : 'quiet';
+    $('kpiThrustDelta').textContent = m.rsiThrust >= 30 ? 'פריצה ✓' : m.rsiThrust >= 15 ? 'בבנייה' : 'שקט';
     $('kpiThrustDelta').className = 'ov2-kpi-delta ' + (m.rsiThrust >= 30 ? 'ov2-pos' : m.rsiThrust >= 15 ? 'ov2-warn' : 'ov2-muted');
 
     $('kpiCombinedVal').textContent = m.combined != null ? m.combined : '—';
     $('kpiCombinedVal').className = 'ov2-kpi-value ' + (m.combined >= 70 ? 'ov2-pos' : m.combined >= 50 ? 'ov2-warn' : 'ov2-neg');
-    $('kpiCombinedDelta').textContent = m.combined >= 70 ? 'confirmed' : m.combined >= 50 ? 'cautious' : 'weak';
+    $('kpiCombinedDelta').textContent = m.combined >= 70 ? 'מאושר' : m.combined >= 50 ? 'זהיר' : 'חלש';
 }
 
 function renderSectorSnapshot(metrics, sectorsMap) {
@@ -900,18 +891,26 @@ function renderSectorSnapshot(metrics, sectorsMap) {
             <span class="ov2-hm-sym">${codes[s.code] || s.code}</span>
             <span class="ov2-hm-val">${fmtPct(s.avgChg, 1)}</span>
         `;
-        cell.title = `${codes[s.code] || s.code} · ${Math.round(s.pct200)}% > MA200 · ${s.total} stocks`;
+        cell.setAttribute('data-tooltip',
+            `${codes[s.code] || s.code} · ${Math.round(s.pct200)}% מהמניות מעל MA200 · ${s.total} מניות בסקטור`);
         wrap.appendChild(cell);
     }
 
     // Summary lines
     const top = sorted[0];
     const bot = sorted[sorted.length - 1];
-    if (top) $('sectorBest').textContent = `${codes[top.code] || top.code} · ${Math.round(top.pct200)}% > MA200`;
-    if (bot) $('sectorWorst').textContent = `${codes[bot.code] || bot.code} · ${Math.round(bot.pct200)}% > MA200`;
+    if (top) $('sectorBest').textContent = `${codes[top.code] || top.code} · ${Math.round(top.pct200)}% מעל MA200`;
+    if (bot) $('sectorWorst').textContent = `${codes[bot.code] || bot.code} · ${Math.round(bot.pct200)}% מעל MA200`;
     const dispersion = top && bot ? (top.avgChg - bot.avgChg) : 0;
     $('sectorDispersion').textContent = `${dispersion.toFixed(1)}%`;
 }
+
+const CHIP_TYPE_LABEL = {
+    warning:      'אזהרה',
+    transition:   'מעבר',
+    confirmation: 'אישור',
+    state:        'מצב'
+};
 
 function renderAlertsRail(chips, metrics) {
     const rail = $('railContent');
@@ -920,7 +919,8 @@ function renderAlertsRail(chips, metrics) {
     // Map chips to alert cards, top 5 by priority
     const railChips = chips.slice(0, 5);
     if (!railChips.length) {
-        rail.innerHTML = '<div style="padding:var(--space-4); color:var(--ov2-text-3); font-size:12px;">No active alerts</div>';
+        rail.innerHTML = '<div style="padding:16px; color:var(--ov2-text-3); font-size:12px;">אין התראות פעילות</div>';
+        $('railCount').textContent = '0';
         return;
     }
 
@@ -942,17 +942,18 @@ function renderAlertsRail(chips, metrics) {
         const sev = severityFor(c.type);
         const el = document.createElement('div');
         el.className = `ov2-alert ov2-severity-${sev}`;
+        const typeLabel = CHIP_TYPE_LABEL[c.type] || c.type;
         el.innerHTML = `
             <div class="ov2-alert-head">
                 <span class="ov2-alert-icon">${iconFor(c.type)}</span>
-                <span class="ov2-alert-title">${c.type.toUpperCase()} · ${c.category}</span>
+                <span class="ov2-alert-title">${typeLabel}</span>
             </div>
             <div class="ov2-alert-body">${c.text}</div>
             <div class="ov2-alert-meta">
-                <span>priority ${c.priority}</span>
-                <span class="ov2-alert-action">why →</span>
+                <span>עדיפות ${c.priority}</span>
             </div>
         `;
+        if (c.meaning) el.setAttribute('data-tooltip', c.meaning);
         rail.appendChild(el);
     }
 
@@ -964,10 +965,10 @@ function renderError(e) {
     const err = e && e.message ? e.message : String(e);
     main.innerHTML = `
       <div class="ov2-panel ov2-error-panel" style="margin:32px auto; max-width:600px;">
-        <div class="ov2-panel-accent" style="background:var(--neg)"></div>
-        <div class="eyebrow" style="color:var(--ov2-neg)">DATA LOAD ERROR</div>
-        <div class="title-m" style="margin:8px 0;">לא הצלחתי לטעון את הנתונים</div>
-        <pre style="background:var(--ov2-bg-2); padding:12px; border-radius:6px; font-size:12px; overflow:auto; color:var(--ov2-text-2);">${err}</pre>
+        <div class="ov2-panel-accent" style="background:var(--ov2-neg)"></div>
+        <div class="ov2-eyebrow" style="color:var(--ov2-neg)">שגיאת טעינת נתונים</div>
+        <div class="ov2-title-m" style="margin:8px 0;">לא הצלחתי לטעון את הנתונים</div>
+        <pre style="background:var(--ov2-bg-2); padding:12px; border-radius:6px; font-size:12px; overflow:auto; color:var(--ov2-text-1); border:1px solid var(--ov2-border); direction:ltr; text-align:left;">${err}</pre>
         <div class="ov2-panel-footer">
           לבדוק: (1) שיש שרת רץ (לא file://); (2) שהנתיב <code>../data/</code> נכון;
           (3) שיש קבצי CSV ב-<code>data/</code>.
@@ -998,7 +999,7 @@ async function init() {
         const duration = computeDaysInPhase(hist, data.sectors, phaseResult.phase.id);
         const chips = Regime.generateChips(metrics, 6);
 
-        renderStrip(metrics);
+        renderStrip(metrics, phaseResult);
         renderMCC(phaseResult, metrics, chips, duration);
         renderKPIs(metrics);
         renderSectorSnapshot(metrics, data.sectors);
