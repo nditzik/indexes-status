@@ -1235,6 +1235,125 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   FLOW HISTORY — "היום ביחס לעבר" (4 stat tiles + 7-day pattern timeline)
+   ═══════════════════════════════════════════════════════════════════════ */
+.overview-prod-root .ov2-flow-history-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--ov2-space-3);
+    margin-bottom: var(--ov2-space-3);
+}
+@media (max-width: 800px) {
+    .overview-prod-root .ov2-flow-history-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.overview-prod-root .ov2-flow-history-item {
+    background: var(--ov2-bg-2);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    padding: 12px 14px;
+    cursor: help;
+    transition: border-color 120ms;
+}
+.overview-prod-root .ov2-flow-history-item:hover {
+    border-color: var(--ov2-border-strong);
+}
+.overview-prod-root .ov2-flow-history-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+}
+.overview-prod-root .ov2-flow-history-value {
+    font-family: var(--ov2-font-mono);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    line-height: 1.1;
+}
+.overview-prod-root .ov2-flow-history-sub {
+    font-size: 13px;
+    color: var(--ov2-text-3);
+    font-weight: 500;
+}
+.overview-prod-root .ov2-flow-history-foot {
+    font-size: 11px;
+    color: var(--ov2-text-2);
+    margin-top: 6px;
+    font-weight: 500;
+}
+.overview-prod-root .ov2-flow-history-foot.ov2-pos { color: var(--ov2-pos); font-weight: 700; }
+.overview-prod-root .ov2-flow-history-foot.ov2-neg { color: var(--ov2-neg); font-weight: 700; }
+
+/* 7-day pattern timeline */
+.overview-prod-root .ov2-flow-history-timeline {
+    background: var(--ov2-bg-2);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    padding: 12px 14px;
+}
+.overview-prod-root .ov2-flow-pattern-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+@media (max-width: 800px) {
+    .overview-prod-root .ov2-flow-pattern-row { grid-template-columns: repeat(4, 1fr); }
+}
+.overview-prod-root .ov2-flow-pattern-cell {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    padding: 8px 6px;
+    text-align: center;
+    cursor: help;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-height: 72px;
+    justify-content: center;
+    transition: transform 120ms, border-color 120ms;
+}
+.overview-prod-root .ov2-flow-pattern-cell:hover {
+    transform: translateY(-2px);
+    border-color: var(--ov2-border-bright);
+}
+.overview-prod-root .ov2-flow-pattern-cell.is-today {
+    border: 2px solid var(--ov2-cat-action);
+    background: var(--ov2-bg-1);
+    box-shadow: 0 2px 6px rgba(14, 165, 233, 0.15);
+}
+.overview-prod-root .ov2-flow-pattern-cell .pat-date {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    font-family: var(--ov2-font-mono);
+    font-weight: 600;
+}
+.overview-prod-root .ov2-flow-pattern-cell .pat-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    line-height: 1.2;
+}
+.overview-prod-root .ov2-flow-pattern-cell .pat-score {
+    font-family: var(--ov2-font-mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+}
+
+/* Pattern-specific cell colors (subtle backgrounds) */
+.overview-prod-root .ov2-flow-pattern-cell.pat-bullish_strong  { background: rgba(5, 150, 105, 0.12); border-color: rgba(5, 150, 105, 0.3); }
+.overview-prod-root .ov2-flow-pattern-cell.pat-bullish_mild    { background: rgba(5, 150, 105, 0.06); }
+.overview-prod-root .ov2-flow-pattern-cell.pat-bearish_strong  { background: rgba(220, 38, 38, 0.12); border-color: rgba(220, 38, 38, 0.3); }
+.overview-prod-root .ov2-flow-pattern-cell.pat-bearish_mild    { background: rgba(220, 38, 38, 0.06); }
+.overview-prod-root .ov2-flow-pattern-cell.pat-short_vol       { background: rgba(124, 58, 237, 0.10); border-color: rgba(124, 58, 237, 0.3); }
+.overview-prod-root .ov2-flow-pattern-cell.pat-long_vol        { background: rgba(14, 165, 233, 0.12); border-color: rgba(14, 165, 233, 0.3); }
+.overview-prod-root .ov2-flow-pattern-cell.pat-hedge_demand    { background: rgba(217, 119, 6, 0.10); }
+.overview-prod-root .ov2-flow-pattern-cell.pat-writing_puts    { background: rgba(5, 150, 105, 0.10); }
+.overview-prod-root .ov2-flow-pattern-cell.pat-balanced        { background: var(--ov2-bg-1); }
+
+/* ═══════════════════════════════════════════════════════════════════════
    DAILY SUMMARY PANEL (bottom — deterministic narrative)
    ═══════════════════════════════════════════════════════════════════════ */
 .overview-prod-root .ov2-summary {

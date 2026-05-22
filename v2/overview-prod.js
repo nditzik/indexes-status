@@ -1094,7 +1094,7 @@ function renderAlertsRail(chips, metrics) {
 // FLOW CARD — surfaces SPX options flow as a first-class section
 // Extended 2026-05-22: Call/Put breakdown + Ask/Bid direction + formula
 // ═════════════════════════════════════════════════════════════════════
-function renderFlowCard(metrics) {
+function renderFlowCard(metrics, flowAnalytics) {
     const wrap = $('flowCard');
     if (!wrap) return;
     const f = metrics.flow;
@@ -1105,6 +1105,8 @@ function renderFlowCard(metrics) {
     const raw = f.raw;
     const z = f.z || {};
     const score = f.score;
+    // Historical context (used at end of card)
+    const allDays = (flowAnalytics && flowAnalytics.days) || [];
 
     // Status text — deterministic, based on score
     let status, statusClass;
@@ -1312,8 +1314,8 @@ function renderFlowCard(metrics) {
         const moneySide  = cAskPm >  50 ? 'קונה' : 'מוכר';
         divergences.push({
             title: 'בקאלים — אי-התאמה',
-            body:  `<b>הקהל ${crowdSide}</b> (${Math.round(cAskTr)}% מהעסקאות) אבל <b>הכסף הגדול ${moneySide}</b> (${Math.round(cAskPm)}% מהפרמיה).`,
-            sub:   `הרבה סוחרים קטנים בכיוון אחד, מעט מוסדיים גדולים בכיוון השני. היסטורית — המוסדיים נוטים להיות צודקים.`
+            body:  `<b>הציבור ${crowdSide}</b> (${Math.round(cAskTr)}% מהעסקאות) אבל <b>הכסף הגדול ${moneySide}</b> (${Math.round(cAskPm)}% מהפרמיה).`,
+            sub:   `הרבה סוחרים קטנים (הציבור) בכיוון אחד, מעט מוסדיים גדולים בכיוון השני. היסטורית — המוסדיים נוטים להיות צודקים.`
         });
     }
     if (pAskTr != null && pAskPm != null && Math.abs(pAskPm - pAskTr) >= 15) {
@@ -1321,7 +1323,7 @@ function renderFlowCard(metrics) {
         const moneySide  = pAskPm >  50 ? 'קונה' : 'מוכר';
         divergences.push({
             title: 'ב-puts — אי-התאמה',
-            body:  `<b>הקהל ${crowdSide}</b> (${Math.round(pAskTr)}% עסקאות) אבל <b>הכסף הגדול ${moneySide}</b> (${Math.round(pAskPm)}% פרמיה).`,
+            body:  `<b>הציבור ${crowdSide}</b> (${Math.round(pAskTr)}% עסקאות) אבל <b>הכסף הגדול ${moneySide}</b> (${Math.round(pAskPm)}% פרמיה).`,
             sub:   ''
         });
     }
@@ -1331,7 +1333,7 @@ function renderFlowCard(metrics) {
         <div class="ov2-flow-agg-headline">${headline}</div>
         <div class="ov2-flow-agg-meaning">${meaning}</div>
         ${evidenceHtml}
-        ${divergences.length ? `<div class="ov2-flow-agg-divergence-head">⚠ אי-התאמה בין הקהל לכסף הגדול:</div>
+        ${divergences.length ? `<div class="ov2-flow-agg-divergence-head">⚠ אי-התאמה בין הציבור לכסף הגדול:</div>
             ${divergences.map(d => `
                 <div class="ov2-flow-agg-divergence">
                     <div class="ov2-flow-agg-div-title">${d.title}</div>
@@ -1344,6 +1346,9 @@ function renderFlowCard(metrics) {
 
     // ─── Trade Quality (codes + ToOpen) ───
     renderFlowQuality(raw);
+
+    // ─── Historical Context (today vs 22d) ───
+    renderFlowHistory(raw, score, allDays);
 
     // ─── NEW: Score formula breakdown ───
     const t = metrics.techScore, b = metrics.breadthScore, fScore = f.score, combined = metrics.combined;
@@ -1381,6 +1386,23 @@ function setEl(id, text) {
 function setHTML(id, html) {
     const el = $(id);
     if (el) el.innerHTML = html;
+}
+
+// ─── Flow pattern classifier (shared between today + history) ───
+// Same 9 quadrants used in the interpretation text.
+function classifyFlowPattern(cAskPm, pAskPm) {
+    if (cAskPm == null || pAskPm == null) return { id: 'unknown', label: 'לא ידוע' };
+    const cHigh = cAskPm >= 60, cLow = cAskPm <= 40;
+    const pHigh = pAskPm >= 60, pLow = pAskPm <= 40;
+    if (cHigh && pLow)         return { id: 'bullish_strong',  label: 'שורי חזק' };
+    if (cLow && pHigh)         return { id: 'bearish_strong',  label: 'דובי חזק' };
+    if (cLow && pLow)          return { id: 'short_vol',       label: 'Short Volatility' };
+    if (cHigh && pHigh)        return { id: 'long_vol',        label: 'Long Volatility' };
+    if (cAskPm >= 55)          return { id: 'bullish_mild',    label: 'שורי מתון' };
+    if (cAskPm <= 45)          return { id: 'bearish_mild',    label: 'מטה למכירת calls' };
+    if (pAskPm >= 55)          return { id: 'hedge_demand',    label: 'דרישת הגנה' };
+    if (pAskPm <= 45)          return { id: 'writing_puts',    label: 'כותבי puts' };
+    return                              { id: 'balanced',      label: 'מאוזן' };
 }
 
 // ═════════════════════════════════════════════════════════════════════
@@ -1516,7 +1538,7 @@ function renderFlowQuality(raw) {
             </div>
             ${conv > 0 && Math.abs(bullPctP - bullPctC) >= 10 ? `
                 <div class="ov2-conv-note-divergence">
-                    ⓘ לפי מספר עסקאות: ${bullPctC}% שורי — שונה מ-${bullPctP}% לפי פרמיה. הכסף הגדול מסתדר אחרת מהקהל.
+                    ⓘ לפי מספר עסקאות: ${bullPctC}% שורי — שונה מ-${bullPctP}% לפי פרמיה. <b>המוסדיים מסתדרים אחרת מהציבור.</b>
                 </div>
             ` : ''}
         `;
@@ -1686,6 +1708,112 @@ function renderDailySummary(phase, m, chips, duration, sectorsMap, hist, flowAna
     $('summaryBottomLine').textContent = `השורה התחתונה: ${p.bias}`;
 }
 
+// ═════════════════════════════════════════════════════════════════════
+// FLOW HISTORICAL CONTEXT — today vs 22-day baseline + pattern frequency
+// Answers: "Is today unusual? How often have we seen this pattern?"
+// ═════════════════════════════════════════════════════════════════════
+function renderFlowHistory(rawToday, scoreToday, allDays) {
+    const wrap = $('flowHistory');
+    if (!wrap || !allDays || allDays.length === 0) return;
+
+    // Today's pattern (using premium-weighted Ask%)
+    const todayPattern = classifyFlowPattern(rawToday.callAskPremPct, rawToday.putAskPremPct);
+
+    // Count pattern occurrences across all historical days
+    let sameAsToday = 0;
+    const patternCounts = {};  // by id
+    for (const d of allDays) {
+        const p = classifyFlowPattern(d.raw.callAskPremPct, d.raw.putAskPremPct);
+        patternCounts[p.id] = (patternCounts[p.id] || 0) + 1;
+        if (p.id === todayPattern.id) sameAsToday++;
+    }
+    const totalDays = allDays.length;
+    const patternPct = totalDays > 0 ? Math.round(sameAsToday / totalDays * 100) : 0;
+
+    // Score stats
+    const scores = allDays.map(d => d.score).filter(s => s != null);
+    const avgScore = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+    const deviation = (scoreToday != null && avgScore != null) ? scoreToday - avgScore : null;
+
+    const last7Scores = scores.slice(-7);
+    const minScore7 = last7Scores.length ? Math.min(...last7Scores) : null;
+    const maxScore7 = last7Scores.length ? Math.max(...last7Scores) : null;
+
+    // Trend: compare today vs 5d ago
+    let trendArrow = '─', trendLabel = 'יציב', trendDelta = 0;
+    if (scores.length >= 6 && scoreToday != null) {
+        const score5dAgo = scores[scores.length - 6];
+        trendDelta = scoreToday - score5dAgo;
+        if (trendDelta >= 5)       { trendArrow = '↗'; trendLabel = 'עולה'; }
+        else if (trendDelta <= -5) { trendArrow = '↘'; trendLabel = 'יורד'; }
+    }
+
+    // Recent pattern history — last 7 days
+    const last7Days = allDays.slice(-7);
+    const recentPatterns = last7Days.map(d => {
+        const p = classifyFlowPattern(d.raw.callAskPremPct, d.raw.putAskPremPct);
+        return { date: d.date, score: d.score, patternId: p.id, patternLabel: p.label };
+    });
+
+    // Deviation label
+    let devLabel = 'קרוב לממוצע';
+    if (deviation != null) {
+        if (deviation >= 8)       devLabel = `מעל הממוצע (+${deviation})`;
+        else if (deviation >= 3)  devLabel = `קצת מעל הממוצע (+${deviation})`;
+        else if (deviation <= -8) devLabel = `מתחת לממוצע (${deviation})`;
+        else if (deviation <= -3) devLabel = `קצת מתחת לממוצע (${deviation})`;
+    }
+
+    // Pattern uniqueness label
+    let patternRareLabel = '';
+    if (patternPct >= 50)       patternRareLabel = 'תבנית שכיחה לאחרונה';
+    else if (patternPct >= 25)  patternRareLabel = 'תבנית מוכרת';
+    else if (patternPct >= 10)  patternRareLabel = 'תבנית לא תדירה';
+    else                        patternRareLabel = 'תבנית נדירה — שווה תשומת לב';
+
+    const html = `
+        <div class="ov2-flow-history-grid">
+            <div class="ov2-flow-history-item" data-tooltip="ציון Flow היום מול ממוצע של ${totalDays} ימי מסחר אחרונים">
+                <div class="ov2-flow-history-label">Flow היום vs ממוצע 22D</div>
+                <div class="ov2-flow-history-value">${scoreToday != null ? scoreToday : '—'} <span class="ov2-flow-history-sub">/ ${avgScore != null ? avgScore : '—'}</span></div>
+                <div class="ov2-flow-history-foot ${deviation > 0 ? 'ov2-pos' : deviation < 0 ? 'ov2-neg' : ''}">${devLabel}</div>
+            </div>
+            <div class="ov2-flow-history-item" data-tooltip="כמה פעמים התבנית הנוכחית הופיעה ב-${totalDays} הימים האחרונים">
+                <div class="ov2-flow-history-label">תבנית "${todayPattern.label}"</div>
+                <div class="ov2-flow-history-value">${sameAsToday} <span class="ov2-flow-history-sub">/ ${totalDays} ימים</span></div>
+                <div class="ov2-flow-history-foot">${patternPct}% — ${patternRareLabel}</div>
+            </div>
+            <div class="ov2-flow-history-item" data-tooltip="טווח ציון Flow ב-7 ימי המסחר האחרונים (כולל היום)">
+                <div class="ov2-flow-history-label">טווח Flow השבוע</div>
+                <div class="ov2-flow-history-value">${minScore7 != null ? minScore7 : '—'} – ${maxScore7 != null ? maxScore7 : '—'}</div>
+                <div class="ov2-flow-history-foot">7 ימים אחרונים</div>
+            </div>
+            <div class="ov2-flow-history-item" data-tooltip="כיוון ה-Flow השבוע — השוואה ל-5 ימים אחורנית">
+                <div class="ov2-flow-history-label">מגמת Flow</div>
+                <div class="ov2-flow-history-value">${trendArrow} ${trendLabel}</div>
+                <div class="ov2-flow-history-foot">${trendDelta >= 0 ? '+' : ''}${trendDelta} נק' מ-5 ימים</div>
+            </div>
+        </div>
+
+        <div class="ov2-flow-history-timeline">
+            <div class="ov2-eyebrow" style="margin-bottom:8px;">תבניות 7 הימים האחרונים</div>
+            <div class="ov2-flow-pattern-row">
+                ${recentPatterns.map((p, i) => {
+                    const isToday = i === recentPatterns.length - 1;
+                    const patternClass = `pat-${p.patternId}`;
+                    return `<div class="ov2-flow-pattern-cell ${patternClass} ${isToday ? 'is-today' : ''}"
+                                 data-tooltip="${fmtDate(p.date)} · ${p.patternLabel} · ציון ${p.score}">
+                        <span class="pat-date">${p.date.slice(8, 10)}/${p.date.slice(5, 7)}</span>
+                        <span class="pat-label">${p.patternLabel}</span>
+                        <span class="pat-score">${p.score}</span>
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>
+    `;
+    wrap.innerHTML = html;
+}
+
 // ─── Pearson correlation helper ───
 function pearsonCorrelation(xs, ys) {
     if (!xs || !ys || xs.length !== ys.length || xs.length < 2) return null;
@@ -1811,7 +1939,7 @@ async function init() {
 
         renderStrip(metrics, phaseResult);
         renderMCC(phaseResult, metrics, chips, duration);
-        renderFlowCard(metrics);
+        renderFlowCard(metrics, flowAnalytics);
         renderKPIs(metrics);
         renderSectorSnapshot(metrics, data.sectors);
         renderDailySummary(phaseResult, metrics, chips, duration, data.sectors, hist, flowAnalytics);
