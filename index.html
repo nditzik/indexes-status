@@ -7,7 +7,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+    <!-- Overview V2 Production styles · scoped to .overview-prod-root -->
+    <link rel="stylesheet" href="v2/overview-prod.css">
     <style>
         /* ─── Design tokens (Palantir Core + Tesla Polish) ─── */
         :root {
@@ -1737,8 +1739,260 @@
         <!-- tab: overview (default — wraps all existing content) -->
         <section class="tab-view active" data-tab-view="overview">
 
-        <!-- ══════════ PHASE 2: NEW OVERVIEW ══════════ -->
-        <div class="overview-v2" id="overviewV2" style="display:none;">
+        <!-- ══════════ OVERVIEW V2 · PRODUCTION (Regime engine v1.5) ══════════ -->
+        <div class="overview-prod-root" id="overviewProd">
+
+            <!-- Loading state -->
+            <div id="ov2_loading" class="ov2-loading">
+                <div class="ov2-loading-dot"></div>
+                <div class="ov2-loading-dot"></div>
+                <div class="ov2-loading-dot"></div>
+                <div style="margin-top:12px; font-size:12px; color:var(--ov2-text-3); letter-spacing:0.08em; text-transform:uppercase;">Loading market data</div>
+            </div>
+
+            <!-- ═══ EXECUTIVE STRIP ═══ -->
+            <header class="ov2-strip">
+                <div class="ov2-strip-state">
+                    <span class="ov2-state-dot" id="ov2_stateDot"></span>
+                    <div>
+                        <div class="ov2-strip-state-label">Market State</div>
+                        <div>
+                            <span class="ov2-strip-state-value" id="ov2_stateName">—</span>
+                            <span class="ov2-strip-state-score ov2-num" id="ov2_stateScore">—</span><span class="ov2-num" style="color:var(--ov2-text-3); font-size:11px">/100</span>
+                        </div>
+                    </div>
+                    <div style="margin-right:24px; font-size:11px; color:var(--ov2-text-3); border-right:1px solid var(--ov2-border); padding-right:24px;">
+                        <div style="text-transform:uppercase; letter-spacing:0.08em; margin-bottom:2px;">Data</div>
+                        <div class="ov2-num" id="ov2_dataDate" style="font-size:13px; color:var(--ov2-text-1); font-weight:600;">—</div>
+                    </div>
+                </div>
+                <div class="ov2-strip-indices">
+                    <div class="ov2-idx"><span class="ov2-idx-name">SPX</span><div class="ov2-idx-row"><span class="ov2-idx-val" id="ov2_idxSpxVal">—</span><span class="ov2-idx-chg" id="ov2_idxSpxChg">—</span></div></div>
+                    <div class="ov2-idx"><span class="ov2-idx-name">VIX</span><div class="ov2-idx-row"><span class="ov2-idx-val" id="ov2_idxVixVal">—</span><span class="ov2-idx-chg" id="ov2_idxVixChg">—</span></div></div>
+                    <div class="ov2-idx"><span class="ov2-idx-name">DXY</span><div class="ov2-idx-row"><span class="ov2-idx-val" id="ov2_idxDxyVal">—</span><span class="ov2-idx-chg ov2-muted">─</span></div></div>
+                    <div class="ov2-idx"><span class="ov2-idx-name">10Y</span><div class="ov2-idx-row"><span class="ov2-idx-val" id="ov2_idxTnxVal">—</span><span class="ov2-idx-chg ov2-muted">─</span></div></div>
+                    <button class="ov2-icon-btn" onclick="location.reload()" title="Refresh">⟲</button>
+                </div>
+            </header>
+
+            <div class="ov2-body">
+
+                <!-- ═══ MAIN COLUMN ═══ -->
+                <main id="ov2_main">
+
+                    <!-- ═══ MCC CARD ═══ -->
+                    <div class="ov2-mcc" id="ov2_mcc">
+                        <div class="ov2-mcc-accent" id="ov2_mccPhaseAccent"></div>
+
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; position:relative; gap:16px;">
+                            <div style="min-width:0;">
+                                <div class="ov2-eyebrow" style="color:var(--ov2-cat-breadth); margin-bottom:4px;">MARKET CONTROL CENTER · REGIME</div>
+                                <div class="ov2-mcc-phase-row">
+                                    <span class="ov2-mcc-glyph" id="ov2_mccGlyph">—</span>
+                                    <span class="ov2-mcc-phase-label" id="ov2_mccPhaseLabel">—</span>
+                                    <span class="ov2-mcc-phase-label-he" id="ov2_mccPhaseLabelHe">—</span>
+                                </div>
+                                <div class="ov2-mcc-duration-row">
+                                    <span class="ov2-mcc-duration" id="ov2_mccDuration">—</span>
+                                    <span class="ov2-mcc-entered" id="ov2_mccEntered">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ov2-mcc-narrative" id="ov2_mccNarrative">—</div>
+
+                        <div class="ov2-mcc-grid">
+                            <div class="ov2-mcc-block-state">
+                                <div style="display:flex; align-items:center; gap:12px;">
+                                    <div>
+                                        <div class="ov2-mcc-meta-label" style="margin-bottom:4px;">Risk Level</div>
+                                        <div class="ov2-mcc-meta-value" id="ov2_mccRisk">—</div>
+                                    </div>
+                                    <div style="flex:1;">
+                                        <div class="ov2-mcc-meta-label" style="margin-bottom:4px;">Position Bias</div>
+                                        <div class="ov2-mcc-meta-value" id="ov2_mccBias">—</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ov2-mcc-block-score">
+                                <div class="ov2-mcc-score-top">
+                                    <span class="ov2-mcc-score-val" id="ov2_mccScoreVal">—</span>
+                                    <span class="ov2-mcc-score-max">/100</span>
+                                    <span style="margin-right:auto; font-size:10px; color:var(--ov2-text-3); letter-spacing:0.08em; text-transform:uppercase;">Combined Score</span>
+                                </div>
+                                <div class="ov2-mcc-bar"><div class="ov2-mcc-bar-fill" id="ov2_mccBarFill" style="width:0%"></div></div>
+                            </div>
+                            <div class="ov2-mcc-block-meta">
+                                <div class="ov2-mcc-meta-row">
+                                    <span class="ov2-mcc-meta-label">Phase Confidence</span>
+                                    <span class="ov2-mcc-meta-value ov2-num" id="ov2_mccConfVal">—</span>
+                                </div>
+                                <div class="ov2-mcc-conf-bar"><div class="ov2-mcc-conf-bar-fill" id="ov2_mccConfBar" style="width:0%"></div></div>
+                            </div>
+                        </div>
+
+                        <div class="ov2-mcc-drivers">
+                            <div class="ov2-driver"><span class="ov2-driver-lbl">NH/NL</span><span class="ov2-driver-val" id="ov2_drvNhnl">—</span></div>
+                            <div class="ov2-driver"><span class="ov2-driver-lbl">% MA200</span><span class="ov2-driver-val" id="ov2_drvMa200">—</span></div>
+                            <div class="ov2-driver"><span class="ov2-driver-lbl">VIX</span><span class="ov2-driver-val" id="ov2_drvVix">—</span></div>
+                            <div class="ov2-driver"><span class="ov2-driver-lbl">Distribution</span><span class="ov2-driver-val" id="ov2_drvDist">—</span></div>
+                            <div class="ov2-driver"><span class="ov2-driver-lbl">Breadth</span><span class="ov2-driver-val" id="ov2_drvBreadth">—</span></div>
+                            <div class="ov2-driver"><span class="ov2-driver-lbl">Combined</span><span class="ov2-driver-val" id="ov2_drvCombined">—</span></div>
+                        </div>
+
+                        <div class="ov2-mcc-chips" id="ov2_mccChips"></div>
+                    </div>
+
+                    <!-- ═══ KPI GROUPS ═══ -->
+                    <div class="ov2-kpi-groups">
+
+                        <div class="ov2-kpi-group" data-cat="breadth">
+                            <div class="ov2-kpi-group-head">
+                                <div class="ov2-kpi-group-tag">Breadth</div>
+                                <div class="ov2-kpi-group-line"></div>
+                            </div>
+                            <div class="ov2-kpi-cards">
+                                <div class="ov2-kpi">
+                                    <div class="ov2-kpi-label">% Above MA200</div>
+                                    <div class="ov2-kpi-value" id="ov2_kpiP200Val">—</div>
+                                    <div class="ov2-kpi-delta" id="ov2_kpiP200Delta">—</div>
+                                </div>
+                                <div class="ov2-kpi">
+                                    <div class="ov2-kpi-label">NH / NL Ratio</div>
+                                    <div class="ov2-kpi-value" id="ov2_kpiNhNlVal">—</div>
+                                    <div class="ov2-kpi-delta" id="ov2_kpiNhNlDelta">—</div>
+                                </div>
+                                <div class="ov2-kpi">
+                                    <div class="ov2-kpi-label">Avg Daily Change</div>
+                                    <div class="ov2-kpi-value" id="ov2_kpiAvgChgVal">—</div>
+                                    <div class="ov2-kpi-delta" id="ov2_kpiAvgChgDelta">—</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ov2-kpi-group" data-cat="risk">
+                            <div class="ov2-kpi-group-head">
+                                <div class="ov2-kpi-group-tag">Risk</div>
+                                <div class="ov2-kpi-group-line"></div>
+                            </div>
+                            <div class="ov2-kpi-cards">
+                                <div class="ov2-kpi">
+                                    <div class="ov2-kpi-label">VIX</div>
+                                    <div class="ov2-kpi-value" id="ov2_kpiVixVal">—</div>
+                                    <div class="ov2-kpi-delta" id="ov2_kpiVixDelta">—</div>
+                                </div>
+                                <div class="ov2-kpi">
+                                    <div class="ov2-kpi-label">Distribution Days</div>
+                                    <div class="ov2-kpi-value" id="ov2_kpiDistVal">—</div>
+                                    <div class="ov2-kpi-delta" id="ov2_kpiDistDelta">—</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ov2-kpi-group" data-cat="trend">
+                            <div class="ov2-kpi-group-head">
+                                <div class="ov2-kpi-group-tag">Trend</div>
+                                <div class="ov2-kpi-group-line"></div>
+                            </div>
+                            <div class="ov2-kpi-cards">
+                                <div class="ov2-kpi">
+                                    <div class="ov2-kpi-label">Health Score</div>
+                                    <div class="ov2-kpi-value" id="ov2_kpiHealthVal">—</div>
+                                    <div class="ov2-kpi-delta" id="ov2_kpiHealthDelta">—</div>
+                                </div>
+                                <div class="ov2-kpi">
+                                    <div class="ov2-kpi-label">RSI Thrust</div>
+                                    <div class="ov2-kpi-value" id="ov2_kpiThrustVal">—</div>
+                                    <div class="ov2-kpi-delta" id="ov2_kpiThrustDelta">—</div>
+                                </div>
+                                <div class="ov2-kpi">
+                                    <div class="ov2-kpi-label">Combined Signal</div>
+                                    <div class="ov2-kpi-value" id="ov2_kpiCombinedVal">—</div>
+                                    <div class="ov2-kpi-delta" id="ov2_kpiCombinedDelta">—</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- ═══ COMPACT SECTOR SNAPSHOT ═══ -->
+                    <div class="ov2-panel">
+                        <div class="ov2-panel-accent cat-sector"></div>
+                        <div class="ov2-panel-head">
+                            <div>
+                                <div class="ov2-eyebrow" style="color:var(--ov2-cat-sector); margin-bottom:4px;">SECTOR SNAPSHOT</div>
+                                <div class="ov2-title-m">מפת חום סקטוריאלית — היום</div>
+                                <div class="ov2-subtitle">11 סקטורי S&amp;P 500 · שינוי יומי ממוצע (sorted)</div>
+                            </div>
+                        </div>
+                        <div class="ov2-panel-divider"></div>
+
+                        <div class="ov2-heatmap-compact" id="ov2_sectorHeatmap"></div>
+
+                        <div style="display:flex; gap:16px; margin-top:12px; flex-wrap:wrap; font-size:11px; color:var(--ov2-text-2);">
+                            <div>
+                                <span style="color:var(--ov2-text-3); font-size:10px; text-transform:uppercase; letter-spacing:0.08em;">Best</span>
+                                <div class="ov2-num" id="ov2_sectorBest" style="color:var(--ov2-text-1); font-weight:600;">—</div>
+                            </div>
+                            <div>
+                                <span style="color:var(--ov2-text-3); font-size:10px; text-transform:uppercase; letter-spacing:0.08em;">Worst</span>
+                                <div class="ov2-num" id="ov2_sectorWorst" style="color:var(--ov2-text-1); font-weight:600;">—</div>
+                            </div>
+                            <div>
+                                <span style="color:var(--ov2-text-3); font-size:10px; text-transform:uppercase; letter-spacing:0.08em;">Dispersion (today)</span>
+                                <div class="ov2-num" id="ov2_sectorDispersion" style="color:var(--ov2-text-1); font-weight:600;">—</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ AI SUMMARY (collapsed placeholder) ═══ -->
+                    <div class="ov2-collapsible" id="ov2_aiCollapsible">
+                        <div class="ov2-collapsible-head" onclick="this.parentElement.classList.toggle('open')">
+                            <div class="ov2-collapsible-head-text">
+                                <div class="ov2-eyebrow" style="color:var(--ov2-cat-action)">AI DAILY SUMMARY</div>
+                                <div class="ov2-title-s" style="font-weight:500; color:var(--ov2-text-1)">סיכום שוק יומי · placeholder · יחובר בגרסה הבאה</div>
+                            </div>
+                            <span class="ov2-collapsible-chev">▼</span>
+                        </div>
+                        <div class="ov2-collapsible-body">
+                            <div class="ov2-panel" style="background:var(--ov2-bg-2);">
+                                <div class="ov2-eyebrow" style="color:var(--ov2-text-3); margin-bottom:8px;">PLACEHOLDER</div>
+                                <div style="font-size:13px; line-height:1.7; color:var(--ov2-text-2);">
+                                    סיכום AI יחובר בגרסה הבאה. כרגע ה-narrative מסופק על-ידי:
+                                    <ul style="padding-right:20px;">
+                                        <li>Phase classification (rule-based)</li>
+                                        <li>Narrative chips (deterministic)</li>
+                                        <li>Phase confidence + reasons</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- V2 watermark -->
+                    <div style="text-align:center; margin-top:24px; padding-top:16px; border-top:1px solid var(--ov2-border); font-size:10px; color:var(--ov2-text-3); letter-spacing:0.08em; text-transform:uppercase;">
+                        Overview V2 · Production · Regime Engine v1.5
+                    </div>
+
+                </main>
+
+                <!-- ═══ CONTEXTUAL ALERTS RAIL ═══ -->
+                <aside class="ov2-rail">
+                    <div class="ov2-rail-head">
+                        <div class="ov2-rail-title">Contextual Alerts</div>
+                        <span class="ov2-rail-count" id="ov2_railCount">0</span>
+                    </div>
+                    <div id="ov2_railContent"></div>
+                    <div style="margin-top:16px; padding-top:12px; border-top:1px solid var(--ov2-border); font-size:10px; color:var(--ov2-text-3); letter-spacing:0.04em;">
+                        Auto-generated from <strong style="color:var(--ov2-text-2);">chip rules</strong>. Sorted by priority. Hover for trigger details.
+                    </div>
+                </aside>
+
+            </div>
+        </div>
+
+        <!-- ═══ LEGACY OVERVIEW MARKUP · KEPT FOR EXISTING JS (force-hidden) ═══ -->
+        <div class="overview-v2" id="overviewV2" style="display:none !important;">
 
             <!-- Market Control Center · command strip -->
             <section class="mcc" id="mcc" data-state="neutral" aria-label="Market Control Center">
@@ -1996,7 +2250,7 @@
         </div>
 
         <!-- Legacy HTML retained for JS ID references; kept hidden since new Overview + dedicated tabs cover all content -->
-<div class="container" id="legacyContainer" style="display:none;">
+<div class="container" id="legacyContainer" style="display:none !important;">
 
     <div class="header">
         <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme" title="החלף מצב תצוגה" style="display:none">
@@ -6008,6 +6262,28 @@ async function generateDailySummary() {
         if (btn) { btn.disabled = false; btn.textContent = '🔄 עדכן'; }
     }
 }
+</script>
+
+<!-- ═══ OVERVIEW V2 PRODUCTION · Regime Engine v1.5 ═══ -->
+<!-- regime.js: phase classifier + chip rules (pure logic) -->
+<script src="v2/regime.js"></script>
+<!-- overview-prod.js: data loader + flow analytics + render -->
+<script src="v2/overview-prod.js"></script>
+<!-- Force-hide legacy overview elements (defensive — existing JS may try to show them) -->
+<script>
+(function() {
+    function forceHideLegacyOverview() {
+        ['overviewV2', 'legacyContainer'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.cssText = 'display:none !important';
+        });
+    }
+    forceHideLegacyOverview();
+    // Re-apply after existing dashboard JS finishes (timed)
+    setTimeout(forceHideLegacyOverview, 500);
+    setTimeout(forceHideLegacyOverview, 2000);
+    setTimeout(forceHideLegacyOverview, 5000);
+})();
 </script>
 </body>
 </html>

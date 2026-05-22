@@ -1,0 +1,222 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   V2-specific styles · extends ../prototypes/shared.css
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── MCC accent (top color bar, dynamic per phase) ─── */
+.mcc { position: relative; overflow: hidden; }
+.mcc-accent {
+    position: absolute;
+    top: 0; right: 0; left: 0;
+    height: 3px;
+    background: var(--cat-breadth);
+    border-radius: var(--radius) var(--radius) 0 0;
+    transition: background 200ms;
+}
+
+/* ─── MCC Phase Row ─── */
+.mcc-phase-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+}
+.mcc-glyph {
+    font-size: 26px;
+    line-height: 1;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--warn-bright);
+    transition: color 200ms;
+}
+.mcc-phase-label {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--text-1);
+    text-transform: uppercase;
+}
+.mcc-phase-label-he {
+    font-size: 13px;
+    color: var(--text-2);
+    font-weight: 500;
+}
+.mcc-duration-row {
+    display: flex;
+    gap: var(--space-3);
+    align-items: baseline;
+    margin-bottom: var(--space-3);
+}
+.mcc-duration {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text-1);
+    font-weight: 600;
+    background: var(--bg-3);
+    padding: 3px 10px;
+    border-radius: 4px;
+}
+.mcc-entered {
+    font-size: 11px;
+    color: var(--text-3);
+}
+
+/* ─── MCC Narrative (deterministic subtitle) ─── */
+.mcc-narrative {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text-1);
+    background: var(--bg-2);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius);
+    border-right: 3px solid var(--cat-breadth);
+    margin-bottom: var(--space-4);
+    font-weight: 500;
+}
+
+/* ─── MCC Confidence bar ─── */
+.mcc-conf-bar {
+    height: 4px;
+    background: var(--bg-3);
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+}
+.mcc-conf-bar-fill {
+    height: 100%;
+    background: var(--warn);
+    border-radius: 2px;
+    transition: width 400ms, background 200ms;
+}
+
+/* MCC score block adjustment */
+.mcc-score-top {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+}
+
+/* ─── Chip type styles ─── */
+/* Shared chip base already in shared.css. We override per type here. */
+
+.chip-state {
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    color: var(--text-1);
+    font-weight: 600;
+}
+.chip-state::before {
+    content: '● ';
+    margin-left: 2px;
+    opacity: 0.7;
+}
+
+.chip-transition {
+    background: var(--bg-3);
+    border: 1px dashed var(--border-bright);
+    color: var(--text-1);
+    font-weight: 500;
+}
+
+.chip-warning {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn);
+    color: var(--warn-bright);
+    font-weight: 600;
+}
+.theme-light .chip-warning { color: var(--warn); }
+
+.chip-confirmation {
+    background: var(--pos-bg);
+    border: 1px solid var(--pos);
+    color: var(--pos-bright);
+    font-weight: 600;
+}
+.theme-light .chip-confirmation { color: var(--pos); }
+
+/* Category accent on chips — left dot stripe */
+.chip-cat-breadth    { box-shadow: inset 3px 0 0 var(--cat-breadth); }
+.chip-cat-momentum   { box-shadow: inset 3px 0 0 var(--cat-momentum); }
+.chip-cat-risk       { box-shadow: inset 3px 0 0 var(--cat-risk); }
+.chip-cat-flow       { box-shadow: inset 3px 0 0 var(--cat-flow); }
+.chip-cat-sector     { box-shadow: inset 3px 0 0 var(--cat-sector); }
+.chip-cat-macro      { box-shadow: inset 3px 0 0 var(--cat-macro); }
+.chip-cat-historical { box-shadow: inset 3px 0 0 var(--cat-historical); }
+.chip-cat-action     { box-shadow: inset 3px 0 0 var(--cat-action); }
+
+/* Chips wrap layout */
+.mcc-chips {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border);
+    position: relative;
+}
+
+/* ─── Drivers row adjustment ─── */
+.mcc-drivers {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+    border-top: 1px solid var(--border);
+    margin-top: var(--space-4);
+    position: relative;
+}
+
+/* ─── KPI groups override (3 cards · 2 cards · 3 cards) ─── */
+.kpi-groups {
+    grid-template-columns: 3fr 2fr 3fr;
+}
+.kpi-group:nth-child(1) .kpi-cards { grid-template-columns: 1fr 1fr 1fr; }
+.kpi-group:nth-child(2) .kpi-cards { grid-template-columns: 1fr 1fr; }
+.kpi-group:nth-child(3) .kpi-cards { grid-template-columns: 1fr 1fr 1fr; }
+
+.kpi-value {
+    font-size: 20px;
+    line-height: 1.1;
+}
+
+/* ─── Loading state ─── */
+.v2-loading {
+    padding: var(--space-8) var(--space-5);
+    text-align: center;
+    color: var(--text-2);
+}
+.v2-loading-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--cat-action);
+    margin: 0 3px;
+    animation: v2-pulse 1.2s ease-in-out infinite;
+}
+.v2-loading-dot:nth-child(2) { animation-delay: 0.15s; }
+.v2-loading-dot:nth-child(3) { animation-delay: 0.30s; }
+@keyframes v2-pulse {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40%           { transform: scale(1);   opacity: 1;   }
+}
+
+/* ─── Sidebar disabled tabs ─── */
+.nav-item[style*="opacity"] { cursor: not-allowed; }
+
+/* ─── Heatmap compact — slightly bigger cells for the snapshot ─── */
+.heatmap-compact .hm-cell {
+    aspect-ratio: 1 / 0.65;
+    min-height: 56px;
+}
+.heatmap-compact .hm-sym { font-size: 10px; }
+.heatmap-compact .hm-val { font-size: 13px; }
+
+/* ─── Inline code element in error messages ─── */
+code {
+    font-family: var(--font-mono);
+    background: var(--bg-3);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 11px;
+}

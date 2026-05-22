@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>Market Intelligence Terminal · Mockup Gallery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="shared.css">
+<style>
+.gallery {
+    max-width: 1100px;
+    margin: 40px auto;
+    padding: 0 32px;
+}
+.gallery-head {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+}
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+}
+.mockup-card {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 120ms, transform 120ms;
+    display: block;
+    position: relative;
+    overflow: hidden;
+}
+.mockup-card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+}
+.mockup-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0; left: 0;
+    height: 3px;
+    background: var(--cat-breadth);
+}
+.mockup-card[data-cat="momentum"]::before { background: var(--cat-momentum); }
+.mockup-card[data-cat="sector"]::before   { background: var(--cat-sector); }
+.mockup-card .layer {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    background: var(--bg-3);
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin-bottom: 12px;
+    font-family: var(--font-mono);
+}
+.mockup-card .title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-1);
+    margin-bottom: 8px;
+}
+.mockup-card .desc {
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+.mockup-card .meta {
+    display: flex;
+    gap: 16px;
+    font-size: 11px;
+    color: var(--text-3);
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    font-family: var(--font-mono);
+}
+.controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 24px;
+}
+.controls button {
+    padding: 8px 14px;
+    background: var(--bg-1);
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 600;
+}
+.controls button:hover { color: var(--text-1); }
+.notes {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
+    margin-top: 32px;
+}
+.notes h3 {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    margin: 0 0 12px;
+}
+.notes ul { margin: 0; padding-right: 20px; font-size: 13px; line-height: 1.7; color: var(--text-1); }
+.notes ul li { margin-bottom: 6px; }
+.notes code { font-family: var(--font-mono); font-size: 12px; color: var(--cat-action); }
+</style>
+</head>
+<body>
+
+<div class="gallery">
+
+    <div class="gallery-head">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:24px;">
+            <div>
+                <div class="eyebrow" style="margin-bottom:8px;">PROTOTYPE GALLERY · UX VALIDATION</div>
+                <h1 style="font-size:28px; font-weight:600; margin:0 0 8px; letter-spacing:-0.01em;">Market Intelligence Terminal</h1>
+                <p style="font-size:14px; color:var(--text-2); margin:0; line-height:1.5;">
+                    High-fidelity mockups · 3 tabs · dark + light theme · designed for 1440p · Bloomberg/Koyfin inspired
+                </p>
+            </div>
+            <div class="controls">
+                <button onclick="document.body.classList.toggle('theme-light'); this.textContent = document.body.classList.contains('theme-light') ? 'Dark Theme' : 'Light Theme'">Light Theme</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="gallery-grid">
+
+        <a href="overview.html" class="mockup-card" data-cat="breadth">
+            <span class="layer">Layer 1 · Tab 1</span>
+            <div class="title">Overview</div>
+            <div class="desc">
+                Executive summary · MCC + 4 score panels (Tech / Flow / Breadth / Combined) + KPI groups (Breadth · Risk · Trend) + sector heatmap + macro chart + AI summary.
+            </div>
+            <div class="meta">
+                <span>8 KPIs</span>
+                <span>4 Score Panels</span>
+                <span>11 Sectors</span>
+            </div>
+        </a>
+
+        <a href="internals.html" class="mockup-card" data-cat="momentum">
+            <span class="layer">Layer 2 · Tab 2</span>
+            <div class="title">Internals</div>
+            <div class="desc">
+                Market structure deep-dive · breadth snapshot strip (7 metrics) + 4 trend charts + 3 distribution histograms + extremes table + RSI/52W scatter map.
+            </div>
+            <div class="meta">
+                <span>7 Breadth KPIs</span>
+                <span>4 Trend Charts</span>
+                <span>3 Histograms</span>
+            </div>
+        </a>
+
+        <a href="sectors.html" class="mockup-card" data-cat="sector">
+            <span class="layer">Layer 3 · Tab 3</span>
+            <div class="title">Sectors</div>
+            <div class="desc">
+                Sector leadership · top/bottom 3 list + 11×5 heatmap matrix + rotation matrix (RVOL × performance) + RVOL bars + weekly heatmap + cumulative performance.
+            </div>
+            <div class="meta">
+                <span>11 Sectors</span>
+                <span>55 Matrix Cells</span>
+                <span>13 Weeks</span>
+            </div>
+        </a>
+
+    </div>
+
+    <div class="notes">
+        <h3>How to use</h3>
+        <ul>
+            <li>Open each mockup in a browser at 1440p (or any modern monitor — design adapts down to 1366px).</li>
+            <li>The <code>mockup-controls</code> panel at bottom-left lets you toggle: Light theme, Sidebar collapse, Rail collapse, collapsible sections.</li>
+            <li>All values are <strong>realistic sample data</strong> reflecting a "cautiously constructive" market state.</li>
+            <li>Sparklines and charts are <strong>SVG placeholders</strong> showing the design intent — not live Chart.js.</li>
+            <li>Hover on any panel/KPI to see the border/background transition. Hover on heatmap cells for scale effect.</li>
+            <li>Sidebar navigation between mockups works — click Overview / Internals / Sectors in the sidebar.</li>
+        </ul>
+    </div>
+
+    <div class="notes">
+        <h3>Visual grammar checklist</h3>
+        <ul>
+            <li><code>EYEBROW</code> · category color · uppercase 10px · +0.08em letter-spacing → above every panel title.</li>
+            <li><strong>Card structure</strong>: 2px accent top-border · eyebrow · title · subtitle · divider · body · divider · footer (1-line interpretation).</li>
+            <li><strong>Tabular numbers</strong>: JetBrains Mono with <code>font-variant-numeric: tabular-nums</code> on all metrics.</li>
+            <li><strong>State color</strong> (pos/neg/warn) decoupled from <strong>category color</strong> (breadth/momentum/risk/flow/sector/macro/historical/action).</li>
+            <li><strong>Spacing</strong>: 4px base · 16px cards · 24px between sections · 8px tight (KPI grid).</li>
+            <li><strong>Hover</strong>: 120ms ease · border darkens, optional bg shift, no shadows.</li>
+        </ul>
+    </div>
+
+    <div class="notes">
+        <h3>What to validate</h3>
+        <ul>
+            <li><strong>Density</strong>: dense but readable? Or still cramped / loose?</li>
+            <li><strong>Hierarchy</strong>: does the eye flow MCC → Score panels → KPIs → Snapshot row naturally?</li>
+            <li><strong>Category color usage</strong>: feels professional, or too subtle/too loud?</li>
+            <li><strong>1440p fit</strong>: does each tab fit without scrolling much? (Overview: yes. Internals: scattered. Sectors: scroll needed for trends.)</li>
+            <li><strong>Light theme</strong>: feels balanced, or just inverted-dark?</li>
+            <li><strong>Sidebar collapse</strong>: usable as icon-only? Or needs labels?</li>
+            <li><strong>Hebrew + LTR numbers</strong>: read naturally or feel mixed?</li>
+        </ul>
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,765 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   OVERVIEW PROD · combined visual grammar (from prototypes/shared.css +
+   v2/styles.css), scoped to .overview-prod-root to avoid clashing with
+   other dashboard tabs.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Design tokens (global :root — safe, just CSS variables) ── */
+:root {
+    --ov2-bg-0:           #0a0a0c;
+    --ov2-bg-1:           #111114;
+    --ov2-bg-2:           #16171b;
+    --ov2-bg-3:           #1b1c22;
+    --ov2-border:         #22232a;
+    --ov2-border-strong:  #2e3038;
+    --ov2-border-bright:  #3e4150;
+    --ov2-text-1:         #e8e9ec;
+    --ov2-text-2:         #8a8c93;
+    --ov2-text-3:         #5a5c66;
+
+    --ov2-pos:            #10b981;
+    --ov2-pos-bright:     #34d399;
+    --ov2-pos-bg:         rgba(16, 185, 129, 0.08);
+    --ov2-neg:            #ef4444;
+    --ov2-neg-bright:     #f87171;
+    --ov2-neg-bg:         rgba(239, 68, 68, 0.08);
+    --ov2-warn:           #f59e0b;
+    --ov2-warn-bright:    #fbbf24;
+    --ov2-warn-bg:        rgba(245, 158, 11, 0.08);
+    --ov2-neutral:        #64748b;
+
+    --ov2-cat-breadth:    #4f8af7;
+    --ov2-cat-momentum:   #10b981;
+    --ov2-cat-risk:       #ef4444;
+    --ov2-cat-flow:       #a78bfa;
+    --ov2-cat-sector:     #f59e0b;
+    --ov2-cat-macro:      #818cf8;
+    --ov2-cat-historical: #2dd4bf;
+    --ov2-cat-action:     #38bdf8;
+
+    --ov2-hm-strong-neg:  #7f1d1d;
+    --ov2-hm-neg:         #b91c1c;
+    --ov2-hm-weak-neg:    #a16207;
+    --ov2-hm-neutral:     #44403c;
+    --ov2-hm-weak-pos:    #15803d;
+    --ov2-hm-pos:         #059669;
+    --ov2-hm-strong-pos:  #047857;
+
+    --ov2-space-1: 4px;
+    --ov2-space-2: 8px;
+    --ov2-space-3: 12px;
+    --ov2-space-4: 16px;
+    --ov2-space-5: 24px;
+    --ov2-space-6: 32px;
+
+    --ov2-radius:    6px;
+    --ov2-radius-sm: 4px;
+
+    --ov2-font-ui:   'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --ov2-font-mono: 'JetBrains Mono', ui-monospace, 'Menlo', 'Consolas', monospace;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   ROOT scoping wrapper. Everything below is scoped to .overview-prod-root
+   so other tabs / global styles aren't affected.
+   ───────────────────────────────────────────────────────────────────── */
+
+.overview-prod-root {
+    font-family: var(--ov2-font-ui);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ov2-text-1);
+    direction: rtl;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+.overview-prod-root *, .overview-prod-root *::before, .overview-prod-root *::after { box-sizing: border-box; }
+.overview-prod-root button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+.overview-prod-root canvas, .overview-prod-root svg { display: block; }
+.overview-prod-root a { color: inherit; text-decoration: none; }
+
+/* ── Typography helpers ── */
+.overview-prod-root .ov2-eyebrow {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ov2-text-2);
+    line-height: 1.2;
+}
+.overview-prod-root .ov2-title-l { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
+.overview-prod-root .ov2-title-m { font-size: 14px; font-weight: 600; line-height: 1.2; }
+.overview-prod-root .ov2-title-s { font-size: 12px; font-weight: 600; line-height: 1.2; }
+.overview-prod-root .ov2-subtitle { font-size: 12px; font-weight: 400; color: var(--ov2-text-2); line-height: 1.4; }
+.overview-prod-root .ov2-num {
+    font-family: var(--ov2-font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+.overview-prod-root .ov2-muted { color: var(--ov2-text-3); }
+.overview-prod-root .ov2-pos { color: var(--ov2-pos); }
+.overview-prod-root .ov2-neg { color: var(--ov2-neg); }
+.overview-prod-root .ov2-warn { color: var(--ov2-warn); }
+
+/* ── Body layout (no full app shell — Overview lives within existing dashboard) ── */
+.overview-prod-root .ov2-strip {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius);
+    padding: 14px 20px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: var(--ov2-space-5);
+    margin-bottom: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-strip-state {
+    display: flex;
+    align-items: center;
+    gap: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-state-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ov2-warn-bright);
+    box-shadow: 0 0 0 3px var(--ov2-warn-bg);
+}
+.overview-prod-root .ov2-state-dot.ov2-pos { background: var(--ov2-pos-bright); box-shadow: 0 0 0 3px var(--ov2-pos-bg); }
+.overview-prod-root .ov2-state-dot.ov2-neg { background: var(--ov2-neg-bright); box-shadow: 0 0 0 3px var(--ov2-neg-bg); }
+
+.overview-prod-root .ov2-strip-state-label {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.overview-prod-root .ov2-strip-state-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-strip-state-score {
+    font-family: var(--ov2-font-mono);
+    font-weight: 600;
+    color: var(--ov2-warn-bright);
+    margin-right: var(--ov2-space-2);
+    font-size: 13px;
+}
+
+.overview-prod-root .ov2-strip-indices {
+    display: flex;
+    gap: var(--ov2-space-5);
+    align-items: center;
+}
+.overview-prod-root .ov2-idx {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    line-height: 1.1;
+}
+.overview-prod-root .ov2-idx-name {
+    font-size: 9px;
+    color: var(--ov2-text-3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.overview-prod-root .ov2-idx-row {
+    display: flex;
+    gap: var(--ov2-space-2);
+    align-items: baseline;
+    font-family: var(--ov2-font-mono);
+    font-variant-numeric: tabular-nums;
+}
+.overview-prod-root .ov2-idx-val { font-size: 13px; font-weight: 600; color: var(--ov2-text-1); }
+.overview-prod-root .ov2-idx-chg { font-size: 11px; font-weight: 500; }
+
+.overview-prod-root .ov2-icon-btn {
+    width: 28px; height: 28px;
+    border-radius: var(--ov2-radius);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ov2-text-2);
+    transition: background 120ms ease, color 120ms ease;
+}
+.overview-prod-root .ov2-icon-btn:hover { background: var(--ov2-bg-2); color: var(--ov2-text-1); }
+
+/* ── Body grid: main + alerts rail ── */
+.overview-prod-root .ov2-body {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: var(--ov2-space-4);
+    align-items: start;
+}
+@media (max-width: 1200px) {
+    .overview-prod-root .ov2-body { grid-template-columns: 1fr; }
+}
+
+/* ── Panel canonical ── */
+.overview-prod-root .ov2-panel {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-4);
+    position: relative;
+    transition: border-color 120ms ease;
+    margin-bottom: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-panel:hover { border-color: var(--ov2-border-strong); }
+.overview-prod-root .ov2-panel-accent {
+    position: absolute;
+    top: 0; right: 0; left: 0;
+    height: 2px;
+    border-radius: var(--ov2-radius) var(--ov2-radius) 0 0;
+    opacity: 0.7;
+    background: var(--ov2-cat-breadth);
+}
+.overview-prod-root .ov2-panel-accent.cat-momentum   { background: var(--ov2-cat-momentum); }
+.overview-prod-root .ov2-panel-accent.cat-risk       { background: var(--ov2-cat-risk); }
+.overview-prod-root .ov2-panel-accent.cat-flow       { background: var(--ov2-cat-flow); }
+.overview-prod-root .ov2-panel-accent.cat-sector     { background: var(--ov2-cat-sector); }
+.overview-prod-root .ov2-panel-accent.cat-macro      { background: var(--ov2-cat-macro); }
+.overview-prod-root .ov2-panel-accent.cat-action     { background: var(--ov2-cat-action); }
+
+.overview-prod-root .ov2-panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--ov2-space-3);
+    margin-bottom: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-panel-divider {
+    height: 1px;
+    background: var(--ov2-border);
+    margin: var(--ov2-space-3) calc(var(--ov2-space-4) * -1);
+}
+.overview-prod-root .ov2-panel-footer {
+    margin-top: var(--ov2-space-3);
+    padding-top: var(--ov2-space-3);
+    border-top: 1px solid var(--ov2-border);
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    font-style: italic;
+    line-height: 1.4;
+}
+
+/* ── MCC card ── */
+.overview-prod-root .ov2-mcc {
+    background: linear-gradient(135deg, var(--ov2-bg-1) 0%, var(--ov2-bg-2) 100%);
+    border: 1px solid var(--ov2-border-strong);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-5);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-mcc-accent {
+    position: absolute;
+    top: 0; right: 0; left: 0;
+    height: 3px;
+    background: var(--ov2-cat-breadth);
+    transition: background 200ms;
+}
+
+.overview-prod-root .ov2-mcc-phase-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--ov2-space-3);
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+}
+.overview-prod-root .ov2-mcc-glyph {
+    font-size: 26px;
+    line-height: 1;
+    font-family: var(--ov2-font-mono);
+    font-weight: 700;
+    color: var(--ov2-warn-bright);
+    transition: color 200ms;
+}
+.overview-prod-root .ov2-mcc-phase-label {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--ov2-text-1);
+    text-transform: uppercase;
+}
+.overview-prod-root .ov2-mcc-phase-label-he {
+    font-size: 13px;
+    color: var(--ov2-text-2);
+    font-weight: 500;
+}
+.overview-prod-root .ov2-mcc-duration-row {
+    display: flex;
+    gap: var(--ov2-space-3);
+    align-items: baseline;
+    margin-bottom: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-mcc-duration {
+    font-size: 12px;
+    font-family: var(--ov2-font-mono);
+    color: var(--ov2-text-1);
+    font-weight: 600;
+    background: var(--ov2-bg-3);
+    padding: 3px 10px;
+    border-radius: 4px;
+}
+.overview-prod-root .ov2-mcc-entered {
+    font-size: 11px;
+    color: var(--ov2-text-3);
+}
+.overview-prod-root .ov2-mcc-narrative {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ov2-text-1);
+    background: var(--ov2-bg-2);
+    padding: var(--ov2-space-3) var(--ov2-space-4);
+    border-radius: var(--ov2-radius);
+    border-right: 3px solid var(--ov2-cat-breadth);
+    margin-bottom: var(--ov2-space-4);
+    font-weight: 500;
+}
+
+.overview-prod-root .ov2-mcc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--ov2-space-5);
+    position: relative;
+    margin-bottom: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-mcc-block-state,
+.overview-prod-root .ov2-mcc-block-score,
+.overview-prod-root .ov2-mcc-block-meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ov2-space-2);
+}
+.overview-prod-root .ov2-mcc-score-top {
+    display: flex;
+    align-items: baseline;
+    gap: var(--ov2-space-2);
+    margin-bottom: var(--ov2-space-2);
+}
+.overview-prod-root .ov2-mcc-score-val {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    font-family: var(--ov2-font-mono);
+    line-height: 1;
+}
+.overview-prod-root .ov2-mcc-score-max {
+    font-size: 16px;
+    font-family: var(--ov2-font-mono);
+    color: var(--ov2-text-3);
+}
+.overview-prod-root .ov2-mcc-bar {
+    height: 6px;
+    background: var(--ov2-bg-3);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.overview-prod-root .ov2-mcc-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--ov2-neg) 0%, var(--ov2-warn) 50%, var(--ov2-pos) 100%);
+    border-radius: 3px;
+    transition: width 400ms;
+}
+.overview-prod-root .ov2-mcc-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--ov2-space-2) 0;
+    border-bottom: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-mcc-meta-row:last-child { border-bottom: none; }
+.overview-prod-root .ov2-mcc-meta-label {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.overview-prod-root .ov2-mcc-meta-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-mcc-conf-bar {
+    height: 4px;
+    background: var(--ov2-bg-3);
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+}
+.overview-prod-root .ov2-mcc-conf-bar-fill {
+    height: 100%;
+    background: var(--ov2-warn);
+    border-radius: 2px;
+    transition: width 400ms, background 200ms;
+}
+
+.overview-prod-root .ov2-mcc-drivers {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: var(--ov2-space-3);
+    padding: var(--ov2-space-3) 0;
+    border-top: 1px solid var(--ov2-border);
+    position: relative;
+}
+.overview-prod-root .ov2-driver {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.overview-prod-root .ov2-driver-lbl {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.overview-prod-root .ov2-driver-val {
+    font-family: var(--ov2-font-mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ov2-text-1);
+}
+
+.overview-prod-root .ov2-mcc-chips {
+    display: flex;
+    gap: var(--ov2-space-2);
+    flex-wrap: wrap;
+    margin-top: var(--ov2-space-3);
+    padding-top: var(--ov2-space-3);
+    border-top: 1px solid var(--ov2-border);
+    position: relative;
+}
+
+/* ── Chips ── */
+.overview-prod-root .ov2-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ov2-space-2);
+    padding: 4px 10px;
+    background: var(--ov2-bg-3);
+    border: 1px solid var(--ov2-border);
+    border-radius: 999px;
+    font-size: 11px;
+    color: var(--ov2-text-2);
+    font-weight: 500;
+}
+.overview-prod-root .ov2-chip-state {
+    background: var(--ov2-bg-3);
+    border: 1px solid var(--ov2-border);
+    color: var(--ov2-text-1);
+    font-weight: 600;
+}
+.overview-prod-root .ov2-chip-state::before {
+    content: '● ';
+    margin-left: 2px;
+    opacity: 0.7;
+}
+.overview-prod-root .ov2-chip-transition {
+    background: var(--ov2-bg-3);
+    border: 1px dashed var(--ov2-border-bright);
+    color: var(--ov2-text-1);
+    font-weight: 500;
+}
+.overview-prod-root .ov2-chip-warning {
+    background: var(--ov2-warn-bg);
+    border: 1px solid var(--ov2-warn);
+    color: var(--ov2-warn-bright);
+    font-weight: 600;
+}
+.overview-prod-root .ov2-chip-confirmation {
+    background: var(--ov2-pos-bg);
+    border: 1px solid var(--ov2-pos);
+    color: var(--ov2-pos-bright);
+    font-weight: 600;
+}
+.overview-prod-root .ov2-chip-cat-breadth    { box-shadow: inset 3px 0 0 var(--ov2-cat-breadth); }
+.overview-prod-root .ov2-chip-cat-momentum   { box-shadow: inset 3px 0 0 var(--ov2-cat-momentum); }
+.overview-prod-root .ov2-chip-cat-risk       { box-shadow: inset 3px 0 0 var(--ov2-cat-risk); }
+.overview-prod-root .ov2-chip-cat-flow       { box-shadow: inset 3px 0 0 var(--ov2-cat-flow); }
+.overview-prod-root .ov2-chip-cat-sector     { box-shadow: inset 3px 0 0 var(--ov2-cat-sector); }
+.overview-prod-root .ov2-chip-cat-action     { box-shadow: inset 3px 0 0 var(--ov2-cat-action); }
+
+/* ── KPI groups ── */
+.overview-prod-root .ov2-kpi-groups {
+    display: grid;
+    grid-template-columns: 3fr 2fr 3fr;
+    gap: var(--ov2-space-4);
+    margin-bottom: var(--ov2-space-4);
+}
+@media (max-width: 1000px) {
+    .overview-prod-root .ov2-kpi-groups { grid-template-columns: 1fr; }
+}
+.overview-prod-root .ov2-kpi-group { display: flex; flex-direction: column; gap: var(--ov2-space-2); }
+.overview-prod-root .ov2-kpi-group-head {
+    display: flex;
+    align-items: center;
+    gap: var(--ov2-space-2);
+    padding: 0 var(--ov2-space-1);
+}
+.overview-prod-root .ov2-kpi-group-tag {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ov2-text-2);
+    padding: 2px 8px;
+    background: var(--ov2-bg-2);
+    border-radius: 3px;
+    border-right: 2px solid var(--ov2-cat-breadth);
+}
+.overview-prod-root .ov2-kpi-group[data-cat="risk"] .ov2-kpi-group-tag { border-right-color: var(--ov2-cat-risk); }
+.overview-prod-root .ov2-kpi-group[data-cat="trend"] .ov2-kpi-group-tag { border-right-color: var(--ov2-cat-momentum); }
+.overview-prod-root .ov2-kpi-group-line {
+    flex: 1;
+    height: 1px;
+    background: var(--ov2-border);
+}
+.overview-prod-root .ov2-kpi-cards { display: grid; gap: var(--ov2-space-2); }
+.overview-prod-root .ov2-kpi-group:nth-child(1) .ov2-kpi-cards { grid-template-columns: 1fr 1fr 1fr; }
+.overview-prod-root .ov2-kpi-group:nth-child(2) .ov2-kpi-cards { grid-template-columns: 1fr 1fr; }
+.overview-prod-root .ov2-kpi-group:nth-child(3) .ov2-kpi-cards { grid-template-columns: 1fr 1fr 1fr; }
+.overview-prod-root .ov2-kpi {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-3);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: border-color 120ms ease, background 120ms ease;
+    cursor: default;
+    min-height: 108px;
+}
+.overview-prod-root .ov2-kpi:hover { border-color: var(--ov2-border-strong); background: var(--ov2-bg-2); }
+.overview-prod-root .ov2-kpi-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--ov2-text-3);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.overview-prod-root .ov2-kpi-value {
+    font-family: var(--ov2-font-mono);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--ov2-text-1);
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+}
+.overview-prod-root .ov2-kpi-delta {
+    font-family: var(--ov2-font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ov2-text-2);
+}
+.overview-prod-root .ov2-kpi-delta.ov2-pos { color: var(--ov2-pos); }
+.overview-prod-root .ov2-kpi-delta.ov2-neg { color: var(--ov2-neg); }
+.overview-prod-root .ov2-kpi-delta.ov2-warn { color: var(--ov2-warn); }
+.overview-prod-root .ov2-kpi-value.ov2-pos { color: var(--ov2-pos); }
+.overview-prod-root .ov2-kpi-value.ov2-neg { color: var(--ov2-neg); }
+.overview-prod-root .ov2-kpi-value.ov2-warn { color: var(--ov2-warn); }
+
+/* ── Sector heatmap compact ── */
+.overview-prod-root .ov2-heatmap-compact {
+    display: grid;
+    grid-template-columns: repeat(11, 1fr);
+    gap: 2px;
+}
+.overview-prod-root .ov2-hm-cell {
+    aspect-ratio: 1 / 0.65;
+    min-height: 56px;
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    font-family: var(--ov2-font-mono);
+    font-variant-numeric: tabular-nums;
+    transition: transform 120ms;
+    cursor: pointer;
+    color: #fff;
+}
+.overview-prod-root .ov2-hm-cell:hover {
+    transform: scale(1.05);
+    z-index: 5;
+    box-shadow: 0 0 0 2px var(--ov2-border-bright);
+}
+.overview-prod-root .ov2-hm-sym { font-size: 10px; font-weight: 600; opacity: 0.85; letter-spacing: 0.04em; text-transform: uppercase; }
+.overview-prod-root .ov2-hm-val { font-size: 13px; font-weight: 700; margin-top: 2px; }
+.overview-prod-root .ov2-hm-bg-strong-neg { background: var(--ov2-hm-strong-neg); }
+.overview-prod-root .ov2-hm-bg-neg        { background: var(--ov2-hm-neg); }
+.overview-prod-root .ov2-hm-bg-weak-neg   { background: var(--ov2-hm-weak-neg); }
+.overview-prod-root .ov2-hm-bg-neutral    { background: var(--ov2-hm-neutral); color: var(--ov2-text-2); }
+.overview-prod-root .ov2-hm-bg-weak-pos   { background: var(--ov2-hm-weak-pos); }
+.overview-prod-root .ov2-hm-bg-pos        { background: var(--ov2-hm-pos); }
+.overview-prod-root .ov2-hm-bg-strong-pos { background: var(--ov2-hm-strong-pos); }
+
+/* ── Status pills ── */
+.overview-prod-root .ov2-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-family: var(--ov2-font-mono);
+}
+.overview-prod-root .ov2-pill.ov2-pos  { background: var(--ov2-pos-bg);  color: var(--ov2-pos-bright); }
+.overview-prod-root .ov2-pill.ov2-neg  { background: var(--ov2-neg-bg);  color: var(--ov2-neg-bright); }
+.overview-prod-root .ov2-pill.ov2-warn { background: var(--ov2-warn-bg); color: var(--ov2-warn-bright); }
+
+/* ── Alerts rail (right side) ── */
+.overview-prod-root .ov2-rail {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-4);
+    position: sticky;
+    top: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-rail-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-rail-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ov2-text-2);
+}
+.overview-prod-root .ov2-rail-count {
+    font-family: var(--ov2-font-mono);
+    font-size: 11px;
+    color: var(--ov2-text-1);
+    background: var(--ov2-bg-3);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.overview-prod-root .ov2-alert {
+    background: var(--ov2-bg-2);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-3);
+    border-right: 3px solid var(--ov2-warn);
+    margin-bottom: var(--ov2-space-2);
+    transition: border-color 120ms, background 120ms;
+}
+.overview-prod-root .ov2-alert:hover { background: var(--ov2-bg-3); }
+.overview-prod-root .ov2-alert.ov2-severity-warn { border-right-color: var(--ov2-warn); }
+.overview-prod-root .ov2-alert.ov2-severity-pos  { border-right-color: var(--ov2-pos); }
+.overview-prod-root .ov2-alert.ov2-severity-neg  { border-right-color: var(--ov2-neg); }
+.overview-prod-root .ov2-alert.ov2-severity-info { border-right-color: var(--ov2-cat-action); }
+.overview-prod-root .ov2-alert-head {
+    display: flex;
+    align-items: center;
+    gap: var(--ov2-space-2);
+    margin-bottom: 4px;
+}
+.overview-prod-root .ov2-alert-icon {
+    font-size: 11px;
+    color: var(--ov2-warn);
+    font-family: var(--ov2-font-mono);
+    width: 12px;
+    text-align: center;
+}
+.overview-prod-root .ov2-alert.ov2-severity-pos .ov2-alert-icon { color: var(--ov2-pos); }
+.overview-prod-root .ov2-alert.ov2-severity-neg .ov2-alert-icon { color: var(--ov2-neg); }
+.overview-prod-root .ov2-alert.ov2-severity-info .ov2-alert-icon { color: var(--ov2-cat-action); }
+.overview-prod-root .ov2-alert-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ov2-text-2);
+}
+.overview-prod-root .ov2-alert-body {
+    font-size: 13px;
+    color: var(--ov2-text-1);
+    line-height: 1.4;
+    margin-bottom: var(--ov2-space-2);
+}
+.overview-prod-root .ov2-alert-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--ov2-text-3);
+}
+
+/* ── Collapsible ── */
+.overview-prod-root .ov2-collapsible {
+    margin-bottom: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-collapsible-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: var(--ov2-space-3);
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius);
+    transition: border-color 120ms, background 120ms;
+}
+.overview-prod-root .ov2-collapsible-head:hover { border-color: var(--ov2-border-strong); background: var(--ov2-bg-2); }
+.overview-prod-root .ov2-collapsible-head-text { display: flex; flex-direction: column; gap: 2px; }
+.overview-prod-root .ov2-collapsible-chev {
+    color: var(--ov2-text-2);
+    font-family: var(--ov2-font-mono);
+    transition: transform 200ms;
+}
+.overview-prod-root .ov2-collapsible.open .ov2-collapsible-chev { transform: rotate(180deg); }
+.overview-prod-root .ov2-collapsible-body {
+    display: none;
+    padding-top: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-collapsible.open .ov2-collapsible-body { display: block; }
+
+/* ── Loading state ── */
+.overview-prod-root .ov2-loading {
+    padding: var(--ov2-space-6) var(--ov2-space-5);
+    text-align: center;
+    color: var(--ov2-text-2);
+}
+.overview-prod-root .ov2-loading-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--ov2-cat-action);
+    margin: 0 3px;
+    animation: ov2-pulse 1.2s ease-in-out infinite;
+}
+.overview-prod-root .ov2-loading-dot:nth-child(2) { animation-delay: 0.15s; }
+.overview-prod-root .ov2-loading-dot:nth-child(3) { animation-delay: 0.30s; }
+@keyframes ov2-pulse {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40%           { transform: scale(1);   opacity: 1;   }
+}
+
+/* ── Error panel ── */
+.overview-prod-root .ov2-error-panel {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-neg);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-4);
+    margin: var(--ov2-space-5) auto;
+    max-width: 600px;
+}
+.overview-prod-root .ov2-error-panel pre {
+    background: var(--ov2-bg-2);
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    overflow: auto;
+    color: var(--ov2-text-2);
+}

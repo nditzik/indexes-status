@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>Overview V2 · Market Intelligence Terminal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../prototypes/shared.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- ═══════════ EXECUTIVE STRIP ═══════════ -->
+  <header class="strip">
+    <div class="strip-state">
+      <span class="state-dot" id="stateDot"></span>
+      <div>
+        <div class="strip-state-label">Market State</div>
+        <div>
+          <span class="strip-state-value" id="stateName">—</span>
+          <span class="strip-state-score num" id="stateScore">—</span><span class="num" style="color:var(--text-3); font-size:11px">/100</span>
+        </div>
+      </div>
+      <div style="margin-right:var(--space-5); font-size:11px; color:var(--text-3); border-right:1px solid var(--border); padding-right:var(--space-5);">
+        <div style="text-transform:uppercase; letter-spacing:0.08em; margin-bottom:2px;">DATA</div>
+        <div class="num" id="dataDate" style="font-size:13px; color:var(--text-1); font-weight:600;">—</div>
+      </div>
+    </div>
+    <div class="strip-indices">
+      <div class="idx"><span class="idx-name">SPX</span><div class="idx-row"><span class="idx-val" id="idxSpxVal">—</span><span class="idx-chg" id="idxSpxChg">—</span></div></div>
+      <div class="idx"><span class="idx-name">VIX</span><div class="idx-row"><span class="idx-val" id="idxVixVal">—</span><span class="idx-chg" id="idxVixChg">—</span></div></div>
+      <div class="idx"><span class="idx-name">DXY</span><div class="idx-row"><span class="idx-val" id="idxDxyVal">—</span><span class="idx-chg muted">─</span></div></div>
+      <div class="idx"><span class="idx-name">10Y</span><div class="idx-row"><span class="idx-val" id="idxTnxVal">—</span><span class="idx-chg muted">─</span></div></div>
+      <button class="icon-btn" onclick="location.reload()" title="Refresh">⟲</button>
+    </div>
+  </header>
+
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-mark">M</div>
+      <span>MARKET INTEL <span style="color:var(--cat-action); font-weight:400; font-size:10px;">v2</span></span>
+    </div>
+    <a class="nav-item active" data-cat="breadth">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="5" height="5"/><rect x="9" y="2" width="5" height="5"/><rect x="2" y="9" width="5" height="5"/><rect x="9" y="9" width="5" height="5"/></svg>
+      <span>Overview</span>
+    </a>
+    <a class="nav-item" data-cat="momentum" style="opacity:0.4; pointer-events:none;">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12 L5 9 L8 11 L14 4"/><circle cx="14" cy="4" r="1.5"/></svg>
+      <span>Internals <span style="font-size:9px; color:var(--text-3);">soon</span></span>
+    </a>
+    <a class="nav-item" data-cat="sector" style="opacity:0.4; pointer-events:none;">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="M8 2 L8 14 M2 8 L14 8 M3.5 3.5 L12.5 12.5"/></svg>
+      <span>Sectors <span style="font-size:9px; color:var(--text-3);">soon</span></span>
+    </a>
+    <a class="nav-item" data-cat="opportunity" style="opacity:0.4; pointer-events:none;">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="4" width="12" height="9"/><path d="M5 8 L7 10 L11 6"/></svg>
+      <span>Stocks <span style="font-size:9px; color:var(--text-3);">soon</span></span>
+    </a>
+    <a class="nav-item" data-cat="historical" style="opacity:0.4; pointer-events:none;">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="M8 4 L8 8 L11 10"/></svg>
+      <span>History <span style="font-size:9px; color:var(--text-3);">soon</span></span>
+    </a>
+
+    <div class="sidebar-status">
+      <span class="status-dot"></span>
+      <span>Live data</span>
+    </div>
+
+    <div class="sidebar-footer">
+      <a class="icon-btn" href="../" title="Back to legacy dashboard">⬅</a>
+      <button class="icon-btn" onclick="document.body.classList.toggle('theme-light')" title="Theme">☼</button>
+      <button class="icon-btn" id="sidebarToggleBtn" onclick="document.getElementById('app').classList.toggle('sidebar-collapsed')" title="Collapse">«</button>
+    </div>
+  </aside>
+
+  <!-- ═══════════ MAIN CONTENT ═══════════ -->
+  <main class="main" id="main">
+
+    <!-- Loading indicator -->
+    <div id="loading" class="v2-loading">
+      <div class="v2-loading-dot"></div>
+      <div class="v2-loading-dot"></div>
+      <div class="v2-loading-dot"></div>
+      <div style="margin-top:var(--space-3); font-size:12px; color:var(--text-3); letter-spacing:0.08em; text-transform:uppercase;">Loading market data</div>
+    </div>
+
+    <!-- ═══ MCC CARD (REGIME-AWARE) ═══ -->
+    <div class="mcc grid-row" id="mcc">
+      <div class="mcc-accent" id="mccPhaseAccent"></div>
+
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:var(--space-4); position:relative; gap:var(--space-4);">
+        <div style="min-width:0;">
+          <div class="eyebrow" style="color:var(--cat-breadth); margin-bottom:4px;">MARKET CONTROL CENTER · REGIME</div>
+          <div class="mcc-phase-row">
+            <span class="mcc-glyph" id="mccGlyph">—</span>
+            <span class="mcc-phase-label" id="mccPhaseLabel">—</span>
+            <span class="mcc-phase-label-he" id="mccPhaseLabelHe">—</span>
+          </div>
+          <div class="mcc-duration-row">
+            <span class="mcc-duration" id="mccDuration">—</span>
+            <span class="mcc-entered" id="mccEntered">—</span>
+          </div>
+        </div>
+        <div class="panel-actions">
+          <button class="icon-btn" title="Definitions" onclick="alert('Phase taxonomy: ❶ Confirmed Uptrend · ❷ Under Pressure · ❸ Distribution · ❹ Correction · ❺ Capitulation · ❻ Base Building · ❼ Thrust')">?</button>
+        </div>
+      </div>
+
+      <div class="mcc-narrative" id="mccNarrative">—</div>
+
+      <div class="mcc-grid">
+        <div class="mcc-block-state">
+          <div style="display:flex; align-items:center; gap:var(--space-3); margin-bottom:var(--space-2);">
+            <div>
+              <div class="mcc-meta-label" style="margin-bottom:4px;">Risk Level</div>
+              <div class="mcc-meta-value" id="mccRisk">—</div>
+            </div>
+            <div style="flex:1;">
+              <div class="mcc-meta-label" style="margin-bottom:4px;">Position Bias</div>
+              <div class="mcc-meta-value" id="mccBias">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="mcc-block-score">
+          <div class="mcc-score-top">
+            <span class="mcc-score-val" id="mccScoreVal">—</span>
+            <span class="mcc-score-max">/100</span>
+            <span style="margin-right:auto; font-size:10px; color:var(--text-3); letter-spacing:0.08em; text-transform:uppercase;">Combined Score</span>
+          </div>
+          <div class="mcc-bar"><div class="mcc-bar-fill" id="mccBarFill" style="width:0%"></div></div>
+        </div>
+        <div class="mcc-block-meta">
+          <div class="mcc-meta-row">
+            <span class="mcc-meta-label">Phase Confidence</span>
+            <span class="mcc-meta-value num" id="mccConfVal">—</span>
+          </div>
+          <div class="mcc-conf-bar"><div class="mcc-conf-bar-fill" id="mccConfBar" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <div class="mcc-drivers">
+        <div class="driver"><span class="driver-lbl">NH/NL</span><span class="driver-val" id="drvNhnl">—</span></div>
+        <div class="driver"><span class="driver-lbl">% MA200</span><span class="driver-val" id="drvMa200">—</span></div>
+        <div class="driver"><span class="driver-lbl">VIX</span><span class="driver-val" id="drvVix">—</span></div>
+        <div class="driver"><span class="driver-lbl">Distribution</span><span class="driver-val" id="drvDist">—</span></div>
+        <div class="driver"><span class="driver-lbl">Breadth</span><span class="driver-val" id="drvBreadth">—</span></div>
+        <div class="driver"><span class="driver-lbl">Combined</span><span class="driver-val" id="drvCombined">—</span></div>
+      </div>
+
+      <div class="mcc-chips" id="mccChips"></div>
+    </div>
+
+    <!-- ═══ KPI GROUPS ═══ -->
+    <div class="kpi-groups grid-row">
+
+      <div class="kpi-group" data-cat="breadth">
+        <div class="kpi-group-head">
+          <div class="kpi-group-tag">Breadth</div>
+          <div class="kpi-group-line"></div>
+        </div>
+        <div class="kpi-cards">
+          <div class="kpi">
+            <div class="kpi-label">% Above MA200</div>
+            <div class="kpi-value" id="kpiP200Val">—</div>
+            <div class="kpi-delta" id="kpiP200Delta">—</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">NH / NL Ratio</div>
+            <div class="kpi-value" id="kpiNhNlVal">—</div>
+            <div class="kpi-delta" id="kpiNhNlDelta">—</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Avg Daily Change</div>
+            <div class="kpi-value" id="kpiAvgChgVal">—</div>
+            <div class="kpi-delta" id="kpiAvgChgDelta">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-group" data-cat="risk">
+        <div class="kpi-group-head">
+          <div class="kpi-group-tag">Risk</div>
+          <div class="kpi-group-line"></div>
+        </div>
+        <div class="kpi-cards">
+          <div class="kpi">
+            <div class="kpi-label">VIX</div>
+            <div class="kpi-value" id="kpiVixVal">—</div>
+            <div class="kpi-delta" id="kpiVixDelta">—</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Distribution Days</div>
+            <div class="kpi-value" id="kpiDistVal">—</div>
+            <div class="kpi-delta" id="kpiDistDelta">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-group" data-cat="trend">
+        <div class="kpi-group-head">
+          <div class="kpi-group-tag">Trend</div>
+          <div class="kpi-group-line"></div>
+        </div>
+        <div class="kpi-cards">
+          <div class="kpi">
+            <div class="kpi-label">Health Score</div>
+            <div class="kpi-value" id="kpiHealthVal">—</div>
+            <div class="kpi-delta" id="kpiHealthDelta">—</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">RSI Thrust</div>
+            <div class="kpi-value" id="kpiThrustVal">—</div>
+            <div class="kpi-delta" id="kpiThrustDelta">—</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Combined Signal</div>
+            <div class="kpi-value" id="kpiCombinedVal">—</div>
+            <div class="kpi-delta" id="kpiCombinedDelta">—</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══ COMPACT SECTOR SNAPSHOT ═══ -->
+    <div class="panel grid-row">
+      <div class="panel-accent cat-sector"></div>
+      <div class="panel-head">
+        <div class="panel-head-text">
+          <div class="eyebrow" style="color:var(--cat-sector); margin-bottom:4px;">SECTOR SNAPSHOT</div>
+          <div class="title-m">מפת חום סקטוריאלית — היום</div>
+          <div class="subtitle">11 סקטורי S&amp;P 500 · שינוי יומי ממוצע (sorted)</div>
+        </div>
+      </div>
+      <div class="panel-divider"></div>
+
+      <div class="heatmap-compact" id="sectorHeatmap">
+        <!-- populated by JS -->
+      </div>
+
+      <div style="display:flex; gap:var(--space-4); margin-top:var(--space-3); flex-wrap:wrap; font-size:11px; color:var(--text-2);">
+        <div>
+          <span style="color:var(--text-3); font-size:10px; text-transform:uppercase; letter-spacing:0.08em;">Best</span>
+          <div class="num" id="sectorBest" style="color:var(--text-1); font-weight:600;">—</div>
+        </div>
+        <div>
+          <span style="color:var(--text-3); font-size:10px; text-transform:uppercase; letter-spacing:0.08em;">Worst</span>
+          <div class="num" id="sectorWorst" style="color:var(--text-1); font-weight:600;">—</div>
+        </div>
+        <div>
+          <span style="color:var(--text-3); font-size:10px; text-transform:uppercase; letter-spacing:0.08em;">Dispersion (today)</span>
+          <div class="num" id="sectorDispersion" style="color:var(--text-1); font-weight:600;">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ AI SUMMARY (collapsed shell — V1 placeholder) ═══ -->
+    <div class="collapsible grid-row" id="aiCollapsible">
+      <div class="collapsible-head" onclick="this.parentElement.classList.toggle('open')">
+        <div class="collapsible-head-text">
+          <div class="eyebrow" style="color:var(--cat-action)">AI DAILY SUMMARY</div>
+          <div class="title-s" style="font-weight:500; color:var(--text-1)">סיכום שוק יומי (V1 placeholder — generator יתווסף בגרסה הבאה)</div>
+        </div>
+        <span class="collapsible-chev">▼</span>
+      </div>
+      <div class="collapsible-body">
+        <div class="panel" style="background:var(--bg-2);">
+          <div class="eyebrow" style="color:var(--text-3); margin-bottom:8px;">PLACEHOLDER</div>
+          <div style="font-size:13px; line-height:1.7; color:var(--text-2);">
+            <p style="margin-top:0">סיכום AI ייצור על-בסיס המטריקות שמופיעות למעלה כשהקומפוננטה תוטמע. כרגע ה-narrative היומי מסתמך על:</p>
+            <ul style="padding-right:20px;">
+              <li>Phase classification (rule-based)</li>
+              <li>Narrative chips (deterministic triggers)</li>
+              <li>Phase confidence + reasons</li>
+            </ul>
+            <p>הגרסה הבאה תוסיף גם narrative טקסטואלי שמורכב מאותן רגלים, או חיבור ל-Groq AI שניתן להפעיל ידנית.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- v2 watermark -->
+    <div style="text-align:center; margin-top:var(--space-5); padding-top:var(--space-4); border-top:1px solid var(--border); font-size:10px; color:var(--text-3); letter-spacing:0.08em; text-transform:uppercase;">
+      Overview V2 · Working Prototype · Regime Engine <span id="regimeVersion">—</span>
+    </div>
+
+  </main>
+
+  <!-- ═══════════ RIGHT RAIL (CONTEXTUAL — DRIVEN BY CHIPS) ═══════════ -->
+  <aside class="rail">
+    <div class="rail-head">
+      <div class="rail-title">Contextual Alerts</div>
+      <div style="display:flex; gap:var(--space-2); align-items:center;">
+        <span class="rail-count" id="railCount">0</span>
+        <button class="icon-btn" id="railToggleBtn" onclick="document.getElementById('app').classList.toggle('rail-collapsed')" title="Collapse">»</button>
+      </div>
+    </div>
+    <div id="railContent">
+      <!-- populated by JS -->
+    </div>
+    <div style="margin-top:var(--space-4); padding-top:var(--space-3); border-top:1px solid var(--border); font-size:10px; color:var(--text-3); letter-spacing:0.04em;">
+      Alerts auto-generated from <strong style="color:var(--text-2);">chip rules</strong>. Sorted by priority. Hover items for trigger details.
+    </div>
+  </aside>
+
+</div>
+
+<script src="regime.js"></script>
+<script src="overview.js"></script>
+<script>
+window.addEventListener('load', () => {
+    if (window.Regime) document.getElementById('regimeVersion').textContent = window.Regime.VERSION;
+});
+</script>
+
+</body>
+</html>
