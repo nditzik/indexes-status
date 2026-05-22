@@ -1241,42 +1241,72 @@ function renderFlowCard(metrics) {
     const cAskTr = raw.callAskPct;
     const pAskTr = raw.putAskPct;
 
+    let headline = '', meaning = '', evidence = '';
     if (cAskPm == null || pAskPm == null) {
-        aggInterpretation = 'אין מספיק עסקאות directional לקריאה ברורה';
+        headline = 'אין מספיק עסקאות directional לקריאה ברורה';
     } else {
         const cHigh = cAskPm >= 60, cLow = cAskPm <= 40;
         const pHigh = pAskPm >= 60, pLow = pAskPm <= 40;
+        const cBidPm = 100 - cAskPm;
+        const pBidPm = 100 - pAskPm;
 
         if (cHigh && pLow) {
-            aggInterpretation = `אגרסיביות שורית חזקה — קונים calls (Ask ${Math.round(cAskPm)}% פרמיה) וכותבים puts (Bid ${Math.round(100-pAskPm)}% פרמיה)`;
+            headline = '📈 שורי חזק';
+            meaning = 'הכסף הגדול קונה calls וכותב puts — מהמרים על עלייה';
+            evidence = `Ask ${Math.round(cAskPm)}% פרמיה ב-calls · Bid ${Math.round(pBidPm)}% פרמיה ב-puts`;
         } else if (cLow && pHigh) {
-            aggInterpretation = `אגרסיביות הגנתית/דובית — כותבים calls (Bid ${Math.round(100-cAskPm)}%) וקונים puts (Ask ${Math.round(pAskPm)}%) · hedge demand`;
+            headline = '📉 הגנתי / דובי';
+            meaning = 'הכסף הגדול כותב calls וקונה puts — נערכים לירידה או הגנה';
+            evidence = `Bid ${Math.round(cBidPm)}% פרמיה ב-calls · Ask ${Math.round(pAskPm)}% פרמיה ב-puts`;
         } else if (cLow && pLow) {
-            aggInterpretation = `Short Volatility — מוסדיים מוכרים פרמיה בשני הצדדים (calls Bid ${Math.round(100-cAskPm)}% פרמיה · puts Bid ${Math.round(100-pAskPm)}%) · הימור על שוק טווח / low vol`;
+            headline = '⚖️ Short Volatility — הימור על שוק טווח';
+            meaning = 'הכסף הגדול מוכר פרמיה בשני הצדדים — לא מהמרים על כיוון, מהמרים שלא תהיה תנודה';
+            evidence = `Bid ${Math.round(cBidPm)}% פרמיה ב-calls · Bid ${Math.round(pBidPm)}% פרמיה ב-puts`;
         } else if (cHigh && pHigh) {
-            aggInterpretation = `Long Volatility — קונים פרמיה בשני הצדדים (calls Ask ${Math.round(cAskPm)}% · puts Ask ${Math.round(pAskPm)}%) · צופים תנודה חזקה ללא כיוון ידוע`;
+            headline = '⚡ Long Volatility — צופים תנודה חזקה';
+            meaning = 'הכסף הגדול קונה פרמיה בשני הצדדים — מצפים לזעזוע (כיוון לא ידוע)';
+            evidence = `Ask ${Math.round(cAskPm)}% פרמיה ב-calls · Ask ${Math.round(pAskPm)}% פרמיה ב-puts`;
         } else if (cAskPm >= 55) {
-            aggInterpretation = `אגרסיביות שורית מתונה — calls Ask ${Math.round(cAskPm)}% פרמיה · puts מאוזן (${Math.round(pAskPm)}%)`;
+            headline = '📈 שורי מתון';
+            meaning = 'נטייה לקנייה ב-calls. puts מאוזנים';
+            evidence = `calls Ask ${Math.round(cAskPm)}% · puts ${Math.round(pAskPm)}%`;
         } else if (cAskPm <= 45) {
-            aggInterpretation = `מוטה למכירת calls — calls Bid ${Math.round(100-cAskPm)}% פרמיה (puts ${Math.round(pAskPm)}%)`;
+            headline = '🔻 מטה למכירת calls';
+            meaning = 'הכסף הגדול כותב calls — סימן ל-cap על העלייה';
+            evidence = `calls Bid ${Math.round(cBidPm)}% פרמיה · puts ${Math.round(pAskPm)}%`;
         } else if (pAskPm >= 55) {
-            aggInterpretation = `דרישת הגנה ב-puts — Ask ${Math.round(pAskPm)}% פרמיה (calls מאוזן)`;
+            headline = '🛡 דרישת הגנה';
+            meaning = 'הכסף הגדול קונה puts. calls מאוזנים';
+            evidence = `puts Ask ${Math.round(pAskPm)}% · calls ${Math.round(cAskPm)}%`;
         } else if (pAskPm <= 45) {
-            aggInterpretation = `כותבי puts אקטיביים — Bid ${Math.round(100-pAskPm)}% פרמיה · אופטימי שקט (calls מאוזן)`;
+            headline = '📈 כותבי puts פעילים';
+            meaning = 'הכסף הגדול כותב puts — אופטימיות שקטה (סימן ל"השוק לא יירד")';
+            evidence = `puts Bid ${Math.round(pBidPm)}% פרמיה · calls ${Math.round(cAskPm)}%`;
         } else {
-            aggInterpretation = `מאוזן · calls Ask ${Math.round(cAskPm)}% פרמיה · puts Ask ${Math.round(pAskPm)}% פרמיה`;
+            headline = '🔄 מאוזן';
+            meaning = 'אין דומיננטיות ברורה';
+            evidence = `calls Ask ${Math.round(cAskPm)}% · puts Ask ${Math.round(pAskPm)}% פרמיה`;
         }
     }
 
     // Divergence notes — when trade-count signal ≠ premium signal (BIG money differs from crowd)
+    const divergences = [];
     if (cAskTr != null && cAskPm != null && Math.abs(cAskPm - cAskTr) >= 15) {
-        aggInterpretation += ` · ⓘ פער עסקאות↔פרמיה בקאלים (${Math.round(cAskTr)}% ↔ ${Math.round(cAskPm)}%) — הכסף הגדול שונה מהקהל`;
+        divergences.push(`<b>בקאלים:</b> ${Math.round(cAskTr)}% מהעסקאות ב-Ask, אבל רק ${Math.round(cAskPm)}% מהפרמיה — <b>הכסף הגדול שונה מהקהל</b>`);
     }
     if (pAskTr != null && pAskPm != null && Math.abs(pAskPm - pAskTr) >= 15) {
-        aggInterpretation += ` · ⓘ פער ב-puts (${Math.round(pAskTr)}% ↔ ${Math.round(pAskPm)}%)`;
+        divergences.push(`<b>ב-puts:</b> ${Math.round(pAskTr)}% עסקאות ↔ ${Math.round(pAskPm)}% פרמיה`);
     }
 
-    setEl('flowAggInterp', aggInterpretation);
+    // Render as structured multi-line HTML
+    const interpHtml = `
+        <div class="ov2-flow-agg-headline">${headline}</div>
+        <div class="ov2-flow-agg-meaning">${meaning}</div>
+        ${evidence ? `<div class="ov2-flow-agg-evidence">📊 ${evidence}</div>` : ''}
+        ${divergences.length ? `<div class="ov2-flow-agg-divergence-head">⚠ פערים בין עסקאות לפרמיה:</div>
+            ${divergences.map(d => `<div class="ov2-flow-agg-divergence">${d}</div>`).join('')}` : ''}
+    `;
+    setHTML('flowAggInterp', interpHtml);
 
     // ─── Trade Quality (codes + ToOpen) ───
     renderFlowQuality(raw);
@@ -1384,24 +1414,34 @@ function renderFlowQuality(raw) {
     const totalAll = raw.totTr || 1;
     const openPct = totalAll > 0 ? totalOpens / totalAll * 100 : 0;
 
+    const directional = (o.callBuy || 0) + (o.callSell || 0) + (o.putBuy || 0) + (o.putSell || 0);
+    const generic = (o.callGeneric || 0) + (o.putGeneric || 0);
     const openTable = `
         <table class="ov2-flow-side-table">
-            <thead><tr><th></th><th>Buy-To-Open<br><span class="ov2-flow-side-sub">פתיחה ב-Long</span></th><th>Sell-To-Open<br><span class="ov2-flow-side-sub">פתיחה ב-Short</span></th></tr></thead>
+            <thead><tr>
+                <th></th>
+                <th>Buy-To-Open<br><span class="ov2-flow-side-sub">פתיחה ב-Long</span></th>
+                <th>Sell-To-Open<br><span class="ov2-flow-side-sub">פתיחה ב-Short</span></th>
+                <th>ToOpen<br><span class="ov2-flow-side-sub">ללא כיוון</span></th>
+            </tr></thead>
             <tbody>
                 <tr class="ov2-flow-side-ask">
                     <td><b>Calls</b></td>
                     <td><b>${o.callBuy || 0}</b><br><span class="ov2-flow-side-sub">conviction שורי</span></td>
                     <td><b>${o.callSell || 0}</b><br><span class="ov2-flow-side-sub">naked sell / short-vol</span></td>
+                    <td><b>${o.callGeneric || 0}</b></td>
                 </tr>
                 <tr class="ov2-flow-side-bid">
                     <td><b>Puts</b></td>
                     <td><b>${o.putBuy || 0}</b><br><span class="ov2-flow-side-sub">hedge / bearish</span></td>
                     <td><b>${o.putSell || 0}</b><br><span class="ov2-flow-side-sub">writing puts (שורי)</span></td>
+                    <td><b>${o.putGeneric || 0}</b></td>
                 </tr>
             </tbody>
             <tfoot>
-                <tr><td colspan="3" class="ov2-flow-side-foot">
-                    סה"כ פוזיציות פותחות: <b>${totalOpens}</b> מתוך <b>${totalAll}</b> עסקאות
+                <tr><td colspan="4" class="ov2-flow-side-foot">
+                    <b>${directional}</b> עם כיוון ברור + <b>${generic}</b> ללא כיוון =
+                    <b>${totalOpens}</b> פוזיציות פותחות מתוך <b>${totalAll}</b>
                     (<b>${Math.round(openPct)}%</b>)
                 </td></tr>
             </tfoot>
