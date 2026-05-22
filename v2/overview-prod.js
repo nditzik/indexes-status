@@ -411,11 +411,17 @@ function computeFlowDay(rows) {
     const ivCallMed = median(ivsCall);
     const ivPutMed  = median(ivsPut);
 
-    // Directional metrics (only counting bid/ask, ignoring mid)
-    const callDirTr = callAsk + callBid;
-    const putDirTr  = putAsk + putBid;
-    const callAskPct = callDirTr ? callAsk / callDirTr * 100 : null;
-    const putAskPct  = putDirTr  ? putAsk  / putDirTr  * 100 : null;
+    // Directional metrics — by trade count AND by premium
+    // Trade-count %: democratic (each trade counts equally)
+    // Premium %:     money-weighted (a $50M trade weighs more than 10 × $1M trades)
+    const callDirTr  = callAsk + callBid;
+    const putDirTr   = putAsk + putBid;
+    const callDirP   = callAskP + callBidP;
+    const putDirP    = putAskP + putBidP;
+    const callAskPct      = callDirTr ? callAsk  / callDirTr * 100 : null;
+    const putAskPct       = putDirTr  ? putAsk   / putDirTr  * 100 : null;
+    const callAskPremPct  = callDirP  ? callAskP / callDirP  * 100 : null;
+    const putAskPremPct   = putDirP   ? putAskP  / putDirP   * 100 : null;
 
     return {
         n_trades: rows.length,
@@ -435,8 +441,10 @@ function computeFlowDay(rows) {
         putAsk,  putBid,  putMid,
         callAskP, callBidP, callMidP,
         putAskP,  putBidP,  putMidP,
-        callAskPct,            // % of directional call trades that hit ASK (aggressive buy)
-        putAskPct,             // % of directional put trades that hit ASK (aggressive buy = hedging)
+        callAskPct,            // % of directional call trades that hit ASK
+        putAskPct,             // % of directional put trades that hit ASK
+        callAskPremPct,        // % of directional call PREMIUM that hit ASK (money-weighted)
+        putAskPremPct,         // % of directional put PREMIUM that hit ASK
     };
 }
 
@@ -1053,37 +1061,93 @@ function renderFlowCard(metrics) {
                                        : raw.big_trades >= 100 ? 'פעילות מוסדית נורמלית'
                                        : 'פעילות שקטה';
 
-    // ─── NEW: Call vs Put breakdown ───
-    const fmtBn = v => v != null ? '$' + (v / 1e9).toFixed(2) + 'B' : '—';
-    const fmtMn = v => v != null ? '$' + (v / 1e6).toFixed(0) + 'M' : '—';
-    const fmtSide = (ask, bid, mid) => {
-        const tot = ask + bid + mid;
-        if (!tot) return '—';
-        return `Ask ${ask} · Bid ${bid} · Mid ${mid}`;
+    // ─── Call vs Put breakdown (Side × {Trades, Premium}) ───
+    const fmtP = v => {
+        if (v == null) return '—';
+        if (v >= 1e9) return '$' + (v / 1e9).toFixed(2) + 'B';
+        if (v >= 1e6) return '$' + (v / 1e6).toFixed(0) + 'M';
+        return '$' + Math.round(v).toLocaleString();
+    };
+    const buildSideTable = (label, tr, prem, askTr, bidTr, midTr, askP, bidP, midP, askTrPct, askPremPct) => {
+        const tot = askTr + bidTr + midTr;
+        const dirTr = askTr + bidTr;
+        const bidTrPct  = dirTr ? Math.round(bidTr / dirTr * 100) : 0;
+        const askTrPctR = dirTr ? Math.round(askTr / dirTr * 100) : 0;
+        const dirP = askP + bidP;
+        const bidPremPct = dirP ? Math.round(bidP / dirP * 100) : 0;
+        const askPremPctR= dirP ? Math.round(askP / dirP * 100) : 0;
+        return `
+        <table class="ov2-flow-side-table">
+            <thead><tr><th></th><th>עסקאות</th><th>פרמיה</th></tr></thead>
+            <tbody>
+                <tr class="ov2-flow-side-ask">
+                    <td><b>Ask</b><br><span class="ov2-flow-side-sub">קונה אגרסיבי</span></td>
+                    <td><b>${askTr}</b> <span class="ov2-flow-side-pct">(${askTrPctR}%)</span></td>
+                    <td><b>${fmtP(askP)}</b> <span class="ov2-flow-side-pct">(${askPremPctR}%)</span></td>
+                </tr>
+                <tr class="ov2-flow-side-bid">
+                    <td><b>Bid</b><br><span class="ov2-flow-side-sub">מוכר אגרסיבי</span></td>
+                    <td><b>${bidTr}</b> <span class="ov2-flow-side-pct">(${bidTrPct}%)</span></td>
+                    <td><b>${fmtP(bidP)}</b> <span class="ov2-flow-side-pct">(${bidPremPct}%)</span></td>
+                </tr>
+                <tr class="ov2-flow-side-mid">
+                    <td><b>Mid</b><br><span class="ov2-flow-side-sub">ניטרלי</span></td>
+                    <td><b>${midTr}</b></td>
+                    <td><b>${fmtP(midP)}</b></td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3" class="ov2-flow-side-foot">
+                        <span class="ov2-flow-side-signal">Ask על directional:</span>
+                        <span>עסקאות <b>${askTrPctR}%</b></span>
+                        <span>·</span>
+                        <span>פרמיה <b>${askPremPctR}%</b></span>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>`;
     };
 
-    setEl('flowCallTrades', raw.callTr);
-    setEl('flowCallPremium', raw.callP >= 1e9 ? fmtBn(raw.callP) : fmtMn(raw.callP));
-    setEl('flowCallSides', fmtSide(raw.callAsk, raw.callBid, raw.callMid));
-    setEl('flowCallAskPct', raw.callAskPct != null ? Math.round(raw.callAskPct) + '%' : '—');
+    const callTable = buildSideTable('Calls',
+        raw.callTr, raw.callP,
+        raw.callAsk, raw.callBid, raw.callMid,
+        raw.callAskP, raw.callBidP, raw.callMidP,
+        raw.callAskPct, raw.callAskPremPct);
+    const putTable = buildSideTable('Puts',
+        raw.putTr, raw.putP,
+        raw.putAsk, raw.putBid, raw.putMid,
+        raw.putAskP, raw.putBidP, raw.putMidP,
+        raw.putAskPct, raw.putAskPremPct);
 
-    setEl('flowPutTrades', raw.putTr);
-    setEl('flowPutPremium', raw.putP >= 1e9 ? fmtBn(raw.putP) : fmtMn(raw.putP));
-    setEl('flowPutSides', fmtSide(raw.putAsk, raw.putBid, raw.putMid));
-    setEl('flowPutAskPct', raw.putAskPct != null ? Math.round(raw.putAskPct) + '%' : '—');
+    setEl('flowCallSummary', `${raw.callTr} עסקאות · ${fmtP(raw.callP)}`);
+    setEl('flowPutSummary',  `${raw.putTr} עסקאות · ${fmtP(raw.putP)}`);
+    const callTableEl = $('flowCallTable'); if (callTableEl) callTableEl.innerHTML = callTable;
+    const putTableEl  = $('flowPutTable');  if (putTableEl)  putTableEl.innerHTML  = putTable;
 
-    // ─── NEW: Aggressive direction interpretation ───
+    // ─── Aggressive direction interpretation (PREMIUM-WEIGHTED priority) ───
+    // Premium-weighted is more informative — big money moves matter more
     let aggInterpretation;
-    if (raw.callAskPct == null || raw.putAskPct == null) {
+    const cAskPm = raw.callAskPremPct;
+    const pAskPm = raw.putAskPremPct;
+    const cAskTr = raw.callAskPct;
+    const pAskTr = raw.putAskPct;
+    if (cAskPm == null || pAskPm == null) {
         aggInterpretation = 'אין מספיק עסקאות directional לקריאה ברורה';
-    } else if (raw.callAskPct >= 60 && raw.putAskPct < 50) {
-        aggInterpretation = 'אגרסיביות שורית — כסף קונה calls וכותב puts';
-    } else if (raw.callAskPct < 50 && raw.putAskPct >= 60) {
-        aggInterpretation = 'אגרסיביות הגנתית — כסף קונה puts (hedging)';
-    } else if (raw.callAskPct >= 55 && raw.putAskPct >= 55) {
-        aggInterpretation = 'מתח דו-כיווני — כסף קונה גם calls וגם puts';
+    } else if (cAskPm >= 65 && pAskPm < 45) {
+        aggInterpretation = `אגרסיביות שורית חזקה (לפי פרמיה) — קונים calls (${Math.round(cAskPm)}%) וכותבים puts (${Math.round(100-pAskPm)}%)`;
+    } else if (cAskPm >= 55 && pAskPm < 50) {
+        aggInterpretation = `אגרסיביות שורית מתונה — מטה לקנייה: calls Ask ${Math.round(cAskPm)}% פרמיה · puts Ask ${Math.round(pAskPm)}% פרמיה`;
+    } else if (cAskPm < 45 && pAskPm >= 60) {
+        aggInterpretation = `אגרסיביות הגנתית — כסף גדול קונה puts (${Math.round(pAskPm)}% מהפרמיה ב-Ask)`;
+    } else if (cAskPm >= 55 && pAskPm >= 55) {
+        aggInterpretation = 'מתח דו-כיווני — קונים גם calls וגם puts באגרסיביות';
     } else {
-        aggInterpretation = 'מאוזן · ללא דומיננטיות של צד אחד';
+        aggInterpretation = `מאוזן · calls Ask ${Math.round(cAskPm)}% פרמיה · puts Ask ${Math.round(pAskPm)}% פרמיה`;
+    }
+    // Note divergence between trade-count and premium signals (interesting)
+    if (cAskTr != null && cAskPm != null && Math.abs(cAskPm - cAskTr) >= 15) {
+        aggInterpretation += ` · ⓘ פער עסקאות↔פרמיה (${Math.round(cAskTr)}% ↔ ${Math.round(cAskPm)}%) — הכסף הגדול שונה מהקהל`;
     }
     setEl('flowAggInterp', aggInterpretation);
 

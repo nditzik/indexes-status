@@ -1917,34 +1917,26 @@
                             </div>
                         </div>
 
-                        <!-- ─── Call vs Put breakdown ─── -->
+                        <!-- ─── Call vs Put breakdown · Side × {Trades, Premium} ─── -->
                         <div class="ov2-panel-divider"></div>
-                        <div class="ov2-eyebrow" style="color:var(--ov2-text-2); margin-bottom:8px;">פירוט CALL vs PUT</div>
+                        <div class="ov2-eyebrow" style="color:var(--ov2-text-2); margin-bottom:8px;">פירוט CALL vs PUT · לפי עסקאות ופרמיה</div>
                         <div class="ov2-flow-cp-grid">
-                            <div class="ov2-flow-cp-card cp-call" data-tooltip="עסקאות CALL — הימור על עלייה. הפירוט מציג: מספר עסקאות, סך פרמיה, ופירוק לפי Side (Ask = קונה אגרסיבי, Bid = מוכר אגרסיבי, Mid = ניטרלי)">
+                            <div class="ov2-flow-cp-card cp-call" data-tooltip="עסקאות CALL — הימור על עלייה. כל שורה: כמה עסקאות + כמה פרמיה ב-Ask/Bid/Mid. השורה התחתונה מסכמת ה-Ask% על directional בלבד (לא כולל Mid). פרמיה = signal חזק יותר ממספר עסקאות, כי עסקה אחת של $50M שווה יותר מ-10 קטנות">
                                 <div class="ov2-flow-cp-head">
-                                    <span class="ov2-flow-cp-label">▲ Calls (הימור עלייה)</span>
+                                    <span class="ov2-flow-cp-label">▲ Calls · הימור עלייה</span>
+                                    <span class="ov2-flow-cp-sub" id="ov2_flowCallSummary">—</span>
                                 </div>
-                                <div class="ov2-flow-cp-rows">
-                                    <div class="ov2-flow-cp-row"><span>עסקאות</span><b id="ov2_flowCallTrades">—</b></div>
-                                    <div class="ov2-flow-cp-row"><span>פרמיה</span><b id="ov2_flowCallPremium">—</b></div>
-                                    <div class="ov2-flow-cp-row"><span>פירוק Side</span><span class="ov2-flow-cp-mono" id="ov2_flowCallSides">—</span></div>
-                                    <div class="ov2-flow-cp-row"><span>% תוקף בקנייה (Ask)</span><b id="ov2_flowCallAskPct">—</b></div>
-                                </div>
+                                <div id="ov2_flowCallTable">—</div>
                             </div>
-                            <div class="ov2-flow-cp-card cp-put" data-tooltip="עסקאות PUT — הימור על ירידה / הגנה. % Ask גבוה = כסף קונה הגנות באגרסיביות (סימן הגנתי)">
+                            <div class="ov2-flow-cp-card cp-put" data-tooltip="עסקאות PUT — הימור על ירידה / הגנה. אם Ask% נמוך = puts נמכרים אגרסיבית (כותבי puts = הימור שורי). אם Ask% גבוה = puts נקנים אגרסיבית (hedging)">
                                 <div class="ov2-flow-cp-head">
-                                    <span class="ov2-flow-cp-label">▼ Puts (הימור ירידה / הגנה)</span>
+                                    <span class="ov2-flow-cp-label">▼ Puts · הימור ירידה / הגנה</span>
+                                    <span class="ov2-flow-cp-sub" id="ov2_flowPutSummary">—</span>
                                 </div>
-                                <div class="ov2-flow-cp-rows">
-                                    <div class="ov2-flow-cp-row"><span>עסקאות</span><b id="ov2_flowPutTrades">—</b></div>
-                                    <div class="ov2-flow-cp-row"><span>פרמיה</span><b id="ov2_flowPutPremium">—</b></div>
-                                    <div class="ov2-flow-cp-row"><span>פירוק Side</span><span class="ov2-flow-cp-mono" id="ov2_flowPutSides">—</span></div>
-                                    <div class="ov2-flow-cp-row"><span>% תוקף בקנייה (Ask)</span><b id="ov2_flowPutAskPct">—</b></div>
-                                </div>
+                                <div id="ov2_flowPutTable">—</div>
                             </div>
                         </div>
-                        <div class="ov2-flow-agg-interp" data-tooltip="פירוש מסחר Ask/Bid: כשעסקה מתבצעת ב-Ask = הקונה היה אגרסיבי (כסף נכנס לכיוון). ב-Bid = המוכר היה אגרסיבי. Mid = ניטרלי">
+                        <div class="ov2-flow-agg-interp" data-tooltip="פירוש מסחר Ask/Bid: עסקה ב-Ask = קונה אגרסיבי (משלם מחיר מבוקש). ב-Bid = מוכר אגרסיבי (מקבל הצעה). הפירוש משקלל פרמיה כי הכסף הגדול חשוב יותר ממספר העסקאות">
                             <span class="ov2-eyebrow" style="color:var(--ov2-text-3); margin-left:8px;">פירוש</span>
                             <span id="ov2_flowAggInterp">—</span>
                         </div>

@@ -988,6 +988,80 @@
     font-size: 11px;
     font-weight: 600;
 }
+.overview-prod-root .ov2-flow-cp-sub {
+    display: block;
+    font-size: 11px;
+    color: var(--ov2-text-2);
+    font-weight: 500;
+    margin-top: 2px;
+    font-family: var(--ov2-font-mono);
+}
+.overview-prod-root .ov2-flow-side-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+.overview-prod-root .ov2-flow-side-table thead th {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 6px 4px;
+    text-align: center;
+    border-bottom: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-flow-side-table thead th:first-child { text-align: right; }
+.overview-prod-root .ov2-flow-side-table tbody td {
+    padding: 8px 4px;
+    border-bottom: 1px solid var(--ov2-border);
+    vertical-align: middle;
+    text-align: center;
+    color: var(--ov2-text-1);
+    font-family: var(--ov2-font-mono);
+}
+.overview-prod-root .ov2-flow-side-table tbody td:first-child {
+    text-align: right;
+    font-family: var(--ov2-font-ui);
+    font-weight: 600;
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-flow-side-table .ov2-flow-side-sub {
+    display: block;
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    font-weight: 500;
+    margin-top: 1px;
+}
+.overview-prod-root .ov2-flow-side-table .ov2-flow-side-pct {
+    color: var(--ov2-text-3);
+    font-weight: 500;
+    font-size: 11px;
+}
+.overview-prod-root .ov2-flow-side-table .ov2-flow-side-ask td:first-child b { color: var(--ov2-pos); }
+.overview-prod-root .ov2-flow-side-table .ov2-flow-side-bid td:first-child b { color: var(--ov2-neg); }
+.overview-prod-root .ov2-flow-side-table .ov2-flow-side-mid td:first-child b { color: var(--ov2-text-3); }
+.overview-prod-root .ov2-flow-side-table .ov2-flow-side-mid td { opacity: 0.8; border-bottom: none; }
+.overview-prod-root .ov2-flow-side-table tfoot td {
+    padding: 8px 4px;
+    background: var(--ov2-bg-3);
+    border-radius: var(--ov2-radius-sm);
+    text-align: center;
+    font-size: 11px;
+    color: var(--ov2-text-2);
+}
+.overview-prod-root .ov2-flow-side-table tfoot .ov2-flow-side-signal {
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    margin-left: 8px;
+    font-family: var(--ov2-font-ui);
+}
+.overview-prod-root .ov2-flow-side-table tfoot b {
+    color: var(--ov2-text-1);
+    font-family: var(--ov2-font-mono);
+    font-weight: 700;
+}
+
 .overview-prod-root .ov2-flow-agg-interp {
     background: var(--ov2-bg-2);
     padding: 10px 14px;
