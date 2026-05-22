@@ -850,6 +850,273 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   HIDE EXISTING DASHBOARD CHROME WHILE ON OVERVIEW V2
+   When .overview-prod-root is the active overview, the old .app-header
+   "סקירת שוק · תמונת מצב כללית" is redundant with our Executive Strip.
+   ═══════════════════════════════════════════════════════════════════════ */
+.app-main:has(.tab-view[data-tab-view="overview"].active .overview-prod-root) .app-header { display: none; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FLOW CARD (SPX options flow visibility)
+   ═══════════════════════════════════════════════════════════════════════ */
+.overview-prod-root .ov2-flow-card {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-4);
+    position: relative;
+    margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-flow-card-accent {
+    position: absolute;
+    top: 0; right: 0; left: 0;
+    height: 3px;
+    background: var(--ov2-cat-flow);
+    border-radius: var(--ov2-radius) var(--ov2-radius) 0 0;
+}
+.overview-prod-root .ov2-flow-grid {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr 1fr 1fr;
+    gap: var(--ov2-space-4);
+    align-items: center;
+    margin-top: var(--ov2-space-3);
+}
+@media (max-width: 900px) {
+    .overview-prod-root .ov2-flow-grid { grid-template-columns: 1fr 1fr; }
+}
+.overview-prod-root .ov2-flow-score-block {
+    text-align: center;
+    border-left: 1px solid var(--ov2-border);
+    padding-left: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-flow-score-val {
+    font-family: var(--ov2-font-mono);
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--ov2-text-1);
+    line-height: 1;
+}
+.overview-prod-root .ov2-flow-score-label {
+    font-size: 10px;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-flow-status {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    margin-top: 6px;
+}
+.overview-prod-root .ov2-flow-status.ov2-pos { color: var(--ov2-pos-bright); }
+.overview-prod-root .ov2-flow-status.ov2-neg { color: var(--ov2-neg-bright); }
+.overview-prod-root .ov2-flow-status.ov2-warn { color: var(--ov2-warn-bright); }
+.overview-prod-root .ov2-flow-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: help;
+}
+.overview-prod-root .ov2-flow-metric-label {
+    font-size: 11px;
+    color: var(--ov2-text-2);
+    font-weight: 600;
+}
+.overview-prod-root .ov2-flow-metric-value {
+    font-family: var(--ov2-font-mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-flow-metric-sub {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DAILY SUMMARY PANEL (bottom — deterministic narrative)
+   ═══════════════════════════════════════════════════════════════════════ */
+.overview-prod-root .ov2-summary {
+    background: linear-gradient(135deg, var(--ov2-bg-1) 0%, var(--ov2-bg-2) 100%);
+    border: 1px solid var(--ov2-border-strong);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-5);
+    margin-bottom: var(--ov2-space-4);
+    position: relative;
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-summary-accent {
+    position: absolute;
+    top: 0; right: 0; left: 0;
+    height: 3px;
+    background: var(--ov2-cat-action);
+    border-radius: var(--ov2-radius) var(--ov2-radius) 0 0;
+}
+.overview-prod-root .ov2-summary-head {
+    margin-bottom: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-summary-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    margin-bottom: 4px;
+}
+.overview-prod-root .ov2-summary-section {
+    margin-bottom: var(--ov2-space-3);
+    padding: var(--ov2-space-3) var(--ov2-space-4);
+    background: var(--ov2-bg-1);
+    border-radius: var(--ov2-radius);
+    border-right: 3px solid var(--ov2-cat-action);
+}
+.overview-prod-root .ov2-summary-section.ov2-pos { border-right-color: var(--ov2-pos); }
+.overview-prod-root .ov2-summary-section.ov2-neg { border-right-color: var(--ov2-neg); }
+.overview-prod-root .ov2-summary-section.ov2-warn { border-right-color: var(--ov2-warn); }
+.overview-prod-root .ov2-summary-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+.overview-prod-root .ov2-summary-section-body {
+    font-size: 14px;
+    color: var(--ov2-text-1);
+    line-height: 1.7;
+    font-weight: 500;
+}
+.overview-prod-root .ov2-summary-section-body ul {
+    margin: 6px 0 0;
+    padding-right: 22px;
+}
+.overview-prod-root .ov2-summary-section-body li {
+    margin-bottom: 4px;
+}
+.overview-prod-root .ov2-summary-bottomline {
+    background: var(--ov2-text-1);
+    color: var(--ov2-text-inverse);
+    padding: var(--ov2-space-3) var(--ov2-space-4);
+    border-radius: var(--ov2-radius);
+    font-size: 15px;
+    font-weight: 700;
+    text-align: right;
+    margin-top: var(--ov2-space-3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LIVE TICKER BAR (inside Overview, prominent)
+   ═══════════════════════════════════════════════════════════════════════ */
+.overview-prod-root .ov2-ticker {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius);
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--ov2-space-4);
+    flex-wrap: wrap;
+    margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-ticker-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--ov2-text-2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.overview-prod-root .ov2-ticker-pulse {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ov2-pos);
+    animation: ov2-ticker-pulse 1.6s ease-in-out infinite;
+}
+@keyframes ov2-ticker-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 var(--ov2-pos-bg); }
+    50%      { box-shadow: 0 0 0 6px transparent; }
+}
+.overview-prod-root .ov2-ticker-items {
+    display: flex;
+    gap: var(--ov2-space-5);
+    align-items: center;
+    flex-wrap: wrap;
+    flex: 1;
+    justify-content: center;
+}
+.overview-prod-root .ov2-ticker-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: center;
+    min-width: 110px;
+}
+.overview-prod-root .ov2-ticker-name {
+    font-size: 11px;
+    color: var(--ov2-text-2);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.overview-prod-root .ov2-ticker-val {
+    font-family: var(--ov2-font-mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-ticker-chg {
+    font-family: var(--ov2-font-mono);
+    font-size: 12px;
+    font-weight: 600;
+}
+.overview-prod-root .ov2-ticker-time {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    font-family: var(--ov2-font-mono);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FORMULA POPOVER (for score calculation explanation)
+   ═══════════════════════════════════════════════════════════════════════ */
+.overview-prod-root .ov2-formula {
+    margin-top: var(--ov2-space-3);
+    padding: var(--ov2-space-3);
+    background: var(--ov2-bg-2);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    line-height: 1.6;
+}
+.overview-prod-root .ov2-formula b { color: var(--ov2-text-1); font-weight: 700; }
+.overview-prod-root .ov2-formula-expand {
+    color: var(--ov2-cat-action);
+    cursor: pointer;
+    font-weight: 600;
+    user-select: none;
+}
+.overview-prod-root .ov2-formula-expand:hover { text-decoration: underline; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ENHANCED ALERTS (in rail) — show meaning inline
+   ═══════════════════════════════════════════════════════════════════════ */
+.overview-prod-root .ov2-alert-meaning {
+    font-size: 11px;
+    color: var(--ov2-text-2);
+    line-height: 1.5;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--ov2-border);
+    font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    CUSTOM TOOLTIP SYSTEM
    Activated by data-tooltip="..." attribute. Shows on hover.
    ═══════════════════════════════════════════════════════════════════════ */

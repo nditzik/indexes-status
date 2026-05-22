@@ -1775,6 +1775,39 @@
                 </div>
             </header>
 
+            <!-- ═══ LIVE TICKER ═══ -->
+            <div class="ov2-ticker">
+                <div class="ov2-ticker-label">
+                    <span class="ov2-ticker-pulse"></span>
+                    שווקים חיים
+                </div>
+                <div class="ov2-ticker-items">
+                    <div class="ov2-ticker-item">
+                        <span class="ov2-ticker-name">S&amp;P 500</span>
+                        <span class="ov2-ticker-val" id="ov2_tkSPX">—</span>
+                        <span class="ov2-ticker-chg" id="ov2_tkSPXChg">—</span>
+                    </div>
+                    <div class="ov2-ticker-item">
+                        <span class="ov2-ticker-name">NASDAQ (QQQ)</span>
+                        <span class="ov2-ticker-val" id="ov2_tkNDX">—</span>
+                        <span class="ov2-ticker-chg" id="ov2_tkNDXChg">—</span>
+                    </div>
+                    <div class="ov2-ticker-item">
+                        <span class="ov2-ticker-name">DOW</span>
+                        <span class="ov2-ticker-val" id="ov2_tkDJI">—</span>
+                        <span class="ov2-ticker-chg" id="ov2_tkDJIChg">—</span>
+                    </div>
+                    <div class="ov2-ticker-item">
+                        <span class="ov2-ticker-name">Russell 2000</span>
+                        <span class="ov2-ticker-val" id="ov2_tkRUT">—</span>
+                        <span class="ov2-ticker-chg" id="ov2_tkRUTChg">—</span>
+                    </div>
+                </div>
+                <div class="ov2-ticker-time">
+                    עודכן <span id="ov2_tkUpdated">—</span> · רענון אוטומטי כל 2 דק'
+                </div>
+            </div>
+
             <div class="ov2-body">
 
                 <!-- ═══ MAIN COLUMN ═══ -->
@@ -1841,6 +1874,48 @@
                         </div>
 
                         <div class="ov2-mcc-chips" id="ov2_mccChips"></div>
+                    </div>
+
+                    <!-- ═══ SPX FLOW CARD ═══ -->
+                    <div class="ov2-flow-card" id="ov2_flowCard">
+                        <div class="ov2-flow-card-accent"></div>
+                        <div>
+                            <div class="ov2-eyebrow" style="color:var(--ov2-cat-flow); margin-bottom:4px;">זרימת אופציות SPX</div>
+                            <div class="ov2-title-m">לאן הכסף הגדול נע</div>
+                            <div class="ov2-subtitle">ניתוח SPX options flow · השוואה ל-baseline נע של 22 יום</div>
+                        </div>
+
+                        <div class="ov2-flow-grid">
+                            <div class="ov2-flow-score-block" data-tooltip="ציון 0-100 שמסכם את כיוון זרימת הכסף. גבוה = כסף קונה calls (אופטימי), נמוך = כסף קונה puts (הגנתי)">
+                                <div class="ov2-flow-score-val" id="ov2_flowScoreVal">—</div>
+                                <div class="ov2-flow-score-label">ציון Flow</div>
+                                <div class="ov2-flow-status" id="ov2_flowStatus">—</div>
+                            </div>
+
+                            <div class="ov2-flow-metric" data-tooltip="P/C Premium = יחס פרמיית puts ל-calls. ב-SPX הממוצע הוא 0.34. ערכים גבוהים = יותר ביקוש להגנה. ה-z-score מודד כמה רחוק מהממוצע">
+                                <div class="ov2-flow-metric-label">P/C Premium</div>
+                                <div class="ov2-flow-metric-value" id="ov2_flowPcPremiumVal">—</div>
+                                <div class="ov2-flow-metric-sub" id="ov2_flowPcPremiumSub">—</div>
+                            </div>
+
+                            <div class="ov2-flow-metric" data-tooltip="אחוז הפרמיה שהושקעה ב-calls מתוך הסך הכולל היום. מעל 80% = השקעה אגרסיבית בעליות. מתחת 60% = הגנתי">
+                                <div class="ov2-flow-metric-label">% פרמיית calls</div>
+                                <div class="ov2-flow-metric-value" id="ov2_flowCallPctVal">—</div>
+                                <div class="ov2-flow-metric-sub" id="ov2_flowCallPctSub">—</div>
+                            </div>
+
+                            <div class="ov2-flow-metric" data-tooltip="IV Skew = הפער בין IV של puts ל-calls. מודד את הפחד היחסי. מעל 9 = פחד מוגבר. מתחת 6 = רגיעה">
+                                <div class="ov2-flow-metric-label">IV Skew</div>
+                                <div class="ov2-flow-metric-value" id="ov2_flowIvSkewVal">—</div>
+                                <div class="ov2-flow-metric-sub" id="ov2_flowIvSkewSub">—</div>
+                            </div>
+
+                            <div class="ov2-flow-metric" data-tooltip="מספר העסקאות עם פרמיה מעל 5 מיליון דולר היום. מדד לפעילות מוסדית. מעל 140 = פעילות חזקה במיוחד">
+                                <div class="ov2-flow-metric-label">עסקאות גדולות</div>
+                                <div class="ov2-flow-metric-value" id="ov2_flowBigTradesVal">—</div>
+                                <div class="ov2-flow-metric-sub" id="ov2_flowBigTradesSub">—</div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- ═══ KPI GROUPS ═══ -->
@@ -1967,6 +2042,17 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- ═══ DAILY SUMMARY (deterministic narrative) ═══ -->
+                    <div class="ov2-summary">
+                        <div class="ov2-summary-accent"></div>
+                        <div class="ov2-summary-head">
+                            <div class="ov2-eyebrow" style="color:var(--ov2-cat-action); margin-bottom:6px;">סיכום יומי · קריאת השוק</div>
+                            <div class="ov2-summary-title">מה הדשבורד אומר היום</div>
+                        </div>
+                        <div id="ov2_summaryContent"></div>
+                        <div class="ov2-summary-bottomline" id="ov2_summaryBottomLine">—</div>
                     </div>
 
                     <!-- V2 watermark -->

@@ -896,13 +896,25 @@ function renderSectorSnapshot(metrics, sectorsMap) {
         wrap.appendChild(cell);
     }
 
-    // Summary lines
+    // Summary lines — separate "today's move" from "long-term strength"
     const top = sorted[0];
     const bot = sorted[sorted.length - 1];
-    if (top) $('sectorBest').textContent = `${codes[top.code] || top.code} · ${Math.round(top.pct200)}% מעל MA200`;
-    if (bot) $('sectorWorst').textContent = `${codes[bot.code] || bot.code} · ${Math.round(bot.pct200)}% מעל MA200`;
+    if (top) {
+        const topName = codes[top.code] || top.code;
+        $('sectorBest').textContent = `${topName} · ${fmtPct(top.avgChg, 1)} היום`;
+        $('sectorBest').setAttribute('data-tooltip',
+            `${topName} · המוביל בביצועי יום־אחד. לטווח ארוך: ${Math.round(top.pct200)}% מהמניות מעל MA200`);
+    }
+    if (bot) {
+        const botName = codes[bot.code] || bot.code;
+        $('sectorWorst').textContent = `${botName} · ${fmtPct(bot.avgChg, 1)} היום`;
+        $('sectorWorst').setAttribute('data-tooltip',
+            `${botName} · החלש בביצועי יום־אחד. לטווח ארוך: ${Math.round(bot.pct200)}% מהמניות מעל MA200`);
+    }
     const dispersion = top && bot ? (top.avgChg - bot.avgChg) : 0;
     $('sectorDispersion').textContent = `${dispersion.toFixed(1)}%`;
+    $('sectorDispersion').setAttribute('data-tooltip',
+        `הפער בין הסקטור החזק לחלש היום. ${dispersion > 2 ? 'גבוה = רוטציה אקטיבית' : 'נמוך = השוק זז ביחד'}`);
 }
 
 const CHIP_TYPE_LABEL = {
@@ -943,21 +955,235 @@ function renderAlertsRail(chips, metrics) {
         const el = document.createElement('div');
         el.className = `ov2-alert ov2-severity-${sev}`;
         const typeLabel = CHIP_TYPE_LABEL[c.type] || c.type;
+        const meaningHtml = c.meaning
+            ? `<div class="ov2-alert-meaning">${c.meaning}</div>` : '';
         el.innerHTML = `
             <div class="ov2-alert-head">
                 <span class="ov2-alert-icon">${iconFor(c.type)}</span>
-                <span class="ov2-alert-title">${typeLabel}</span>
+                <span class="ov2-alert-title">${typeLabel} · ${c.category}</span>
             </div>
             <div class="ov2-alert-body">${c.text}</div>
+            ${meaningHtml}
             <div class="ov2-alert-meta">
                 <span>עדיפות ${c.priority}</span>
             </div>
         `;
-        if (c.meaning) el.setAttribute('data-tooltip', c.meaning);
         rail.appendChild(el);
     }
 
     $('railCount').textContent = chips.length;
+}
+
+// ═════════════════════════════════════════════════════════════════════
+// FLOW CARD — surfaces SPX options flow as a first-class section
+// ═════════════════════════════════════════════════════════════════════
+function renderFlowCard(metrics) {
+    const wrap = $('flowCard');
+    if (!wrap) return;
+    const f = metrics.flow;
+    if (!f || !f.raw) {
+        wrap.style.display = 'none';
+        return;
+    }
+    const raw = f.raw;
+    const z = f.z || {};
+    const score = f.score;
+
+    // Status text — deterministic, based on score
+    let status, statusClass;
+    if (score == null)        { status = '—';                                  statusClass = ''; }
+    else if (score >= 70)     { status = 'Risk-On · כסף תוקפני לעליות';        statusClass = 'ov2-pos'; }
+    else if (score >= 55)     { status = 'נייטרלי-חיובי';                       statusClass = 'ov2-pos'; }
+    else if (score >= 45)     { status = 'מאוזן · ללא כיוון ברור';              statusClass = 'ov2-warn'; }
+    else if (score >= 30)     { status = 'הגנתי · כסף קונה protection';        statusClass = 'ov2-warn'; }
+    else                       { status = 'הגנה אגרסיבית · חששות';             statusClass = 'ov2-neg'; }
+
+    // Build markup
+    $('flowScoreVal').textContent = score != null ? score : '—';
+    $('flowStatus').textContent = status;
+    $('flowStatus').className = 'ov2-flow-status ' + statusClass;
+
+    // Metrics
+    $('flowPcPremiumVal').textContent = raw.pc_premium != null ? raw.pc_premium.toFixed(2) : '—';
+    const zPc = z.pc_premium;
+    $('flowPcPremiumSub').textContent = zPc != null
+        ? (zPc > 0 ? `+${zPc.toFixed(1)}σ מעל ממוצע 22D` : `${zPc.toFixed(1)}σ מתחת לממוצע 22D`)
+        : 'אין baseline';
+
+    $('flowCallPctVal').textContent = raw.call_premium_pct != null ? Math.round(raw.call_premium_pct) + '%' : '—';
+    $('flowCallPctSub').textContent = raw.callP != null
+        ? `${(raw.callP / 1e9).toFixed(2)}B$ פרמיה`
+        : '—';
+
+    $('flowIvSkewVal').textContent = raw.iv_skew != null ? raw.iv_skew.toFixed(1) : '—';
+    $('flowIvSkewSub').textContent = raw.iv_skew != null
+        ? (raw.iv_skew > 9 ? 'פחד מוגבר' : raw.iv_skew > 6 ? 'נורמלי' : 'רגוע')
+        : '—';
+
+    $('flowBigTradesVal').textContent = raw.big_trades != null ? raw.big_trades : '—';
+    $('flowBigTradesSub').textContent = raw.big_trades >= 140 ? 'פעילות מוסדית חזקה'
+                                       : raw.big_trades >= 100 ? 'פעילות מוסדית נורמלית'
+                                       : 'פעילות שקטה';
+}
+
+// ═════════════════════════════════════════════════════════════════════
+// DAILY SUMMARY — deterministic narrative builder
+// Reads phase, metrics, chips → produces 4-5 sections + bottom line
+// ═════════════════════════════════════════════════════════════════════
+function renderDailySummary(phase, m, chips, duration, sectorsMap) {
+    const wrap = $('summaryContent');
+    if (!wrap) return;
+    const codes = (sectorsMap && sectorsMap.codes) || {};
+    const p = phase.phase;
+    const sections = [];
+
+    // 1. Status
+    const durationText = duration && duration.days >= 0
+        ? (duration.days === 0 ? 'יום ראשון בשלב' : `יום ${duration.days + 1} בשלב`)
+        : '';
+    sections.push({
+        cls: p.stateClass,
+        label: '1 · הסטטוס',
+        body: `<b>${p.glyph} ${p.labelHe}</b> — ${durationText}. ${phase.reasons[0] || ''}`
+    });
+
+    // 2. The story — main weaknesses (warnings) and divergences
+    const warnings = chips.filter(c => c.type === 'warning').slice(0, 4);
+    if (warnings.length) {
+        const bullets = warnings.map(c =>
+            `<li>${c.text}${c.meaning ? ' — <span style="color:var(--ov2-text-2)">' + c.meaning + '</span>' : ''}</li>`
+        ).join('');
+        sections.push({
+            cls: 'warn',
+            label: '2 · על מה לעקוב',
+            body: `<ul>${bullets}</ul>`
+        });
+    }
+
+    // 3. What's positive
+    const confirmations = chips.filter(c => c.type === 'confirmation').slice(0, 4);
+    if (confirmations.length) {
+        const bullets = confirmations.map(c =>
+            `<li>${c.text}${c.meaning ? ' — <span style="color:var(--ov2-text-2)">' + c.meaning + '</span>' : ''}</li>`
+        ).join('');
+        sections.push({
+            cls: 'pos',
+            label: '3 · מה כן חיובי',
+            body: `<ul>${bullets}</ul>`
+        });
+    }
+
+    // 4. Sectors story
+    const sorted = [...m.sectors].sort((a, b) => b.avgChg - a.avgChg);
+    const best = sorted[0];
+    const worst = sorted[sorted.length - 1];
+    if (best && worst) {
+        const bestName = codes[best.code] || best.code;
+        const worstName = codes[worst.code] || worst.code;
+        const dispersion = (best.avgChg - worst.avgChg).toFixed(1);
+        // Detect interesting "today vs long-term" mismatch
+        const bestLongTermNote = best.pct200 < 50
+            ? ` (אך רק ${Math.round(best.pct200)}% מהמניות בסקטור הזה מעל MA200 — חולשה ארוכת-טווח)` : '';
+        const worstLongTermNote = worst.pct200 >= 70
+            ? ` (אך ${Math.round(worst.pct200)}% מהמניות בסקטור עדיין מעל MA200 — חוזק ארוך-טווח, רק יום-אחד שלילי)` : '';
+        sections.push({
+            cls: '',
+            label: '4 · סקטורים',
+            body: `מוביל היום: <b>${bestName} ${fmtPct(best.avgChg, 1)}</b>${bestLongTermNote}.<br>
+                   חלש היום: <b>${worstName} ${fmtPct(worst.avgChg, 1)}</b>${worstLongTermNote}.<br>
+                   פיזור היום: <b>${dispersion}%</b> ${parseFloat(dispersion) > 2 ? '(רוטציה אקטיבית)' : '(תנועה אחידה)'}.`
+        });
+    }
+
+    // 5. SPX Flow note
+    if (m.flow && m.flow.score != null) {
+        const flowMsg = m.flow.score >= 60
+            ? `זרימת הכסף חיובית (${m.flow.score}/100) — כסף גדול קונה calls`
+            : m.flow.score >= 45
+            ? `זרימת הכסף מאוזנת (${m.flow.score}/100) — ללא כיוון ברור`
+            : `זרימת הכסף הגנתית (${m.flow.score}/100) — כסף גדול קונה הגנות`;
+        sections.push({
+            cls: '',
+            label: '5 · כסף ב-options',
+            body: flowMsg
+        });
+    }
+
+    // Render
+    wrap.innerHTML = sections.map(s => `
+        <div class="ov2-summary-section ov2-${s.cls}">
+            <div class="ov2-summary-section-label">${s.label}</div>
+            <div class="ov2-summary-section-body">${s.body}</div>
+        </div>
+    `).join('');
+
+    // Bottom line — from phase bias + key tension
+    $('summaryBottomLine').textContent = `השורה התחתונה: ${p.bias}.`;
+}
+
+// ═════════════════════════════════════════════════════════════════════
+// LIVE TICKER — auto-refresh every 2 minutes (Stooq via CORS proxy)
+// ═════════════════════════════════════════════════════════════════════
+let _tickerTimer = null;
+
+async function startLiveTicker(metrics) {
+    // Initial render uses today's snapshot SPX from data; live values via Stooq
+    if (metrics.spx && metrics.spx.price != null) {
+        const spxEl = $('tkSPX');
+        const spxChgEl = $('tkSPXChg');
+        if (spxEl) spxEl.textContent = metrics.spx.price.toFixed(2);
+        if (spxChgEl) {
+            spxChgEl.textContent = (metrics.spx.chgPct >= 0 ? '+' : '') + metrics.spx.chgPct.toFixed(2) + '%';
+            spxChgEl.style.color = metrics.spx.chgPct >= 0 ? 'var(--ov2-pos)' : 'var(--ov2-neg)';
+        }
+    }
+    await fetchLiveIndices();
+    // Refresh every 2 min
+    if (_tickerTimer) clearInterval(_tickerTimer);
+    _tickerTimer = setInterval(fetchLiveIndices, 120000);
+}
+
+async function fetchLiveIndices() {
+    const symbols = { SPX: '^spx', NDX: 'qqq.us', DJI: '^dji', RUT: 'iwm.us' };
+    const query = Object.values(symbols).join('+');
+    const stooq = `https://stooq.com/q/l/?s=${query}&f=snd2t2ohlcpv&h&e=csv`;
+    const url = 'https://corsproxy.io/?' + encodeURIComponent(stooq);
+    try {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) return;
+        const text = await r.text();
+        const lines = text.trim().split(/\r?\n/);
+        if (lines.length < 2) return;
+        const header = lines[0].split(',');
+        const iSym = header.indexOf('Symbol');
+        const iClose = header.indexOf('Close');
+        const iPrev = header.indexOf('Prev');
+        const bySym = {};
+        for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',');
+            bySym[(cols[iSym] || '').toUpperCase()] = cols;
+        }
+        const apply = (key, close, prev) => {
+            const valEl = $('tk' + key);
+            const chgEl = $('tk' + key + 'Chg');
+            if (!valEl || !chgEl || !close || !prev) return;
+            const c = parseFloat(close), p = parseFloat(prev);
+            if (!Number.isFinite(c) || !Number.isFinite(p) || p === 0) return;
+            const pctChg = (c - p) / p * 100;
+            valEl.textContent = c.toLocaleString('en-US', { maximumFractionDigits: 2 });
+            chgEl.textContent = (pctChg >= 0 ? '+' : '') + pctChg.toFixed(2) + '%';
+            chgEl.style.color = pctChg >= 0 ? 'var(--ov2-pos)' : 'var(--ov2-neg)';
+        };
+        for (const [key, sym] of Object.entries(symbols)) {
+            const row = bySym[sym.toUpperCase()];
+            if (row) apply(key, row[iClose], row[iPrev]);
+        }
+        const upd = $('tkUpdated');
+        if (upd) {
+            const now = new Date();
+            upd.textContent = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        }
+    } catch (e) { /* silent — keep showing last value */ }
 }
 
 function renderError(e) {
@@ -1001,9 +1227,12 @@ async function init() {
 
         renderStrip(metrics, phaseResult);
         renderMCC(phaseResult, metrics, chips, duration);
+        renderFlowCard(metrics);
         renderKPIs(metrics);
         renderSectorSnapshot(metrics, data.sectors);
+        renderDailySummary(phaseResult, metrics, chips, duration, data.sectors);
         renderAlertsRail(chips, metrics);
+        startLiveTicker(metrics);
 
         // Expose for console inspection
         window.__V2 = {

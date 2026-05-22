@@ -223,14 +223,26 @@ function classifyPhase(m) {
         };
     }
 
-    // ❷ Uptrend Under Pressure (default for moderate scores)
+    // ❷ Uptrend Under Pressure (default for moderate scores OR strong score with blockers)
     if (m.combined >= 50) {
         const conf = 55 + strength(m.combined, 50, 20) * 25;
-        const why = [
-            `ציון משולב ${m.combined} (טווח 50-70 — זהיר)`
-        ];
+        const why = [];
+        if (m.combined >= 70) {
+            // Strong score but failed ❶ thresholds → state the BLOCKERS
+            const blockers = [];
+            if (m.distributionDays > 2) blockers.push(`${m.distributionDays}/25 ימי הפצה (סף ❶ ≤ 2)`);
+            if (m.vix >= 20) blockers.push(`VIX ${m.vix.toFixed(1)} (סף ❶ < 20)`);
+            if (blockers.length) {
+                why.push(`ציון ${m.combined} חזק, אך ${blockers.join(' ו-')} מונעים סיווג ❶`);
+            } else {
+                why.push(`ציון משולב ${m.combined} — גבולי ❶/❷`);
+            }
+        } else {
+            // True moderate-zone score (50-70)
+            why.push(`ציון משולב ${m.combined} (טווח 50-70 — אזור זהיר)`);
+        }
         if (m.vix >= 18) why.push(`VIX ${m.vix.toFixed(1)} (עולה — מד סיכון פעיל)`);
-        if (m.distributionDays >= 3) why.push(`${m.distributionDays}/25 ימי הפצה (לעקוב)`);
+        if (m.distributionDays >= 3 && m.combined < 70) why.push(`${m.distributionDays}/25 ימי הפצה (לעקוב)`);
         if (m.breadth5dDelta < 1) why.push(`רוחב לא מאיץ (${m.breadth5dDelta.toFixed(1)} נק' ב-5 ימים)`);
         return {
             phase: PHASES.uptrend_pressure,
