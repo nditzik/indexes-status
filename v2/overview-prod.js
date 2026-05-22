@@ -382,6 +382,10 @@ function computeFlowDay(rows) {
     let putAsk = 0, putBid = 0, putMid = 0;
     let callAskP = 0, callBidP = 0, callMidP = 0;
     let putAskP = 0, putBidP = 0, putMidP = 0;
+    // NEW · DTE × premium tracking (for premium-weighted average DTE per quadrant)
+    let callAskDteWP = 0, callBidDteWP = 0, callMidDteWP = 0;
+    let putAskDteWP  = 0, putBidDteWP  = 0, putMidDteWP  = 0;
+    let callDteWP = 0, putDteWP = 0;   // overall per type
     const ivsCall = [], ivsPut = [];
 
     // NEW · code tracking
@@ -402,12 +406,16 @@ function computeFlowDay(rows) {
         const iv = parseFloat(ivStr);
         const code = String(r.Code || '').trim().toUpperCase();
         const opening = String(r['*'] || '').trim();
+        const dteVal = parseInt(r.DTE, 10);
+        const hasDte = Number.isFinite(dteVal);
+        const dtePrem = hasDte ? dteVal * prem : 0;
 
         if (t === 'call') {
             callTr++; callP += prem;
-            if (side === 'ask') { callAsk++; callAskP += prem; }
-            else if (side === 'bid') { callBid++; callBidP += prem; }
-            else if (side === 'mid') { callMid++; callMidP += prem; }
+            if (hasDte) callDteWP += dtePrem;
+            if (side === 'ask') { callAsk++; callAskP += prem; if (hasDte) callAskDteWP += dtePrem; }
+            else if (side === 'bid') { callBid++; callBidP += prem; if (hasDte) callBidDteWP += dtePrem; }
+            else if (side === 'mid') { callMid++; callMidP += prem; if (hasDte) callMidDteWP += dtePrem; }
             if (Number.isFinite(iv) && iv > 0) ivsCall.push(iv);
             // ToOpen — conviction breakdown
             if (opening === 'BuyToOpen')  { callBuyOpen++;  callBuyOpenP  += prem; }
@@ -415,9 +423,10 @@ function computeFlowDay(rows) {
             else if (opening === 'ToOpen') callOpenGeneric++;
         } else if (t === 'put') {
             putTr++; putP += prem;
-            if (side === 'ask') { putAsk++; putAskP += prem; }
-            else if (side === 'bid') { putBid++; putBidP += prem; }
-            else if (side === 'mid') { putMid++; putMidP += prem; }
+            if (hasDte) putDteWP += dtePrem;
+            if (side === 'ask') { putAsk++; putAskP += prem; if (hasDte) putAskDteWP += dtePrem; }
+            else if (side === 'bid') { putBid++; putBidP += prem; if (hasDte) putBidDteWP += dtePrem; }
+            else if (side === 'mid') { putMid++; putMidP += prem; if (hasDte) putMidDteWP += dtePrem; }
             if (Number.isFinite(iv) && iv > 0) ivsPut.push(iv);
             if (opening === 'BuyToOpen')  { putBuyOpen++;  putBuyOpenP  += prem; }
             else if (opening === 'SellToOpen') { putSellOpen++; putSellOpenP += prem; }
@@ -494,6 +503,15 @@ function computeFlowDay(rows) {
         putAskPct,             // % of directional put trades that hit ASK
         callAskPremPct,        // % of directional call PREMIUM that hit ASK (money-weighted)
         putAskPremPct,         // % of directional put PREMIUM that hit ASK
+        // NEW · DTE (premium-weighted average days-to-expiry) per quadrant
+        callAvgDte:    callP    > 0 ? Math.round(callDteWP    / callP)    : null,
+        putAvgDte:     putP     > 0 ? Math.round(putDteWP     / putP)     : null,
+        callAskDte:    callAskP > 0 ? Math.round(callAskDteWP / callAskP) : null,
+        callBidDte:    callBidP > 0 ? Math.round(callBidDteWP / callBidP) : null,
+        callMidDte:    callMidP > 0 ? Math.round(callMidDteWP / callMidP) : null,
+        putAskDte:     putAskP  > 0 ? Math.round(putAskDteWP  / putAskP)  : null,
+        putBidDte:     putBidP  > 0 ? Math.round(putBidDteWP  / putBidP)  : null,
+        putMidDte:     putMidP  > 0 ? Math.round(putMidDteWP  / putMidP)  : null,
         // NEW · code groups
         codeGroups,            // { floor, electronic, iso, cbmo, other } each { trades, premium }
         codeRaw,               // for debugging
@@ -1151,7 +1169,7 @@ function renderFlowCard(metrics, flowAnalytics) {
         if (v >= 1e6) return '$' + (v / 1e6).toFixed(0) + 'M';
         return '$' + Math.round(v).toLocaleString();
     };
-    const buildSideTable = (label, tr, prem, askTr, bidTr, midTr, askP, bidP, midP, askTrPct, askPremPct) => {
+    const buildSideTable = (label, tr, prem, askTr, bidTr, midTr, askP, bidP, midP, askTrPct, askPremPct, askDte, bidDte, midDte) => {
         const dirTr = askTr + bidTr;
         const bidTrPct  = dirTr ? Math.round(bidTr / dirTr * 100) : 0;
         const askTrPctR = dirTr ? Math.round(askTr / dirTr * 100) : 0;
@@ -1170,39 +1188,43 @@ function renderFlowCard(metrics, flowAnalytics) {
             else if (sizeRatio <= 0.5) sizeNote = `Ask גדול פי <b>${(1/sizeRatio).toFixed(1)}</b> מ-Bid — כסף גדול בקונים`;
             else                       sizeNote = `Ask ו-Bid דומים בגודל ממוצע`;
         }
+        const dteFmt = d => d != null ? d + 'd' : '—';
         return `
         <table class="ov2-flow-side-table">
-            <thead><tr><th></th><th>עסקאות</th><th>פרמיה</th><th>ממוצע / עסקה</th></tr></thead>
+            <thead><tr><th></th><th>עסקאות</th><th>פרמיה</th><th>ממוצע/עסקה</th><th>ימים עד פקיעה</th></tr></thead>
             <tbody>
                 <tr class="ov2-flow-side-ask">
                     <td><b>Ask</b><br><span class="ov2-flow-side-sub">קונה אגרסיבי</span></td>
                     <td><b>${askTr}</b> <span class="ov2-flow-side-pct">(${askTrPctR}%)</span></td>
                     <td><b>${fmtP(askP)}</b> <span class="ov2-flow-side-pct">(${askPremPctR}%)</span></td>
                     <td><span class="ov2-flow-side-avg">${fmtP(askAvg)}</span></td>
+                    <td><span class="ov2-flow-side-dte">${dteFmt(askDte)}</span></td>
                 </tr>
                 <tr class="ov2-flow-side-bid">
                     <td><b>Bid</b><br><span class="ov2-flow-side-sub">מוכר אגרסיבי</span></td>
                     <td><b>${bidTr}</b> <span class="ov2-flow-side-pct">(${bidTrPct}%)</span></td>
                     <td><b>${fmtP(bidP)}</b> <span class="ov2-flow-side-pct">(${bidPremPct}%)</span></td>
                     <td><span class="ov2-flow-side-avg">${fmtP(bidAvg)}</span></td>
+                    <td><span class="ov2-flow-side-dte">${dteFmt(bidDte)}</span></td>
                 </tr>
                 <tr class="ov2-flow-side-mid">
                     <td><b>Mid</b><br><span class="ov2-flow-side-sub">ניטרלי</span></td>
                     <td><b>${midTr}</b></td>
                     <td><b>${fmtP(midP)}</b></td>
                     <td><span class="ov2-flow-side-avg">${fmtP(midAvg)}</span></td>
+                    <td><span class="ov2-flow-side-dte">${dteFmt(midDte)}</span></td>
                 </tr>
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="4" class="ov2-flow-side-foot">
+                    <td colspan="5" class="ov2-flow-side-foot">
                         <span class="ov2-flow-side-signal">Ask על directional:</span>
                         <span>עסקאות <b>${askTrPctR}%</b></span>
                         <span>·</span>
                         <span>פרמיה <b>${askPremPctR}%</b></span>
                     </td>
                 </tr>
-                ${sizeNote ? `<tr><td colspan="4" class="ov2-flow-side-size-note">${sizeNote}</td></tr>` : ''}
+                ${sizeNote ? `<tr><td colspan="5" class="ov2-flow-side-size-note">${sizeNote}</td></tr>` : ''}
             </tfoot>
         </table>`;
     };
@@ -1211,17 +1233,54 @@ function renderFlowCard(metrics, flowAnalytics) {
         raw.callTr, raw.callP,
         raw.callAsk, raw.callBid, raw.callMid,
         raw.callAskP, raw.callBidP, raw.callMidP,
-        raw.callAskPct, raw.callAskPremPct);
+        raw.callAskPct, raw.callAskPremPct,
+        raw.callAskDte, raw.callBidDte, raw.callMidDte);
     const putTable = buildSideTable('Puts',
         raw.putTr, raw.putP,
         raw.putAsk, raw.putBid, raw.putMid,
         raw.putAskP, raw.putBidP, raw.putMidP,
-        raw.putAskPct, raw.putAskPremPct);
+        raw.putAskPct, raw.putAskPremPct,
+        raw.putAskDte, raw.putBidDte, raw.putMidDte);
 
-    setEl('flowCallSummary', `${raw.callTr} עסקאות · ${fmtP(raw.callP)}`);
-    setEl('flowPutSummary',  `${raw.putTr} עסקאות · ${fmtP(raw.putP)}`);
+    setEl('flowCallSummary', `${raw.callTr} עסקאות · ${fmtP(raw.callP)} · ממוצע ${raw.callAvgDte != null ? raw.callAvgDte + ' ימים עד פקיעה' : 'DTE לא ידוע'}`);
+    setEl('flowPutSummary',  `${raw.putTr} עסקאות · ${fmtP(raw.putP)} · ממוצע ${raw.putAvgDte != null ? raw.putAvgDte + ' ימים עד פקיעה' : 'DTE לא ידוע'}`);
     const callTableEl = $('flowCallTable'); if (callTableEl) callTableEl.innerHTML = callTable;
     const putTableEl  = $('flowPutTable');  if (putTableEl)  putTableEl.innerHTML  = putTable;
+
+    // ─── DTE Summary: Calls vs Puts time-horizon interpretation ───
+    const dteSummaryEl = $('flowDteSummary');
+    if (dteSummaryEl) {
+        const cDte = raw.callAvgDte, pDte = raw.putAvgDte;
+        let dteSummaryHtml = '';
+        if (cDte != null && pDte != null) {
+            const labelDte = d => {
+                if (d <= 7)  return 'קצר (≤שבוע)';
+                if (d <= 30) return 'בינוני (≤חודש)';
+                if (d <= 90) return 'בינוני-ארוך (1-3 חודשים)';
+                if (d <= 180) return 'ארוך (3-6 חודשים)';
+                return 'ארוך מאוד (חצי שנה+)';
+            };
+            let comparison = '';
+            const diff = cDte - pDte;
+            if (Math.abs(diff) <= 5) {
+                comparison = 'טווחי הזמן דומים — קונים calls ו-puts לאותו טווח';
+            } else if (diff > 5) {
+                comparison = `Calls לטווח ארוך יותר ב-${diff} ימים — פוזיציות שורי אסטרטגיות, hedging puts קצר-טווח`;
+            } else {
+                comparison = `Puts לטווח ארוך יותר ב-${-diff} ימים — הגנה אסטרטגית, calls קצרי-טווח (scalp/momentum)`;
+            }
+            dteSummaryHtml = `
+                <div class="ov2-flow-dte-summary">
+                    <div class="ov2-eyebrow">טווחי הזמן הממוצעים (משוקלל לפי פרמיה)</div>
+                    <div class="ov2-flow-dte-row">
+                        <div class="ov2-flow-dte-cell"><span class="ov2-flow-dte-label">Calls</span><span class="ov2-flow-dte-value">${cDte} ימים</span><span class="ov2-flow-dte-sub">${labelDte(cDte)}</span></div>
+                        <div class="ov2-flow-dte-cell"><span class="ov2-flow-dte-label">Puts</span><span class="ov2-flow-dte-value">${pDte} ימים</span><span class="ov2-flow-dte-sub">${labelDte(pDte)}</span></div>
+                    </div>
+                    <div class="ov2-flow-dte-interp">${comparison}</div>
+                </div>`;
+        }
+        dteSummaryEl.innerHTML = dteSummaryHtml;
+    }
 
     // ─── Aggressive direction interpretation (PREMIUM-WEIGHTED 6-quadrant) ───
     //
@@ -1257,8 +1316,8 @@ function renderFlowCard(metrics, flowAnalytics) {
             headline = 'הגנתי / דובי 📉';
             meaning = 'הכסף הגדול כותב calls וקונה puts — נערכים לירידה או הגנה.';
         } else if (cLow && pLow) {
-            headline = 'Short Volatility — הימור על שוק טווח ⚖️';
-            meaning = 'הכסף הגדול מוכר פרמיה בשני הצדדים — לא מהמרים על כיוון, מהמרים שלא תהיה תנודה.';
+            headline = 'Short Volatility — הימור על דשדוש ⚖️';
+            meaning = 'הכסף הגדול מוכר פרמיה בשני הצדדים — לא מהמרים על כיוון, מהמרים על תנועה הצידה (שוק שלא יזוז משמעותית).';
         } else if (cHigh && pHigh) {
             headline = 'Long Volatility — צופים תנודה חזקה ⚡';
             meaning = 'הכסף הגדול קונה פרמיה בשני הצדדים — מצפים לזעזוע (כיוון לא ידוע).';
@@ -1308,24 +1367,39 @@ function renderFlowCard(metrics, flowAnalytics) {
     }
 
     // ── Divergence — explain clearly (crowd vs smart money) ──
+    // Distinguish between:
+    //   DIRECTION divergence: trade-count side ≠ premium side (e.g. trades buying, premium selling)
+    //   INTENSITY divergence: same side, but big money much more aggressive
     const divergences = [];
+    const buildDivergence = (typeName, tr, pm) => {
+        const crowdBuying = tr > 50;
+        const moneyBuying = pm > 50;
+        const sameSide = crowdBuying === moneyBuying;
+        if (sameSide) {
+            const side = crowdBuying ? 'קונים' : 'מוכרים';
+            // Note: pm percentage of Ask. So crowd Ask% vs money Ask% — same direction but different magnitude
+            const moneyIntensity = crowdBuying ? Math.round(pm) : Math.round(100 - pm);
+            const crowdIntensity = crowdBuying ? Math.round(tr) : Math.round(100 - tr);
+            return {
+                title: `ב-${typeName} — אותו כיוון, עוצמה שונה`,
+                body:  `<b>שניהם ${side}</b>, אבל הכסף הגדול אגרסיבי הרבה יותר: <b>${crowdIntensity}% מהעסקאות</b> מול <b>${moneyIntensity}% מהפרמיה</b>.`,
+                sub:   `כשפער כזה קיים, סביר שמעט עסקאות מוסדיות גדולות (Ask גדול או Bid גדול) מטות את התמונה הכספית. סימן לפעולה מוסדית ממוקדת.`
+            };
+        } else {
+            const crowdSide = crowdBuying ? 'קונה' : 'מוכר';
+            const moneySide = moneyBuying ? 'קונה' : 'מוכר';
+            return {
+                title: `ב-${typeName} — כיוונים הפוכים`,
+                body:  `<b>הציבור ${crowdSide}</b> (${Math.round(tr)}% מהעסקאות) אבל <b>הכסף הגדול ${moneySide}</b> (${Math.round(pm)}% מהפרמיה).`,
+                sub:   `הרבה סוחרים קטנים (הציבור) בכיוון אחד, מעט מוסדיים גדולים בכיוון ההפוך. היסטורית — המוסדיים נוטים להיות צודקים.`
+            };
+        }
+    };
     if (cAskTr != null && cAskPm != null && Math.abs(cAskPm - cAskTr) >= 15) {
-        const crowdSide  = cAskTr >  50 ? 'קונה' : 'מוכר';
-        const moneySide  = cAskPm >  50 ? 'קונה' : 'מוכר';
-        divergences.push({
-            title: 'בקאלים — אי-התאמה',
-            body:  `<b>הציבור ${crowdSide}</b> (${Math.round(cAskTr)}% מהעסקאות) אבל <b>הכסף הגדול ${moneySide}</b> (${Math.round(cAskPm)}% מהפרמיה).`,
-            sub:   `הרבה סוחרים קטנים (הציבור) בכיוון אחד, מעט מוסדיים גדולים בכיוון השני. היסטורית — המוסדיים נוטים להיות צודקים.`
-        });
+        divergences.push(buildDivergence('קאלים', cAskTr, cAskPm));
     }
     if (pAskTr != null && pAskPm != null && Math.abs(pAskPm - pAskTr) >= 15) {
-        const crowdSide  = pAskTr >  50 ? 'קונה' : 'מוכר';
-        const moneySide  = pAskPm >  50 ? 'קונה' : 'מוכר';
-        divergences.push({
-            title: 'ב-puts — אי-התאמה',
-            body:  `<b>הציבור ${crowdSide}</b> (${Math.round(pAskTr)}% עסקאות) אבל <b>הכסף הגדול ${moneySide}</b> (${Math.round(pAskPm)}% פרמיה).`,
-            sub:   ''
-        });
+        divergences.push(buildDivergence('puts', pAskTr, pAskPm));
     }
 
     // Render as structured multi-line HTML — Hebrew-friendly, no inline LTR/RTL mixing
