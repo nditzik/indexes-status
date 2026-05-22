@@ -1081,6 +1081,18 @@
     font-family: var(--ov2-font-mono);
     font-weight: 700;
 }
+/* ISO Sweep highlight — conviction signal */
+.overview-prod-root .ov2-flow-quality-iso td {
+    background: var(--ov2-cat-action);
+    color: var(--ov2-text-inverse);
+}
+.overview-prod-root .ov2-flow-quality-iso td b {
+    color: var(--ov2-text-inverse);
+}
+.overview-prod-root .ov2-flow-quality-iso td .ov2-flow-side-sub,
+.overview-prod-root .ov2-flow-quality-iso td .ov2-flow-side-pct {
+    color: rgba(255, 255, 255, 0.9);
+}
 
 .overview-prod-root .ov2-flow-agg-interp {
     background: var(--ov2-bg-2);

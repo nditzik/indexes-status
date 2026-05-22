@@ -371,7 +371,10 @@ function emaSeries(values, alpha) {
 }
 
 // Per-day flow metric extraction (one day's worth of flow rows)
-// Extended 2026-05-22: tracks Side (ask/bid/mid) per Call/Put for aggressive direction
+// Extended 2026-05-22:
+//   - Side (ask/bid/mid) per Call/Put for aggressive direction
+//   - Code aggregation (Floor / Electronic / CBOE / ISO Sweep) — venue & quality
+//   - ToOpen breakdown (BuyToOpen / SellToOpen) — conviction signal
 function computeFlowDay(rows) {
     if (!rows || !rows.length) return null;
     let callTr = 0, putTr = 0, callP = 0, putP = 0, bigTrades = 0;
@@ -381,12 +384,24 @@ function computeFlowDay(rows) {
     let putAskP = 0, putBidP = 0, putMidP = 0;
     const ivsCall = [], ivsPut = [];
 
+    // NEW · code tracking
+    const codeRaw = {};        // raw per-code counts
+    const codeRawP = {};       // raw per-code premium
+
+    // NEW · ToOpen tracking
+    let callBuyOpen = 0, callSellOpen = 0, callOpenGeneric = 0;
+    let putBuyOpen  = 0, putSellOpen  = 0, putOpenGeneric  = 0;
+    let callBuyOpenP = 0, callSellOpenP = 0;
+    let putBuyOpenP  = 0, putSellOpenP  = 0;
+
     for (const r of rows) {
         const t = String(r.Type || '').trim().toLowerCase();
         const prem = num(r.Premium) || 0;
         const side = String(r.Side || '').trim().toLowerCase();
         const ivStr = String(r.IV || '').replace('%', '').trim();
         const iv = parseFloat(ivStr);
+        const code = String(r.Code || '').trim().toUpperCase();
+        const opening = String(r['*'] || '').trim();
 
         if (t === 'call') {
             callTr++; callP += prem;
@@ -394,14 +409,48 @@ function computeFlowDay(rows) {
             else if (side === 'bid') { callBid++; callBidP += prem; }
             else if (side === 'mid') { callMid++; callMidP += prem; }
             if (Number.isFinite(iv) && iv > 0) ivsCall.push(iv);
+            // ToOpen — conviction breakdown
+            if (opening === 'BuyToOpen')  { callBuyOpen++;  callBuyOpenP  += prem; }
+            else if (opening === 'SellToOpen') { callSellOpen++; callSellOpenP += prem; }
+            else if (opening === 'ToOpen') callOpenGeneric++;
         } else if (t === 'put') {
             putTr++; putP += prem;
             if (side === 'ask') { putAsk++; putAskP += prem; }
             else if (side === 'bid') { putBid++; putBidP += prem; }
             else if (side === 'mid') { putMid++; putMidP += prem; }
             if (Number.isFinite(iv) && iv > 0) ivsPut.push(iv);
+            if (opening === 'BuyToOpen')  { putBuyOpen++;  putBuyOpenP  += prem; }
+            else if (opening === 'SellToOpen') { putSellOpen++; putSellOpenP += prem; }
+            else if (opening === 'ToOpen') putOpenGeneric++;
         }
         if (prem >= 5_000_000) bigTrades++;
+
+        // Code aggregation
+        if (code) {
+            codeRaw[code]  = (codeRaw[code]  || 0) + 1;
+            codeRawP[code] = (codeRawP[code] || 0) + prem;
+        }
+    }
+
+    // Aggregate codes into groups (per CBOE/MIAX conventions confirmed with user)
+    //   floor      = MFSL + SLFT     · רצפה — מוסדי
+    //   electronic = MLET + AUTO     · אלקטרוני — שוק רחב
+    //   iso        = ISOI            · ISO Sweep — conviction אגרסיבי
+    //   cbmo       = CBMO            · CBOE Market — קוד דומיננטי על SPX
+    //   other      = הכל אחר
+    const codeGroups = { floor: {trades:0,premium:0}, electronic:{trades:0,premium:0},
+                         iso:{trades:0,premium:0}, cbmo:{trades:0,premium:0}, other:{trades:0,premium:0} };
+    const groupOf = c => {
+        if (c === 'ISOI') return 'iso';
+        if (c === 'CBMO') return 'cbmo';
+        if (c === 'MFSL' || c === 'SLFT') return 'floor';
+        if (c === 'MLET' || c === 'AUTO') return 'electronic';
+        return 'other';
+    };
+    for (const [c, count] of Object.entries(codeRaw)) {
+        const g = groupOf(c);
+        codeGroups[g].trades  += count;
+        codeGroups[g].premium += codeRawP[c];
     }
 
     const totP = callP + putP;
@@ -445,6 +494,22 @@ function computeFlowDay(rows) {
         putAskPct,             // % of directional put trades that hit ASK
         callAskPremPct,        // % of directional call PREMIUM that hit ASK (money-weighted)
         putAskPremPct,         // % of directional put PREMIUM that hit ASK
+        // NEW · code groups
+        codeGroups,            // { floor, electronic, iso, cbmo, other } each { trades, premium }
+        codeRaw,               // for debugging
+        // NEW · ToOpen breakdown
+        opens: {
+            callBuy: callBuyOpen,   callBuyP: callBuyOpenP,
+            callSell: callSellOpen, callSellP: callSellOpenP,
+            putBuy: putBuyOpen,     putBuyP: putBuyOpenP,
+            putSell: putSellOpen,   putSellP: putSellOpenP,
+            callGeneric: callOpenGeneric,
+            putGeneric: putOpenGeneric,
+            // Net conviction summary
+            bullish:  callBuyOpen + putSellOpen,    // buy calls + write puts
+            bearish:  callSellOpen + putBuyOpen,    // write calls + buy puts
+            total:    callBuyOpen + callSellOpen + putBuyOpen + putSellOpen + callOpenGeneric + putOpenGeneric,
+        }
     };
 }
 
@@ -1197,6 +1262,9 @@ function renderFlowCard(metrics) {
 
     setEl('flowAggInterp', aggInterpretation);
 
+    // ─── Trade Quality (codes + ToOpen) ───
+    renderFlowQuality(raw);
+
     // ─── NEW: Score formula breakdown ───
     const t = metrics.techScore, b = metrics.breadthScore, fScore = f.score, combined = metrics.combined;
     const breakdown = $('flowFormulaCombined');
@@ -1228,6 +1296,120 @@ function renderFlowCard(metrics) {
 function setEl(id, text) {
     const el = $(id);
     if (el) el.textContent = text;
+}
+
+function setHTML(id, html) {
+    const el = $(id);
+    if (el) el.innerHTML = html;
+}
+
+// ═════════════════════════════════════════════════════════════════════
+// FLOW QUALITY — Trade venue (codes) + opening-position conviction (ToOpen)
+// Helper called from renderFlowCard
+// ═════════════════════════════════════════════════════════════════════
+function renderFlowQuality(raw) {
+    if (!raw) return;
+
+    const fmtP = v => {
+        if (v == null || v === 0) return '$0';
+        if (v >= 1e9) return '$' + (v / 1e9).toFixed(2) + 'B';
+        if (v >= 1e6) return '$' + (v / 1e6).toFixed(0) + 'M';
+        return '$' + Math.round(v).toLocaleString();
+    };
+
+    // ── Code/venue breakdown ──
+    const codes = raw.codeGroups || {};
+    const totP = raw.totP || 1;
+
+    const codeMeta = {
+        cbmo:       { label: 'CBOE',        sub: 'CBMO · בורסה ראשית' },
+        floor:      { label: 'רצפה',         sub: 'MFSL + SLFT · מוסדי, ברוקר' },
+        electronic: { label: 'אלקטרוני',     sub: 'MLET + AUTO · שוק רחב, אלגו' },
+        iso:        { label: 'ISO Sweep ⚡', sub: 'ISOI · אגרסיבי multi-venue' },
+        other:      { label: 'אחר',          sub: 'EXHT / MESL / ISOI אחר' }
+    };
+    const codeOrder = ['iso', 'floor', 'cbmo', 'electronic', 'other'];
+
+    const codeRows = codeOrder
+        .filter(k => codes[k] && (codes[k].trades > 0 || codes[k].premium > 0))
+        .map(k => {
+            const d = codes[k];
+            const meta = codeMeta[k];
+            const pct = totP > 0 ? d.premium / totP * 100 : 0;
+            const isISO = k === 'iso';
+            return `<tr class="${isISO ? 'ov2-flow-quality-iso' : ''}">
+                <td><b>${meta.label}</b><br><span class="ov2-flow-side-sub">${meta.sub}</span></td>
+                <td>${d.trades}</td>
+                <td>${fmtP(d.premium)}<br><span class="ov2-flow-side-pct">${Math.round(pct)}% מהכסף</span></td>
+            </tr>`;
+        }).join('');
+
+    const codeTable = `
+        <table class="ov2-flow-side-table">
+            <thead><tr><th>בורסה / סוג</th><th>עסקאות</th><th>פרמיה</th></tr></thead>
+            <tbody>${codeRows}</tbody>
+        </table>`;
+    setHTML('flowQualityCodes', codeTable);
+
+    // ── ISO note (high conviction signal) ──
+    const iso = codes.iso || { trades: 0, premium: 0 };
+    let isoNote = '';
+    if (iso.trades > 0) {
+        const pct = totP > 0 ? iso.premium / totP * 100 : 0;
+        isoNote = `⚡ <b>${iso.trades} ISO Sweeps</b> זוהו (${fmtP(iso.premium)} · ${pct.toFixed(1)}% מהפרמיה היומית) — orders אגרסיביים שסורקים כמה בורסות בו-זמנית. <b>סיגנל conviction חזק</b>.`;
+    } else {
+        isoNote = `אין ISO sweeps היום — אין conviction trades אגרסיביים במיוחד.`;
+    }
+    setHTML('flowQualityIsoNote', isoNote);
+
+    // ── ToOpen breakdown ──
+    const o = raw.opens || {};
+    const totalOpens = o.total || 0;
+    const totalAll = raw.totTr || 1;
+    const openPct = totalAll > 0 ? totalOpens / totalAll * 100 : 0;
+
+    const openTable = `
+        <table class="ov2-flow-side-table">
+            <thead><tr><th></th><th>Buy-To-Open<br><span class="ov2-flow-side-sub">פתיחה ב-Long</span></th><th>Sell-To-Open<br><span class="ov2-flow-side-sub">פתיחה ב-Short</span></th></tr></thead>
+            <tbody>
+                <tr class="ov2-flow-side-ask">
+                    <td><b>Calls</b></td>
+                    <td><b>${o.callBuy || 0}</b><br><span class="ov2-flow-side-sub">conviction שורי</span></td>
+                    <td><b>${o.callSell || 0}</b><br><span class="ov2-flow-side-sub">naked sell / short-vol</span></td>
+                </tr>
+                <tr class="ov2-flow-side-bid">
+                    <td><b>Puts</b></td>
+                    <td><b>${o.putBuy || 0}</b><br><span class="ov2-flow-side-sub">hedge / bearish</span></td>
+                    <td><b>${o.putSell || 0}</b><br><span class="ov2-flow-side-sub">writing puts (שורי)</span></td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr><td colspan="3" class="ov2-flow-side-foot">
+                    סה"כ פוזיציות פותחות: <b>${totalOpens}</b> מתוך <b>${totalAll}</b> עסקאות
+                    (<b>${Math.round(openPct)}%</b>)
+                </td></tr>
+            </tfoot>
+        </table>`;
+    setHTML('flowQualityOpens', openTable);
+
+    // ── Opening-conviction interpretation ──
+    const bull = o.bullish || 0;
+    const bear = o.bearish || 0;
+    const conv = bull + bear;
+    let openNote = '';
+    if (conv >= 8) {
+        const bullPct = Math.round(bull / conv * 100);
+        if (bullPct >= 65) {
+            openNote = `📈 <b>Conviction שורי</b> בפוזיציות פותחות: ${bullPct}% (קונים calls + כותבים puts) — ${conv} עסקאות מסוג זה.`;
+        } else if (bullPct <= 35) {
+            openNote = `📉 <b>Conviction דובי/הגנתי</b> בפוזיציות פותחות: ${100-bullPct}% (כותבים calls + קונים puts) — ${conv} עסקאות.`;
+        } else {
+            openNote = `Conviction מאוזן בפותחות (${bullPct}% שורי · ${100-bullPct}% דובי).`;
+        }
+    } else {
+        openNote = `מעט עסקאות עם סימון ToOpen היום (${conv} פתיחות מתויגות) — מגבלת איכות הנתון של Barchart.`;
+    }
+    setHTML('flowQualityOpenNote', openNote);
 }
 
 // ═════════════════════════════════════════════════════════════════════

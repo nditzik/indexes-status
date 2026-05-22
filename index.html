@@ -1941,6 +1941,27 @@
                             <span id="ov2_flowAggInterp">—</span>
                         </div>
 
+                        <!-- ─── Trade Quality · Venues + Opening Conviction ─── -->
+                        <div class="ov2-panel-divider"></div>
+                        <div class="ov2-eyebrow" style="color:var(--ov2-text-2); margin-bottom:8px;">איכות העסקאות · בורסה + פוזיציות פותחות</div>
+
+                        <div class="ov2-flow-cp-grid">
+                            <div class="ov2-flow-cp-card" data-tooltip="חתך לפי בורסה / סוג ביצוע. CBMO=CBOE Market · MFSL/SLFT=Floor (מוסדי) · MLET/AUTO=Electronic · ISOI=ISO Intermarket Sweep (אגרסיבי conviction trade)">
+                                <div class="ov2-flow-cp-head">
+                                    <span class="ov2-flow-cp-label">📍 בורסה / סוג ביצוע</span>
+                                </div>
+                                <div id="ov2_flowQualityCodes">—</div>
+                                <div class="ov2-flow-side-size-note" id="ov2_flowQualityIsoNote" style="margin-top:8px;">—</div>
+                            </div>
+                            <div class="ov2-flow-cp-card" data-tooltip="פוזיציות פותחות (ToOpen) = trades שבהם משקיע פותח פוזיציה חדשה (לא סוגר ישנה). 'Buy-To-Open Call' = conviction שורי. 'Sell-To-Open Put' = גם שורי (כותב puts). רק ~9% מהעסקאות מסומנות במכוון">
+                                <div class="ov2-flow-cp-head">
+                                    <span class="ov2-flow-cp-label">🎯 פוזיציות פותחות · Conviction</span>
+                                </div>
+                                <div id="ov2_flowQualityOpens">—</div>
+                                <div class="ov2-flow-side-size-note" id="ov2_flowQualityOpenNote" style="margin-top:8px;">—</div>
+                            </div>
+                        </div>
+
                         <!-- ─── How the score is calculated ─── -->
                         <div class="ov2-collapsible" id="ov2_flowFormulaCollapse">
                             <div class="ov2-collapsible-head" onclick="this.parentElement.classList.toggle('open')" style="background:var(--ov2-bg-2);">
