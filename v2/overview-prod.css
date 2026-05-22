@@ -1061,6 +1061,26 @@
     font-family: var(--ov2-font-mono);
     font-weight: 700;
 }
+.overview-prod-root .ov2-flow-side-avg {
+    color: var(--ov2-text-2);
+    font-family: var(--ov2-font-mono);
+    font-size: 11px;
+    font-weight: 600;
+}
+.overview-prod-root .ov2-flow-side-size-note {
+    background: var(--ov2-bg-1);
+    padding: 6px 10px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--ov2-text-2);
+    border-top: 1px dashed var(--ov2-border);
+    line-height: 1.5;
+}
+.overview-prod-root .ov2-flow-side-size-note b {
+    color: var(--ov2-text-1);
+    font-family: var(--ov2-font-mono);
+    font-weight: 700;
+}
 
 .overview-prod-root .ov2-flow-agg-interp {
     background: var(--ov2-bg-2);
