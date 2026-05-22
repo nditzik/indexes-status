@@ -743,7 +743,7 @@ function fmtDate(iso) {
     const [y, m, d] = iso.split('-');
     return `${d}/${m}/${y}`;
 }
-function 'ov2-' + deltaClass(v) { return v > 0 ? 'pos' : v < 0 ? 'neg' : 'muted'; }
+function deltaClass(v) { return v > 0 ? 'pos' : v < 0 ? 'neg' : 'muted'; }
 function deltaArrow(v) { return v > 0 ? '▲' : v < 0 ? '▼' : '─'; }
 
 function sectorHmClass(chg) {
