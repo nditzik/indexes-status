@@ -1556,6 +1556,213 @@ function setHTML(id, html) {
     if (el) el.innerHTML = html;
 }
 
+// ═════════════════════════════════════════════════════════════════════
+// MARKET × FLOW SYNERGY · cross-analysis of Phase + Flow
+// Produces a "flow lean" score (-100 bearish to +100 bullish), compares
+// it to what's expected for the current phase, and generates a
+// cross-signal narrative.
+// ═════════════════════════════════════════════════════════════════════
+
+// Compute a single bullishness lean score from multiple flow signals.
+// Range: -100 (very bearish) to +100 (very bullish), 0 = neutral.
+function computeFlowLean(metrics) {
+    const f = metrics.flow;
+    if (!f || !f.raw) return null;
+    const raw = f.raw;
+    const opens = raw.opens;
+    let lean = 0;
+    let totalWeight = 0;
+    const clampL = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+    // Component 1 · Flow score deviation from 50 (35% weight)
+    if (f.score != null) {
+        const flowScoreLean = clampL((f.score - 50) * 2, -100, 100);
+        lean += flowScoreLean * 0.35;
+        totalWeight += 0.35;
+    }
+    // Component 2 · ToOpen direction by premium (25%)
+    if (opens) {
+        const bullP = (opens.callBuyP || 0) + (opens.putSellP || 0);
+        const bearP = (opens.callSellP || 0) + (opens.putBuyP || 0);
+        if (bullP + bearP > 0) {
+            const openLean = clampL(((bullP - bearP) / (bullP + bearP)) * 100, -100, 100);
+            lean += openLean * 0.25;
+            totalWeight += 0.25;
+        }
+    }
+    // Component 3 · Ask% premium on calls (15%) — high = aggressive buying calls = bullish
+    if (raw.callAskPremPct != null) {
+        const callLean = clampL((raw.callAskPremPct - 50) * 2, -100, 100);
+        lean += callLean * 0.15;
+        totalWeight += 0.15;
+    }
+    // Component 4 · Ask% premium on puts (15%) — high = aggressive buying puts = bearish (inverted)
+    if (raw.putAskPremPct != null) {
+        const putLean = -1 * clampL((raw.putAskPremPct - 50) * 2, -100, 100);
+        lean += putLean * 0.15;
+        totalWeight += 0.15;
+    }
+    // Component 5 · DTE asymmetry (10%) — calls longer than puts = bullish (strategic vs hedge)
+    if (raw.callAvgDte != null && raw.putAvgDte != null) {
+        const dteDiff = raw.callAvgDte - raw.putAvgDte;
+        const dteLean = clampL(dteDiff * 1.5, -50, 50);  // ±33d = ±50 lean
+        lean += dteLean * 0.10;
+        totalWeight += 0.10;
+    }
+
+    if (totalWeight === 0) return null;
+    // Normalize so partial-data days still produce a score on the same scale
+    return Math.round(lean / totalWeight);
+}
+
+// Compare flow lean to phase expectations and produce alignment classification.
+function classifyPhaseFlowAlignment(phaseId, flowLean) {
+    if (flowLean == null) return { level: 'unknown', label: 'אין נתון', emoji: '—' };
+
+    // Each phase has an EXPECTED flow lean range.
+    // Inside range = CONFIRM. Outside = divergence (above = bullish surprise, below = bearish surprise).
+    const expectations = {
+        confirmed_uptrend:   { min:  25, max: 100, desc: 'מגמה חיובית דורשת flow תומך' },
+        uptrend_pressure:    { min: -15, max:  35, desc: 'בלימבו — flow מאוזן עד מעט שורי' },
+        distribution:        { min: -50, max:  10, desc: 'הפצה דורשת flow מתון עד שלילי' },
+        correction:          { min: -100, max: -10, desc: 'תיקון דורש flow שלילי' },
+        capitulation:        { min: -100, max: -30, desc: 'משבר דורש flow שלילי קיצוני' },
+        base_building:       { min: -25, max:  35, desc: 'התאוששות דורשת flow מתון משופר' },
+        thrust:              { min:  30, max: 100, desc: 'פריצה דורשת flow חיובי חזק' }
+    };
+    const range = expectations[phaseId];
+    if (!range) return { level: 'unknown', label: 'אין הגדרה לשלב', emoji: '—' };
+
+    if (flowLean >= range.min && flowLean <= range.max) {
+        return { level: 'confirm', label: 'מאשר', emoji: '✓', desc: range.desc };
+    }
+    if (flowLean > range.max) {
+        return {
+            level: 'bullish_div',
+            label: 'flow חיובי מהצפוי',
+            emoji: '↗',
+            desc: `flow lean ${flowLean} מעל הטווח הצפוי (${range.min}..${range.max}) — אולי שלב משתפר`
+        };
+    }
+    return {
+        level: 'bearish_div',
+        label: 'flow שלילי מהצפוי',
+        emoji: '↘',
+        desc: `flow lean ${flowLean} מתחת לטווח הצפוי (${range.min}..${range.max}) — אולי שלב מתדרדר`
+    };
+}
+
+// Generate cross-signal bullet points (what's notable in the combination).
+function generateCrossSignals(phase, metrics, flowLean) {
+    const signals = [];
+    const f = metrics.flow;
+    if (!f || !f.raw) return signals;
+    const raw = f.raw;
+    const opens = raw.opens || {};
+    const phaseId = phase.phase.id;
+
+    // 1. DTE asymmetry signal
+    if (raw.callAvgDte != null && raw.putAvgDte != null) {
+        const diff = raw.callAvgDte - raw.putAvgDte;
+        if (diff >= 20) {
+            signals.push({ icon: '✓', tone: 'pos', text: `Calls אסטרטגיים (${raw.callAvgDte}d) vs Puts קצרים (${raw.putAvgDte}d) — מוסדיים נערכים לעלייה ארוכת-טווח` });
+        } else if (diff <= -20) {
+            signals.push({ icon: '⚠', tone: 'neg', text: `Puts אסטרטגיים (${raw.putAvgDte}d) vs Calls קצרים (${raw.callAvgDte}d) — הגנה ארוכת-טווח, calls רק לscalping` });
+        }
+    }
+
+    // 2. ToOpen conviction by premium
+    const bullP = (opens.callBuyP || 0) + (opens.putSellP || 0);
+    const bearP = (opens.callSellP || 0) + (opens.putBuyP || 0);
+    if (bullP + bearP > 0) {
+        const bullPct = Math.round(bullP / (bullP + bearP) * 100);
+        if (bullPct >= 75) {
+            signals.push({ icon: '✓', tone: 'pos', text: `Conviction שורי חזק בפותחות (${bullPct}% לפי פרמיה) — מוסדיים מסתדרים לכיוון עליה` });
+        } else if (bullPct <= 25) {
+            signals.push({ icon: '⚠', tone: 'neg', text: `Conviction דובי חזק בפותחות (${100-bullPct}% לפי פרמיה) — מוסדיים נערכים לירידה` });
+        }
+    }
+
+    // 3. Direction divergence (crowd vs money)
+    if (raw.callAskPct != null && raw.callAskPremPct != null) {
+        const trDir = raw.callAskPct > 50;
+        const pmDir = raw.callAskPremPct > 50;
+        if (trDir !== pmDir) {
+            signals.push({ icon: '⚠', tone: 'neg', text: `סטייה בקאלים: הציבור ${trDir ? 'קונה' : 'מוכר'} (${Math.round(raw.callAskPct)}%), הכסף הגדול ${pmDir ? 'קונה' : 'מוכר'} (${Math.round(raw.callAskPremPct)}% פרמיה)` });
+        }
+    }
+    if (raw.putAskPct != null && raw.putAskPremPct != null) {
+        const trDir = raw.putAskPct > 50;
+        const pmDir = raw.putAskPremPct > 50;
+        if (trDir !== pmDir) {
+            signals.push({ icon: '⚠', tone: 'neg', text: `סטייה ב-puts: הציבור ${trDir ? 'קונה' : 'מוכר'} (${Math.round(raw.putAskPct)}%), הכסף הגדול ${pmDir ? 'קונה' : 'מוכר'} (${Math.round(raw.putAskPremPct)}% פרמיה)` });
+        }
+    }
+
+    // 4. VIX vs flow lean
+    if (metrics.vix && flowLean != null) {
+        if (metrics.vix < 15 && flowLean < -20) {
+            signals.push({ icon: '⚠', tone: 'neg', text: `VIX נמוך (${metrics.vix.toFixed(1)}) אבל flow lean שלילי (${flowLean}) — שאננות בשוק בזמן שהכסף הגדול נערך לרע` });
+        } else if (metrics.vix > 22 && flowLean > 20) {
+            signals.push({ icon: '↗', tone: 'pos', text: `VIX מוגבר (${metrics.vix.toFixed(1)}) אבל flow lean חיובי (${flowLean}) — פחד בקהל, הזדמנות אצל המוסדיים` });
+        }
+    }
+
+    // 5. Phase-specific signals
+    if (phaseId === 'uptrend_pressure') {
+        if (flowLean >= 30) {
+            signals.push({ icon: '↗', tone: 'pos', text: `Flow lean +${flowLean} חזק מהממוצע ל-❷ — סימן ל-transition אפשרי ל-❶` });
+        } else if (flowLean <= -15) {
+            signals.push({ icon: '⚠', tone: 'neg', text: `Flow lean ${flowLean} חלש מהממוצע ל-❷ — סיכון transition ל-❸` });
+        }
+    } else if (phaseId === 'confirmed_uptrend' && flowLean < 0) {
+        signals.push({ icon: '⚠⚠', tone: 'neg', text: `❶ פעיל אבל flow שלילי (${flowLean}) — distribution אולי מתחיל מתחת לפני השטח` });
+    } else if (phaseId === 'distribution' && flowLean > 0) {
+        signals.push({ icon: '↗', tone: 'pos', text: `❸ פעיל אבל flow חיובי (+${flowLean}) — distribution אולי לא אמיתי` });
+    } else if (phaseId === 'correction' && flowLean > 10) {
+        signals.push({ icon: '↗', tone: 'pos', text: `❹ פעיל אבל flow חיובי (+${flowLean}) — מוסדיים קונים בירידה, סימן לתחתית אפשרית` });
+    }
+
+    return signals;
+}
+
+// Build the final narrative — one short paragraph synthesizing it all.
+function buildSynergyNarrative(phase, alignment, flowLean, metrics) {
+    const p = phase.phase;
+    const f = metrics.flow;
+    if (!f || flowLean == null) return 'אין מספיק נתוני flow לקישור ל-phase.';
+
+    // Base statement per alignment level
+    const phaseLabel = p.labelHe;
+    const flowDescriptor =
+        flowLean >= 50  ? 'flow חיובי חזק' :
+        flowLean >= 20  ? 'flow חיובי מתון' :
+        flowLean >= -20 ? 'flow מאוזן' :
+        flowLean >= -50 ? 'flow שלילי מתון' :
+                          'flow שלילי חזק';
+
+    let story = `השוק במצב <b>${phaseLabel}</b> · ${flowDescriptor} (lean ${flowLean >= 0 ? '+' : ''}${flowLean}). `;
+
+    if (alignment.level === 'confirm') {
+        story += `ה-flow תואם לציפיות של הפאזה — שני הסיפורים מספרים אותו דבר.`;
+    } else if (alignment.level === 'bullish_div') {
+        story += `<b>הכסף הגדול יותר אופטימי מהפאזה</b> — סימן שהשלב הנוכחי עלול להתחזק או לעבור לשלב גבוה יותר.`;
+    } else if (alignment.level === 'bearish_div') {
+        story += `<b>הכסף הגדול יותר זהיר מהפאזה</b> — סימן אזהרה שמתחת לפני השטח הולך ומחליש.`;
+    }
+
+    return story;
+}
+
+// Main entry point — called from renderFlowCard / init
+function analyzeMarketFlow(phase, metrics) {
+    const flowLean = computeFlowLean(metrics);
+    const alignment = classifyPhaseFlowAlignment(phase.phase.id, flowLean);
+    const signals = generateCrossSignals(phase, metrics, flowLean);
+    const narrative = buildSynergyNarrative(phase, alignment, flowLean, metrics);
+    return { flowLean, alignment, signals, narrative };
+}
+
 // ─── Flow pattern classifier (shared between today + history) ───
 // Same 9 quadrants used in the interpretation text.
 function classifyFlowPattern(cAskPm, pAskPm) {
@@ -1877,6 +2084,106 @@ function renderDailySummary(phase, m, chips, duration, sectorsMap, hist, flowAna
 }
 
 // ═════════════════════════════════════════════════════════════════════
+// SYNERGY RENDER — Market State × Flow combined narrative
+// ═════════════════════════════════════════════════════════════════════
+function renderMarketFlowSynergy(phase, metrics) {
+    const wrap = $('synergyContent');
+    if (!wrap) return;
+    if (!metrics.flow) {
+        wrap.innerHTML = '<div style="padding:16px; color:var(--ov2-text-3);">אין נתוני flow לקישור עם מצב השוק</div>';
+        return;
+    }
+
+    const analysis = analyzeMarketFlow(phase, metrics);
+    const { flowLean, alignment, signals, narrative } = analysis;
+    const p = phase.phase;
+
+    // Flow pattern (from existing classifier)
+    const flowPattern = classifyFlowPattern(metrics.flow.raw.callAskPremPct, metrics.flow.raw.putAskPremPct);
+
+    // Lean visual — horizontal bar with marker
+    const leanPct = flowLean != null ? Math.max(0, Math.min(100, (flowLean + 100) / 2)) : 50;
+    const leanColor = flowLean == null ? 'var(--ov2-neutral)'
+                    : flowLean >= 25 ? 'var(--ov2-pos)'
+                    : flowLean <= -25 ? 'var(--ov2-neg)'
+                    : 'var(--ov2-warn)';
+    const leanText = flowLean == null ? '—'
+                   : flowLean >= 50 ? 'שורי חזק'
+                   : flowLean >= 25 ? 'שורי מתון'
+                   : flowLean >= -25 ? 'מאוזן'
+                   : flowLean >= -50 ? 'שלילי מתון'
+                   : 'שלילי חזק';
+
+    // Alignment color
+    const alignClass = alignment.level === 'confirm' ? 'ov2-synergy-confirm'
+                     : alignment.level === 'bullish_div' ? 'ov2-synergy-bullish-div'
+                     : alignment.level === 'bearish_div' ? 'ov2-synergy-bearish-div'
+                     : 'ov2-synergy-neutral';
+
+    const html = `
+        <!-- Pair: Phase × Flow -->
+        <div class="ov2-synergy-pair">
+            <div class="ov2-synergy-side">
+                <div class="ov2-eyebrow">מצב השוק</div>
+                <div class="ov2-synergy-side-headline" style="color:${p.color}">${p.glyph} ${p.stateLabel}</div>
+                <div class="ov2-synergy-side-detail">${p.labelHe} · Combined ${metrics.combined != null ? metrics.combined : '—'}/100</div>
+            </div>
+            <div class="ov2-synergy-arrow">↔</div>
+            <div class="ov2-synergy-side">
+                <div class="ov2-eyebrow">זרימת אופציות</div>
+                <div class="ov2-synergy-side-headline" style="color:var(--ov2-cat-flow)">${flowPattern.label}</div>
+                <div class="ov2-synergy-side-detail">Flow ${metrics.flow.score != null ? metrics.flow.score : '—'}/100 · ${flowPattern.label}</div>
+            </div>
+        </div>
+
+        <!-- Flow Lean bar -->
+        <div class="ov2-synergy-lean">
+            <div class="ov2-synergy-lean-label">
+                <span>Flow Lean</span>
+                <span class="ov2-synergy-lean-value" style="color:${leanColor}">${flowLean != null ? (flowLean >= 0 ? '+' : '') + flowLean : '—'} · ${leanText}</span>
+            </div>
+            <div class="ov2-synergy-lean-track">
+                <div class="ov2-synergy-lean-zone-neg"></div>
+                <div class="ov2-synergy-lean-zone-mid"></div>
+                <div class="ov2-synergy-lean-zone-pos"></div>
+                <div class="ov2-synergy-lean-marker" style="left:${leanPct}%; background:${leanColor}"></div>
+            </div>
+            <div class="ov2-synergy-lean-scale">
+                <span>−100</span><span>0</span><span>+100</span>
+            </div>
+        </div>
+
+        <!-- Alignment verdict -->
+        <div class="ov2-synergy-alignment ${alignClass}">
+            <div class="ov2-synergy-align-emoji">${alignment.emoji}</div>
+            <div class="ov2-synergy-align-content">
+                <div class="ov2-synergy-align-label">Phase × Flow alignment · <b>${alignment.label}</b></div>
+                <div class="ov2-synergy-align-desc">${alignment.desc || ''}</div>
+            </div>
+        </div>
+
+        <!-- Cross signals -->
+        ${signals.length ? `
+            <div class="ov2-synergy-signals">
+                <div class="ov2-eyebrow">סיגנלים מצולבים</div>
+                ${signals.map(s => `
+                    <div class="ov2-synergy-signal ov2-signal-${s.tone}">
+                        <span class="ov2-synergy-signal-icon">${s.icon}</span>
+                        <span class="ov2-synergy-signal-text">${s.text}</span>
+                    </div>
+                `).join('')}
+            </div>` : ''}
+
+        <!-- Narrative -->
+        <div class="ov2-synergy-narrative">
+            <div class="ov2-eyebrow" style="margin-bottom:6px;">השורה התחתונה</div>
+            <div class="ov2-synergy-narrative-text">${narrative}</div>
+        </div>
+    `;
+    wrap.innerHTML = html;
+}
+
+// ═════════════════════════════════════════════════════════════════════
 // FLOW HISTORICAL CONTEXT — today vs 22-day baseline + pattern frequency
 // Answers: "Is today unusual? How often have we seen this pattern?"
 // ═════════════════════════════════════════════════════════════════════
@@ -2108,6 +2415,7 @@ async function init() {
         renderStrip(metrics, phaseResult);
         renderMCC(phaseResult, metrics, chips, duration);
         renderFlowCard(metrics, flowAnalytics);
+        renderMarketFlowSynergy(phaseResult, metrics);
         renderKPIs(metrics);
         renderSectorSnapshot(metrics, data.sectors);
         renderDailySummary(phaseResult, metrics, chips, duration, data.sectors, hist, flowAnalytics);

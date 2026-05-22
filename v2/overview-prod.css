@@ -1371,6 +1371,206 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   MARKET × FLOW SYNERGY
+   ═══════════════════════════════════════════════════════════════════════ */
+.overview-prod-root .ov2-synergy {
+    background: linear-gradient(135deg, var(--ov2-bg-1) 0%, var(--ov2-bg-2) 100%);
+    border: 1px solid var(--ov2-border-strong);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-4);
+    position: relative;
+    margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-synergy-accent {
+    position: absolute;
+    top: 0; right: 0; left: 0;
+    height: 3px;
+    background: var(--ov2-cat-action);
+    border-radius: var(--ov2-radius) var(--ov2-radius) 0 0;
+}
+.overview-prod-root .ov2-synergy-pair {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: var(--ov2-space-4);
+    align-items: center;
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    padding: var(--ov2-space-4);
+    margin-bottom: var(--ov2-space-3);
+}
+@media (max-width: 700px) {
+    .overview-prod-root .ov2-synergy-pair {
+        grid-template-columns: 1fr;
+    }
+}
+.overview-prod-root .ov2-synergy-side {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.overview-prod-root .ov2-synergy-side-headline {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.1;
+}
+.overview-prod-root .ov2-synergy-side-detail {
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    font-weight: 500;
+}
+.overview-prod-root .ov2-synergy-arrow {
+    font-size: 28px;
+    color: var(--ov2-text-3);
+    font-weight: 700;
+}
+
+/* Lean bar */
+.overview-prod-root .ov2-synergy-lean {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    padding: var(--ov2-space-3) var(--ov2-space-4);
+    margin-bottom: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-synergy-lean-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.04em;
+}
+.overview-prod-root .ov2-synergy-lean-value {
+    font-family: var(--ov2-font-mono);
+    font-size: 15px;
+    font-weight: 700;
+}
+.overview-prod-root .ov2-synergy-lean-track {
+    position: relative;
+    height: 16px;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    border: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-synergy-lean-zone-neg {
+    flex: 1; background: linear-gradient(to right, rgba(220,38,38,0.5), rgba(220,38,38,0.15));
+}
+.overview-prod-root .ov2-synergy-lean-zone-mid {
+    flex: 1; background: rgba(217,119,6,0.10);
+}
+.overview-prod-root .ov2-synergy-lean-zone-pos {
+    flex: 1; background: linear-gradient(to left, rgba(5,150,105,0.5), rgba(5,150,105,0.15));
+}
+.overview-prod-root .ov2-synergy-lean-marker {
+    position: absolute;
+    top: -3px;
+    width: 4px;
+    height: 22px;
+    background: var(--ov2-text-1);
+    border-radius: 2px;
+    box-shadow: 0 1px 4px rgba(15,23,42,0.3);
+    transition: left 400ms;
+}
+.overview-prod-root .ov2-synergy-lean-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    font-family: var(--ov2-font-mono);
+    direction: ltr;
+}
+
+/* Alignment verdict box */
+.overview-prod-root .ov2-synergy-alignment {
+    display: flex;
+    align-items: center;
+    gap: var(--ov2-space-3);
+    padding: 12px 16px;
+    border-radius: var(--ov2-radius-sm);
+    border: 1px solid var(--ov2-border);
+    margin-bottom: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-synergy-confirm     { background: var(--ov2-pos-bg);  border-color: var(--ov2-pos); }
+.overview-prod-root .ov2-synergy-bullish-div { background: rgba(14,165,233,0.10); border-color: var(--ov2-cat-action); }
+.overview-prod-root .ov2-synergy-bearish-div { background: var(--ov2-warn-bg); border-color: var(--ov2-warn); }
+.overview-prod-root .ov2-synergy-neutral     { background: var(--ov2-bg-2); }
+.overview-prod-root .ov2-synergy-align-emoji {
+    font-size: 26px;
+    line-height: 1;
+}
+.overview-prod-root .ov2-synergy-align-content { flex: 1; }
+.overview-prod-root .ov2-synergy-align-label {
+    font-size: 14px;
+    color: var(--ov2-text-1);
+    margin-bottom: 4px;
+}
+.overview-prod-root .ov2-synergy-align-desc {
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    font-weight: 500;
+}
+
+/* Cross-signals list */
+.overview-prod-root .ov2-synergy-signals {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    padding: var(--ov2-space-3) var(--ov2-space-4);
+    margin-bottom: var(--ov2-space-3);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.overview-prod-root .ov2-synergy-signal {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 8px 10px;
+    background: var(--ov2-bg-2);
+    border-radius: var(--ov2-radius-sm);
+    font-size: 13px;
+    color: var(--ov2-text-1);
+    line-height: 1.5;
+}
+.overview-prod-root .ov2-synergy-signal.ov2-signal-pos { border-right: 3px solid var(--ov2-pos); }
+.overview-prod-root .ov2-synergy-signal.ov2-signal-neg { border-right: 3px solid var(--ov2-warn); }
+.overview-prod-root .ov2-synergy-signal-icon {
+    flex-shrink: 0;
+    font-weight: 700;
+    font-family: var(--ov2-font-mono);
+    color: var(--ov2-text-1);
+    min-width: 20px;
+}
+.overview-prod-root .ov2-synergy-signal-text { flex: 1; }
+
+/* Narrative box */
+.overview-prod-root .ov2-synergy-narrative {
+    background: var(--ov2-text-1);
+    color: var(--ov2-text-inverse);
+    border-radius: var(--ov2-radius-sm);
+    padding: 14px 18px;
+}
+.overview-prod-root .ov2-synergy-narrative .ov2-eyebrow {
+    color: rgba(255,255,255,0.7);
+}
+.overview-prod-root .ov2-synergy-narrative-text {
+    font-size: 15px;
+    line-height: 1.6;
+    font-weight: 500;
+}
+.overview-prod-root .ov2-synergy-narrative-text b {
+    color: #ffffff;
+    font-weight: 800;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    FLOW HISTORY — "היום ביחס לעבר" (4 stat tiles + 7-day pattern timeline)
    ═══════════════════════════════════════════════════════════════════════ */
 .overview-prod-root .ov2-flow-history-grid {
