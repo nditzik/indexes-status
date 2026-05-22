@@ -1136,6 +1136,80 @@
     border-top: 1px dashed var(--ov2-border);
     font-weight: 500;
 }
+
+/* DTE distribution stacked bar */
+.overview-prod-root .ov2-flow-dte-dist {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--ov2-border);
+}
+.overview-prod-root .ov2-flow-dte-dist-row {
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.overview-prod-root .ov2-flow-dte-dist-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    text-align: right;
+}
+.overview-prod-root .ov2-dte-stack {
+    display: flex;
+    height: 28px;
+    border-radius: var(--ov2-radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--ov2-border);
+    background: var(--ov2-bg-1);
+    direction: ltr;  /* keep bucket order visually consistent */
+}
+.overview-prod-root .ov2-dte-bucket {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-family: var(--ov2-font-mono);
+    font-weight: 700;
+    font-size: 11px;
+    transition: filter 120ms;
+    cursor: help;
+    min-width: 0;
+}
+.overview-prod-root .ov2-dte-bucket:hover { filter: brightness(1.15); }
+.overview-prod-root .ov2-dte-bucket-pct {
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Bucket colors — heat to cool (short = warm, long = cool) */
+.overview-prod-root .bucket-0_7d     { background: #ef4444; }  /* red — very short */
+.overview-prod-root .bucket-8_30d    { background: #f59e0b; }  /* amber — short */
+.overview-prod-root .bucket-31_90d   { background: #4f8af7; }  /* blue — medium */
+.overview-prod-root .bucket-91_180d  { background: #2563eb; }  /* deep blue — long */
+.overview-prod-root .bucket-180plusd { background: #7c3aed; }  /* violet — LEAPS */
+
+/* Legend */
+.overview-prod-root .ov2-flow-dte-dist-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+    direction: ltr;
+    justify-content: flex-end;
+}
+.overview-prod-root .ov2-dte-legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--ov2-font-mono);
+    color: #ffffff;
+}
 .overview-prod-root .ov2-flow-side-size-note {
     background: var(--ov2-bg-1);
     padding: 10px 12px;

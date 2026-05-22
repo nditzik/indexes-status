@@ -386,6 +386,17 @@ function computeFlowDay(rows) {
     let callAskDteWP = 0, callBidDteWP = 0, callMidDteWP = 0;
     let putAskDteWP  = 0, putBidDteWP  = 0, putMidDteWP  = 0;
     let callDteWP = 0, putDteWP = 0;   // overall per type
+    // NEW · DTE bucket tracking (premium per bucket per Call/Put)
+    const DTE_BUCKETS = ['0-7d', '8-30d', '31-90d', '91-180d', '180+d'];
+    const bucketFor = dte => {
+        if (dte <= 7)   return '0-7d';
+        if (dte <= 30)  return '8-30d';
+        if (dte <= 90)  return '31-90d';
+        if (dte <= 180) return '91-180d';
+        return '180+d';
+    };
+    const callDtePremByBucket = { '0-7d': 0, '8-30d': 0, '31-90d': 0, '91-180d': 0, '180+d': 0 };
+    const putDtePremByBucket  = { '0-7d': 0, '8-30d': 0, '31-90d': 0, '91-180d': 0, '180+d': 0 };
     const ivsCall = [], ivsPut = [];
 
     // NEW · code tracking
@@ -412,7 +423,10 @@ function computeFlowDay(rows) {
 
         if (t === 'call') {
             callTr++; callP += prem;
-            if (hasDte) callDteWP += dtePrem;
+            if (hasDte) {
+                callDteWP += dtePrem;
+                callDtePremByBucket[bucketFor(dteVal)] += prem;
+            }
             if (side === 'ask') { callAsk++; callAskP += prem; if (hasDte) callAskDteWP += dtePrem; }
             else if (side === 'bid') { callBid++; callBidP += prem; if (hasDte) callBidDteWP += dtePrem; }
             else if (side === 'mid') { callMid++; callMidP += prem; if (hasDte) callMidDteWP += dtePrem; }
@@ -423,7 +437,10 @@ function computeFlowDay(rows) {
             else if (opening === 'ToOpen') callOpenGeneric++;
         } else if (t === 'put') {
             putTr++; putP += prem;
-            if (hasDte) putDteWP += dtePrem;
+            if (hasDte) {
+                putDteWP += dtePrem;
+                putDtePremByBucket[bucketFor(dteVal)] += prem;
+            }
             if (side === 'ask') { putAsk++; putAskP += prem; if (hasDte) putAskDteWP += dtePrem; }
             else if (side === 'bid') { putBid++; putBidP += prem; if (hasDte) putBidDteWP += dtePrem; }
             else if (side === 'mid') { putMid++; putMidP += prem; if (hasDte) putMidDteWP += dtePrem; }
@@ -512,6 +529,10 @@ function computeFlowDay(rows) {
         putAskDte:     putAskP  > 0 ? Math.round(putAskDteWP  / putAskP)  : null,
         putBidDte:     putBidP  > 0 ? Math.round(putBidDteWP  / putBidP)  : null,
         putMidDte:     putMidP  > 0 ? Math.round(putMidDteWP  / putMidP)  : null,
+        // NEW · DTE bucket distribution (premium per bucket)
+        callDtePremByBucket,
+        putDtePremByBucket,
+        dteBuckets: DTE_BUCKETS,
         // NEW · code groups
         codeGroups,            // { floor, electronic, iso, cbmo, other } each { trades, premium }
         codeRaw,               // for debugging
@@ -1269,6 +1290,78 @@ function renderFlowCard(metrics, flowAnalytics) {
             } else {
                 comparison = `Puts לטווח ארוך יותר ב-${-diff} ימים — הגנה אסטרטגית, calls קצרי-טווח (scalp/momentum)`;
             }
+            // ─── Distribution visualization ───
+            const buildDistBar = (buckets, totalP) => {
+                if (!totalP) return '';
+                const pcts = {};
+                let dominantBucket = null, dominantPct = 0;
+                for (const b of raw.dteBuckets) {
+                    pcts[b] = totalP > 0 ? buckets[b] / totalP * 100 : 0;
+                    if (pcts[b] > dominantPct) { dominantPct = pcts[b]; dominantBucket = b; }
+                }
+                const seg = b => {
+                    const p = pcts[b];
+                    if (p < 1) return ''; // skip near-zero
+                    const cls = 'bucket-' + b.replace('+', 'plus').replace(/-/g, '_');
+                    const showLabel = p >= 8;  // only show % if segment wide enough
+                    return `<div class="ov2-dte-bucket ${cls}" style="width:${p.toFixed(1)}%"
+                                 data-tooltip="${b}: ${fmtP(buckets[b])} (${Math.round(p)}% מהפרמיה)">
+                                ${showLabel ? `<span class="ov2-dte-bucket-pct">${Math.round(p)}%</span>` : ''}
+                            </div>`;
+                };
+                return {
+                    html: `<div class="ov2-dte-stack">${raw.dteBuckets.map(seg).join('')}</div>`,
+                    dominantBucket,
+                    dominantPct: Math.round(dominantPct)
+                };
+            };
+
+            const callDist = buildDistBar(raw.callDtePremByBucket, raw.callP);
+            const putDist  = buildDistBar(raw.putDtePremByBucket,  raw.putP);
+
+            // ─── Concentration interpretation ───
+            const concentrationLabel = (dom, pct) => {
+                if (pct >= 60) return `מרוכזים מאוד ב-${dom} (${pct}%)`;
+                if (pct >= 40) return `מובלים ע"י ${dom} (${pct}%)`;
+                if (pct >= 25) return `דומיננטי: ${dom} (${pct}%)`;
+                return `מפוזרים על פני הטווחים`;
+            };
+
+            const bucketMeaning = b => ({
+                '0-7d':    'scalp / 0DTE / hedging קצר',
+                '8-30d':   'משחקי כיוון קצרי-טווח',
+                '31-90d':  'פוזיציות אסטרטגיות בינוניות',
+                '91-180d': 'מיצוב ארוך-טווח',
+                '180+d':   'LEAPS · אורך טווח'
+            }[b] || '');
+
+            let distInterp = '';
+            if (callDist.dominantBucket && putDist.dominantBucket) {
+                distInterp = `Calls ${concentrationLabel(callDist.dominantBucket, callDist.dominantPct)} — ${bucketMeaning(callDist.dominantBucket)}. ` +
+                             `Puts ${concentrationLabel(putDist.dominantBucket, putDist.dominantPct)} — ${bucketMeaning(putDist.dominantBucket)}.`;
+            }
+
+            const distHtml = (callDist.html || putDist.html) ? `
+                <div class="ov2-flow-dte-dist">
+                    <div class="ov2-eyebrow" style="margin-bottom:8px;">התפלגות פרמיה לפי טווח</div>
+                    <div class="ov2-flow-dte-dist-row">
+                        <span class="ov2-flow-dte-dist-label">Calls</span>
+                        ${callDist.html || '<span class="ov2-flow-side-sub">אין נתון</span>'}
+                    </div>
+                    <div class="ov2-flow-dte-dist-row">
+                        <span class="ov2-flow-dte-dist-label">Puts</span>
+                        ${putDist.html || '<span class="ov2-flow-side-sub">אין נתון</span>'}
+                    </div>
+                    <div class="ov2-flow-dte-dist-legend">
+                        <span class="ov2-dte-legend bucket-0_7d">0-7d</span>
+                        <span class="ov2-dte-legend bucket-8_30d">8-30d</span>
+                        <span class="ov2-dte-legend bucket-31_90d">31-90d</span>
+                        <span class="ov2-dte-legend bucket-91_180d">91-180d</span>
+                        <span class="ov2-dte-legend bucket-180plusd">180+d</span>
+                    </div>
+                    ${distInterp ? `<div class="ov2-flow-dte-interp" style="margin-top:8px;">${distInterp}</div>` : ''}
+                </div>` : '';
+
             dteSummaryHtml = `
                 <div class="ov2-flow-dte-summary">
                     <div class="ov2-eyebrow">טווחי הזמן הממוצעים (משוקלל לפי פרמיה)</div>
@@ -1277,6 +1370,7 @@ function renderFlowCard(metrics, flowAnalytics) {
                         <div class="ov2-flow-dte-cell"><span class="ov2-flow-dte-label">Puts</span><span class="ov2-flow-dte-value">${pDte} ימים</span><span class="ov2-flow-dte-sub">${labelDte(pDte)}</span></div>
                     </div>
                     <div class="ov2-flow-dte-interp">${comparison}</div>
+                    ${distHtml}
                 </div>`;
         }
         dteSummaryEl.innerHTML = dteSummaryHtml;
