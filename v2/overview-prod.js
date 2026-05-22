@@ -580,13 +580,29 @@ function computeFlowAnalytics(flowHistory) {
     //    - pc_premium z above mean = hedge demand (penalty up to 15)
     //    + net_premium z above mean = directional bullish (up to +10)
     //    - iv_skew z above mean = elevated fear (penalty up to 5)
-    let score = 50;
-    if (z.call_premium_pct != null) score += clamp(z.call_premium_pct * 12, -25, 25);
-    if (z.pc_premium       != null) score -= clamp(z.pc_premium * 8, -15, 15);
-    if (z.net_premium_pct  != null) score += clamp(z.net_premium_pct * 5, -10, 10);
-    if (z.iv_skew          != null) score -= clamp(z.iv_skew * 3, -5, 5);
-    // Boundary clamp
-    score = Math.max(0, Math.min(100, Math.round(score)));
+    const scoreFromZ = dz => {
+        let s = 50;
+        if (dz.call_premium_pct != null) s += clamp(dz.call_premium_pct * 12, -25, 25);
+        if (dz.pc_premium       != null) s -= clamp(dz.pc_premium * 8, -15, 15);
+        if (dz.net_premium_pct  != null) s += clamp(dz.net_premium_pct * 5, -10, 10);
+        if (dz.iv_skew          != null) s -= clamp(dz.iv_skew * 3, -5, 5);
+        return Math.max(0, Math.min(100, Math.round(s)));
+    };
+    const score = scoreFromZ(z);
+
+    // 5b. Compute historical scores per day using SHARED baseline (today's)
+    //     This is approximation: yesterday's score uses today's baseline.
+    //     OK for showing recent trend. Stored on days[i].score
+    for (let i = 0; i < days.length; i++) {
+        const r = days[i].raw;
+        const dz = {
+            call_premium_pct: zscore(r.call_premium_pct, baselines.call_premium_pct),
+            pc_premium:       zscore(r.pc_premium,       baselines.pc_premium),
+            net_premium_pct:  zscore(r.net_premium_pct,  baselines.net_premium_pct),
+            iv_skew:          zscore(r.iv_skew,          baselines.iv_skew),
+        };
+        days[i].score = scoreFromZ(dz);
+    }
 
     // 6. Debug log for chip decisions
     const debug = [];
@@ -1413,98 +1429,183 @@ function renderFlowQuality(raw) {
 }
 
 // ═════════════════════════════════════════════════════════════════════
-// DAILY SUMMARY — deterministic narrative builder
-// Reads phase, metrics, chips → produces 4-5 sections + bottom line
+// DAILY SUMMARY — Today + 5-day history + Flow↔SPX correlation
+// Simpler than before. Shows: what happened today, vs recent days, and
+// whether flow signals correlate with price moves.
 // ═════════════════════════════════════════════════════════════════════
-function renderDailySummary(phase, m, chips, duration, sectorsMap) {
+function renderDailySummary(phase, m, chips, duration, sectorsMap, hist, flowAnalytics) {
     const wrap = $('summaryContent');
     if (!wrap) return;
-    const codes = (sectorsMap && sectorsMap.codes) || {};
     const p = phase.phase;
-    const sections = [];
 
-    // 1. Status
-    const durationText = duration && duration.days >= 0
-        ? (duration.days === 0 ? 'יום ראשון בשלב' : `יום ${duration.days + 1} בשלב`)
-        : '';
-    sections.push({
-        cls: p.stateClass,
-        label: '1 · הסטטוס',
-        body: `<b>${p.glyph} ${p.labelHe}</b> — ${durationText}. ${phase.reasons[0] || ''}`
-    });
+    // ─── TODAY's snapshot ───
+    const spxChg = m.spx && m.spx.chgPct != null ? m.spx.chgPct : null;
+    const spxChgFmt = spxChg != null ? (spxChg >= 0 ? '+' : '') + spxChg.toFixed(2) + '%' : '—';
+    const spxChgClass = spxChg > 0 ? 'ov2-pos' : spxChg < 0 ? 'ov2-neg' : '';
+    const dayInPhase = duration && duration.days >= 0 ? duration.days + 1 : '—';
+    const flowScore = m.flow ? m.flow.score : null;
 
-    // 2. The story — main weaknesses (warnings) and divergences
-    const warnings = chips.filter(c => c.type === 'warning').slice(0, 4);
-    if (warnings.length) {
-        const bullets = warnings.map(c =>
-            `<li>${c.text}${c.meaning ? ' — <span style="color:var(--ov2-text-2)">' + c.meaning + '</span>' : ''}</li>`
-        ).join('');
-        sections.push({
-            cls: 'warn',
-            label: '2 · על מה לעקוב',
-            body: `<ul>${bullets}</ul>`
-        });
+    const todayBlock = `
+        <div class="ov2-summary-today">
+            <div class="ov2-summary-section-label">היום · ${fmtDate(m.dataDate)}</div>
+            <div class="ov2-summary-today-stats">
+                <div class="ov2-summary-stat" data-tooltip="השלב הנוכחי לפי המסווג">
+                    <span class="ov2-summary-stat-label">שלב</span>
+                    <span class="ov2-summary-stat-value"><b>${p.glyph}</b> ${p.stateLabel}</span>
+                    <span class="ov2-summary-stat-sub">${m.combined != null ? m.combined : '—'}/100 · יום ${dayInPhase}</span>
+                </div>
+                <div class="ov2-summary-stat" data-tooltip="שינוי SPX היום">
+                    <span class="ov2-summary-stat-label">SPX</span>
+                    <span class="ov2-summary-stat-value ${spxChgClass}">${spxChgFmt}</span>
+                    <span class="ov2-summary-stat-sub">מחיר ${m.spx && m.spx.price ? m.spx.price.toFixed(2) : '—'}</span>
+                </div>
+                <div class="ov2-summary-stat" data-tooltip="ציון Flow היום">
+                    <span class="ov2-summary-stat-label">Flow</span>
+                    <span class="ov2-summary-stat-value">${flowScore != null ? flowScore : '—'}</span>
+                    <span class="ov2-summary-stat-sub">ציון 0-100</span>
+                </div>
+                <div class="ov2-summary-stat" data-tooltip="אחוז מניות מעל MA200">
+                    <span class="ov2-summary-stat-label">רוחב</span>
+                    <span class="ov2-summary-stat-value">${Math.round(m.pctMa200)}%</span>
+                    <span class="ov2-summary-stat-sub">מעל MA200</span>
+                </div>
+                <div class="ov2-summary-stat" data-tooltip="VIX · מד הפחד">
+                    <span class="ov2-summary-stat-label">VIX</span>
+                    <span class="ov2-summary-stat-value">${m.vix ? m.vix.toFixed(1) : '—'}</span>
+                    <span class="ov2-summary-stat-sub">${m.vix < 15 ? 'רגוע' : m.vix < 20 ? 'נורמלי' : m.vix < 30 ? 'מוגבר' : 'משבר'}</span>
+                </div>
+            </div>
+        </div>`;
+
+    // ─── 5-DAY HISTORY TABLE ───
+    // Build per-day rows from hist + flowAnalytics
+    const lastN = 7;
+    const days = (hist || []).slice(-lastN);
+    const flowDays = (flowAnalytics && flowAnalytics.days) || [];
+    // Build lookup: date → flow score
+    const flowByDate = {};
+    for (const fd of flowDays) {
+        if (fd.score != null) flowByDate[fd.date] = fd.score;
     }
 
-    // 3. What's positive
-    const confirmations = chips.filter(c => c.type === 'confirmation').slice(0, 4);
-    if (confirmations.length) {
-        const bullets = confirmations.map(c =>
-            `<li>${c.text}${c.meaning ? ' — <span style="color:var(--ov2-text-2)">' + c.meaning + '</span>' : ''}</li>`
-        ).join('');
-        sections.push({
-            cls: 'pos',
-            label: '3 · מה כן חיובי',
-            body: `<ul>${bullets}</ul>`
+    const histRows = days.map((d, i) => {
+        const dm = d.m;
+        const dSpxChg = dm.macro && dm.macro.spx ? dm.macro.spx.chgPct : null;
+        const dSpxFmt = dSpxChg != null ? (dSpxChg >= 0 ? '+' : '') + dSpxChg.toFixed(2) + '%' : '—';
+        const dSpxClass = dSpxChg > 0 ? 'ov2-pos' : dSpxChg < 0 ? 'ov2-neg' : 'ov2-muted';
+        const dFlow = flowByDate[d.date];
+        const dBreadth = dm.pctMa200 != null ? Math.round(dm.pctMa200) + '%' : '—';
+        // Classify phase for this day (simplified — no previousPhase)
+        const dPhase = Regime.classifyPhase({
+            combined: 50,    // approx — we don't reclassify each day fully
+            breadth5dDelta: 0,
+            vix: dm.macro.vix || 0,
+            distributionDays: 0,
+            nhMinusNl: dm.newHighs - dm.newLows,
+            rsiThrust: dm.rsiThrust,
+            pctMa200: dm.pctMa200,
+            previousPhase: null
         });
+        const isToday = i === days.length - 1;
+        return `<tr class="${isToday ? 'ov2-summary-today-row' : ''}">
+            <td class="ov2-summary-date">${fmtDate(d.date)}${isToday ? ' <span style="color:var(--ov2-cat-action); font-weight:700;">← היום</span>' : ''}</td>
+            <td class="${dSpxClass}"><b>${dSpxFmt}</b></td>
+            <td>${dFlow != null ? dFlow : '—'}</td>
+            <td>${Math.round(dm.healthScore || 0)}</td>
+            <td>${dBreadth}</td>
+            <td>${dm.macro.vix ? dm.macro.vix.toFixed(1) : '—'}</td>
+        </tr>`;
+    }).join('');
+
+    const histTable = `
+        <div class="ov2-summary-history">
+            <div class="ov2-summary-section-label">${days.length} ימי המסחר האחרונים</div>
+            <table class="ov2-summary-table">
+                <thead>
+                    <tr>
+                        <th>תאריך</th>
+                        <th>SPX</th>
+                        <th data-tooltip="ציון Flow היומי 0-100">Flow</th>
+                        <th data-tooltip="ציון בריאות שוק">בריאות</th>
+                        <th data-tooltip="% מניות מעל MA200">רוחב</th>
+                        <th>VIX</th>
+                    </tr>
+                </thead>
+                <tbody>${histRows}</tbody>
+            </table>
+        </div>`;
+
+    // ─── CORRELATION Flow ↔ SPX ───
+    const corrSamples = [];
+    for (const d of days) {
+        const f = flowByDate[d.date];
+        const sChg = d.m.macro && d.m.macro.spx ? d.m.macro.spx.chgPct : null;
+        if (f != null && sChg != null) corrSamples.push({ flow: f, spx: sChg });
+    }
+    const correlation = pearsonCorrelation(
+        corrSamples.map(s => s.flow),
+        corrSamples.map(s => s.spx)
+    );
+
+    let corrLabel, corrInterp;
+    if (correlation == null || corrSamples.length < 3) {
+        corrLabel = '—';
+        corrInterp = 'אין מספיק נתונים לחישוב קורלציה (דרושים לפחות 3 ימים)';
+    } else {
+        const r = correlation;
+        const absR = Math.abs(r);
+        let strength;
+        if (absR >= 0.7) strength = 'חזקה';
+        else if (absR >= 0.4) strength = 'בינונית';
+        else if (absR >= 0.2) strength = 'חלשה';
+        else strength = 'אין';
+        const direction = r > 0 ? 'חיובית' : r < 0 ? 'שלילית' : '';
+        corrLabel = `r = ${r >= 0 ? '+' : ''}${r.toFixed(2)} · ${strength} ${direction}`;
+
+        // Interpretation
+        if (absR < 0.2) {
+            corrInterp = `Flow ו-SPX לא נעו יחד ב-${corrSamples.length} הימים האחרונים. הציון לא חזה את כיוון השוק.`;
+        } else if (r >= 0.4) {
+            corrInterp = `Flow ו-SPX נעו יחד — ימים עם Flow גבוה היו ימים עם SPX חיובי. הציון תואם לכיוון השוק.`;
+        } else if (r <= -0.4) {
+            corrInterp = `Flow ו-SPX נעו הפוך — ימים עם Flow גבוה היו ימים עם SPX שלילי. <b>סימן ל-contrarian flow</b>.`;
+        } else {
+            corrInterp = `קשר חלש בין Flow ל-SPX — ב-${corrSamples.length} ימים אחרונים, Flow לא ניבא תנועה ברורה.`;
+        }
     }
 
-    // 4. Sectors story
-    const sorted = [...m.sectors].sort((a, b) => b.avgChg - a.avgChg);
-    const best = sorted[0];
-    const worst = sorted[sorted.length - 1];
-    if (best && worst) {
-        const bestName = codes[best.code] || best.code;
-        const worstName = codes[worst.code] || worst.code;
-        const dispersion = (best.avgChg - worst.avgChg).toFixed(1);
-        // Detect interesting "today vs long-term" mismatch
-        const bestLongTermNote = best.pct200 < 50
-            ? ` (אך רק ${Math.round(best.pct200)}% מהמניות בסקטור הזה מעל MA200 — חולשה ארוכת-טווח)` : '';
-        const worstLongTermNote = worst.pct200 >= 70
-            ? ` (אך ${Math.round(worst.pct200)}% מהמניות בסקטור עדיין מעל MA200 — חוזק ארוך-טווח, רק יום-אחד שלילי)` : '';
-        sections.push({
-            cls: '',
-            label: '4 · סקטורים',
-            body: `מוביל היום: <b>${bestName} ${fmtPct(best.avgChg, 1)}</b>${bestLongTermNote}.<br>
-                   חלש היום: <b>${worstName} ${fmtPct(worst.avgChg, 1)}</b>${worstLongTermNote}.<br>
-                   פיזור היום: <b>${dispersion}%</b> ${parseFloat(dispersion) > 2 ? '(רוטציה אקטיבית)' : '(תנועה אחידה)'}.`
-        });
+    const corrBlock = `
+        <div class="ov2-summary-corr">
+            <div class="ov2-summary-section-label">קורלציה Flow ↔ SPX</div>
+            <div class="ov2-summary-corr-row">
+                <span class="ov2-summary-corr-val">${corrLabel}</span>
+                <span class="ov2-summary-corr-samples">${corrSamples.length} ימים</span>
+            </div>
+            <div class="ov2-summary-corr-interp">${corrInterp}</div>
+        </div>`;
+
+    wrap.innerHTML = todayBlock + histTable + corrBlock;
+
+    // Bottom line — phase bias
+    $('summaryBottomLine').textContent = `השורה התחתונה: ${p.bias}`;
+}
+
+// ─── Pearson correlation helper ───
+function pearsonCorrelation(xs, ys) {
+    if (!xs || !ys || xs.length !== ys.length || xs.length < 2) return null;
+    const n = xs.length;
+    let sumX = 0, sumY = 0;
+    for (let i = 0; i < n; i++) { sumX += xs[i]; sumY += ys[i]; }
+    const mX = sumX / n, mY = sumY / n;
+    let num = 0, sx2 = 0, sy2 = 0;
+    for (let i = 0; i < n; i++) {
+        const dx = xs[i] - mX, dy = ys[i] - mY;
+        num += dx * dy;
+        sx2 += dx * dx;
+        sy2 += dy * dy;
     }
-
-    // 5. SPX Flow note
-    if (m.flow && m.flow.score != null) {
-        const flowMsg = m.flow.score >= 60
-            ? `זרימת הכסף חיובית (${m.flow.score}/100) — כסף גדול קונה calls`
-            : m.flow.score >= 45
-            ? `זרימת הכסף מאוזנת (${m.flow.score}/100) — ללא כיוון ברור`
-            : `זרימת הכסף הגנתית (${m.flow.score}/100) — כסף גדול קונה הגנות`;
-        sections.push({
-            cls: '',
-            label: '5 · כסף ב-options',
-            body: flowMsg
-        });
-    }
-
-    // Render
-    wrap.innerHTML = sections.map(s => `
-        <div class="ov2-summary-section ov2-${s.cls}">
-            <div class="ov2-summary-section-label">${s.label}</div>
-            <div class="ov2-summary-section-body">${s.body}</div>
-        </div>
-    `).join('');
-
-    // Bottom line — from phase bias + key tension
-    $('summaryBottomLine').textContent = `השורה התחתונה: ${p.bias}.`;
+    const den = Math.sqrt(sx2 * sy2);
+    return den === 0 ? null : num / den;
 }
 
 // ═════════════════════════════════════════════════════════════════════
@@ -1617,7 +1718,7 @@ async function init() {
         renderFlowCard(metrics);
         renderKPIs(metrics);
         renderSectorSnapshot(metrics, data.sectors);
-        renderDailySummary(phaseResult, metrics, chips, duration, data.sectors);
+        renderDailySummary(phaseResult, metrics, chips, duration, data.sectors, hist, flowAnalytics);
         renderAlertsRail(chips, metrics);
         startLiveTicker(metrics);
 
