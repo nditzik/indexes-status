@@ -1935,8 +1935,19 @@ async function renderHistoricalEcho(hist) {
         // Expose for console debugging.
         if (window.__V2) window.__V2.patterns = analysis;
 
-        // ── Early-warning signals — what to watch in next 5 days ──
-        renderEarlyWarning(analysis, hist);
+        // ── Forward tracking — locked-in snapshots, Day N/5 progress ──
+        // Replaces the old backward-looking "last 5 days" panel. The
+        // snapshots file is appended to by scripts/update_forward_snapshots.py
+        // each trading day, so each anchor has its KNN matches + signal
+        // thresholds frozen at fire time. The live observation is
+        // computed here from the current hist array.
+        if (window.ForwardTracking) {
+            window.ForwardTracking.load().then(data => {
+                window.ForwardTracking.render(data.snapshots || [], hist);
+            }).catch(err => {
+                console.warn('ForwardTracking render failed:', err);
+            });
+        }
 
         // ── Enrich the Daily Narrative with a "בעבר" line ──
         // The narrative was already rendered without this layer (sync).

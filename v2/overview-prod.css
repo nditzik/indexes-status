@@ -670,6 +670,95 @@
     margin-top: var(--ov2-space-3);
 }
 
+/* ─── Forward-tracking snapshot cards ────────────────────────────────
+   Each active pattern (anchor 0-5 trading days back) renders as one
+   .ov2-ft-snapshot wrapper containing a header (anchor date + Day N/5
+   progress + per-snapshot verdict) and a row of inner signal cards. */
+.overview-prod-root .ov2-ft-snapshot {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-md);
+    padding: var(--ov2-space-3);
+    margin-bottom: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-ft-snap-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: var(--ov2-space-3);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-ft-snap-anchor {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-ft-snap-day {
+    font-family: var(--ov2-font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: var(--ov2-bg-2);
+    color: var(--ov2-text-2);
+}
+/* Color coding — fuller window = greener.
+   Day 0 (just fired) stays neutral; Days 1-4 progress; Day 5 = pos. */
+.overview-prod-root .ov2-ft-snap-day.ov2-ft-day-0 {
+    background: var(--ov2-bg-2);
+    color: var(--ov2-text-3);
+}
+.overview-prod-root .ov2-ft-snap-day.ov2-ft-day-1,
+.overview-prod-root .ov2-ft-snap-day.ov2-ft-day-2 {
+    background: var(--ov2-cat-action-bg, rgba(245, 158, 11, 0.10));
+    color: var(--ov2-cat-action, #b45309);
+}
+.overview-prod-root .ov2-ft-snap-day.ov2-ft-day-3,
+.overview-prod-root .ov2-ft-snap-day.ov2-ft-day-4 {
+    background: var(--ov2-cat-momentum-bg, rgba(59, 130, 246, 0.10));
+    color: var(--ov2-cat-momentum, #1d4ed8);
+}
+.overview-prod-root .ov2-ft-snap-day.ov2-ft-day-5 {
+    background: var(--ov2-pos-bg);
+    color: var(--ov2-pos);
+}
+.overview-prod-root .ov2-ft-snap-verdict {
+    margin-right: auto;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: var(--ov2-bg-2);
+    color: var(--ov2-text-2);
+}
+.overview-prod-root .ov2-ft-snap-verdict.ov2-pos {
+    background: var(--ov2-pos-bg);
+    color: var(--ov2-pos);
+}
+.overview-prod-root .ov2-ft-snap-verdict.ov2-neg {
+    background: var(--ov2-neg-bg);
+    color: var(--ov2-neg);
+}
+.overview-prod-root .ov2-ft-snap-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ov2-space-2);
+}
+/* Partial-window tag inside the live-tracking row */
+.overview-prod-root .ov2-ft-partial {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    font-family: var(--ov2-font-mono);
+}
+/* "ממתינים — אין עדיין ימי מסחר אחרי המקור" — neutral gray line */
+.overview-prod-root .ov2-echo-ew-signal-live-pending {
+    color: var(--ov2-text-3);
+    font-style: italic;
+    font-size: 11px;
+}
+
 /* Paths chart — 12 trajectories + median overlay */
 .overview-prod-root .ov2-echo-paths-wrap {
     position: relative;
