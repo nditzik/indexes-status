@@ -1928,6 +1928,34 @@
                         </div>
                     </div>
 
+                    <!-- ═══ FLOW vs PRICE — options pulse vs SPX move ═══ -->
+                    <div class="ov2-fvp" id="ov2_flowVsPrice">
+                        <div class="ov2-fvp-head">
+                            <div>
+                                <div class="ov2-eyebrow" style="color:var(--ov2-cat-action);">מגמת אופציות מול מחיר</div>
+                                <div class="ov2-fvp-title">22 ימי מסחר אחרונים — ציון אופציות (0-100) מול תשואת SPX מצטברת</div>
+                                <div class="ov2-fvp-sub" id="ov2_fvpSub">טוען נתוני flow...</div>
+                            </div>
+                            <div class="ov2-fvp-stats">
+                                <div class="ov2-fvp-stat">
+                                    <span class="ov2-fvp-stat-label">קורלציה</span>
+                                    <span class="ov2-fvp-stat-val" id="ov2_fvpCorr">—</span>
+                                </div>
+                                <div class="ov2-fvp-stat">
+                                    <span class="ov2-fvp-stat-label">דיוואגירציה היום</span>
+                                    <span class="ov2-fvp-stat-val" id="ov2_fvpDiv">—</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ov2-fvp-chart-wrap">
+                            <canvas id="ov2_fvpChart"></canvas>
+                        </div>
+                        <div class="ov2-fvp-verdict" id="ov2_fvpVerdict">—</div>
+                        <div class="ov2-fvp-caveat">
+                            * ציון אופציות = שילוב z-scores של P/C premium ratio, פרמיית קולים, premium נטו, ו-IV skew. 50 = ניטרלי; מעל 60 = אופטימי, מתחת 40 = הגנתי. דיוואגירציה = כיוון הציון הפוך לכיוון המחיר ביום מסוים.
+                        </div>
+                    </div>
+
                     <!-- ═══ MCC CARD ═══ -->
                     <div class="ov2-mcc" id="ov2_mcc">
                         <div class="ov2-mcc-accent" id="ov2_mccPhaseAccent"></div>

@@ -180,6 +180,16 @@
     gap: 4px;
     line-height: 1.1;
     min-width: 86px;
+    /* Thin separator between adjacent tiles. The strip is RTL — using
+       a border-right means the line sits on the LEFT visually,
+       between this tile and the next one to its left. */
+    border-right: 1px solid var(--ov2-border);
+    padding-right: var(--ov2-space-4);
+}
+/* Strip is RTL; first item visually is rightmost — no border there. */
+.overview-prod-root .ov2-strip-indices .ov2-idx:first-of-type {
+    border-right: none;
+    padding-right: 0;
 }
 .overview-prod-root .ov2-idx-name {
     font-size: 10px;
@@ -591,6 +601,92 @@
     color: var(--ov2-text-3);
     line-height: 1.5;
     padding-top: var(--ov2-space-3);
+    border-top: 1px solid var(--ov2-border);
+}
+
+/* ─── Flow vs Price panel — options sentiment timeline vs SPX ────────
+   Sits below the Historical Echo. Both Echo and FvP are short-term
+   panels (last 22-30 days) while the Macro Trail above them is the
+   10-year backdrop. The chart overlays the flow score (left axis) on
+   top of cumulative SPX return (right axis), so the eye can spot
+   divergences immediately. */
+.overview-prod-root .ov2-fvp {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border-strong);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-5);
+    margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-fvp-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: var(--ov2-space-4);
+    margin-bottom: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-fvp-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-fvp-sub {
+    font-size: 12px;
+    color: var(--ov2-text-3);
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-fvp-stats {
+    display: flex;
+    gap: var(--ov2-space-5);
+    flex-wrap: wrap;
+}
+.overview-prod-root .ov2-fvp-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 100px;
+}
+.overview-prod-root .ov2-fvp-stat-label {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+.overview-prod-root .ov2-fvp-stat-val {
+    font-family: var(--ov2-font-mono);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-fvp-stat-val.ov2-pos { color: var(--ov2-pos); }
+.overview-prod-root .ov2-fvp-stat-val.ov2-neg { color: var(--ov2-neg); }
+.overview-prod-root .ov2-fvp-chart-wrap {
+    position: relative;
+    height: 240px;
+    width: 100%;
+}
+.overview-prod-root .ov2-fvp-verdict {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ov2-text-1);
+    padding: var(--ov2-space-3);
+    background: var(--ov2-bg-2);
+    border-radius: var(--ov2-radius-sm);
+    border-right: 3px solid var(--ov2-cat-action);
+    margin-top: var(--ov2-space-4);
+    line-height: 1.6;
+}
+.overview-prod-root .ov2-fvp-verdict.ov2-pos { border-right-color: var(--ov2-pos); }
+.overview-prod-root .ov2-fvp-verdict.ov2-neg { border-right-color: var(--ov2-neg); }
+.overview-prod-root .ov2-fvp-caveat {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    line-height: 1.5;
+    padding-top: var(--ov2-space-3);
+    margin-top: var(--ov2-space-3);
     border-top: 1px solid var(--ov2-border);
 }
 .overview-prod-root .ov2-mcc-accent {
@@ -2235,6 +2331,14 @@
     gap: 2px;
     text-align: center;
     min-width: 110px;
+    /* Same separator pattern as the strip — thin divider between
+       adjacent tiles. Uses border-right because the container is RTL. */
+    border-right: 1px solid var(--ov2-border);
+    padding-right: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-ticker-items .ov2-ticker-item:first-of-type {
+    border-right: none;
+    padding-right: 0;
 }
 .overview-prod-root .ov2-ticker-name {
     font-size: 11px;

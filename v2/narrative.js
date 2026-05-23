@@ -76,34 +76,44 @@
     // (when present) is named rather than hidden.
 
     function recentDriverPhrase(metrics, hist) {
-        // What's making the recent tape feel positive?
+        // Pick the strongest positive driver and quote its actual number.
+        // Generic phrases like "broad strength" without a value were the
+        // main complaint about v2 of the narrative — fixed here.
         const spread5d = cumulativeSpread(hist, 5);
         const breadthDelta = metrics.breadth5dDelta;
         if (spread5d != null && spread5d > 1.5) {
-            return 'רוחב משתפר משמעותית';
+            return `רוחב מתחזק חזק (+${spread5d.toFixed(1)}% השבוע)`;
         }
         if (spread5d != null && spread5d > 0.5) {
-            return 'רוחב משתפר';
+            return `רוחב משתפר (+${spread5d.toFixed(1)}% השבוע)`;
         }
         if (breadthDelta != null && breadthDelta > 5) {
-            return 'יותר מניות מעל ממוצעים';
+            return `אחוז המניות מעל MA200 עלה ב-${breadthDelta.toFixed(1)}% בשבוע`;
         }
         return 'תנועה חיובית קצרת-טווח';
     }
 
     function regimeDriverPhrase(metrics) {
         // What's the most pressing regime concern? Highest-impact first.
+        // Note: "selling days" replaced the misleading "distribution days"
+        // phrasing — the underlying count no longer claims a volume check
+        // it never actually performed.
         const dist = metrics.distributionDays;
+        const distRecent = metrics.sellDaysRecent10;
         const pctMa200 = metrics.pctMa200;
         const vix = metrics.vix;
         const nhnl = metrics.nhMinusNl;
 
-        if (dist != null && dist >= 8) return 'ימי מכירה כבדה גבוהים';
-        if (pctMa200 != null && pctMa200 < 30) return 'רוב המניות מתחת ל-MA200';
-        if (vix != null && vix > 25) return 'VIX מעל סף הפאניקה';
-        if (nhnl != null && nhnl <= -50) return 'שיאים-שפלים שליליים בכמות חריגה';
-        if (dist != null && dist >= 5) return 'ימי מכירה כבדה מעל סף האזהרה';
-        if (pctMa200 != null && pctMa200 < 50) return 'רוחב טווח-ארוך חלש';
+        if (distRecent != null && distRecent >= 4) {
+            return `${distRecent} ימים שליליים ב-10 ימים אחרונים (אשכול טרי)`;
+        }
+        if (dist != null && dist >= 6) {
+            return `${dist} ימים שליליים ב-25 ימים אחרונים`;
+        }
+        if (pctMa200 != null && pctMa200 < 30) return `רק ${Math.round(pctMa200)}% מהמניות מעל MA200`;
+        if (vix != null && vix > 25) return `VIX ${vix.toFixed(1)} (מעל סף הפאניקה)`;
+        if (nhnl != null && nhnl <= -50) return `${nhnl} שיאים-שפלים נטו (חריג שלילי)`;
+        if (pctMa200 != null && pctMa200 < 50) return `רוחב טווח-ארוך חלש (${Math.round(pctMa200)}% מעל MA200)`;
         return 'הפאזה הטכנית עדיין שלילית';
     }
 
@@ -173,7 +183,7 @@
         return { metaLabel, rationale, stateClass };
     }
 
-    // ─── 2. Today — one-day breadth + sector tilt ─────────────────────
+    // ─── 2. Today — one-day breadth + sector tilt + options pulse ────
     function buildToday(metrics) {
         const avg = metrics.avgChange;
         const spx = metrics.spx && metrics.spx.chgPct;
@@ -181,7 +191,7 @@
 
         // Both verbs in past tense ("המניה עלתה", "המדד עלה") so the
         // sentence reads naturally. "בעוד" works for both same-direction
-        // and opposite-direction days; mixing מול+past sounded clunky.
+        // and opposite-direction days.
         const avgVerb = avg >= 0 ? 'עלתה' : 'ירדה';
         const spxVerb = spx >= 0 ? 'עלה'  : 'ירד';
 
@@ -191,16 +201,44 @@
         const def = metrics.defensiveLeadership;
         let sectorTail = '';
         if (cyc != null && cyc >= 0.67) {
-            sectorTail = ' — סקטורים מחזוריים מובילים, השתתפות רחבה';
+            sectorTail = ', סקטורים מחזוריים מובילים';
         } else if (def != null && def >= 0.67) {
-            sectorTail = ' — סקטורים הגנתיים מובילים, השוק זהיר';
+            sectorTail = ', סקטורים הגנתיים מובילים';
         } else if (cyc != null && def != null) {
-            if (cyc > def + 0.1) sectorTail = ' — נטייה למחזוריים';
-            else if (def > cyc + 0.1) sectorTail = ' — נטייה להגנתיים';
+            if (cyc > def + 0.1) sectorTail = ', נטייה למחזוריים';
+            else if (def > cyc + 0.1) sectorTail = ', נטייה להגנתיים';
+        }
+
+        // Options pulse — surface what the flow z-scores say in plain
+        // Hebrew. The flow data is a 35% pillar of the combined score
+        // and was completely absent from the daily narrative before.
+        // Trigger thresholds picked to filter noise: |z| >= 0.7 is
+        // "noteworthy", >= 1.5 is "strong".
+        let optionsTail = '';
+        const z = metrics.flow && metrics.flow.z ? metrics.flow.z : null;
+        if (z) {
+            // pc_premium: positive z = more put premium than usual (hedging)
+            const pc = z.pc_premium;
+            // call_premium_pct: positive z = call dominance (bullish)
+            const cp = z.call_premium_pct;
+            const absPc = pc != null ? Math.abs(pc) : 0;
+            const absCp = cp != null ? Math.abs(cp) : 0;
+            // Pick whichever signal is stronger, mention it explicitly.
+            if (absPc >= 1.5 && pc > 0) {
+                optionsTail = `, אופציות בגידור חזק (P/C z=+${pc.toFixed(1)})`;
+            } else if (absCp >= 1.5 && cp > 0) {
+                optionsTail = `, פרמיית קולים חריגה (z=+${cp.toFixed(1)} — אופטימי)`;
+            } else if (absPc >= 0.7 && pc > 0) {
+                optionsTail = `, אופציות נוטות להגנה (P/C z=+${pc.toFixed(1)})`;
+            } else if (absCp >= 0.7 && cp > 0) {
+                optionsTail = `, פרמיית קולים מוגברת (z=+${cp.toFixed(1)})`;
+            } else if (absPc >= 0.7 && pc < 0) {
+                optionsTail = `, אופציות מורגעות (P/C z=${pc.toFixed(1)})`;
+            }
         }
 
         return `המניה הממוצעת ${avgVerb} ${fmtAbs2(avg)}% בעוד המדד `
-             + `${spxVerb} ${fmtAbs2(spx)}%${sectorTail}.`;
+             + `${spxVerb} ${fmtAbs2(spx)}%${sectorTail}${optionsTail}.`;
     }
 
     // ─── 3. Week — 5-day equal-vs-cap spread ──────────────────────────
@@ -236,13 +274,28 @@
             parts.push(`הפאזה "${phaseLabel}" — שלב חדש שהתחיל היום.`);
         }
 
-        // Add the dominant regime fact, translated to plain Hebrew. We
-        // mention at most ONE so the layer stays short.
+        // Selling-days context: honest about what's measured (SPX-based,
+        // not volume-based) and aware of FRESHNESS — a cluster in the
+        // last 10 sessions is a different story than the same count
+        // spread across the full 25-day window.
         const dist = metrics.distributionDays;
+        const recent10 = metrics.sellDaysRecent10;
         const pctMa200 = metrics.pctMa200;
-        if (dist != null && dist >= 5) {
-            parts.push(`${dist} ימי מכירה כבדה (ירידות בנפח גבוה) ב-25 ימים אחרונים, מעל סף האזהרה של 5.`);
-        } else if (pctMa200 != null && pctMa200 < 40) {
+
+        if (recent10 != null && recent10 >= 4) {
+            // Fresh cluster — most worrying
+            parts.push(`${recent10} ימים שליליים ב-10 הימים האחרונים — אשכול טרי, סימן אזהרה.`);
+        } else if (dist != null && dist >= 6) {
+            // High count but spread out
+            const recentFresh = recent10 != null ? ` (מהם רק ${recent10} ב-10 הימים האחרונים)` : '';
+            parts.push(`${dist} ימים שליליים ב-25 ימים אחרונים${recentFresh} — מעל הסף הרגיל.`);
+        } else if (dist != null && dist >= 3 && dist < 6) {
+            // Within normal range — call it out as reassurance
+            parts.push(`${dist} ימים שליליים ב-25 ימים אחרונים — בטווח נורמלי.`);
+        }
+
+        // Breadth context — separate signal, not always relevant
+        if (pctMa200 != null && pctMa200 < 40) {
             parts.push(`רק ${Math.round(pctMa200)}% מהמניות מעל ממוצע 200 — חולשה מבנית.`);
         } else if (pctMa200 != null && pctMa200 >= 70) {
             parts.push(`${Math.round(pctMa200)}% מהמניות מעל ממוצע 200 — מבנה חזק.`);

@@ -853,9 +853,33 @@ function computeMetrics(data) {
         date: hist.length ? hist[hist.length - 1].date : null,
     };
 
-    // Distribution days: last 25 sessions with avgChange < -0.2%
+    // "Selling-pressure days" (was misleadingly labelled "distribution days"
+    // in the narrative — the term implies an IBD/O'Neil-style volume check
+    // we never actually did). New definition is honest about its limits:
+    //
+    //   Primary rule: $SPX %Change < -0.3% on the day.
+    //   Fallback:    avgChange of the 500 stocks < -0.5% (used when the
+    //                CSV's $SPX row is missing — early days in our data).
+    //
+    // The previous rule (avgChange < -0.2%) was over-counting by ~3-5x —
+    // it triggered on tiny mean-stock dips that occurred even when SPX
+    // closed UP, and called them "ירידות בנפח גבוה" without ever checking
+    // volume. The new rule reflects real cap-weighted selling pressure.
+    //
+    // We also expose `sellDaysRecent10` so the narrative can describe
+    // FRESHNESS (were these days bunched up recently, or spread out
+    // across the month?). A cluster in the last 10 days is far more
+    // worrying than the same count spread across 25.
     const last25 = hist.slice(-25);
-    const distributionDays = last25.filter(h => h.m.avgChange != null && h.m.avgChange < -0.2).length;
+    const last10 = hist.slice(-10);
+    const isSellingDay = (h) => {
+        const spx = h.m && h.m.macro && h.m.macro.spx
+                    ? h.m.macro.spx.chgPct : null;
+        if (spx != null && Number.isFinite(spx)) return spx < -0.3;
+        return h.m && h.m.avgChange != null && h.m.avgChange < -0.5;
+    };
+    const distributionDays = last25.filter(isSellingDay).length;
+    const sellDaysRecent10 = last10.filter(isSellingDay).length;
 
     // Days since last "new low" appeared
     let daysSinceNewLow = 0;
@@ -944,6 +968,7 @@ function computeMetrics(data) {
         eqIndex,
         spxRebased,
         distributionDays,
+        sellDaysRecent10,
         daysSinceNewLow,
 
         // Flow — backwards-compat top-level (raw values)
@@ -1055,12 +1080,29 @@ function sectorHmClass(chg) {
 }
 
 function renderStrip(m, phase) {
-    // Use phase.stateClass for the dot — drives color from regime, not raw score
-    const p = phase && phase.phase ? phase.phase : null;
-    const stateClass = p ? p.stateClass : (m.combined >= 70 ? 'pos' : m.combined >= 50 ? 'warn' : 'neg');
-    $('stateDot').className = `ov2-state-dot ov2-${stateClass}`;
-    $('stateName').textContent = p ? p.stateLabel : '—';
-    $('stateScore').textContent = m.combined != null ? m.combined : '—';
+    // Strip label is now derived FROM the combined score, not from the
+    // regime classifier — they were disagreeing in the UI before (score
+    // 75 sitting next to "זהיר" looked broken). The regime phase still
+    // gets its own dedicated display in the MCC card below; the strip
+    // is the executive view and consistency at the top trumps mixing.
+    const combined = m.combined;
+    let scoreLabel, scoreClass;
+    if (combined == null) {
+        scoreLabel = '—'; scoreClass = 'muted';
+    } else if (combined >= 75) {
+        scoreLabel = 'מצוין'; scoreClass = 'pos';
+    } else if (combined >= 60) {
+        scoreLabel = 'בריא'; scoreClass = 'pos';
+    } else if (combined >= 45) {
+        scoreLabel = 'זהיר'; scoreClass = 'warn';
+    } else if (combined >= 30) {
+        scoreLabel = 'מוחלש'; scoreClass = 'neg';
+    } else {
+        scoreLabel = 'שלילי'; scoreClass = 'neg';
+    }
+    $('stateDot').className = `ov2-state-dot ov2-${scoreClass}`;
+    $('stateName').textContent = scoreLabel;
+    $('stateScore').textContent = combined != null ? combined : '—';
 
     // SPX removed from header strip — already covered by live SPY ticker above.
     // (SPX historical close from data file was less useful than live SPY.)
@@ -1237,6 +1279,247 @@ async function renderMacroTrail(hist) {
         if (window.__V2) window.__V2.macroTrail = built;
     } catch (err) {
         console.warn('renderMacroTrail failed:', err);
+        panel.style.display = 'none';
+    }
+}
+
+// ─── Flow vs Price panel — options sentiment timeline vs SPX ─────────
+//
+// Plots two aligned series across the last ~22 trading days:
+//   - Flow score (0-100): per-day options-flow score from
+//     computeFlowAnalytics. 50 is the neutral midline; above 60 is
+//     "calls dominant / bullish lean", below 40 is "puts dominant /
+//     hedging lean".
+//   - SPX cumulative %: starts at 0 on the first flow-history day and
+//     compounds forward using daily $SPX %Change.
+//
+// Two scalars in the header:
+//   - Pearson correlation between the two series — answers "did flow
+//     and price move together over this window?"
+//   - Today's divergence — flow score's deviation from 50 on the same
+//     day SPX moved. When they disagree (flow defensive but SPX up,
+//     or flow bullish but SPX down), the eye should catch it.
+let _fvpChart = null;
+function renderFlowVsPrice(metrics, flowAnalytics, hist) {
+    const panel = $('flowVsPrice');
+    if (!panel) return;
+    if (typeof Chart === 'undefined' || !flowAnalytics || !flowAnalytics.days
+            || flowAnalytics.days.length === 0) {
+        panel.style.display = 'none';
+        return;
+    }
+    try {
+        // Build a date → SPX %change map from the dashboard's daily hist.
+        // The flow-history dates are a subset (or superset) of hist;
+        // we align on dates that appear in both.
+        const spxByDate = Object.create(null);
+        for (const h of hist) {
+            const c = h && h.m && h.m.macro && h.m.macro.spx
+                      ? h.m.macro.spx.chgPct : null;
+            if (Number.isFinite(c)) spxByDate[h.date] = c;
+        }
+
+        const flowDays = flowAnalytics.days.filter(d => d && d.date && d.score != null);
+        if (flowDays.length < 3) {
+            panel.style.display = 'none';
+            return;
+        }
+
+        // Build aligned arrays: dates, flow scores, SPX cumulative %.
+        // Cumulative SPX starts at 0 on the first flow day with a $SPX
+        // reading we know about; days where SPX is missing get a null
+        // (chart treats it as a gap, levels carry over implicitly).
+        const labels = [];
+        const flowScores = [];
+        const spxCum = [];
+        let cumLvl = 100;
+        for (const d of flowDays) {
+            labels.push(d.date);
+            flowScores.push(d.score);
+            const c = spxByDate[d.date];
+            if (Number.isFinite(c)) cumLvl *= (1 + c / 100);
+            spxCum.push((cumLvl - 100));
+        }
+
+        // Pearson correlation (defensive — needs paired data only)
+        const paired = [];
+        for (let i = 0; i < flowScores.length; i++) {
+            if (Number.isFinite(flowScores[i]) && Number.isFinite(spxCum[i])) {
+                paired.push([flowScores[i], spxCum[i]]);
+            }
+        }
+        let corr = null;
+        if (paired.length >= 4) {
+            const meanF = paired.reduce((s, p) => s + p[0], 0) / paired.length;
+            const meanS = paired.reduce((s, p) => s + p[1], 0) / paired.length;
+            let num = 0, dF = 0, dS = 0;
+            for (const [f, s] of paired) {
+                num += (f - meanF) * (s - meanS);
+                dF  += (f - meanF) ** 2;
+                dS  += (s - meanS) ** 2;
+            }
+            if (dF > 0 && dS > 0) corr = num / Math.sqrt(dF * dS);
+        }
+
+        // Header stats — correlation + today's divergence.
+        const corrEl = $('fvpCorr');
+        if (corrEl) {
+            if (corr == null) { corrEl.textContent = '—'; corrEl.className = 'ov2-fvp-stat-val'; }
+            else {
+                const sign = corr >= 0 ? '+' : '';
+                corrEl.textContent = sign + corr.toFixed(2);
+                corrEl.className = 'ov2-fvp-stat-val ' + (corr > 0.4 ? 'ov2-pos' : corr < -0.4 ? 'ov2-neg' : '');
+            }
+        }
+        // Today's divergence: flow lean (score - 50) vs SPX daily %change.
+        // Flag DIVERGENCE when they have opposite signs and at least one
+        // is meaningful (|score-50| >= 5 or |spx| >= 0.3%).
+        const lastFlow = flowScores[flowScores.length - 1];
+        const lastSpxChg = metrics.spx ? metrics.spx.chgPct : null;
+        const divEl = $('fvpDiv');
+        if (divEl) {
+            if (lastFlow == null || lastSpxChg == null) {
+                divEl.textContent = '—';
+                divEl.className = 'ov2-fvp-stat-val';
+            } else {
+                const flowLean = lastFlow - 50;
+                const meaningful = Math.abs(flowLean) >= 5 || Math.abs(lastSpxChg) >= 0.3;
+                const diverged = (flowLean > 0 && lastSpxChg < 0) || (flowLean < 0 && lastSpxChg > 0);
+                if (meaningful && diverged) {
+                    divEl.textContent = 'כן';
+                    divEl.className = 'ov2-fvp-stat-val ov2-neg';
+                } else {
+                    divEl.textContent = 'לא';
+                    divEl.className = 'ov2-fvp-stat-val ov2-pos';
+                }
+            }
+        }
+
+        // Sub-line — window context
+        const subEl = $('fvpSub');
+        if (subEl) {
+            const first = labels[0], last = labels[labels.length - 1];
+            const [fy, fm, fd] = (first || '').split('-');
+            const [ly, lm, ld] = (last || '').split('-');
+            const firstFmt = fy ? `${fd}/${fm}/${fy}` : '—';
+            const lastFmt = ly ? `${ld}/${lm}/${ly}` : '—';
+            subEl.textContent = `${firstFmt} → ${lastFmt} · ${labels.length} ימי מסחר`;
+        }
+
+        // ── Chart with dual y-axis ──
+        if (_fvpChart) { _fvpChart.destroy(); _fvpChart = null; }
+        const canvas = $('fvpChart');
+        if (canvas) {
+            _fvpChart = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'ציון אופציות (0-100)',
+                            data: flowScores,
+                            yAxisID: 'yFlow',
+                            borderColor: '#7C3AED',
+                            backgroundColor: 'rgba(124, 58, 237, 0.08)',
+                            borderWidth: 2,
+                            pointRadius: 2,
+                            pointBackgroundColor: '#7C3AED',
+                            fill: false,
+                            tension: 0.2,
+                        },
+                        {
+                            label: 'SPX מצטבר (%)',
+                            data: spxCum,
+                            yAxisID: 'ySpx',
+                            borderColor: '#059669',
+                            backgroundColor: 'rgba(5, 150, 105, 0.06)',
+                            borderWidth: 2,
+                            pointRadius: 2,
+                            pointBackgroundColor: '#059669',
+                            fill: false,
+                            tension: 0.2,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => {
+                                    if (ctx.dataset.yAxisID === 'yFlow') {
+                                        return `ציון אופציות: ${ctx.parsed.y.toFixed(1)}`;
+                                    }
+                                    const sign = ctx.parsed.y >= 0 ? '+' : '';
+                                    return `SPX מצטבר: ${sign}${ctx.parsed.y.toFixed(2)}%`;
+                                },
+                            },
+                        },
+                    },
+                    scales: {
+                        x: {
+                            ticks: { autoSkip: true, maxTicksLimit: 7, font: { size: 10 } },
+                            grid:  { display: false },
+                        },
+                        yFlow: {
+                            type: 'linear',
+                            position: 'right',
+                            min: 0, max: 100,
+                            ticks: { font: { size: 10 }, color: '#7C3AED', callback: (v) => v },
+                            grid:  { color: 'rgba(124, 58, 237, 0.06)' },
+                            title: { display: true, text: 'ציון אופציות', color: '#7C3AED', font: { size: 11 } },
+                        },
+                        ySpx: {
+                            type: 'linear',
+                            position: 'left',
+                            ticks: { font: { size: 10 }, color: '#059669', callback: (v) => (v >= 0 ? '+' : '') + v.toFixed(1) + '%' },
+                            grid:  { display: false },
+                            title: { display: true, text: 'SPX מצטבר', color: '#059669', font: { size: 11 } },
+                        },
+                    },
+                },
+            });
+        }
+
+        // Verdict sentence — combines correlation + today's reading
+        // into one plain-Hebrew takeaway.
+        const verdictEl = $('fvpVerdict');
+        if (verdictEl) {
+            const lastFlowVal = flowScores[flowScores.length - 1];
+            const lastSpxCum = spxCum[spxCum.length - 1];
+            const sign = lastSpxCum >= 0 ? '+' : '';
+            let phrase, stateClass = '';
+            if (corr != null && corr > 0.5) {
+                phrase = `האופציות והמחיר נעים יחד (קורלציה +${corr.toFixed(2)}). ציון אופציות נוכחי: ${lastFlowVal.toFixed(0)}, SPX מצטבר בחלון: ${sign}${lastSpxCum.toFixed(2)}%.`;
+                stateClass = corr > 0.7 ? 'ov2-pos' : '';
+            } else if (corr != null && corr < -0.3) {
+                phrase = `דיוואגירציה היסטורית — האופציות נעות הפוך למחיר (קורלציה ${corr.toFixed(2)}). זה דפוס שמופיע כשהשוק מתעלם משינוי בסנטימנט.`;
+                stateClass = 'ov2-neg';
+            } else if (lastFlowVal >= 65 && lastSpxCum > 0) {
+                phrase = `אופציות אופטימיות (ציון ${lastFlowVal.toFixed(0)}) + מחיר עולה — אישור מגמה.`;
+                stateClass = 'ov2-pos';
+            } else if (lastFlowVal <= 35 && lastSpxCum < 0) {
+                phrase = `אופציות הגנתיות (ציון ${lastFlowVal.toFixed(0)}) + מחיר יורד — אישור חולשה.`;
+                stateClass = 'ov2-neg';
+            } else if (lastFlowVal >= 65 && lastSpxCum < 0) {
+                phrase = `סנטימנט אופטימי באופציות (${lastFlowVal.toFixed(0)}) למרות מחיר יורד — סימן אפשרי לסיום ירידה.`;
+                stateClass = 'ov2-pos';
+            } else if (lastFlowVal <= 35 && lastSpxCum > 0) {
+                phrase = `סנטימנט הגנתי באופציות (${lastFlowVal.toFixed(0)}) למרות מחיר עולה — אזהרה אפשרית.`;
+                stateClass = 'ov2-neg';
+            } else {
+                phrase = `מצב מאוזן — ציון אופציות ${lastFlowVal.toFixed(0)} (קרוב לניטרלי 50), SPX מצטבר ${sign}${lastSpxCum.toFixed(2)}%.`;
+            }
+            verdictEl.textContent = phrase;
+            verdictEl.className = 'ov2-fvp-verdict ' + stateClass;
+        }
+
+        if (window.__V2) window.__V2.flowVsPrice = { labels, flowScores, spxCum, corr };
+    } catch (err) {
+        console.warn('renderFlowVsPrice failed:', err);
         panel.style.display = 'none';
     }
 }
@@ -3074,6 +3357,9 @@ async function init() {
         // spliced series. Same loader, same async pattern — populates
         // when the analysis settles.
         renderHistoricalEcho(hist);
+        // Flow vs Price: options sentiment timeline alongside SPX
+        // cumulative — short-term (22 days) options-flow analysis.
+        renderFlowVsPrice(metrics, flowAnalytics, hist);
         renderMCC(phaseResult, metrics, chips, duration);
         renderFlowCard(metrics, flowAnalytics);
         renderMarketFlowSynergy(phaseResult, metrics);
