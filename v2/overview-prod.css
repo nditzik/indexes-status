@@ -452,6 +452,125 @@
     font-weight: 600;
     margin-bottom: 4px;
 }
+
+/* ─── Historical Echo panel — pattern matching outcomes ──────────────
+   Sits below the Macro Trail. The trail above shows the long-term
+   shape; this panel quantifies "the last time we looked like today,
+   here's what came next" as a statistical distribution. */
+.overview-prod-root .ov2-echo {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border-strong);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-5);
+    margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-echo-head {
+    margin-bottom: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-echo-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-echo-sub {
+    font-size: 12px;
+    color: var(--ov2-text-3);
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-echo-verdict {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ov2-text-1);
+    padding: var(--ov2-space-3);
+    background: var(--ov2-bg-2);
+    border-radius: var(--ov2-radius-sm);
+    border-right: 3px solid var(--ov2-cat-action);
+    margin-bottom: var(--ov2-space-4);
+    line-height: 1.6;
+}
+.overview-prod-root .ov2-echo-verdict.ov2-pos { border-right-color: var(--ov2-pos); }
+.overview-prod-root .ov2-echo-verdict.ov2-neg { border-right-color: var(--ov2-neg); }
+
+/* 3-column horizon grid: 5d / 10d / 20d */
+.overview-prod-root .ov2-echo-horizons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--ov2-space-3);
+    margin-bottom: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-echo-horizon {
+    background: var(--ov2-bg-2);
+    border-radius: var(--ov2-radius-sm);
+    padding: var(--ov2-space-3);
+    text-align: center;
+    border: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-echo-horizon-label {
+    font-size: 11px;
+    color: var(--ov2-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+.overview-prod-root .ov2-echo-horizon-median {
+    font-family: var(--ov2-font-mono);
+    font-size: 22px;
+    font-weight: 700;
+}
+.overview-prod-root .ov2-echo-horizon-median.ov2-pos { color: var(--ov2-pos); }
+.overview-prod-root .ov2-echo-horizon-median.ov2-neg { color: var(--ov2-neg); }
+.overview-prod-root .ov2-echo-horizon-median.ov2-muted { color: var(--ov2-text-3); }
+.overview-prod-root .ov2-echo-horizon-meta {
+    font-size: 11px;
+    color: var(--ov2-text-2);
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-echo-horizon-range {
+    font-family: var(--ov2-font-mono);
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    margin-top: 6px;
+}
+
+/* List of match dates */
+.overview-prod-root .ov2-echo-matches {
+    margin-bottom: var(--ov2-space-3);
+    padding-top: var(--ov2-space-3);
+    border-top: 1px dashed var(--ov2-border);
+}
+.overview-prod-root .ov2-echo-matches-label {
+    font-size: 11px;
+    color: var(--ov2-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.overview-prod-root .ov2-echo-matches-list {
+    font-family: var(--ov2-font-mono);
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    line-height: 1.8;
+}
+.overview-prod-root .ov2-echo-match-chip {
+    display: inline-block;
+    background: var(--ov2-bg-2);
+    border: 1px solid var(--ov2-border);
+    border-radius: 4px;
+    padding: 2px 8px;
+    margin: 2px 4px 2px 0;
+    cursor: help;
+}
+.overview-prod-root .ov2-echo-caveat {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    line-height: 1.5;
+    padding-top: var(--ov2-space-3);
+    border-top: 1px solid var(--ov2-border);
+}
 .overview-prod-root .ov2-mcc-accent {
     position: absolute;
     top: 0; right: 0; left: 0;

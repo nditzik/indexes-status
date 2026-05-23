@@ -1241,6 +1241,118 @@ async function renderMacroTrail(hist) {
     }
 }
 
+// ─── Historical Echo — pattern matching panel ─────────────────────────
+//
+// Consumes Patterns.analyze() output and turns it into a 3-card
+// horizon view + match-chip list + Hebrew verdict sentence. Defensive
+// — if the historical loader or Patterns module is missing, or the
+// sample is too thin to be useful, the panel hides itself silently.
+//
+// The Hebrew verdict reads the median across horizons + hit rate to
+// produce one of a handful of summary phrases:
+//   - "נטייה היסטורית חיובית" (median > +1% AND hit > 60%)
+//   - "נטייה היסטורית שלילית" (median < -1% AND hit < 40%)
+//   - "תוצאה מעורבת" (everything else)
+async function renderHistoricalEcho(hist) {
+    const panel = $('echo');
+    if (!panel) return;
+    if (!window.Historical || !window.Patterns) {
+        panel.style.display = 'none';
+        return;
+    }
+    try {
+        const spliced = await window.Historical.buildSplicedSeries(hist);
+        if (!spliced || !spliced.spx.length) {
+            panel.style.display = 'none';
+            return;
+        }
+        const analysis = window.Patterns.analyze(spliced, { k: 12 });
+        if (analysis.error || !analysis.matches.length) {
+            panel.style.display = 'none';
+            return;
+        }
+
+        // Sub-line — context about the sample
+        const subEl = $('echoSub');
+        if (subEl) {
+            subEl.textContent =
+                `${analysis.matches.length} ימים דומים מתוך ${analysis.sampleSize} ימי מסחר ב-10 השנים האחרונות. ` +
+                `נכון ל-${fmtDate(analysis.asOfDate)}.`;
+        }
+
+        // Verdict — Hebrew summary sentence with state-aware coloring.
+        // Anchored to 20d (the most "what's the trend" horizon) but
+        // weighted by the hit rate so we don't overstate weak signals.
+        const o20 = analysis.outcomes[20];
+        const verdictEl = $('echoVerdict');
+        if (verdictEl && o20 && o20.samples) {
+            const med = o20.median;
+            const hit = o20.hitRate;
+            let phrase, stateClass;
+            if (med > 1.0 && hit >= 0.6) {
+                phrase = `נטייה היסטורית חיובית: ב-${(hit*100).toFixed(0)}% מהמקרים הדומים, השוק עלה תוך 20 ימים (חציון +${med.toFixed(2)}%).`;
+                stateClass = 'ov2-pos';
+            } else if (med < -1.0 && hit <= 0.4) {
+                phrase = `נטייה היסטורית שלילית: ב-${((1-hit)*100).toFixed(0)}% מהמקרים הדומים, השוק ירד תוך 20 ימים (חציון ${med.toFixed(2)}%).`;
+                stateClass = 'ov2-neg';
+            } else {
+                phrase = `תוצאה מעורבת: חציון תשואת 20 ימים ${med >= 0 ? '+' : ''}${med.toFixed(2)}%, ${(hit*100).toFixed(0)}% מהמקרים חיוביים. הטווח רחב — אין נטייה ברורה.`;
+                stateClass = '';
+            }
+            verdictEl.textContent = phrase;
+            verdictEl.className = 'ov2-echo-verdict ' + stateClass;
+        }
+
+        // 3-card horizon grid: 5d / 10d / 20d
+        const horizonsEl = $('echoHorizons');
+        if (horizonsEl) {
+            horizonsEl.innerHTML = '';
+            for (const W of [5, 10, 20]) {
+                const o = analysis.outcomes[W];
+                const card = document.createElement('div');
+                card.className = 'ov2-echo-horizon';
+                if (!o || !o.samples) {
+                    card.innerHTML = `
+                        <div class="ov2-echo-horizon-label">${W} ימים</div>
+                        <div class="ov2-echo-horizon-median ov2-muted">—</div>
+                        <div class="ov2-echo-horizon-meta">אין מספיק מקרים</div>
+                    `;
+                } else {
+                    const medClass = o.median > 0 ? 'ov2-pos' : o.median < 0 ? 'ov2-neg' : 'ov2-muted';
+                    const sign = o.median >= 0 ? '+' : '';
+                    card.innerHTML = `
+                        <div class="ov2-echo-horizon-label">${W} ימים</div>
+                        <div class="ov2-echo-horizon-median ${medClass}">${sign}${o.median.toFixed(2)}%</div>
+                        <div class="ov2-echo-horizon-meta">חציון · ${(o.hitRate*100).toFixed(0)}% חיובי</div>
+                        <div class="ov2-echo-horizon-range">טווח: ${o.q25.toFixed(1)}% עד ${o.q75.toFixed(1)}%</div>
+                    `;
+                }
+                horizonsEl.appendChild(card);
+            }
+        }
+
+        // Match-chip list — each chip is the date, with a tooltip
+        // describing the distance for the curious.
+        const matchesEl = $('echoMatches');
+        if (matchesEl) {
+            matchesEl.innerHTML = '';
+            for (const m of analysis.matches) {
+                const chip = document.createElement('span');
+                chip.className = 'ov2-echo-match-chip';
+                chip.textContent = fmtDate(m.date);
+                chip.title = `מרחק נורמלי: ${m.distance.toFixed(2)} (נמוך = דומה יותר)`;
+                matchesEl.appendChild(chip);
+            }
+        }
+
+        // Expose for console debugging.
+        if (window.__V2) window.__V2.patterns = analysis;
+    } catch (err) {
+        console.warn('renderHistoricalEcho failed:', err);
+        panel.style.display = 'none';
+    }
+}
+
 function renderEqTicker(metrics, hist) {
     // Both EQ500 and SPX-rebased are end-of-day tiles, populated once
     // per page load from the CSV history. The live ETF tiles
@@ -2824,6 +2936,10 @@ async function init() {
         // of the dashboard renders in parallel and the panel populates
         // when the data arrives.
         renderMacroTrail(hist);
+        // Historical Echo: KNN pattern matching on top of the same
+        // spliced series. Same loader, same async pattern — populates
+        // when the analysis settles.
+        renderHistoricalEcho(hist);
         renderMCC(phaseResult, metrics, chips, duration);
         renderFlowCard(metrics, flowAnalytics);
         renderMarketFlowSynergy(phaseResult, metrics);

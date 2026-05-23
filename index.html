@@ -1898,6 +1898,28 @@
                         </div>
                     </div>
 
+                    <!-- ═══ HISTORICAL ECHO — pattern matching ═══ -->
+                    <div class="ov2-echo" id="ov2_echo">
+                        <div class="ov2-echo-head">
+                            <div>
+                                <div class="ov2-eyebrow" style="color:var(--ov2-cat-action);">תבניות היסטוריות</div>
+                                <div class="ov2-echo-title">מה קרה בעבר במצב דומה</div>
+                                <div class="ov2-echo-sub" id="ov2_echoSub">מחשב התאמות...</div>
+                            </div>
+                        </div>
+                        <div class="ov2-echo-verdict" id="ov2_echoVerdict">—</div>
+                        <div class="ov2-echo-horizons" id="ov2_echoHorizons">
+                            <!-- populated by JS: 3 cards for 5d/10d/20d -->
+                        </div>
+                        <div class="ov2-echo-matches">
+                            <div class="ov2-echo-matches-label">ימים דומים בעבר:</div>
+                            <div class="ov2-echo-matches-list" id="ov2_echoMatches">—</div>
+                        </div>
+                        <div class="ov2-echo-caveat">
+                            * התפלגות סטטיסטית של מקרים דומים — לא תחזית. שיטה: KNN על 6 מאפיינים (תשואת SPX 5/20 ימים, תשואת EQ500 5 ימים, פער 5 ימים, drawdown 60 ימים, תנודתיות 20 ימים) מנורמלים z-score. התאמות בטווח 30 ימים אחרונים מסוננות.
+                        </div>
+                    </div>
+
                     <!-- ═══ MCC CARD ═══ -->
                     <div class="ov2-mcc" id="ov2_mcc">
                         <div class="ov2-mcc-accent" id="ov2_mccPhaseAccent"></div>
@@ -6528,6 +6550,8 @@ async function generateDailySummary() {
 <script src="v2/narrative.js"></script>
 <!-- historical.js: SPX + RSP daily series since 2016, spliced with daily CSV -->
 <script src="v2/historical.js"></script>
+<!-- patterns.js: KNN pattern matching — "what came next in similar past days" -->
+<script src="v2/patterns.js"></script>
 <!-- overview-prod.js: data loader + flow analytics + render -->
 <script src="v2/overview-prod.js"></script>
 <!-- Force-hide legacy overview elements (defensive — existing JS may try to show them) -->
