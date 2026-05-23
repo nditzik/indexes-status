@@ -176,14 +176,15 @@
 .overview-prod-root .ov2-idx {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
+    align-items: center;
+    gap: 4px;
     line-height: 1.1;
+    min-width: 86px;
 }
 .overview-prod-root .ov2-idx-name {
-    font-size: 9px;
-    color: var(--ov2-text-3);
-    letter-spacing: 0.10em;
+    font-size: 10px;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     font-weight: 700;
 }
@@ -191,11 +192,12 @@
     display: flex;
     gap: var(--ov2-space-2);
     align-items: baseline;
+    justify-content: center;
     font-family: var(--ov2-font-mono);
     font-variant-numeric: tabular-nums;
 }
-.overview-prod-root .ov2-idx-val { font-size: 14px; font-weight: 700; color: var(--ov2-text-1); }
-.overview-prod-root .ov2-idx-chg { font-size: 11px; font-weight: 600; }
+.overview-prod-root .ov2-idx-val { font-size: 16px; font-weight: 700; color: var(--ov2-text-1); }
+.overview-prod-root .ov2-idx-chg { font-size: 12px; font-weight: 600; }
 
 .overview-prod-root .ov2-icon-btn {
     width: 28px; height: 28px;

@@ -917,9 +917,8 @@ function renderStrip(m, phase) {
     $('stateName').textContent = p ? p.stateLabel : '—';
     $('stateScore').textContent = m.combined != null ? m.combined : '—';
 
-    $('idxSpxVal').textContent = m.spx && m.spx.price != null ? m.spx.price.toFixed(2) : '—';
-    $('idxSpxChg').textContent = m.spx && m.spx.chgPct != null ? `${deltaArrow(m.spx.chgPct)} ${fmtPct(m.spx.chgPct)}` : '—';
-    $('idxSpxChg').className = 'ov2-idx-chg ' + 'ov2-' + deltaClass(m.spx ? m.spx.chgPct : 0);
+    // SPX removed from header strip — already covered by live SPY ticker above.
+    // (SPX historical close from data file was less useful than live SPY.)
 
     $('idxVixVal').textContent = m.vix ? m.vix.toFixed(2) : '—';
     $('idxVixChg').textContent = m.vix5dDelta ? `${deltaArrow(-m.vix5dDelta)} ${fmtSigned(m.vix5dDelta, 1)}` : '—';
