@@ -59,14 +59,18 @@
     // full sample regardless of where the index sat in 2016 vs today.
     const LOOKBACK = 60;   // need at least this much prior context
 
-    function buildFeatureMatrix(spxSeries, eqSeries) {
+    function buildFeatureMatrix(spxSeries, eqSeries, vixSeries) {
         // Pre-build cumulative level series and align both by date.
         // We need a SPX level for the 60d drawdown; everything else
         // is computed from % returns directly.
         const spxByDate = Object.create(null);
         const eqByDate = Object.create(null);
+        const vixByDate = Object.create(null);
         for (const r of spxSeries) spxByDate[r.date] = r.pct;
         for (const r of eqSeries)  eqByDate[r.date]  = r.pct;
+        if (Array.isArray(vixSeries)) {
+            for (const r of vixSeries) vixByDate[r.date] = r.close;
+        }
 
         const dates = spxSeries.map(r => r.date);
 
@@ -77,6 +81,15 @@
             const p = spxSeries[i].pct;
             if (Number.isFinite(p)) lvl *= (1 + p / 100);
             spxLevels[i] = lvl;
+        }
+
+        // Parallel VIX level array (aligned to dates). Some early days
+        // may be missing if the historical VIX file doesn't cover them
+        // — those rows just won't contribute VIX features.
+        const vixLevels = new Array(dates.length);
+        for (let i = 0; i < dates.length; i++) {
+            const v = vixByDate[dates[i]];
+            vixLevels[i] = Number.isFinite(v) ? v : null;
         }
 
         const rows = [];
@@ -124,21 +137,53 @@
             }
             const vol20d = std(window);
 
+            // VIX features — only computed when the historical VIX file
+            // covers this day. Days without VIX data fall back to NaN
+            // for these three dimensions, which the normalization step
+            // treats as "skip this dimension for this row" (it gets a
+            // z-score of 0 and contributes nothing to KNN distance).
+            const vixToday = vixLevels[i];
+            let vixLevel = NaN, vix5dDelta = NaN, vixVsMa20 = NaN;
+            if (Number.isFinite(vixToday)) {
+                vixLevel = vixToday;
+                // 5-day delta: percent change in VIX over 5 trading days
+                const vix5dAgo = vixLevels[i - 5];
+                if (Number.isFinite(vix5dAgo) && vix5dAgo > 0) {
+                    vix5dDelta = (vixToday / vix5dAgo - 1) * 100;
+                }
+                // VIX vs 20-day MA: where today's VIX sits relative to
+                // its recent average. Positive = VIX is elevated vs
+                // recent baseline. Critical for identifying fear regimes.
+                const vix20Window = [];
+                for (let k = i - 19; k <= i; k++) {
+                    if (Number.isFinite(vixLevels[k])) vix20Window.push(vixLevels[k]);
+                }
+                if (vix20Window.length >= 10) {
+                    const ma20 = mean(vix20Window);
+                    if (ma20 > 0) vixVsMa20 = (vixToday / ma20 - 1) * 100;
+                }
+            }
+
             rows.push({
                 idx: i,
                 date: dates[i],
                 level: spxLevels[i],
-                features: [spxRet5d, spxRet20d, eqRet5d, spread5d, drawdown60d, vol20d],
+                features: [
+                    spxRet5d, spxRet20d, eqRet5d, spread5d,
+                    drawdown60d, vol20d,
+                    vixLevel, vix5dDelta, vixVsMa20,
+                ],
             });
         }
 
         const featureNames = [
             'SPX 5d', 'SPX 20d', 'EQ500 5d', 'Spread 5d', 'Drawdown 60d', 'Vol 20d',
+            'VIX רמה', 'VIX 5d Δ', 'VIX vs MA20',
         ];
 
         // Expose the date→EQ lookup too so callers (computeEarlyWarning)
         // can rebuild the EQ level series without re-walking the array.
-        return { rows, dates, spxLevels, eqByDate, featureNames };
+        return { rows, dates, spxLevels, vixLevels, eqByDate, featureNames };
     }
 
     // ─── Z-score normalization ────────────────────────────────────────
@@ -166,6 +211,11 @@
     function normalize(vec, params) {
         const out = new Array(vec.length);
         for (let d = 0; d < vec.length; d++) {
+            // NaN features (e.g. VIX missing for early history days)
+            // become z=0 so they contribute zero distance instead of
+            // poisoning the L2 sum with NaN. KNN then matches on the
+            // remaining dimensions for those rows.
+            if (!Number.isFinite(vec[d])) { out[d] = 0; continue; }
             out[d] = (vec[d] - params.mu[d]) / params.sigma[d];
         }
         return out;
@@ -321,6 +371,12 @@
         const outcomeWindow = opts.outcomeWindow || 20;
         const bullThreshold = opts.bullThreshold != null ? opts.bullThreshold : 1.0;
         const bearThreshold = opts.bearThreshold != null ? opts.bearThreshold : -1.0;
+        // VIX levels are an optional parallel array — when provided we
+        // compute a VIX-direction feature for each match's early window.
+        // Days without VIX data (early history) just won't contribute
+        // a vixEarly value, and that match drops out of the VIX signal
+        // computation but stays in for the others.
+        const vixLevels = Array.isArray(opts.vixLevels) ? opts.vixLevels : null;
 
         const enriched = [];
         for (const m of matches) {
@@ -372,12 +428,39 @@
                 if (Math.abs(d) > maxDailyMag) maxDailyMag = Math.abs(d);
             }
 
+            // VIX early-window features. We compute two complementary
+            // VIX metrics so the separation analysis can pick whichever
+            // separates the cohorts better:
+            //   vixEarlyPct = relative change in VIX over the window
+            //                 (e.g., VIX fell 15% = -15)
+            //   vixEarlyMax = MAX VIX seen in the window (absolute level)
+            // Days where vixLevels is missing get NaN — the separation
+            // analysis already skips features that lack >= 2 paired
+            // samples per cohort.
+            let vixEarlyPct = NaN, vixEarlyMax = NaN;
+            if (vixLevels) {
+                const vixStart = vixLevels[i0];
+                if (Number.isFinite(vixStart) && vixStart > 0) {
+                    let runMax = vixStart;
+                    let vixEnd = vixStart;
+                    for (let k = 1; k <= earlyDays && i0 + k < vixLevels.length; k++) {
+                        const v = vixLevels[i0 + k];
+                        if (!Number.isFinite(v)) continue;
+                        if (v > runMax) runMax = v;
+                        vixEnd = v;
+                    }
+                    vixEarlyPct = (vixEnd / vixStart - 1) * 100;
+                    vixEarlyMax = runMax;
+                }
+            }
+
             enriched.push({
                 date: m.row.date,
                 outcome20d,
                 outcomeLabel,
                 features: { spxRetEarly, eqRetEarly, spreadEarly,
-                            earlyDrawdown, earlyHigh, maxDailyMag },
+                            earlyDrawdown, earlyHigh, maxDailyMag,
+                            vixEarlyPct, vixEarlyMax },
             });
         }
 
@@ -421,6 +504,19 @@
             { key: 'maxDailyMag',   label: 'תנודתיות מקסימלית ביום בודד ב-5 ימים', unit: '%',
               above: { tipBull: 'יום חזק אחד — אנרגיה בשוק', tipBear: 'יום נפילה חד' },
               below: { tipBull: 'תנועה מתונה',         tipBear: 'תנודתיות עלתה — אזהרה' } },
+            // VIX-direction signal: "did fear rise or fall in the 5
+            // days after a pattern fired?" Empirically: in bullish
+            // continuations VIX drops further, in non-bullish it stays
+            // flat or rises. Direction is data-driven so the tips work
+            // regardless of which way the cohorts split.
+            { key: 'vixEarlyPct',   label: 'שינוי VIX ב-5 ימים אחרי', unit: '%',
+              above: { tipBull: 'הפחד עלה — אנרגיה',  tipBear: 'הפחד עלה — אזהרה אמיתית' },
+              below: { tipBull: 'הפחד נחלש — אישור חיובי', tipBear: 'הפחד נשאר גבוה' } },
+            // VIX peak in the window — absolute level, captures
+            // "panic spikes" even if VIX returned by day 5.
+            { key: 'vixEarlyMax',   label: 'VIX מקסימלי ב-5 ימים אחרי', unit: '',
+              above: { tipBull: 'VIX קפץ אבל ירד — אישור התאוששות', tipBear: 'VIX קפץ ונשאר — אזהרה' },
+              below: { tipBull: 'VIX יציב — אישור רוגע', tipBear: 'VIX יציב אבל מחיר חלש' } },
         ];
 
         const signals = [];
@@ -481,7 +577,7 @@
     // vector, top matches, forward-return outcomes. The UI just reads.
     function analyze(spliced, opts) {
         opts = opts || {};
-        const fm = buildFeatureMatrix(spliced.spx, spliced.eq);
+        const fm = buildFeatureMatrix(spliced.spx, spliced.eq, spliced.vix);
         if (fm.rows.length === 0) {
             return { error: 'Not enough history to compute features.' };
         }
@@ -506,6 +602,7 @@
         const earlyWarning = computeEarlyWarning(matches, fm.spxLevels, eqLevels, {
             earlyDays: opts.earlyDays || 5,
             outcomeWindow: 20,
+            vixLevels: fm.vixLevels,
         });
         return {
             asOfDate: todayRow.date,

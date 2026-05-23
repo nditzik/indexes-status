@@ -1571,6 +1571,11 @@ function renderEarlyWarning(analysis, hist) {
         // Build cumulative SPX / EQ over the window from hist's %changes.
         let spxCum = 1, eqCum = 1;
         let minSpx = 1, maxSpx = 1, runningSpx = 1, maxDailyMag = 0;
+        // Track VIX through the window so the live tracker can answer
+        // both signals: "VIX %change over 5 days" and "max VIX in the
+        // window." Falls back to null if the daily CSV doesn't have a
+        // $VIX row for any of the 5 most recent days.
+        let vixStart = null, vixEnd = null, vixMax = -Infinity;
         for (let i = from + 1; i <= last; i++) {
             const sp = hist[i] && hist[i].m && hist[i].m.macro && hist[i].m.macro.spx
                        && hist[i].m.macro.spx.chgPct != null
@@ -1583,12 +1588,26 @@ function renderEarlyWarning(analysis, hist) {
             if (runningSpx < minSpx) minSpx = runningSpx;
             if (runningSpx > maxSpx) maxSpx = runningSpx;
             if (Math.abs(sp) > maxDailyMag) maxDailyMag = Math.abs(sp);
+            const vix = hist[i] && hist[i].m && hist[i].m.macro
+                        ? hist[i].m.macro.vix : null;
+            if (Number.isFinite(vix)) {
+                if (vixStart == null) vixStart = vix;
+                vixEnd = vix;
+                if (vix > vixMax) vixMax = vix;
+            }
         }
+        // VIX-baseline anchor — what was VIX at the start of the window?
+        const vixAnchor = hist[from] && hist[from].m && hist[from].m.macro
+                          && Number.isFinite(hist[from].m.macro.vix)
+                          ? hist[from].m.macro.vix : vixStart;
         const spxRet = (spxCum - 1) * 100;
         const eqRet  = (eqCum  - 1) * 100;
         const spreadVal = eqRet - spxRet;
         const dd = (minSpx - 1) * 100;
         const hi = (maxSpx - 1) * 100;
+        const vixEarlyPct = (vixAnchor && vixAnchor > 0 && vixEnd != null)
+                            ? (vixEnd / vixAnchor - 1) * 100 : null;
+        const vixEarlyMax = vixMax > -Infinity ? vixMax : null;
 
         switch (feature) {
             case 'spxRetEarly':   return spxRet;
@@ -1597,6 +1616,8 @@ function renderEarlyWarning(analysis, hist) {
             case 'earlyDrawdown': return dd;
             case 'earlyHigh':     return hi;
             case 'maxDailyMag':   return maxDailyMag;
+            case 'vixEarlyPct':   return vixEarlyPct;
+            case 'vixEarlyMax':   return vixEarlyMax;
             default: return null;
         }
     }

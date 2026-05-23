@@ -90,18 +90,26 @@
         if (_historical) return Promise.resolve(_historical);
         if (_loadPromise) return _loadPromise;
         _loadPromise = (async () => {
-            const [spxText, rspText] = await Promise.all([
+            // VIX historical added in v1.1 — same Barchart format, same
+            // 2016-01-04 → 2026-04-24 coverage as SPX/RSP. Failure to
+            // load VIX is tolerated (vix === []) so the rest of the
+            // dashboard keeps rendering; downstream features that need
+            // VIX (pattern matching, early-warning) just skip its
+            // contribution rather than blowing up.
+            const [spxText, rspText, vixText] = await Promise.all([
                 fetchCsv('data/historical/spx_daily.csv'),
                 fetchCsv('data/historical/rsp_daily.csv'),
+                fetchCsv('data/historical/vix_daily.csv').catch(() => ''),
             ]);
             const spx = parseBarchartCsv(spxText);
             const rsp = parseBarchartCsv(rspText);
-            _historical = { spx, rsp };
+            const vix = vixText ? parseBarchartCsv(vixText) : [];
+            _historical = { spx, rsp, vix };
             return _historical;
         })().catch(err => {
             console.warn('Historical load failed:', err);
             _loadPromise = null;          // allow retry on next call
-            _historical = { spx: [], rsp: [] };
+            _historical = { spx: [], rsp: [], vix: [] };
             return _historical;
         });
         return _loadPromise;
@@ -171,6 +179,28 @@
         return out;
     }
 
+    // VIX series from the dashboard's daily hist ($VIX row in CSV).
+    // Each entry carries BOTH the level (close) and the daily %Change —
+    // the level is what KNN matches on (VIX 16 vs 25 are different
+    // regimes), the %Change drives 5d-delta features. Live data starts
+    // 2026-04-02 (the date $VIX first appeared in the watchlist CSV).
+    function vixFromDailyHist(hist) {
+        if (!Array.isArray(hist)) return [];
+        const out = [];
+        for (const h of hist) {
+            if (!h || !h.m || !h.m.macro) continue;
+            const level = h.m.macro.vix;
+            const pct   = h.m.macro.vixChgPct;
+            if (level == null || !Number.isFinite(level)) continue;
+            out.push({
+                date: h.date,
+                close: level,
+                pct: Number.isFinite(pct) ? pct : null,
+            });
+        }
+        return out;
+    }
+
     // ─── EQ500 - SPX rolling spread series ────────────────────────────
     //
     // Aligned per-day, computed AFTER the splice, so the spread reads
@@ -198,16 +228,25 @@
         toLevels,
         eq500FromDailyHist,
         spxFromDailyHist,
+        vixFromDailyHist,
         alignSpread,
         // Convenience: end-to-end. Returns the spliced + leveled series
         // ready for charting. Falls back to the live-only data when the
         // historical fetch failed (so the dashboard still renders).
         async buildSplicedSeries(dailyHist) {
-            const { spx: histSpx, rsp: histRsp } = await load();
+            const { spx: histSpx, rsp: histRsp, vix: histVix } = await load();
             const liveSpx = spxFromDailyHist(dailyHist);
             const liveEq  = eq500FromDailyHist(dailyHist);
+            const liveVix = vixFromDailyHist(dailyHist);
             const splicedSpx = spliceForward(histSpx, liveSpx);
             const splicedEq  = spliceForward(histRsp, liveEq);
+            // VIX splice — same rule, taking the historical file's tail
+            // as authoritative through 2026-04-24 and the live CSV
+            // forward. The CSV's $VIX row first appeared on 2026-04-02,
+            // so there's a small overlap with the historical file —
+            // identical values for those days (Barchart is the source
+            // of both feeds), keeping the seam invisible.
+            const splicedVix = spliceForward(histVix || [], liveVix);
 
             // Find the first date present in BOTH after splicing — that
             // becomes the rebase anchor (both levels start at 100 there)
@@ -223,6 +262,7 @@
             return {
                 spx: splicedSpx,
                 eq:  splicedEq,
+                vix: splicedVix,        // [{date, close, pct}] full series
                 spxLevels: toLevels(spxAligned, 100),
                 eqLevels:  toLevels(eqAligned, 100),
                 spread: alignSpread(splicedSpx, splicedEq),
