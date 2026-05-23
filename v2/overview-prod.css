@@ -297,30 +297,71 @@
     font-weight: 700;
     line-height: 1.4;
     color: var(--ov2-text-1);
-    margin-bottom: 10px;
+    margin-bottom: 14px;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     align-items: baseline;
 }
-.overview-prod-root .ov2-narrative-phase {
+/* Meta-label = the integrated verdict (e.g. "מצב מעורב"). Coloured by
+   the stateClass the narrative module returns. */
+.overview-prod-root .ov2-narrative-meta {
     font-weight: 800;
 }
-.overview-prod-root .ov2-narrative-phase.ov2-pos    { color: var(--ov2-pos); }
-.overview-prod-root .ov2-narrative-phase.ov2-neg    { color: var(--ov2-neg); }
-.overview-prod-root .ov2-narrative-phase.ov2-warn   { color: var(--ov2-warn, #D97706); }
-.overview-prod-root .ov2-narrative-phase.ov2-muted  { color: var(--ov2-text-3); }
-.overview-prod-root .ov2-narrative-keymetric { font-weight: 600; }
-.overview-prod-root .ov2-narrative-spread    { font-weight: 600; color: var(--ov2-text-2); }
+.overview-prod-root .ov2-narrative-meta.ov2-pos    { color: var(--ov2-pos); }
+.overview-prod-root .ov2-narrative-meta.ov2-neg    { color: var(--ov2-neg); }
+.overview-prod-root .ov2-narrative-meta.ov2-warn   { color: var(--ov2-warn, #D97706); }
+.overview-prod-root .ov2-narrative-meta.ov2-muted  { color: var(--ov2-text-3); }
+.overview-prod-root .ov2-narrative-rationale {
+    font-weight: 500;
+    color: var(--ov2-text-2);
+}
 .overview-prod-root .ov2-narrative-sep {
     color: var(--ov2-text-3);
     font-weight: 400;
     margin: 0 2px;
 }
-.overview-prod-root .ov2-narrative-paragraph {
+/* 4-layer structured list. Each row has a fixed-width label ("היום:")
+   plus the body — so the labels align vertically and the eye can scan
+   straight down the column. */
+.overview-prod-root .ov2-narrative-layers {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.overview-prod-root .ov2-narrative-layer {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 5px 0;
     font-size: 14px;
-    line-height: 1.7;
+    line-height: 1.6;
     color: var(--ov2-text-2);
+}
+.overview-prod-root .ov2-narrative-layer::before {
+    content: "←";  /* Arrow points right-to-left to match RTL flow */
+    color: var(--ov2-text-3);
+    font-weight: 600;
+    flex-shrink: 0;
+}
+.overview-prod-root .ov2-narrative-layer-label {
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    flex-shrink: 0;
+    min-width: 55px;
+}
+.overview-prod-root .ov2-narrative-layer-text {
+    flex: 1;
+}
+/* The "Watch-for" row gets a subtle visual lift so it reads as the
+   forward-looking call to attention. */
+.overview-prod-root .ov2-narrative-layer--watch {
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--ov2-border);
+}
+.overview-prod-root .ov2-narrative-layer--watch .ov2-narrative-layer-label {
+    color: var(--ov2-cat-breadth);
 }
 
 .overview-prod-root .ov2-mcc {

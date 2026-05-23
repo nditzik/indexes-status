@@ -25,28 +25,62 @@
     font-weight: 700;
     line-height: 1.4;
     color: var(--text-1);
-    margin-bottom: 10px;
+    margin-bottom: 14px;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     align-items: baseline;
 }
-.narrative-phase { font-weight: 800; }
-.narrative-phase.pos    { color: var(--pos, #10B981); }
-.narrative-phase.neg    { color: var(--neg, #EF4444); }
-.narrative-phase.warn   { color: var(--warn, #F59E0B); }
-.narrative-phase.muted  { color: var(--text-3); }
-.narrative-keymetric { font-weight: 600; }
-.narrative-spread    { font-weight: 600; color: var(--text-2); }
+.narrative-meta { font-weight: 800; }
+.narrative-meta.pos    { color: var(--pos, #10B981); }
+.narrative-meta.neg    { color: var(--neg, #EF4444); }
+.narrative-meta.warn   { color: var(--warn, #F59E0B); }
+.narrative-meta.muted  { color: var(--text-3); }
+.narrative-rationale {
+    font-weight: 500;
+    color: var(--text-2);
+}
 .narrative-sep {
     color: var(--text-3);
     font-weight: 400;
     margin: 0 2px;
 }
-.narrative-paragraph {
+.narrative-layers {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.narrative-layer {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 5px 0;
     font-size: 13.5px;
-    line-height: 1.7;
+    line-height: 1.6;
     color: var(--text-2);
+}
+.narrative-layer::before {
+    content: "←";
+    color: var(--text-3);
+    font-weight: 600;
+    flex-shrink: 0;
+}
+.narrative-layer-label {
+    font-weight: 700;
+    color: var(--text-1);
+    flex-shrink: 0;
+    min-width: 55px;
+}
+.narrative-layer-text {
+    flex: 1;
+}
+.narrative-layer--watch {
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border, rgba(0,0,0,0.1));
+}
+.narrative-layer--watch .narrative-layer-label {
+    color: var(--cat-breadth);
 }
 
 /* ─── MCC accent (top color bar, dynamic per phase) ─── */

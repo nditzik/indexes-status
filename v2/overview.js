@@ -809,12 +809,21 @@ function renderNarrative(metrics, hist, phase, phaseDuration) {
     if (!window.Narrative) return;
     try {
         const out = window.Narrative.build(metrics, hist, phase, phaseDuration);
-        $('narrativePhase').textContent = out.headline.phaseLabel;
-        $('narrativePhase').className =
-            'narrative-phase ' + (out.headline.stateClass || 'muted');
-        $('narrativeKeyMetric').textContent = out.headline.keyMetric;
-        $('narrativeSpread').textContent = out.headline.spread;
-        $('narrativeParagraph').textContent = out.paragraph;
+
+        // Meta-headline
+        $('narrativeMeta').textContent = out.headline.metaLabel;
+        $('narrativeMeta').className =
+            'narrative-meta ' + (out.headline.stateClass || 'muted');
+        $('narrativeRationale').textContent = out.headline.rationale;
+
+        // 4 layers
+        $('narrativeToday').textContent      = out.today      || '—';
+        $('narrativeWeek').textContent       = out.week       || '—';
+        $('narrativeBackground').textContent = out.background || '—';
+        $('narrativeWatchFor').textContent   = (out.watchFor && out.watchFor.length)
+            ? out.watchFor.join(' · ')
+            : 'אין רמות בולטות לעקוב כעת.';
+
         const accent = $('narrativeAccent');
         if (accent && phase && phase.phase && phase.phase.color) {
             accent.style.background = phase.phase.color;

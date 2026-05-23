@@ -1837,14 +1837,33 @@
                     <div class="ov2-narrative" id="ov2_narrative">
                         <div class="ov2-narrative-accent" id="ov2_narrativeAccent"></div>
                         <div class="ov2-eyebrow" style="margin-bottom:8px;">סיכום היום</div>
+
+                        <!-- Meta-headline: state label + one-phrase rationale -->
                         <div class="ov2-narrative-headline">
-                            <span class="ov2-narrative-phase" id="ov2_narrativePhase">—</span>
+                            <span class="ov2-narrative-meta" id="ov2_narrativeMeta">—</span>
                             <span class="ov2-narrative-sep">·</span>
-                            <span class="ov2-narrative-keymetric" id="ov2_narrativeKeyMetric">—</span>
-                            <span class="ov2-narrative-sep">·</span>
-                            <span class="ov2-narrative-spread" id="ov2_narrativeSpread">—</span>
+                            <span class="ov2-narrative-rationale" id="ov2_narrativeRationale">—</span>
                         </div>
-                        <div class="ov2-narrative-paragraph" id="ov2_narrativeParagraph">—</div>
+
+                        <!-- 4 structured layers, each on its own line -->
+                        <ul class="ov2-narrative-layers">
+                            <li class="ov2-narrative-layer">
+                                <span class="ov2-narrative-layer-label">היום:</span>
+                                <span class="ov2-narrative-layer-text" id="ov2_narrativeToday">—</span>
+                            </li>
+                            <li class="ov2-narrative-layer">
+                                <span class="ov2-narrative-layer-label">השבוע:</span>
+                                <span class="ov2-narrative-layer-text" id="ov2_narrativeWeek">—</span>
+                            </li>
+                            <li class="ov2-narrative-layer">
+                                <span class="ov2-narrative-layer-label">הרקע:</span>
+                                <span class="ov2-narrative-layer-text" id="ov2_narrativeBackground">—</span>
+                            </li>
+                            <li class="ov2-narrative-layer ov2-narrative-layer--watch">
+                                <span class="ov2-narrative-layer-label">לעקוב:</span>
+                                <span class="ov2-narrative-layer-text" id="ov2_narrativeWatchFor">—</span>
+                            </li>
+                        </ul>
                     </div>
 
                     <!-- ═══ MCC CARD ═══ -->

@@ -93,14 +93,31 @@
     <div class="narrative grid-row" id="narrative">
       <div class="narrative-accent" id="narrativeAccent"></div>
       <div class="eyebrow" style="margin-bottom:8px;">סיכום היום</div>
+
       <div class="narrative-headline">
-        <span class="narrative-phase" id="narrativePhase">—</span>
+        <span class="narrative-meta" id="narrativeMeta">—</span>
         <span class="narrative-sep">·</span>
-        <span class="narrative-keymetric" id="narrativeKeyMetric">—</span>
-        <span class="narrative-sep">·</span>
-        <span class="narrative-spread" id="narrativeSpread">—</span>
+        <span class="narrative-rationale" id="narrativeRationale">—</span>
       </div>
-      <div class="narrative-paragraph" id="narrativeParagraph">—</div>
+
+      <ul class="narrative-layers">
+        <li class="narrative-layer">
+          <span class="narrative-layer-label">היום:</span>
+          <span class="narrative-layer-text" id="narrativeToday">—</span>
+        </li>
+        <li class="narrative-layer">
+          <span class="narrative-layer-label">השבוע:</span>
+          <span class="narrative-layer-text" id="narrativeWeek">—</span>
+        </li>
+        <li class="narrative-layer">
+          <span class="narrative-layer-label">הרקע:</span>
+          <span class="narrative-layer-text" id="narrativeBackground">—</span>
+        </li>
+        <li class="narrative-layer narrative-layer--watch">
+          <span class="narrative-layer-label">לעקוב:</span>
+          <span class="narrative-layer-text" id="narrativeWatchFor">—</span>
+        </li>
+      </ul>
     </div>
 
     <!-- ═══ MCC CARD (REGIME-AWARE) ═══ -->
