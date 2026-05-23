@@ -559,6 +559,16 @@ function computeMetrics(data) {
     const breadth5dDelta = ago5 ? (todayM.pctMa200 - ago5.m.pctMa200) : 0;
     const vix5dDelta = ago5 && ago5.m.macro.vix != null && todayM.macro.vix != null
                        ? todayM.macro.vix - ago5.m.macro.vix : 0;
+    // 1-day macro deltas for VIX / DXY / 10Y in the executive strip —
+    // all three tiles on a daily horizon. vix5dDelta is still kept for
+    // the KPI panel which has an explicit "/ 5d" label.
+    const yestForMacro = hist.length >= 2 ? hist[hist.length - 2] : null;
+    const vix1dDelta = yestForMacro && yestForMacro.m.macro.vix != null && todayM.macro.vix != null
+                       ? todayM.macro.vix - yestForMacro.m.macro.vix : 0;
+    const dxy1dDelta = yestForMacro && yestForMacro.m.macro.dxy != null && todayM.macro.dxy != null
+                       ? todayM.macro.dxy - yestForMacro.m.macro.dxy : 0;
+    const tnx1dDelta = yestForMacro && yestForMacro.m.macro.tnx != null && todayM.macro.tnx != null
+                       ? todayM.macro.tnx - yestForMacro.m.macro.tnx : 0;
 
     // Distribution days: last 25 sessions with avgChange < -0.2%
     const last25 = hist.slice(-25);
@@ -645,6 +655,9 @@ function computeMetrics(data) {
         // Trends
         breadth5dDelta,
         vix5dDelta,
+        vix1dDelta,
+        dxy1dDelta,
+        tnx1dDelta,
         distributionDays,
         daysSinceNewLow,
 
@@ -766,12 +779,23 @@ function renderStrip(m) {
     $('idxSpxChg').className = 'idx-chg ' + deltaClass(m.spx ? m.spx.chgPct : 0);
 
     $('idxVixVal').textContent = m.vix ? m.vix.toFixed(2) : '—';
-    $('idxVixChg').textContent = m.vix5dDelta ? `${deltaArrow(-m.vix5dDelta)} ${fmtSigned(m.vix5dDelta, 1)}` : '—';
+    // Strip shows DAILY change (1d) so all three macro tiles (VIX/DXY/10Y)
+    // are on the same horizon. KPI panel below still uses the 5d delta
+    // with an explicit "/ 5d" label.
+    $('idxVixChg').textContent = m.vix1dDelta ? `${deltaArrow(-m.vix1dDelta)} ${fmtSigned(m.vix1dDelta, 2)}` : '—';
     // VIX down = good (pos), VIX up = bad (neg)
-    $('idxVixChg').className = 'idx-chg ' + deltaClass(-m.vix5dDelta);
+    $('idxVixChg').className = 'idx-chg ' + deltaClass(-m.vix1dDelta);
 
     $('idxDxyVal').textContent = m.dxy ? m.dxy.toFixed(2) : '—';
+    // Dollar strength = headwind for equities, so we invert the sign
+    // when picking the color class (same convention as VIX above).
+    $('idxDxyChg').textContent = m.dxy1dDelta ? `${deltaArrow(-m.dxy1dDelta)} ${fmtSigned(m.dxy1dDelta, 2)}` : '—';
+    $('idxDxyChg').className = 'idx-chg ' + deltaClass(-m.dxy1dDelta);
+
     $('idxTnxVal').textContent = m.tnx ? m.tnx.toFixed(2) : '—';
+    // Rising yields = headwind for equities, same inverted convention.
+    $('idxTnxChg').textContent = m.tnx1dDelta ? `${deltaArrow(-m.tnx1dDelta)} ${fmtSigned(m.tnx1dDelta, 2)}` : '—';
+    $('idxTnxChg').className = 'idx-chg ' + deltaClass(-m.tnx1dDelta);
 
     $('dataDate').textContent = fmtDate(m.dataDate);
     $('stateName').textContent = (Regime.classifyPhase({
