@@ -217,17 +217,23 @@
         const spxVerb = spx >= 0 ? 'עלה' : 'ירד';
 
         // Sector tilt — only mention when there's a clear lead, so we
-        // don't add noise on a mixed day.
+        // don't add noise on a mixed day. Phrasing names the SENTIMENT
+        // implication (risk-on vs risk-off) instead of leaving the
+        // reader to translate the cyclical/defensive jargon themselves.
+        //   cyc ≥ 0.67  — at least 2 of the top-3 sectors are cyclical
+        //                 (IT/CD/FIN/IND/MAT/EN/COMM) = risk-on
+        //   def ≥ 0.67  — at least 2 of the top-3 are defensive
+        //                 (HC/CS/UTIL/REIT) = risk-off
         const cyc = metrics.cyclicalLeadership;
         const def = metrics.defensiveLeadership;
         let sectorTail = '';
         if (cyc != null && cyc >= 0.67) {
-            sectorTail = ', סקטורים מחזוריים מובילים';
+            sectorTail = ', סקטורי-צמיחה מובילים — סנטימנט אופטימי';
         } else if (def != null && def >= 0.67) {
-            sectorTail = ', סקטורים הגנתיים מובילים';
+            sectorTail = ', סקטורים הגנתיים מובילים — סנטימנט זהיר';
         } else if (cyc != null && def != null) {
-            if (cyc > def + 0.1) sectorTail = ', נטייה למחזוריים';
-            else if (def > cyc + 0.1) sectorTail = ', נטייה להגנתיים';
+            if (cyc > def + 0.1) sectorTail = ', נטייה חיובית — סקטורי צמיחה מובילים';
+            else if (def > cyc + 0.1) sectorTail = ', נטייה זהירה — סקטורי הגנה מובילים';
         }
 
         // Options pulse — surface what the flow z-scores say in plain
