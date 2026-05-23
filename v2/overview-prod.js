@@ -1109,9 +1109,12 @@ function renderEqTicker(metrics, hist) {
         } else if (chgEl) {
             chgEl.textContent = '—';
         }
-        if (dateEl && idx.date) {
-            const [y, m, d] = idx.date.split('-');
-            dateEl.textContent = `${d}/${m}/${y}`;
+        // Date sub-line now shows the BASELINE date (first day of the
+        // CSV history, when the level was set to 100) — labelled
+        // "מאז ..." so it doesn't get confused with the latest update
+        // timestamp (which lives in the strip's "תאריך נתונים" tile).
+        if (dateEl) {
+            dateEl.textContent = startFmt !== '—' ? `מאז ${startFmt}` : '—';
         }
         // Hover tooltip carries the start date + cumulative % so the
         // number is verifiable without external context.
