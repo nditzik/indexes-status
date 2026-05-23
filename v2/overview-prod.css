@@ -374,6 +374,84 @@
     margin-bottom: var(--ov2-space-4);
     box-shadow: var(--ov2-shadow-card);
 }
+
+/* ─── Macro Trail panel — long-history SPX vs EQ500 ──────────────────
+   Sits between the Daily Narrative (today's story) and the MCC card
+   (current regime). Shows the same comparison the EQ500 ticker hints
+   at, but over years instead of a snapshot. The chart anchors visual
+   intuition for the narrative panel's "broad vs narrow rally" wording. */
+.overview-prod-root .ov2-macro-trail {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border-strong);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-5);
+    margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-macro-trail-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: var(--ov2-space-4);
+    margin-bottom: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-macro-trail-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-macro-trail-sub {
+    font-size: 12px;
+    color: var(--ov2-text-3);
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-macro-trail-stats {
+    display: flex;
+    gap: var(--ov2-space-5);
+    flex-wrap: wrap;
+}
+.overview-prod-root .ov2-macro-trail-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 80px;
+}
+.overview-prod-root .ov2-macro-trail-stat-label {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+.overview-prod-root .ov2-macro-trail-stat-val {
+    font-family: var(--ov2-font-mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-macro-trail-stat-val.ov2-pos { color: var(--ov2-pos); }
+.overview-prod-root .ov2-macro-trail-stat-val.ov2-neg { color: var(--ov2-neg); }
+.overview-prod-root .ov2-macro-trail-chart-wrap {
+    position: relative;
+    height: 260px;
+    width: 100%;
+}
+.overview-prod-root .ov2-macro-trail-spread-wrap {
+    position: relative;
+    height: 100px;
+    width: 100%;
+    margin-top: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-macro-trail-spread-label {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
 .overview-prod-root .ov2-mcc-accent {
     position: absolute;
     top: 0; right: 0; left: 0;

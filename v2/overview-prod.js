@@ -137,10 +137,16 @@ async function loadData() {
 
     // Options flow + SPX backfill in parallel — neither blocks the other,
     // and the backfill is cached per trading day in localStorage so most
-    // page loads skip the network fetch entirely.
+    // page loads skip the network fetch entirely. Historical (multi-year)
+    // SPX+RSP files load alongside; they're optional — the rest of the
+    // dashboard still renders cleanly if the fetch fails.
     const [flowHistory, spxBackfill] = await Promise.all([
         loadFlowHistory(history, 22),
         loadSpxBackfill(),
+        // Fire and forget — Historical.load() caches internally; we don't
+        // need its result inside loadData(). The render function will
+        // await it again (cheap — same cached promise).
+        window.Historical ? window.Historical.load() : Promise.resolve(),
     ]);
 
     return { sectors, index, today, history, flowHistory, spxBackfill };
@@ -1076,6 +1082,163 @@ function renderStrip(m, phase) {
     $('idxTnxChg').className = 'ov2-idx-chg ' + 'ov2-' + deltaClass(m.tnx1dPct);
 
     $('dataDate').textContent = fmtDate(m.dataDate);
+}
+
+// ─── Macro Trail — multi-year SPX vs EQ500 + spread ───────────────────
+//
+// Builds two charts and a three-stat row from the Historical module's
+// spliced series (Barchart through 2026-04-24, daily CSV from 25/04
+// forward). Anchored to 100 at the earliest date both series have.
+//
+// Defensive throughout — if Historical hasn't loaded, or Chart.js is
+// missing, the panel hides itself silently. Never poisons the rest of
+// the dashboard.
+let _macroTrailMain = null;
+let _macroTrailSpread = null;
+
+async function renderMacroTrail(hist) {
+    const panel = $('macroTrail');
+    if (!panel) return;
+    if (!window.Historical || typeof Chart === 'undefined') {
+        panel.style.display = 'none';
+        return;
+    }
+    try {
+        const built = await window.Historical.buildSplicedSeries(hist);
+        const { spxLevels, eqLevels, spread, anchorDate } = built;
+        if (!spxLevels.length || !eqLevels.length) {
+            panel.style.display = 'none';
+            return;
+        }
+
+        // Header stats
+        const lastSpx = spxLevels[spxLevels.length - 1].level;
+        const lastEq  = eqLevels[eqLevels.length - 1].level;
+        const spxRet = lastSpx - 100;
+        const eqRet  = lastEq - 100;
+        const gap    = lastEq - lastSpx;
+        const fmtRet = (v) => (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+
+        const subEl = $('macroTrailSub');
+        if (subEl) {
+            const [y, m, d] = (anchorDate || '').split('-');
+            const start = y ? `${d}/${m}/${y}` : '—';
+            const last = spxLevels[spxLevels.length - 1].date;
+            const [ly, lm, ld] = (last || '').split('-');
+            const end = ly ? `${ld}/${lm}/${ly}` : '—';
+            subEl.textContent = `מ-${start} עד ${end} · ${spxLevels.length} ימי מסחר`;
+        }
+        const setStat = (id, val, asClass) => {
+            const el = $(id);
+            if (!el) return;
+            el.textContent = fmtRet(val);
+            el.className = 'ov2-macro-trail-stat-val ' +
+                (asClass ? (val > 0 ? 'ov2-pos' : val < 0 ? 'ov2-neg' : '') : '');
+        };
+        setStat('macroTrailSpxRet', spxRet, true);
+        setStat('macroTrailEqRet',  eqRet, true);
+        setStat('macroTrailSpread', gap, true);
+
+        // ── Main chart: two levels, time-axis ──
+        if (_macroTrailMain) { _macroTrailMain.destroy(); _macroTrailMain = null; }
+        const mainCanvas = $('macroTrailChart');
+        if (mainCanvas) {
+            _macroTrailMain = new Chart(mainCanvas, {
+                type: 'line',
+                data: {
+                    labels: spxLevels.map(r => r.date),
+                    datasets: [
+                        {
+                            label: 'SPX (משוקלל)',
+                            data: spxLevels.map(r => r.level),
+                            borderColor: '#2563EB',
+                            backgroundColor: 'rgba(37, 99, 235, 0.06)',
+                            borderWidth: 1.6,
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0.1,
+                        },
+                        {
+                            label: 'EQ500 (שוויוני)',
+                            data: eqLevels.map(r => r.level),
+                            borderColor: '#059669',
+                            backgroundColor: 'rgba(5, 150, 105, 0.06)',
+                            borderWidth: 1.6,
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0.1,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} (${(ctx.parsed.y - 100 >= 0 ? '+' : '')}${(ctx.parsed.y - 100).toFixed(2)}%)`,
+                            },
+                        },
+                    },
+                    scales: {
+                        x: {
+                            ticks: { autoSkip: true, maxTicksLimit: 8, font: { size: 10 } },
+                            grid:  { display: false },
+                        },
+                        y: {
+                            ticks: { font: { size: 10 }, callback: (v) => v.toFixed(0) },
+                            grid:  { color: 'rgba(0,0,0,0.05)' },
+                        },
+                    },
+                },
+            });
+        }
+
+        // ── Spread chart: daily (EQ500 − SPX) ──
+        if (_macroTrailSpread) { _macroTrailSpread.destroy(); _macroTrailSpread = null; }
+        const spreadCanvas = $('macroTrailSpreadChart');
+        if (spreadCanvas && spread.length) {
+            _macroTrailSpread = new Chart(spreadCanvas, {
+                type: 'bar',
+                data: {
+                    labels: spread.map(r => r.date),
+                    datasets: [{
+                        label: 'EQ500 − SPX (%)',
+                        data: spread.map(r => r.spreadDaily),
+                        backgroundColor: spread.map(r =>
+                            r.spreadDaily >= 0 ? 'rgba(5, 150, 105, 0.6)' : 'rgba(220, 38, 38, 0.6)'),
+                        borderWidth: 0,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `${ctx.parsed.y.toFixed(2)}%`,
+                            },
+                        },
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            ticks: { font: { size: 9 }, callback: (v) => v.toFixed(1) + '%' },
+                            grid:  { color: 'rgba(0,0,0,0.04)' },
+                        },
+                    },
+                },
+            });
+        }
+        // Expose for console debugging.
+        if (window.__V2) window.__V2.macroTrail = built;
+    } catch (err) {
+        console.warn('renderMacroTrail failed:', err);
+        panel.style.display = 'none';
+    }
 }
 
 function renderEqTicker(metrics, hist) {
@@ -2656,6 +2819,11 @@ async function init() {
         renderStrip(metrics, phaseResult);
         renderEqTicker(metrics, hist);
         renderNarrative(metrics, hist, phaseResult, duration);
+        // Macro Trail: long-history SPX vs EQ500 chart. Async because it
+        // needs the Historical loader to settle; non-blocking — the rest
+        // of the dashboard renders in parallel and the panel populates
+        // when the data arrives.
+        renderMacroTrail(hist);
         renderMCC(phaseResult, metrics, chips, duration);
         renderFlowCard(metrics, flowAnalytics);
         renderMarketFlowSynergy(phaseResult, metrics);

@@ -1866,6 +1866,38 @@
                         </ul>
                     </div>
 
+                    <!-- ═══ MACRO TRAIL — SPX vs EQ500 long history ═══ -->
+                    <div class="ov2-macro-trail" id="ov2_macroTrail">
+                        <div class="ov2-macro-trail-head">
+                            <div>
+                                <div class="ov2-eyebrow" style="color:var(--ov2-cat-breadth);">היסטוריה — הנתיב הרחב vs המדד</div>
+                                <div class="ov2-macro-trail-title">SPX (משוקלל) · EQ500 (שוויוני) — מנורמלים ל-100</div>
+                                <div class="ov2-macro-trail-sub" id="ov2_macroTrailSub">טוען נתונים היסטוריים...</div>
+                            </div>
+                            <div class="ov2-macro-trail-stats">
+                                <div class="ov2-macro-trail-stat">
+                                    <span class="ov2-macro-trail-stat-label">SPX מצטבר</span>
+                                    <span class="ov2-macro-trail-stat-val" id="ov2_macroTrailSpxRet">—</span>
+                                </div>
+                                <div class="ov2-macro-trail-stat">
+                                    <span class="ov2-macro-trail-stat-label">EQ500 מצטבר</span>
+                                    <span class="ov2-macro-trail-stat-val" id="ov2_macroTrailEqRet">—</span>
+                                </div>
+                                <div class="ov2-macro-trail-stat">
+                                    <span class="ov2-macro-trail-stat-label">פער (EQ500-SPX)</span>
+                                    <span class="ov2-macro-trail-stat-val" id="ov2_macroTrailSpread">—</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ov2-macro-trail-chart-wrap">
+                            <canvas id="ov2_macroTrailChart"></canvas>
+                        </div>
+                        <div class="ov2-macro-trail-spread-wrap">
+                            <div class="ov2-macro-trail-spread-label">EQ500 − SPX יומי (%) — חיובי = הרוחב מנצח</div>
+                            <canvas id="ov2_macroTrailSpreadChart"></canvas>
+                        </div>
+                    </div>
+
                     <!-- ═══ MCC CARD ═══ -->
                     <div class="ov2-mcc" id="ov2_mcc">
                         <div class="ov2-mcc-accent" id="ov2_mccPhaseAccent"></div>
@@ -6494,6 +6526,8 @@ async function generateDailySummary() {
 <script src="v2/regime.js"></script>
 <!-- narrative.js: deterministic daily summary text builder -->
 <script src="v2/narrative.js"></script>
+<!-- historical.js: SPX + RSP daily series since 2016, spliced with daily CSV -->
+<script src="v2/historical.js"></script>
 <!-- overview-prod.js: data loader + flow analytics + render -->
 <script src="v2/overview-prod.js"></script>
 <!-- Force-hide legacy overview elements (defensive — existing JS may try to show them) -->
