@@ -1532,7 +1532,7 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
 //
 // Designed to read like an actionable checklist for the next 5 days,
 // not as a forecast. We're explicit about sample sizes.
-function renderEarlyWarning(analysis) {
+function renderEarlyWarning(analysis, hist) {
     const panel = $('echoEarlyWarning');
     if (!panel) return;
     if (!analysis || !analysis.earlyWarning) {
@@ -1553,46 +1553,131 @@ function renderEarlyWarning(analysis) {
             : '';
         subEl.textContent =
             `מתוך ${ew.counts.total} ימים דומים: ${ew.counts.bullish} חיוביים (+20d ≥ +1%), ` +
-            `${ew.counts.notBullish} אחרים${flatNote}.`;
+            `${ew.counts.notBullish} אחרים${flatNote}. בדיקה מול 5 ימי המסחר האחרונים:`;
     }
 
-    // Render the top 2 signals — they're already sorted by |Cohen's d|.
+    // Compute the current value for each signal feature, looking at
+    // the LAST 5 trading days of the spliced series (the same window
+    // the early-warning rules describe — "in the days after a pattern
+    // fires"). This treats the last 5 days as if a pattern fired 5
+    // sessions ago, which gives the user a live "are we trending toward
+    // bullish continuation or toward the warning bucket?" read on each
+    // page load.
+    function currentValueFor(feature, hist) {
+        if (!hist || hist.length < 6) return null;
+        const last = hist.length - 1;
+        const from = Math.max(0, last - 5);
+
+        // Build cumulative SPX / EQ over the window from hist's %changes.
+        let spxCum = 1, eqCum = 1;
+        let minSpx = 1, maxSpx = 1, runningSpx = 1, maxDailyMag = 0;
+        for (let i = from + 1; i <= last; i++) {
+            const sp = hist[i] && hist[i].m && hist[i].m.macro && hist[i].m.macro.spx
+                       && hist[i].m.macro.spx.chgPct != null
+                       ? hist[i].m.macro.spx.chgPct : 0;
+            const eq = hist[i] && hist[i].m && hist[i].m.avgChange != null
+                       ? hist[i].m.avgChange : 0;
+            spxCum *= (1 + sp / 100);
+            eqCum  *= (1 + eq / 100);
+            runningSpx = spxCum;
+            if (runningSpx < minSpx) minSpx = runningSpx;
+            if (runningSpx > maxSpx) maxSpx = runningSpx;
+            if (Math.abs(sp) > maxDailyMag) maxDailyMag = Math.abs(sp);
+        }
+        const spxRet = (spxCum - 1) * 100;
+        const eqRet  = (eqCum  - 1) * 100;
+        const spreadVal = eqRet - spxRet;
+        const dd = (minSpx - 1) * 100;
+        const hi = (maxSpx - 1) * 100;
+
+        switch (feature) {
+            case 'spxRetEarly':   return spxRet;
+            case 'eqRetEarly':    return eqRet;
+            case 'spreadEarly':   return spreadVal;
+            case 'earlyDrawdown': return dd;
+            case 'earlyHigh':     return hi;
+            case 'maxDailyMag':   return maxDailyMag;
+            default: return null;
+        }
+    }
+
+    // Render the top 3 signals. Each card includes a "live tracking"
+    // row showing where today's 5-day reading sits relative to the
+    // threshold derived from historical separation.
     const signalsEl = $('echoEwSignals');
     if (!signalsEl) return;
     signalsEl.innerHTML = '';
-    const top = ew.signals.slice(0, 2);
+    const top = ew.signals.slice(0, 3);
+    let bullVotes = 0, bearVotes = 0, totalVotes = 0;
     for (const sig of top) {
         const card = document.createElement('div');
         const strong = sig.absD >= 0.7;
         card.className = 'ov2-echo-ew-signal' + (strong ? ' ov2-strong' : '');
 
-        // Build the Hebrew rule. The "interpret" hint on the meta record
-        // tells us whether HIGHER values favor bullish (bull_above) or
-        // LOWER values favor bullish (bull_below). The threshold is the
-        // midpoint between the two cohort means.
         const sign = sig.threshold >= 0 ? '+' : '';
         const thStr = `${sign}${sig.threshold.toFixed(2)}%`;
         let rule;
         if (sig.interpret === 'bull_above') {
-            // Bullish cohort had HIGHER values than non-bullish.
-            // If the live signal lands ABOVE the threshold → continuation.
             rule = `אם ${sig.label.replace(/^./, c => c.toLowerCase())} ≥ <strong>${thStr}</strong> → ${sig.tipBull} (תרחיש חיובי). אם נמוך מזה → ${sig.tipBear} (אזהרה).`;
         } else {
-            // Bullish cohort had LOWER values (e.g. vol).
             rule = `אם ${sig.label.replace(/^./, c => c.toLowerCase())} ≤ <strong>${thStr}</strong> → ${sig.tipBull} (תרחיש חיובי). אם גבוה מזה → ${sig.tipBear} (אזהרה).`;
         }
-
         const signCD = sig.cohensD >= 0 ? '+' : '';
+
+        // Live tracking
+        const currentVal = currentValueFor(sig.feature, hist);
+        let liveBlock = '';
+        if (currentVal != null) {
+            totalVotes++;
+            const valSign = currentVal >= 0 ? '+' : '';
+            const valStr = `${valSign}${currentVal.toFixed(2)}%`;
+            let leaning, leaningClass;
+            if (sig.interpret === 'bull_above') {
+                if (currentVal >= sig.threshold) { leaning = 'נוטה חיובי'; leaningClass = 'pos'; bullVotes++; }
+                else                              { leaning = 'נוטה אזהרה'; leaningClass = 'neg'; bearVotes++; }
+            } else {
+                if (currentVal <= sig.threshold) { leaning = 'נוטה חיובי'; leaningClass = 'pos'; bullVotes++; }
+                else                              { leaning = 'נוטה אזהרה'; leaningClass = 'neg'; bearVotes++; }
+            }
+            liveBlock = `
+                <div class="ov2-echo-ew-signal-live">
+                    <span class="ov2-echo-ew-signal-live-label">ב-5 הימים האחרונים:</span>
+                    <span class="ov2-echo-ew-signal-live-val">${valStr}</span>
+                    <span class="ov2-echo-ew-signal-live-status ov2-${leaningClass}">${leaning}</span>
+                </div>
+            `;
+        }
+
         card.innerHTML = `
             <div class="ov2-echo-ew-signal-head">${sig.label}</div>
             <div class="ov2-echo-ew-signal-rule">${rule}</div>
+            ${liveBlock}
             <div class="ov2-echo-ew-signal-stats">
                 חיוביים (n=${sig.bullN}): ${sig.bullMean >= 0 ? '+' : ''}${sig.bullMean.toFixed(2)}% ·
                 אחרים (n=${sig.bearN}): ${sig.bearMean >= 0 ? '+' : ''}${sig.bearMean.toFixed(2)}% ·
-                עוצמת הפרדה (Cohen d): ${signCD}${sig.cohensD.toFixed(2)} ${strong ? '— מובהקת' : '— בינונית'}
+                Cohen d: ${signCD}${sig.cohensD.toFixed(2)} ${strong ? '— מובהקת' : '— בינונית'}
             </div>
         `;
         signalsEl.appendChild(card);
+    }
+
+    // Aggregate verdict — count how many signals lean each direction.
+    // Append a small summary line above the caveat.
+    const verdictEl = $('echoEwVerdict');
+    if (verdictEl) {
+        if (totalVotes === 0) {
+            verdictEl.textContent = '';
+            verdictEl.className = 'ov2-echo-ew-verdict';
+        } else if (bullVotes === totalVotes) {
+            verdictEl.textContent = `סיכום מעקב: ${bullVotes}/${totalVotes} סימנים נוטים לתרחיש החיובי.`;
+            verdictEl.className = 'ov2-echo-ew-verdict ov2-pos';
+        } else if (bearVotes === totalVotes) {
+            verdictEl.textContent = `סיכום מעקב: ${bearVotes}/${totalVotes} סימנים נוטים לאזהרה.`;
+            verdictEl.className = 'ov2-echo-ew-verdict ov2-neg';
+        } else {
+            verdictEl.textContent = `סיכום מעקב: ${bullVotes} סימנים חיוביים, ${bearVotes} אזהרה — מצב מעורב.`;
+            verdictEl.className = 'ov2-echo-ew-verdict';
+        }
     }
 }
 
@@ -1830,7 +1915,7 @@ async function renderHistoricalEcho(hist) {
         if (window.__V2) window.__V2.patterns = analysis;
 
         // ── Early-warning signals — what to watch in next 5 days ──
-        renderEarlyWarning(analysis);
+        renderEarlyWarning(analysis, hist);
 
         // ── Enrich the Daily Narrative with a "בעבר" line ──
         // The narrative was already rendered without this layer (sync).

@@ -396,19 +396,31 @@
         // Per-feature separation: Cohen's d between bullish and not-bullish.
         // With tiny n, use a defensive pooled-std denominator and skip
         // features where one bucket has < 2 samples (std undefined).
+        // Each feature carries TWO tip pairs — one for the "bullish has
+        // higher values" interpretation and one for "bullish has lower
+        // values". The actual direction is then picked at runtime from
+        // the cohort means (rather than hardcoded), so the displayed
+        // rule can't drift out of sync with the data.
         const featureMeta = [
-            { key: 'spxRetEarly',   label: 'תשואת SPX ב-5 ימים אחרי',
-              unit: '%', interpret: 'bull_above',   tipBull: 'המשיך לעלות',     tipBear: 'נעצר/ירד' },
-            { key: 'eqRetEarly',    label: 'תשואת EQ500 ב-5 ימים אחרי',
-              unit: '%', interpret: 'bull_above',   tipBull: 'רוחב המשיך',      tipBear: 'הרוחב נעצר' },
-            { key: 'spreadEarly',   label: 'פער EQ500−SPX ב-5 ימים אחרי',
-              unit: '%', interpret: 'bull_above',   tipBull: 'רוחב התרחב',      tipBear: 'מגה-קאפס תפסו את ההובלה' },
-            { key: 'earlyDrawdown', label: 'נפילה מקסימלית של SPX ב-5 ימים',
-              unit: '%', interpret: 'bull_above',   tipBull: 'דיפים רדודים',    tipBear: 'דיפ חד מעיד על תיקון' },
-            { key: 'earlyHigh',     label: 'שיא חדש של SPX ב-5 ימים',
-              unit: '%', interpret: 'bull_above',   tipBull: 'פריצת שיא נוסף',  tipBear: 'לא שיא חדש' },
-            { key: 'maxDailyMag',   label: 'תנודתיות מקסימלית ביום בודד ב-5 ימים',
-              unit: '%', interpret: 'bull_below',   tipBull: 'תנודתיות נמוכה',  tipBear: 'תנודתיות עלתה — אזהרה' },
+            { key: 'spxRetEarly',   label: 'תשואת SPX ב-5 ימים אחרי', unit: '%',
+              above: { tipBull: 'המשיך לעלות',        tipBear: 'נעצר/ירד' },
+              below: { tipBull: 'תזוזה מתונה',         tipBear: 'תנועה חזקה לא טובה' } },
+            { key: 'eqRetEarly',    label: 'תשואת EQ500 ב-5 ימים אחרי', unit: '%',
+              above: { tipBull: 'רוחב המשיך',          tipBear: 'הרוחב נעצר' },
+              below: { tipBull: 'רוחב מתון',           tipBear: 'רוחב חזק לא תורם' } },
+            { key: 'spreadEarly',   label: 'פער EQ500−SPX ב-5 ימים אחרי', unit: '%',
+              above: { tipBull: 'הרוחב המשיך לבד',     tipBear: 'הפער מתאזן' },
+              below: { tipBull: 'המגה-קאפס תופסות הובלה — ראלי בוגר',
+                       tipBear: 'רוחב יתום ללא תמיכת מגה-קאפס' } },
+            { key: 'earlyDrawdown', label: 'נפילה מקסימלית של SPX ב-5 ימים', unit: '%',
+              above: { tipBull: 'דיפים רדודים',        tipBear: 'דיפ חד — תיקון' },
+              below: { tipBull: 'יציבות בלי נפילות',   tipBear: 'דיפ עמוק יחסית' } },
+            { key: 'earlyHigh',     label: 'שיא חדש של SPX ב-5 ימים', unit: '%',
+              above: { tipBull: 'פריצת שיא נוסף',      tipBear: 'לא שיא חדש' },
+              below: { tipBull: 'בלי פריצות מטעות',    tipBear: 'שיא חדש לא מחזיק' } },
+            { key: 'maxDailyMag',   label: 'תנודתיות מקסימלית ביום בודד ב-5 ימים', unit: '%',
+              above: { tipBull: 'יום חזק אחד — אנרגיה בשוק', tipBear: 'יום נפילה חד' },
+              below: { tipBull: 'תנועה מתונה',         tipBear: 'תנודתיות עלתה — אזהרה' } },
         ];
 
         const signals = [];
@@ -423,15 +435,22 @@
             const pooled = Math.sqrt((bullSd * bullSd + otherSd * otherSd) / 2);
             let cohensD = null;
             if (pooled > 0) cohensD = (bullMu - otherMu) / pooled;
-            // Threshold: midpoint between the two means. A value past
-            // this threshold tilts toward the matching bucket.
+            // Threshold = midpoint between the two cohort means. Values
+            // past this on the bullish side tilt toward continuation.
             const threshold = (bullMu + otherMu) / 2;
+            // Direction is data-driven: if the bullish cohort's mean is
+            // higher, the rule reads "value ≥ threshold → bullish"
+            // (bull_above). If lower, "value ≤ threshold → bullish"
+            // (bull_below). The hardcoded interpret was the original
+            // source of two display bugs (spread + vol read backwards).
+            const interpret = bullMu >= otherMu ? 'bull_above' : 'bull_below';
+            const tips = interpret === 'bull_above' ? meta.above : meta.below;
             signals.push({
                 feature: meta.key,
                 label: meta.label,
-                interpret: meta.interpret,
-                tipBull: meta.tipBull,
-                tipBear: meta.tipBear,
+                interpret,
+                tipBull: tips.tipBull,
+                tipBear: tips.tipBear,
                 bullMean: bullMu,
                 bearMean: otherMu,         // historical "non-bullish" — keeps the UI name compatible
                 bullN: bullVals.length,
