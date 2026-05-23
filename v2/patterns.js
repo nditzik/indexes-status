@@ -136,7 +136,9 @@
             'SPX 5d', 'SPX 20d', 'EQ500 5d', 'Spread 5d', 'Drawdown 60d', 'Vol 20d',
         ];
 
-        return { rows, dates, spxLevels, featureNames };
+        // Expose the date→EQ lookup too so callers (computeEarlyWarning)
+        // can rebuild the EQ level series without re-walking the array.
+        return { rows, dates, spxLevels, eqByDate, featureNames };
     }
 
     // ─── Z-score normalization ────────────────────────────────────────
@@ -300,6 +302,159 @@
         return { horizon, paths, median };
     }
 
+    // ─── Early-warning analysis ───────────────────────────────────────
+    //
+    // Given the K matches and their forward outcomes, look at what
+    // happened in the FIRST few days after each match (default 5) and
+    // search for features that separate the bullish 20-day outcomes
+    // from the bearish ones. The point isn't prediction — it's a
+    // diagnostic recipe: "in 5 days, check feature X. If it's above
+    // threshold Y → continuation pattern. If below → blow-off pattern."
+    //
+    // With our typical sample (12 matches splitting into 9 bullish and
+    // 2-3 bearish), the statistics are tiny — Cohen's d acts as the
+    // separation metric but should be read as suggestive, not proof.
+    // The UI surfaces sample sizes alongside any threshold it cites.
+    function computeEarlyWarning(matches, spxLevels, eqLevels, opts) {
+        opts = opts || {};
+        const earlyDays = opts.earlyDays || 5;
+        const outcomeWindow = opts.outcomeWindow || 20;
+        const bullThreshold = opts.bullThreshold != null ? opts.bullThreshold : 1.0;
+        const bearThreshold = opts.bearThreshold != null ? opts.bearThreshold : -1.0;
+
+        const enriched = [];
+        for (const m of matches) {
+            const i0 = m.row.idx;
+            if (i0 + outcomeWindow >= spxLevels.length) continue;
+            const spxStart = spxLevels[i0];
+            const eqStart = eqLevels[i0];
+            if (!Number.isFinite(spxStart) || spxStart <= 0
+                    || !Number.isFinite(eqStart) || eqStart <= 0) continue;
+
+            // 20-day outcome — same metric the outcomes object reports,
+            // recomputed here to avoid coupling to caller's data shape.
+            const outcome20d = (spxLevels[i0 + outcomeWindow] / spxStart - 1) * 100;
+            const outcomeLabel =
+                outcome20d >= bullThreshold ? 'bullish' :
+                outcome20d <= bearThreshold ? 'bearish' : 'flat';
+
+            // Early-window features (days 1..earlyDays after match).
+            // We clamp to the end of the data so matches very close to
+            // today don't crash — they're just dropped from the analysis
+            // upstream by the outcomeWindow check.
+            const endIdx = Math.min(i0 + earlyDays, spxLevels.length - 1);
+            const eqEndIdx = Math.min(i0 + earlyDays, eqLevels.length - 1);
+            const spxEnd = spxLevels[endIdx];
+            const eqEnd  = eqLevels[eqEndIdx];
+            const spxRetEarly = (spxEnd / spxStart - 1) * 100;
+            const eqRetEarly  = (eqEnd  / eqStart  - 1) * 100;
+            const spreadEarly = eqRetEarly - spxRetEarly;
+
+            // Drawdown + max gain within early window — diagnostic of
+            // whether the pattern broke down ("crash within 5 days") or
+            // expanded ("breakout within 5 days").
+            let lowSpx = spxStart, highSpx = spxStart;
+            for (let k = 1; k <= earlyDays && i0 + k < spxLevels.length; k++) {
+                if (spxLevels[i0 + k] < lowSpx)  lowSpx = spxLevels[i0 + k];
+                if (spxLevels[i0 + k] > highSpx) highSpx = spxLevels[i0 + k];
+            }
+            const earlyDrawdown = (lowSpx / spxStart - 1) * 100;   // ≤ 0
+            const earlyHigh     = (highSpx / spxStart - 1) * 100;  // ≥ 0
+
+            // Max single-day move MAGNITUDE — volatility-burst proxy.
+            // High value here means at least one day in the window had
+            // unusually large absolute %change.
+            let maxDailyMag = 0;
+            for (let k = 1; k <= earlyDays && i0 + k < spxLevels.length; k++) {
+                const dPrev = spxLevels[i0 + k - 1];
+                if (!Number.isFinite(dPrev) || dPrev <= 0) continue;
+                const d = (spxLevels[i0 + k] / dPrev - 1) * 100;
+                if (Math.abs(d) > maxDailyMag) maxDailyMag = Math.abs(d);
+            }
+
+            enriched.push({
+                date: m.row.date,
+                outcome20d,
+                outcomeLabel,
+                features: { spxRetEarly, eqRetEarly, spreadEarly,
+                            earlyDrawdown, earlyHigh, maxDailyMag },
+            });
+        }
+
+        // Bucket by outcome.
+        // bearish AND flat are merged into a single "non-bullish" bucket
+        // for the separation analysis — with K=12 matches the bearish
+        // bucket on its own is almost always too small (n=1) to compute
+        // a stddev. The combined bucket gives us a meaningful "what
+        // distinguishes the +1% continuations from everything else?"
+        // comparison.
+        const bullish = enriched.filter(e => e.outcomeLabel === 'bullish');
+        const bearish = enriched.filter(e => e.outcomeLabel === 'bearish');
+        const flat    = enriched.filter(e => e.outcomeLabel === 'flat');
+        const notBullish = enriched.filter(e => e.outcomeLabel !== 'bullish');
+
+        // Per-feature separation: Cohen's d between bullish and not-bullish.
+        // With tiny n, use a defensive pooled-std denominator and skip
+        // features where one bucket has < 2 samples (std undefined).
+        const featureMeta = [
+            { key: 'spxRetEarly',   label: 'תשואת SPX ב-5 ימים אחרי',
+              unit: '%', interpret: 'bull_above',   tipBull: 'המשיך לעלות',     tipBear: 'נעצר/ירד' },
+            { key: 'eqRetEarly',    label: 'תשואת EQ500 ב-5 ימים אחרי',
+              unit: '%', interpret: 'bull_above',   tipBull: 'רוחב המשיך',      tipBear: 'הרוחב נעצר' },
+            { key: 'spreadEarly',   label: 'פער EQ500−SPX ב-5 ימים אחרי',
+              unit: '%', interpret: 'bull_above',   tipBull: 'רוחב התרחב',      tipBear: 'מגה-קאפס תפסו את ההובלה' },
+            { key: 'earlyDrawdown', label: 'נפילה מקסימלית של SPX ב-5 ימים',
+              unit: '%', interpret: 'bull_above',   tipBull: 'דיפים רדודים',    tipBear: 'דיפ חד מעיד על תיקון' },
+            { key: 'earlyHigh',     label: 'שיא חדש של SPX ב-5 ימים',
+              unit: '%', interpret: 'bull_above',   tipBull: 'פריצת שיא נוסף',  tipBear: 'לא שיא חדש' },
+            { key: 'maxDailyMag',   label: 'תנודתיות מקסימלית ביום בודד ב-5 ימים',
+              unit: '%', interpret: 'bull_below',   tipBull: 'תנודתיות נמוכה',  tipBear: 'תנודתיות עלתה — אזהרה' },
+        ];
+
+        const signals = [];
+        for (const meta of featureMeta) {
+            const bullVals = bullish.map(e => e.features[meta.key]).filter(Number.isFinite);
+            const otherVals = notBullish.map(e => e.features[meta.key]).filter(Number.isFinite);
+            if (bullVals.length < 2 || otherVals.length < 2) continue;
+            const bullMu = mean(bullVals);
+            const otherMu = mean(otherVals);
+            const bullSd = std(bullVals, bullMu);
+            const otherSd = std(otherVals, otherMu);
+            const pooled = Math.sqrt((bullSd * bullSd + otherSd * otherSd) / 2);
+            let cohensD = null;
+            if (pooled > 0) cohensD = (bullMu - otherMu) / pooled;
+            // Threshold: midpoint between the two means. A value past
+            // this threshold tilts toward the matching bucket.
+            const threshold = (bullMu + otherMu) / 2;
+            signals.push({
+                feature: meta.key,
+                label: meta.label,
+                interpret: meta.interpret,
+                tipBull: meta.tipBull,
+                tipBear: meta.tipBear,
+                bullMean: bullMu,
+                bearMean: otherMu,         // historical "non-bullish" — keeps the UI name compatible
+                bullN: bullVals.length,
+                bearN: otherVals.length,
+                cohensD,
+                absD: cohensD != null ? Math.abs(cohensD) : 0,
+                threshold,
+            });
+        }
+        // Sort by separation strength (largest absolute Cohen's d first)
+        signals.sort((a, b) => b.absD - a.absD);
+
+        return {
+            enriched,
+            counts: { bullish: bullish.length, bearish: bearish.length,
+                      flat: flat.length, notBullish: notBullish.length,
+                      total: enriched.length },
+            signals,
+            earlyDays,
+            outcomeWindow,
+        };
+    }
+
     // ─── End-to-end convenience ──────────────────────────────────────
     //
     // Pass the {spx, eq} arrays Historical.buildSplicedSeries returns
@@ -316,6 +471,23 @@
         const matches = findMatches(fm.rows, params, todayRow.features, opts);
         const outcomes = computeOutcomes(matches, fm.spxLevels, opts.windows);
         const paths = computePaths(matches, fm.spxLevels, opts.pathHorizon || 20);
+        // Early-warning needs the EQ level series too. Reconstruct it
+        // here the same way buildFeatureMatrix builds the SPX series.
+        const eqLevels = new Array(fm.dates.length);
+        let elvl = 100;
+        for (let i = 0; i < fm.dates.length; i++) {
+            // The EQ series isn't part of fm.rows directly — we rebuild
+            // it from the eqByDate lookup we used during feature build.
+            // Defensive: if a date is missing in eq, the level just
+            // carries forward (so the array is always full-length).
+            const eqPct = fm.eqByDate ? fm.eqByDate[fm.dates[i]] : null;
+            if (Number.isFinite(eqPct)) elvl *= (1 + eqPct / 100);
+            eqLevels[i] = elvl;
+        }
+        const earlyWarning = computeEarlyWarning(matches, fm.spxLevels, eqLevels, {
+            earlyDays: opts.earlyDays || 5,
+            outcomeWindow: 20,
+        });
         return {
             asOfDate: todayRow.date,
             todayFeatures: todayRow.features,
@@ -329,6 +501,7 @@
             })),
             outcomes,
             paths,
+            earlyWarning,
             sampleSize: fm.rows.length,
         };
     }
@@ -342,5 +515,6 @@
         findMatches,
         computeOutcomes,
         computePaths,
+        computeEarlyWarning,
     };
 })();

@@ -1522,6 +1522,80 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
     }
 }
 
+// ─── Early-warning signals (sub-panel inside Historical Echo) ──────────
+//
+// Reads the Patterns.analyze() output's earlyWarning block and renders
+// the TWO signals with the largest separation between bullish and
+// non-bullish historical outcomes. Each signal is shown as a card
+// with: the diagnostic rule in plain Hebrew, the average values that
+// generated the rule, and the Cohen's d effect size.
+//
+// Designed to read like an actionable checklist for the next 5 days,
+// not as a forecast. We're explicit about sample sizes.
+function renderEarlyWarning(analysis) {
+    const panel = $('echoEarlyWarning');
+    if (!panel) return;
+    if (!analysis || !analysis.earlyWarning) {
+        panel.style.display = 'none';
+        return;
+    }
+    const ew = analysis.earlyWarning;
+    if (!ew.signals || ew.signals.length === 0
+            || ew.counts.bullish < 2 || ew.counts.notBullish < 2) {
+        panel.style.display = 'none';
+        return;
+    }
+
+    const subEl = $('echoEwSub');
+    if (subEl) {
+        const flatNote = ew.counts.flat > 0
+            ? ` (${ew.counts.bearish} שלילי + ${ew.counts.flat} שטוח)`
+            : '';
+        subEl.textContent =
+            `מתוך ${ew.counts.total} ימים דומים: ${ew.counts.bullish} חיוביים (+20d ≥ +1%), ` +
+            `${ew.counts.notBullish} אחרים${flatNote}.`;
+    }
+
+    // Render the top 2 signals — they're already sorted by |Cohen's d|.
+    const signalsEl = $('echoEwSignals');
+    if (!signalsEl) return;
+    signalsEl.innerHTML = '';
+    const top = ew.signals.slice(0, 2);
+    for (const sig of top) {
+        const card = document.createElement('div');
+        const strong = sig.absD >= 0.7;
+        card.className = 'ov2-echo-ew-signal' + (strong ? ' ov2-strong' : '');
+
+        // Build the Hebrew rule. The "interpret" hint on the meta record
+        // tells us whether HIGHER values favor bullish (bull_above) or
+        // LOWER values favor bullish (bull_below). The threshold is the
+        // midpoint between the two cohort means.
+        const sign = sig.threshold >= 0 ? '+' : '';
+        const thStr = `${sign}${sig.threshold.toFixed(2)}%`;
+        let rule;
+        if (sig.interpret === 'bull_above') {
+            // Bullish cohort had HIGHER values than non-bullish.
+            // If the live signal lands ABOVE the threshold → continuation.
+            rule = `אם ${sig.label.replace(/^./, c => c.toLowerCase())} ≥ <strong>${thStr}</strong> → ${sig.tipBull} (תרחיש חיובי). אם נמוך מזה → ${sig.tipBear} (אזהרה).`;
+        } else {
+            // Bullish cohort had LOWER values (e.g. vol).
+            rule = `אם ${sig.label.replace(/^./, c => c.toLowerCase())} ≤ <strong>${thStr}</strong> → ${sig.tipBull} (תרחיש חיובי). אם גבוה מזה → ${sig.tipBear} (אזהרה).`;
+        }
+
+        const signCD = sig.cohensD >= 0 ? '+' : '';
+        card.innerHTML = `
+            <div class="ov2-echo-ew-signal-head">${sig.label}</div>
+            <div class="ov2-echo-ew-signal-rule">${rule}</div>
+            <div class="ov2-echo-ew-signal-stats">
+                חיוביים (n=${sig.bullN}): ${sig.bullMean >= 0 ? '+' : ''}${sig.bullMean.toFixed(2)}% ·
+                אחרים (n=${sig.bearN}): ${sig.bearMean >= 0 ? '+' : ''}${sig.bearMean.toFixed(2)}% ·
+                עוצמת הפרדה (Cohen d): ${signCD}${sig.cohensD.toFixed(2)} ${strong ? '— מובהקת' : '— בינונית'}
+            </div>
+        `;
+        signalsEl.appendChild(card);
+    }
+}
+
 // ─── Enrich Daily Narrative with the "בעבר" history line ──────────────
 //
 // Reads the same Patterns.analyze() output the Echo panel renders,
@@ -1754,6 +1828,9 @@ async function renderHistoricalEcho(hist) {
 
         // Expose for console debugging.
         if (window.__V2) window.__V2.patterns = analysis;
+
+        // ── Early-warning signals — what to watch in next 5 days ──
+        renderEarlyWarning(analysis);
 
         // ── Enrich the Daily Narrative with a "בעבר" line ──
         // The narrative was already rendered without this layer (sync).
