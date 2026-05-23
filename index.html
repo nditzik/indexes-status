@@ -1821,6 +1821,20 @@
                 <!-- ═══ MAIN COLUMN ═══ -->
                 <main id="ov2_main">
 
+                    <!-- ═══ DAILY NARRATIVE ═══ -->
+                    <div class="ov2-narrative" id="ov2_narrative">
+                        <div class="ov2-narrative-accent" id="ov2_narrativeAccent"></div>
+                        <div class="ov2-eyebrow" style="margin-bottom:8px;">סיכום היום</div>
+                        <div class="ov2-narrative-headline">
+                            <span class="ov2-narrative-phase" id="ov2_narrativePhase">—</span>
+                            <span class="ov2-narrative-sep">·</span>
+                            <span class="ov2-narrative-keymetric" id="ov2_narrativeKeyMetric">—</span>
+                            <span class="ov2-narrative-sep">·</span>
+                            <span class="ov2-narrative-spread" id="ov2_narrativeSpread">—</span>
+                        </div>
+                        <div class="ov2-narrative-paragraph" id="ov2_narrativeParagraph">—</div>
+                    </div>
+
                     <!-- ═══ MCC CARD ═══ -->
                     <div class="ov2-mcc" id="ov2_mcc">
                         <div class="ov2-mcc-accent" id="ov2_mccPhaseAccent"></div>
@@ -6447,6 +6461,8 @@ async function generateDailySummary() {
 <!-- ═══ OVERVIEW V2 PRODUCTION · Regime Engine v1.5 ═══ -->
 <!-- regime.js: phase classifier + chip rules (pure logic) -->
 <script src="v2/regime.js"></script>
+<!-- narrative.js: deterministic daily summary text builder -->
+<script src="v2/narrative.js"></script>
 <!-- overview-prod.js: data loader + flow analytics + render -->
 <script src="v2/overview-prod.js"></script>
 <!-- Force-hide legacy overview elements (defensive — existing JS may try to show them) -->

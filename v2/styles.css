@@ -2,6 +2,53 @@
    V2-specific styles · extends ../prototypes/shared.css
    ═══════════════════════════════════════════════════════════════════════ */
 
+/* ─── Daily Narrative panel (above MCC) ─── */
+.narrative {
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-1);
+    border: 1px solid var(--border-strong, var(--border));
+    border-radius: var(--radius);
+    padding: var(--space-5);
+    margin-bottom: var(--space-4);
+}
+.narrative-accent {
+    position: absolute;
+    top: 0; right: 0; left: 0;
+    height: 3px;
+    background: var(--cat-breadth);
+    border-radius: var(--radius) var(--radius) 0 0;
+    transition: background 200ms;
+}
+.narrative-headline {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--text-1);
+    margin-bottom: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: baseline;
+}
+.narrative-phase { font-weight: 800; }
+.narrative-phase.pos    { color: var(--pos, #10B981); }
+.narrative-phase.neg    { color: var(--neg, #EF4444); }
+.narrative-phase.warn   { color: var(--warn, #F59E0B); }
+.narrative-phase.muted  { color: var(--text-3); }
+.narrative-keymetric { font-weight: 600; }
+.narrative-spread    { font-weight: 600; color: var(--text-2); }
+.narrative-sep {
+    color: var(--text-3);
+    font-weight: 400;
+    margin: 0 2px;
+}
+.narrative-paragraph {
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--text-2);
+}
+
 /* ─── MCC accent (top color bar, dynamic per phase) ─── */
 .mcc { position: relative; overflow: hidden; }
 .mcc-accent {

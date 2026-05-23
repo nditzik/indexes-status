@@ -89,6 +89,20 @@
       <div style="margin-top:var(--space-3); font-size:12px; color:var(--text-3); letter-spacing:0.08em; text-transform:uppercase;">Loading market data</div>
     </div>
 
+    <!-- ═══ DAILY NARRATIVE ═══ -->
+    <div class="narrative grid-row" id="narrative">
+      <div class="narrative-accent" id="narrativeAccent"></div>
+      <div class="eyebrow" style="margin-bottom:8px;">סיכום היום</div>
+      <div class="narrative-headline">
+        <span class="narrative-phase" id="narrativePhase">—</span>
+        <span class="narrative-sep">·</span>
+        <span class="narrative-keymetric" id="narrativeKeyMetric">—</span>
+        <span class="narrative-sep">·</span>
+        <span class="narrative-spread" id="narrativeSpread">—</span>
+      </div>
+      <div class="narrative-paragraph" id="narrativeParagraph">—</div>
+    </div>
+
     <!-- ═══ MCC CARD (REGIME-AWARE) ═══ -->
     <div class="mcc grid-row" id="mcc">
       <div class="mcc-accent" id="mccPhaseAccent"></div>
@@ -311,6 +325,7 @@
 </div>
 
 <script src="regime.js"></script>
+<script src="narrative.js"></script>
 <script src="overview.js"></script>
 <script>
 window.addEventListener('load', () => {

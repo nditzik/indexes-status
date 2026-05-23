@@ -271,6 +271,58 @@
 }
 
 /* ── MCC CARD ── */
+/* ─── Daily Narrative panel ────────────────────────────────────────
+   Sits above the MCC card. Shares its visual language (rounded card,
+   colored accent strip on top) but with a quieter background so the
+   eye reads it first as "the summary" rather than another KPI block. */
+.overview-prod-root .ov2-narrative {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border-strong);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-5);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-narrative-accent {
+    position: absolute;
+    top: 0; right: 0; left: 0;
+    height: 4px;
+    background: var(--ov2-cat-breadth);
+    transition: background 200ms;
+}
+.overview-prod-root .ov2-narrative-headline {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--ov2-text-1);
+    margin-bottom: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: baseline;
+}
+.overview-prod-root .ov2-narrative-phase {
+    font-weight: 800;
+}
+.overview-prod-root .ov2-narrative-phase.ov2-pos    { color: var(--ov2-pos); }
+.overview-prod-root .ov2-narrative-phase.ov2-neg    { color: var(--ov2-neg); }
+.overview-prod-root .ov2-narrative-phase.ov2-warn   { color: var(--ov2-warn, #D97706); }
+.overview-prod-root .ov2-narrative-phase.ov2-muted  { color: var(--ov2-text-3); }
+.overview-prod-root .ov2-narrative-keymetric { font-weight: 600; }
+.overview-prod-root .ov2-narrative-spread    { font-weight: 600; color: var(--ov2-text-2); }
+.overview-prod-root .ov2-narrative-sep {
+    color: var(--ov2-text-3);
+    font-weight: 400;
+    margin: 0 2px;
+}
+.overview-prod-root .ov2-narrative-paragraph {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--ov2-text-2);
+}
+
 .overview-prod-root .ov2-mcc {
     background: linear-gradient(135deg, var(--ov2-bg-1) 0%, var(--ov2-bg-2) 100%);
     border: 1px solid var(--ov2-border-strong);

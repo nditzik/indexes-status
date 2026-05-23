@@ -950,6 +950,34 @@ function renderStrip(m, phase) {
     $('dataDate').textContent = fmtDate(m.dataDate);
 }
 
+function renderNarrative(metrics, hist, phase, phaseDuration) {
+    // Narrative is a "nice to have" overlay — never let a bug here
+    // poison the rest of the dashboard. If anything throws we hide the
+    // panel and log; the user still gets the MCC + KPIs below.
+    if (!window.Narrative) return;
+    try {
+        const out = window.Narrative.build(metrics, hist, phase, phaseDuration);
+        $('narrativePhase').textContent = out.headline.phaseLabel;
+        $('narrativePhase').className =
+            'ov2-narrative-phase ov2-' + (out.headline.stateClass || 'muted');
+        $('narrativeKeyMetric').textContent = out.headline.keyMetric;
+        $('narrativeSpread').textContent = out.headline.spread;
+        $('narrativeParagraph').textContent = out.paragraph;
+        // Color the top accent strip with the phase color so the eye
+        // picks up regime state without parsing the headline.
+        const accent = $('narrativeAccent');
+        if (accent && phase && phase.phase && phase.phase.color) {
+            accent.style.background = phase.phase.color;
+        }
+        // Expose for console debugging (mirrors window.__V2 pattern).
+        if (window.__V2) window.__V2.narrativeDebug = out.debug;
+    } catch (err) {
+        console.warn('renderNarrative failed:', err);
+        const panel = $('narrative');
+        if (panel) panel.style.display = 'none';
+    }
+}
+
 function renderMCC(phase, metrics, chips, phaseDuration) {
     const p = phase.phase;
     // Glyph + Phase label
@@ -2431,6 +2459,7 @@ async function init() {
         const chips = Regime.generateChips(metrics, 6);
 
         renderStrip(metrics, phaseResult);
+        renderNarrative(metrics, hist, phaseResult, duration);
         renderMCC(phaseResult, metrics, chips, duration);
         renderFlowCard(metrics, flowAnalytics);
         renderMarketFlowSynergy(phaseResult, metrics);
