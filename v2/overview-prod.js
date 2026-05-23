@@ -135,10 +135,83 @@ async function loadData() {
         .filter(h => h.rows && h.date)
         .sort((a, b) => a.date.localeCompare(b.date));
 
-    // Options flow — load up to 22 days for baseline + z-score (parallel)
-    const flowHistory = await loadFlowHistory(history, 22);
+    // Options flow + SPX backfill in parallel — neither blocks the other,
+    // and the backfill is cached per trading day in localStorage so most
+    // page loads skip the network fetch entirely.
+    const [flowHistory, spxBackfill] = await Promise.all([
+        loadFlowHistory(history, 22),
+        loadSpxBackfill(),
+    ]);
 
-    return { sectors, index, today, history, flowHistory };
+    return { sectors, index, today, history, flowHistory, spxBackfill };
+}
+
+// ─── SPX backfill from Yahoo Finance ─────────────────────────────────
+//
+// The CSV exports from Barchart only started carrying the $SPX row on
+// 23/04/2026, so the first 22 days of our history have no cap-weighted
+// reference. Without a fix the SPX-rebased index would silently start
+// a month late, hiding its baseline mismatch with EQ500.
+//
+// We pull SPX (^GSPC) daily closes from Yahoo's chart endpoint on
+// first load each day, derive %Change between consecutive sessions,
+// and cache the result in localStorage so subsequent page loads don't
+// refetch. Yahoo's v8 chart endpoint is the rare free historical source
+// that still works without an API key (Stooq's CSV endpoint now
+// requires one). Browser CORS is handled by corsproxy.io — the same
+// proxy fetchLiveIndices already uses.
+async function loadSpxBackfill() {
+    const today = new Date().toISOString().slice(0, 10);
+    const cacheKey = 'spxBackfill_' + today;
+    try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) return JSON.parse(cached);
+    } catch (_) { /* cache miss / parse error — fall through to network */ }
+
+    // 365 days back from today is comfortably more than HISTORY_DAYS,
+    // so the backfill always covers the full CSV history window.
+    const now = Math.floor(Date.now() / 1000);
+    const oneYearAgo = now - 365 * 24 * 60 * 60;
+    const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/^GSPC?period1=${oneYearAgo}&period2=${now}&interval=1d`;
+    const url = 'https://corsproxy.io/?' + encodeURIComponent(yahooUrl);
+    try {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) return {};
+        const json = await r.json();
+        const result = json && json.chart && json.chart.result && json.chart.result[0];
+        if (!result || !result.timestamp || !result.indicators
+                || !result.indicators.quote || !result.indicators.quote[0]) {
+            return {};
+        }
+        const timestamps = result.timestamp;
+        const closes = result.indicators.quote[0].close;
+
+        // Build a sorted [date, close] list, then derive day-over-day
+        // %Change between consecutive trading days.
+        const series = [];
+        for (let i = 0; i < timestamps.length; i++) {
+            const c = closes[i];
+            if (c == null || !Number.isFinite(c)) continue;
+            const d = new Date(timestamps[i] * 1000).toISOString().slice(0, 10);
+            series.push({ date: d, close: c });
+        }
+        series.sort((a, b) => a.date.localeCompare(b.date));
+
+        const pctChanges = {};
+        for (let i = 1; i < series.length; i++) {
+            const prev = series[i - 1].close;
+            const curr = series[i].close;
+            if (prev > 0) {
+                pctChanges[series[i].date] = (curr - prev) / prev * 100;
+            }
+        }
+        try { localStorage.setItem(cacheKey, JSON.stringify(pctChanges)); }
+        catch (_) { /* quota / disabled — ignore */ }
+        return pctChanges;
+    } catch (err) {
+        console.warn('SPX backfill fetch failed:', err);
+        return {};
+    }
 }
 
 async function loadFlowHistory(history, daysBack) {
@@ -705,7 +778,10 @@ function combineScores(tech, flow, breadth) {
 // ─── Top-level metric assembly ─────────────────────────────────────────
 
 function computeMetrics(data) {
-    const { sectors: sectorsMap, today, history, flowHistory } = data;
+    const { sectors: sectorsMap, today, history, flowHistory, spxBackfill } = data;
+    // Backfill map is {yyyy-mm-dd: dailyPctChange}. Empty object when the
+    // Stooq fetch failed — the SPX rebase loop falls back silently.
+    const spxFill = spxBackfill || {};
 
     const todayM = extractDayMetrics(today, sectorsMap);
     if (!todayM) throw new Error('No stocks parsed from today\'s data.');
@@ -742,14 +818,19 @@ function computeMetrics(data) {
         if (h.m && h.m.avgChange != null && Number.isFinite(h.m.avgChange)) {
             eqLevel *= (1 + h.m.avgChange / 100);
         }
-        // Parallel SPX rebase using the cap-weighted %Change column for
-        // the $SPX row in the same daily CSV. Same baseline (100 on the
-        // first day of hist), same compounding rule — so EQ500 vs SPX
-        // levels are directly comparable as cumulative-return numbers.
-        // Days where SPX %Change is missing are skipped (the level
-        // carries over from yesterday rather than dropping to zero).
-        const spxChg = h.m && h.m.macro && h.m.macro.spx
-                       ? h.m.macro.spx.chgPct : null;
+        // Parallel SPX rebase. Source priority:
+        //   1. CSV's $SPX row %Change (available from 23/04/2026 onward).
+        //   2. Stooq backfill for the same trading day (covers the
+        //      pre-23/04 gap when Barchart wasn't carrying $SPX yet).
+        // Same baseline (100 on hist[0]), same compounding rule — so the
+        // EQ500 vs SPX levels are directly comparable as cumulative-
+        // return numbers anchored to the very first trading day we have.
+        let spxChg = h.m && h.m.macro && h.m.macro.spx
+                     ? h.m.macro.spx.chgPct : null;
+        if ((spxChg == null || !Number.isFinite(spxChg))
+                && h.date && spxFill[h.date] != null) {
+            spxChg = spxFill[h.date];
+        }
         if (spxChg != null && Number.isFinite(spxChg)) {
             spxLevel *= (1 + spxChg / 100);
         }
