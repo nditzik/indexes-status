@@ -2012,19 +2012,22 @@
     position: relative;
 }
 .overview-prod-root .ov2-ticker-item--eod::before {
-    content: "EOD";
+    content: "סוף יום";
     position: absolute;
-    top: -8px;
+    /* Raised to -16px so the bottom edge of the badge clears the tile
+       title underneath. The badge itself is ~12px tall (8px font + 2px
+       padding + 2px border), so -16px leaves a ~4px gap. */
+    top: -16px;
     right: 50%;
     transform: translateX(50%);
     font-size: 8px;
     font-weight: 700;
     color: var(--ov2-text-3);
     background: var(--ov2-bg-1);
-    padding: 1px 4px;
+    padding: 1px 5px;
     border: 1px solid var(--ov2-border);
     border-radius: 3px;
-    letter-spacing: 0.05em;
+    white-space: nowrap;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
