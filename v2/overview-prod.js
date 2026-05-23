@@ -853,30 +853,28 @@ function computeMetrics(data) {
         date: hist.length ? hist[hist.length - 1].date : null,
     };
 
-    // "Selling-pressure days" (was misleadingly labelled "distribution days"
-    // in the narrative — the term implies an IBD/O'Neil-style volume check
-    // we never actually did). New definition is honest about its limits:
+    // "Selling-pressure days" — honest about its limits. The first pass
+    // at this rule used -0.3% on SPX and over-counted: it flagged days
+    // where the cap-weighted index closed -0.41%, -0.49%, -0.38% — the
+    // kind of noise the user correctly described as "I didn't see any
+    // real selling days". Tightened to -0.5% which yields ~2 days in
+    // the current window, matching real moves like 05/15 (-1.24%) and
+    // 05/19 (-0.67%) and excluding sub-half-percent flutters.
     //
-    //   Primary rule: $SPX %Change < -0.3% on the day.
-    //   Fallback:    avgChange of the 500 stocks < -0.5% (used when the
-    //                CSV's $SPX row is missing — early days in our data).
+    //   Primary rule: $SPX %Change < -0.5% on the day.
+    //   Fallback:    avgChange of the 500 stocks < -0.7% (used only when
+    //                the CSV's $SPX row is missing — pre-23/04 days).
     //
-    // The previous rule (avgChange < -0.2%) was over-counting by ~3-5x —
-    // it triggered on tiny mean-stock dips that occurred even when SPX
-    // closed UP, and called them "ירידות בנפח גבוה" without ever checking
-    // volume. The new rule reflects real cap-weighted selling pressure.
-    //
-    // We also expose `sellDaysRecent10` so the narrative can describe
-    // FRESHNESS (were these days bunched up recently, or spread out
-    // across the month?). A cluster in the last 10 days is far more
-    // worrying than the same count spread across 25.
+    // sellDaysRecent10 captures FRESHNESS — a cluster in the last 10
+    // sessions reads very differently from the same count spread out
+    // across the full 25-day window.
     const last25 = hist.slice(-25);
     const last10 = hist.slice(-10);
     const isSellingDay = (h) => {
         const spx = h.m && h.m.macro && h.m.macro.spx
                     ? h.m.macro.spx.chgPct : null;
-        if (spx != null && Number.isFinite(spx)) return spx < -0.3;
-        return h.m && h.m.avgChange != null && h.m.avgChange < -0.5;
+        if (spx != null && Number.isFinite(spx)) return spx < -0.5;
+        return h.m && h.m.avgChange != null && h.m.avgChange < -0.7;
     };
     const distributionDays = last25.filter(isSellingDay).length;
     const sellDaysRecent10 = last10.filter(isSellingDay).length;

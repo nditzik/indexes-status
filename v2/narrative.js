@@ -104,11 +104,14 @@
         const vix = metrics.vix;
         const nhnl = metrics.nhMinusNl;
 
-        if (distRecent != null && distRecent >= 4) {
-            return `${distRecent} ימים שליליים ב-10 ימים אחרונים (אשכול טרי)`;
+        // Thresholds calibrated to the tighter -0.5% selling-day rule:
+        // with that definition, even 3 sell days in 10 sessions is
+        // unusual, and 5 in 25 is the new warning threshold.
+        if (distRecent != null && distRecent >= 3) {
+            return `${distRecent} ימים שליליים חזקים ב-10 ימים אחרונים (אשכול טרי)`;
         }
-        if (dist != null && dist >= 6) {
-            return `${dist} ימים שליליים ב-25 ימים אחרונים`;
+        if (dist != null && dist >= 5) {
+            return `${dist} ימים שליליים חזקים ב-25 ימים אחרונים`;
         }
         if (pctMa200 != null && pctMa200 < 30) return `רק ${Math.round(pctMa200)}% מהמניות מעל MA200`;
         if (vix != null && vix > 25) return `VIX ${vix.toFixed(1)} (מעל סף הפאניקה)`;
@@ -131,52 +134,69 @@
 
         let metaLabel, stateClass, rationale;
 
+        // Rationale always quotes the driving NUMBER when there is one.
+        // The previous version leaned on slogans ("המגמה והרוחב יד ביד",
+        // "על רקע התייצבות") that the user correctly flagged as unclear.
+        // Now: every rationale either names the metric + value, or names
+        // the specific weakness it can't avoid.
         if (regimeStateClass === 'pos') {
             if (recentPos) {
                 metaLabel = 'ראלי חזק';
                 stateClass = 'pos';
-                rationale = 'המגמה והרוחב יד ביד';
+                rationale = `המגמה הטכנית חיובית והרוחב מתחזק (${recentDriverPhrase(metrics, hist)})`;
             } else if (recentNeg) {
                 metaLabel = 'חולשה מתהווה';
                 stateClass = 'warn';
-                rationale = 'המגמה חיובית אבל הקצר-טווח נחלש';
+                const spread5d = cumulativeSpread(hist, 5);
+                const spreadTxt = spread5d != null
+                    ? `הרוחב נחלש (${spread5d.toFixed(1)}% השבוע)`
+                    : 'הרוחב נחלש';
+                rationale = `המגמה הטכנית עדיין חיובית אבל ${spreadTxt}`;
             } else {
                 metaLabel = 'מגמה יציבה';
                 stateClass = 'pos';
-                rationale = 'ללא סטייה משמעותית השבוע';
+                rationale = 'המגמה הטכנית חיובית, אין סטייה משמעותית השבוע';
             }
         } else if (regimeStateClass === 'neg') {
             if (recentPos) {
                 metaLabel = 'מצב מעורב';
                 stateClass = 'warn';
                 // Connector " אבל " carries the contrast on its own — no
-                // need for a trailing "עדיין מסוכן" that wouldn't agree
-                // grammatically with all driver-phrase plural subjects.
+                // trailing "עדיין מסוכן" that wouldn't agree grammatically
+                // with all the plural-subject driver phrases.
                 rationale = recentDriverPhrase(metrics, hist) + ' אבל '
                           + regimeDriverPhrase(metrics);
             } else if (recentNeg) {
                 metaLabel = 'אזהרה מסלימה';
                 stateClass = 'neg';
-                rationale = 'גם המגמה וגם השבוע מצביעים על חולשה';
+                rationale = `${regimeDriverPhrase(metrics)} בנוסף לחולשה השבוע`;
             } else {
                 metaLabel = 'מגמה תחת לחץ';
                 stateClass = 'neg';
-                rationale = 'יציב, אבל ' + regimeDriverPhrase(metrics);
+                rationale = `${regimeDriverPhrase(metrics)} (יציב, ללא הסלמה)`;
             }
         } else {
-            // regime 'warn' or 'muted'
+            // regime 'warn' or 'muted' — typically distribution/baseBuilding/etc.
             if (recentPos) {
                 metaLabel = 'שיפור מתהווה';
                 stateClass = 'pos';
-                rationale = recentDriverPhrase(metrics, hist) + ' על רקע התייצבות';
+                // Old "על רקע התייצבות" was vague — "stabilization" sounds
+                // positive but the reader had no idea what it referred to.
+                // Replace with an honest acknowledgement that the LONG-term
+                // trend has not yet confirmed the short-term improvement.
+                rationale = `${recentDriverPhrase(metrics, hist)} — המגמה הטכנית ארוכת-הטווח עדיין לא אישרה`;
             } else if (recentNeg) {
                 metaLabel = 'התייצבות שברירית';
                 stateClass = 'warn';
-                rationale = 'רוחב מתרופף, אין מגמה מבוססת';
+                const spread5d = cumulativeSpread(hist, 5);
+                const spreadTxt = spread5d != null
+                    ? `(פער 5d ${spread5d.toFixed(1)}%)`
+                    : '';
+                rationale = `הרוחב מתרופף השבוע ${spreadTxt} ללא תמיכה מצד המגמה הטכנית`;
             } else {
                 metaLabel = 'התייצבות';
                 stateClass = 'warn';
-                rationale = 'ללא כיוון מבוסס';
+                rationale = 'אין כיוון מבוסס — לא חיובי ולא שלילי';
             }
         }
 
@@ -189,11 +209,12 @@
         const spx = metrics.spx && metrics.spx.chgPct;
         if (avg == null || spx == null) return 'אין נתוני יום נוכחי.';
 
-        // Both verbs in past tense ("המניה עלתה", "המדד עלה") so the
-        // sentence reads naturally. "בעוד" works for both same-direction
-        // and opposite-direction days.
-        const avgVerb = avg >= 0 ? 'עלתה' : 'ירדה';
-        const spxVerb = spx >= 0 ? 'עלה'  : 'ירד';
+        // Naming convention: we call the equal-weighted view "המדד
+        // השוויוני" everywhere — same label as the EQ500 ticker tile —
+        // so a reader doesn't have to translate between "המניה הממוצעת"
+        // (technically true but informal) and the ticker.
+        const avgVerb = avg >= 0 ? 'עלה' : 'ירד';
+        const spxVerb = spx >= 0 ? 'עלה' : 'ירד';
 
         // Sector tilt — only mention when there's a clear lead, so we
         // don't add noise on a mixed day.
@@ -237,7 +258,7 @@
             }
         }
 
-        return `המניה הממוצעת ${avgVerb} ${fmtAbs2(avg)}% בעוד המדד `
+        return `המדד השוויוני ${avgVerb} ${fmtAbs2(avg)}% בעוד המדד `
              + `${spxVerb} ${fmtAbs2(spx)}%${sectorTail}${optionsTail}.`;
     }
 
@@ -248,12 +269,12 @@
 
         const mag = fmtAbs1(spread5d);
         if (spread5d > 1.0) {
-            return `המניה הממוצעת הביסה את המדד ב-${mag}% — מגמת השתתפות חיובית.`;
+            return `המדד השוויוני הביס את המדד הקאפ-משוקלל ב-${mag}% — מגמת השתתפות חיובית.`;
         }
         if (spread5d < -1.0) {
-            return `המדד הביס את המניה הממוצעת ב-${mag}% — דפוס של ראלי צר, מובל ע"י מעטות.`;
+            return `המדד הקאפ-משוקלל הביס את המדד השוויוני ב-${mag}% — דפוס של ראלי צר, מובל ע"י מעטות.`;
         }
-        return 'המניה הממוצעת והמדד בקצב דומה — אין נטייה ברורה.';
+        return 'המדד השוויוני והמדד הקאפ-משוקלל בקצב דומה — אין נטייה ברורה.';
     }
 
     // ─── 4. Background — phase + duration + dominant driver ───────────
@@ -282,16 +303,25 @@
         const recent10 = metrics.sellDaysRecent10;
         const pctMa200 = metrics.pctMa200;
 
-        if (recent10 != null && recent10 >= 4) {
+        // Threshold logic mirrors regimeDriverPhrase — with the tighter
+        // -0.5% rule, 3 fresh days or 5 in the full window is the new
+        // "noteworthy" line.
+        if (recent10 != null && recent10 >= 3) {
             // Fresh cluster — most worrying
-            parts.push(`${recent10} ימים שליליים ב-10 הימים האחרונים — אשכול טרי, סימן אזהרה.`);
-        } else if (dist != null && dist >= 6) {
+            parts.push(`${recent10} ימים שליליים חזקים ב-10 הימים האחרונים — אשכול טרי, סימן אזהרה.`);
+        } else if (dist != null && dist >= 5) {
             // High count but spread out
-            const recentFresh = recent10 != null ? ` (מהם רק ${recent10} ב-10 הימים האחרונים)` : '';
-            parts.push(`${dist} ימים שליליים ב-25 ימים אחרונים${recentFresh} — מעל הסף הרגיל.`);
-        } else if (dist != null && dist >= 3 && dist < 6) {
-            // Within normal range — call it out as reassurance
-            parts.push(`${dist} ימים שליליים ב-25 ימים אחרונים — בטווח נורמלי.`);
+            const recentFresh = recent10 != null ? ` (מהם ${recent10} ב-10 הימים האחרונים)` : '';
+            parts.push(`${dist} ימים שליליים חזקים ב-25 ימים אחרונים${recentFresh} — מעל הסף הרגיל.`);
+        } else if (dist != null && dist >= 2) {
+            // 2-4 days: normal-noise range
+            const tail = recent10 != null && recent10 > 0
+                ? ` (מהם ${recent10} ב-10 ימים אחרונים)`
+                : '';
+            parts.push(`${dist} ימים שליליים חזקים ב-25 ימים אחרונים${tail} — בטווח נורמלי, ללא אשכול חריג.`);
+        } else if (dist != null && dist <= 1) {
+            // Very quiet: worth mentioning as reassurance
+            parts.push(`${dist} ימים שליליים חזקים בלבד ב-25 ימים — שוק ללא מכירות בולטות.`);
         }
 
         // Breadth context — separate signal, not always relevant
