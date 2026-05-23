@@ -9,7 +9,13 @@
 // ─── Constants ────────────────────────────────────────────────────────
 
 const DATA_BASE = 'data';
-const HISTORY_DAYS = 30;          // load last N CSVs for trend / distribution
+// Load up to a year of CSVs so the EQ500 cumulative index has a fixed
+// baseline (anchored to the earliest available trading day). Other
+// downstream calcs still slice within (`last25` for distribution
+// days, `ago5` for 5-day deltas), so loading more files doesn't change
+// their math — it just lets the equal-weighted index compound from a
+// stable starting point instead of a 30-day rolling window.
+const HISTORY_DAYS = 365;
 
 // Sector buckets (codes from sectors.json — adjust if names differ)
 const CYCLICAL  = ['IT', 'CD', 'FIN', 'IND', 'MAT', 'EN', 'COMM'];
@@ -972,7 +978,7 @@ function renderStrip(m, phase) {
     $('dataDate').textContent = fmtDate(m.dataDate);
 }
 
-function renderEqTicker(metrics) {
+function renderEqTicker(metrics, hist) {
     // The EQ500 tile lives in the same flex row as SPY/QQQ/DIA/IWM but
     // it's NOT refreshed every minute by fetchLiveIndices() — it's
     // computed once at page load from the CSV history. We populate it
@@ -999,6 +1005,22 @@ function renderEqTicker(metrics) {
         // ISO yyyy-mm-dd -> dd/mm/yyyy to match the rest of the dashboard
         const [y, m, d] = date.split('-');
         dateEl.textContent = `${d}/${m}/${y}`;
+    }
+    // Enrich the hover tooltip with the actual baseline date and the
+    // cumulative return since then — gives the user a way to verify
+    // the level without us guessing what "104.44" means in isolation.
+    const tile = valEl ? valEl.closest('.ov2-ticker-item') : null;
+    if (tile && hist && hist.length > 0) {
+        const startDate = hist[0].date;
+        const [sy, sm, sd] = (startDate || '').split('-');
+        const startFmt = sy ? `${sd}/${sm}/${sy}` : '—';
+        const cumPct = Number.isFinite(level) ? (level - 100).toFixed(2) : '—';
+        const sign = (level - 100) >= 0 ? '+' : '';
+        tile.setAttribute('data-tooltip',
+            `מדד שוויוני · ממוצע שווה-משקל של 500 המניות מה-CSV היומי. ` +
+            `מתחיל ב-100 ביום ${startFmt}, היום: ${level.toFixed(2)} (${sign}${cumPct}% מצטבר). ` +
+            `מתעדכן רק עם CSV חדש (לא חי).`
+        );
     }
 }
 
@@ -2511,7 +2533,7 @@ async function init() {
         const chips = Regime.generateChips(metrics, 6);
 
         renderStrip(metrics, phaseResult);
-        renderEqTicker(metrics);
+        renderEqTicker(metrics, hist);
         renderNarrative(metrics, hist, phaseResult, duration);
         renderMCC(phaseResult, metrics, chips, duration);
         renderFlowCard(metrics, flowAnalytics);
