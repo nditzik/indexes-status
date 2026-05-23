@@ -737,14 +737,32 @@ function computeMetrics(data) {
     // is). The compounding loop walks all of hist (including today),
     // so eqLevel ends up reflecting the post-today value.
     let eqLevel = 100;
+    let spxLevel = 100;
     for (const h of hist) {
         if (h.m && h.m.avgChange != null && Number.isFinite(h.m.avgChange)) {
             eqLevel *= (1 + h.m.avgChange / 100);
+        }
+        // Parallel SPX rebase using the cap-weighted %Change column for
+        // the $SPX row in the same daily CSV. Same baseline (100 on the
+        // first day of hist), same compounding rule — so EQ500 vs SPX
+        // levels are directly comparable as cumulative-return numbers.
+        // Days where SPX %Change is missing are skipped (the level
+        // carries over from yesterday rather than dropping to zero).
+        const spxChg = h.m && h.m.macro && h.m.macro.spx
+                       ? h.m.macro.spx.chgPct : null;
+        if (spxChg != null && Number.isFinite(spxChg)) {
+            spxLevel *= (1 + spxChg / 100);
         }
     }
     const eqIndex = {
         level: eqLevel,
         dailyChgPct: todayM.avgChange,
+        date: hist.length ? hist[hist.length - 1].date : null,
+    };
+    const spxRebased = {
+        level: spxLevel,
+        dailyChgPct: todayM.macro && todayM.macro.spx
+                     ? todayM.macro.spx.chgPct : null,
         date: hist.length ? hist[hist.length - 1].date : null,
     };
 
@@ -837,6 +855,7 @@ function computeMetrics(data) {
         dxy1dPct,
         tnx1dPct,
         eqIndex,
+        spxRebased,
         distributionDays,
         daysSinceNewLow,
 
@@ -979,49 +998,58 @@ function renderStrip(m, phase) {
 }
 
 function renderEqTicker(metrics, hist) {
-    // The EQ500 tile lives in the same flex row as SPY/QQQ/DIA/IWM but
-    // it's NOT refreshed every minute by fetchLiveIndices() — it's
-    // computed once at page load from the CSV history. We populate it
-    // here so the value is in place before the live tiles arrive.
-    if (!metrics || !metrics.eqIndex) return;
-    const { level, dailyChgPct, date } = metrics.eqIndex;
-    const valEl = $('tkEq');
-    const chgEl = $('tkEqChg');
-    const dateEl = $('tkEqDate');
-    if (valEl && Number.isFinite(level)) {
-        valEl.textContent = level.toFixed(2);
+    // Both EQ500 and SPX-rebased are end-of-day tiles, populated once
+    // per page load from the CSV history. The live ETF tiles
+    // (SPY/QQQ/DIA/IWM) refresh every 60s — these don't.
+    if (!metrics) return;
+
+    const startDate = hist && hist.length ? hist[0].date : null;
+    const [sy, sm, sd] = (startDate || '').split('-');
+    const startFmt = sy ? `${sd}/${sm}/${sy}` : '—';
+
+    // Render one EOD tile — used twice below for EQ500 and SPX-rebased
+    // so the formatting + tooltip enrichment stays in sync between them.
+    function paint(prefix, idx, label) {
+        if (!idx) return;
+        const { level, dailyChgPct } = idx;
+        const valEl = $(prefix);
+        const chgEl = $(prefix + 'Chg');
+        const dateEl = $(prefix + 'Date');
+        if (valEl && Number.isFinite(level)) {
+            valEl.textContent = level.toFixed(2);
+        }
+        if (chgEl && Number.isFinite(dailyChgPct)) {
+            const arrow = dailyChgPct > 0 ? '▲' : dailyChgPct < 0 ? '▼' : '─';
+            const sign  = dailyChgPct > 0 ? '+' : '';
+            chgEl.textContent = `${arrow} ${sign}${dailyChgPct.toFixed(2)}%`;
+            chgEl.style.color = dailyChgPct > 0
+                ? 'var(--ov2-pos)'
+                : dailyChgPct < 0 ? 'var(--ov2-neg)' : 'var(--ov2-text-3)';
+        } else if (chgEl) {
+            chgEl.textContent = '—';
+        }
+        if (dateEl && idx.date) {
+            const [y, m, d] = idx.date.split('-');
+            dateEl.textContent = `${d}/${m}/${y}`;
+        }
+        // Hover tooltip carries the start date + cumulative % so the
+        // number is verifiable without external context.
+        const tile = valEl ? valEl.closest('.ov2-ticker-item') : null;
+        if (tile && Number.isFinite(level)) {
+            const cumPct = (level - 100).toFixed(2);
+            const sign = (level - 100) >= 0 ? '+' : '';
+            tile.setAttribute('data-tooltip',
+                `${label} · מתחיל ב-100 ביום ${startFmt}. ` +
+                `היום: ${level.toFixed(2)} (${sign}${cumPct}% מצטבר). ` +
+                `מתעדכן רק עם CSV חדש (לא חי).`
+            );
+        }
     }
-    if (chgEl && Number.isFinite(dailyChgPct)) {
-        const arrow = dailyChgPct > 0 ? '▲' : dailyChgPct < 0 ? '▼' : '─';
-        const sign  = dailyChgPct > 0 ? '+' : '';
-        chgEl.textContent = `${arrow} ${sign}${dailyChgPct.toFixed(2)}%`;
-        chgEl.style.color = dailyChgPct > 0
-            ? 'var(--ov2-pos)'
-            : dailyChgPct < 0 ? 'var(--ov2-neg)' : 'var(--ov2-text-3)';
-    } else if (chgEl) {
-        chgEl.textContent = '—';
-    }
-    if (dateEl && date) {
-        // ISO yyyy-mm-dd -> dd/mm/yyyy to match the rest of the dashboard
-        const [y, m, d] = date.split('-');
-        dateEl.textContent = `${d}/${m}/${y}`;
-    }
-    // Enrich the hover tooltip with the actual baseline date and the
-    // cumulative return since then — gives the user a way to verify
-    // the level without us guessing what "104.44" means in isolation.
-    const tile = valEl ? valEl.closest('.ov2-ticker-item') : null;
-    if (tile && hist && hist.length > 0) {
-        const startDate = hist[0].date;
-        const [sy, sm, sd] = (startDate || '').split('-');
-        const startFmt = sy ? `${sd}/${sm}/${sy}` : '—';
-        const cumPct = Number.isFinite(level) ? (level - 100).toFixed(2) : '—';
-        const sign = (level - 100) >= 0 ? '+' : '';
-        tile.setAttribute('data-tooltip',
-            `מדד שוויוני · ממוצע שווה-משקל של 500 המניות מה-CSV היומי. ` +
-            `מתחיל ב-100 ביום ${startFmt}, היום: ${level.toFixed(2)} (${sign}${cumPct}% מצטבר). ` +
-            `מתעדכן רק עם CSV חדש (לא חי).`
-        );
-    }
+
+    paint('tkEq', metrics.eqIndex,
+          'מדד שוויוני · ממוצע שווה-משקל של 500 המניות');
+    paint('tkSpxBase', metrics.spxRebased,
+          'SPX מנורמל · מדד S&P 500 הקאפ-משוקלל מנורמל לאותו בסיס');
 }
 
 function renderNarrative(metrics, hist, phase, phaseDuration) {
