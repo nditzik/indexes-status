@@ -599,33 +599,31 @@ def main():
     snaps = load_snapshots()
     existing_dates = {s['anchorDate'] for s in snaps['snapshots']}
 
-    # Snapshot every trading day that's
-    #   (a) recent enough to potentially be in-flight (< OUTCOME_WINDOW old), AND
-    #   (b) not already snapshotted
+    # Snapshot ONLY the latest trading day. The system tracks forward
+    # from each anchor — there's no value in backfilling past dates we
+    # never tracked in real time (their "live" observations would just
+    # be the same retrospective compounding the JS already does, with
+    # no audit-trail value). Run this script once per trading day; it's
+    # idempotent — if today's date is already snapshotted, nothing is
+    # written.
     latest_idx = len(fm['rows']) - 1
-    new_count = 0
-    for back in range(OUTCOME_WINDOW + 5, -1, -1):  # oldest → newest so JSON stays ordered
-        i = latest_idx - back
-        if i < 0:
-            continue
-        d = fm['rows'][i]['date']
-        if d in existing_dates:
-            continue
-        snap = build_snapshot(fm, i)
-        snaps['snapshots'].append(snap)
-        new_count += 1
-        print(f'  + snapshot for {d} '
-              f'(matches: {len(snap["matches"])}, signals: {len(snap["signals"])})',
-              flush=True)
+    if latest_idx < 0:
+        print('No feature rows available.', flush=True)
+        return
+    d = fm['rows'][latest_idx]['date']
+    if d in existing_dates:
+        print(f'Snapshot for {d} already exists — nothing to do.', flush=True)
+        return
 
-    if new_count == 0:
-        print('No new snapshots to add.', flush=True)
-    else:
-        # Sort by anchorDate so JSON is chronological
-        snaps['snapshots'].sort(key=lambda s: s['anchorDate'])
-        save_snapshots(snaps)
-        print(f'Wrote {SNAP_FILE} ({len(snaps["snapshots"])} total snapshots, '
-              f'+{new_count} new).', flush=True)
+    snap = build_snapshot(fm, latest_idx)
+    snaps['snapshots'].append(snap)
+    snaps['snapshots'].sort(key=lambda s: s['anchorDate'])
+    save_snapshots(snaps)
+    print(f'  + snapshot for {d} '
+          f'(matches: {len(snap["matches"])}, signals: {len(snap["signals"])})',
+          flush=True)
+    print(f'Wrote {SNAP_FILE} ({len(snaps["snapshots"])} total snapshots).',
+          flush=True)
 
 
 if __name__ == '__main__':
