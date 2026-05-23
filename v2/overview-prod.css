@@ -1999,6 +1999,33 @@
     color: var(--ov2-text-3);
     font-family: var(--ov2-font-mono);
 }
+/* EQ500 tile — end-of-day, not live. The small date below the change
+   makes the staleness explicit (other tiles refresh every 60s from
+   Stooq, this one only when a new CSV lands). */
+.overview-prod-root .ov2-ticker-date {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    font-family: var(--ov2-font-mono);
+    margin-top: 2px;
+}
+.overview-prod-root .ov2-ticker-item--eod {
+    position: relative;
+}
+.overview-prod-root .ov2-ticker-item--eod::before {
+    content: "EOD";
+    position: absolute;
+    top: -8px;
+    right: 50%;
+    transform: translateX(50%);
+    font-size: 8px;
+    font-weight: 700;
+    color: var(--ov2-text-3);
+    background: var(--ov2-bg-1);
+    padding: 1px 4px;
+    border: 1px solid var(--ov2-border);
+    border-radius: 3px;
+    letter-spacing: 0.05em;
+}
 
 /* ═══════════════════════════════════════════════════════════════════════
    FORMULA POPOVER (for score calculation explanation)

@@ -721,6 +721,27 @@ function computeMetrics(data) {
     const dxy1dPct = todayM.macro.dxyChgPct;
     const tnx1dPct = todayM.macro.tnxChgPct;
 
+    // ── Equal-weighted index (EQ500) ──
+    // Synthetic level built by compounding every day's avgChange from
+    // the CSV history. Starts at 100 on the first available day so the
+    // number is a direct "how much has the AVERAGE stock moved since
+    // we started tracking" — the cap-weighted SPX hides this entirely.
+    // todayM.avgChange is the most recent daily %Change (matches the
+    // last entry of hist when data.txt = latest CSV, which it normally
+    // is). The compounding loop walks all of hist (including today),
+    // so eqLevel ends up reflecting the post-today value.
+    let eqLevel = 100;
+    for (const h of hist) {
+        if (h.m && h.m.avgChange != null && Number.isFinite(h.m.avgChange)) {
+            eqLevel *= (1 + h.m.avgChange / 100);
+        }
+    }
+    const eqIndex = {
+        level: eqLevel,
+        dailyChgPct: todayM.avgChange,
+        date: hist.length ? hist[hist.length - 1].date : null,
+    };
+
     // Distribution days: last 25 sessions with avgChange < -0.2%
     const last25 = hist.slice(-25);
     const distributionDays = last25.filter(h => h.m.avgChange != null && h.m.avgChange < -0.2).length;
@@ -809,6 +830,7 @@ function computeMetrics(data) {
         vix1dPct,
         dxy1dPct,
         tnx1dPct,
+        eqIndex,
         distributionDays,
         daysSinceNewLow,
 
@@ -948,6 +970,36 @@ function renderStrip(m, phase) {
     $('idxTnxChg').className = 'ov2-idx-chg ' + 'ov2-' + deltaClass(m.tnx1dPct);
 
     $('dataDate').textContent = fmtDate(m.dataDate);
+}
+
+function renderEqTicker(metrics) {
+    // The EQ500 tile lives in the same flex row as SPY/QQQ/DIA/IWM but
+    // it's NOT refreshed every minute by fetchLiveIndices() — it's
+    // computed once at page load from the CSV history. We populate it
+    // here so the value is in place before the live tiles arrive.
+    if (!metrics || !metrics.eqIndex) return;
+    const { level, dailyChgPct, date } = metrics.eqIndex;
+    const valEl = $('tkEq');
+    const chgEl = $('tkEqChg');
+    const dateEl = $('tkEqDate');
+    if (valEl && Number.isFinite(level)) {
+        valEl.textContent = level.toFixed(2);
+    }
+    if (chgEl && Number.isFinite(dailyChgPct)) {
+        const arrow = dailyChgPct > 0 ? '▲' : dailyChgPct < 0 ? '▼' : '─';
+        const sign  = dailyChgPct > 0 ? '+' : '';
+        chgEl.textContent = `${arrow} ${sign}${dailyChgPct.toFixed(2)}%`;
+        chgEl.style.color = dailyChgPct > 0
+            ? 'var(--ov2-pos)'
+            : dailyChgPct < 0 ? 'var(--ov2-neg)' : 'var(--ov2-text-3)';
+    } else if (chgEl) {
+        chgEl.textContent = '—';
+    }
+    if (dateEl && date) {
+        // ISO yyyy-mm-dd -> dd/mm/yyyy to match the rest of the dashboard
+        const [y, m, d] = date.split('-');
+        dateEl.textContent = `${d}/${m}/${y}`;
+    }
 }
 
 function renderNarrative(metrics, hist, phase, phaseDuration) {
@@ -2459,6 +2511,7 @@ async function init() {
         const chips = Regime.generateChips(metrics, 6);
 
         renderStrip(metrics, phaseResult);
+        renderEqTicker(metrics);
         renderNarrative(metrics, hist, phaseResult, duration);
         renderMCC(phaseResult, metrics, chips, duration);
         renderFlowCard(metrics, flowAnalytics);
