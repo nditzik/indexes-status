@@ -254,6 +254,52 @@
         return out;
     }
 
+    // ─── Forward-path trajectories ───────────────────────────────────
+    //
+    // For each match, produce the full daily-return path over the next
+    // `horizon` trading days — relative to the match date, expressed in
+    // % from match-day close. Useful for visualising the matched
+    // trajectories overlaid on a single chart instead of just summary
+    // statistics.
+    //
+    // Returns {
+    //   horizon: int,
+    //   paths:    [{matchDate, points: [{day: 0..horizon, ret: %}, ...]}],
+    //   median:   [{day, ret}]  // median % across matches at each day
+    // }
+    function computePaths(matches, spxLevels, horizon) {
+        horizon = horizon || 20;
+        const paths = [];
+        for (const m of matches) {
+            const fromIdx = m.row.idx;
+            const fromLvl = spxLevels[fromIdx];
+            if (!Number.isFinite(fromLvl) || fromLvl <= 0) continue;
+            const points = [];
+            for (let d = 0; d <= horizon; d++) {
+                const i = fromIdx + d;
+                if (i >= spxLevels.length) break;
+                const ret = (spxLevels[i] / fromLvl - 1) * 100;
+                if (Number.isFinite(ret)) points.push({ day: d, ret });
+            }
+            if (points.length) paths.push({ matchDate: m.row.date, points });
+        }
+        // Median path: at each day offset, collect the available returns
+        // across matches and take the median. Some matches near the end
+        // of the data will be shorter — those days just have fewer samples.
+        const median = [];
+        for (let d = 0; d <= horizon; d++) {
+            const at = [];
+            for (const p of paths) {
+                const point = p.points.find(pt => pt.day === d);
+                if (point) at.push(point.ret);
+            }
+            if (!at.length) continue;
+            at.sort((a, b) => a - b);
+            median.push({ day: d, ret: percentile(at, 0.5) });
+        }
+        return { horizon, paths, median };
+    }
+
     // ─── End-to-end convenience ──────────────────────────────────────
     //
     // Pass the {spx, eq} arrays Historical.buildSplicedSeries returns
@@ -269,6 +315,7 @@
         const todayRow = fm.rows[fm.rows.length - 1];
         const matches = findMatches(fm.rows, params, todayRow.features, opts);
         const outcomes = computeOutcomes(matches, fm.spxLevels, opts.windows);
+        const paths = computePaths(matches, fm.spxLevels, opts.pathHorizon || 20);
         return {
             asOfDate: todayRow.date,
             todayFeatures: todayRow.features,
@@ -281,6 +328,7 @@
                 features: m.row.features,
             })),
             outcomes,
+            paths,
             sampleSize: fm.rows.length,
         };
     }
@@ -293,5 +341,6 @@
         normalize,
         findMatches,
         computeOutcomes,
+        computePaths,
     };
 })();

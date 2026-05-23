@@ -363,6 +363,12 @@
 .overview-prod-root .ov2-narrative-layer--watch .ov2-narrative-layer-label {
     color: var(--ov2-cat-breadth);
 }
+/* "בעבר" — historical context, populated async after KNN settles.
+   Uses cat-action color to differentiate from the forward-looking
+   watch-for row (cat-breadth). */
+.overview-prod-root .ov2-narrative-layer--history .ov2-narrative-layer-label {
+    color: var(--ov2-cat-action);
+}
 
 .overview-prod-root .ov2-mcc {
     background: linear-gradient(135deg, var(--ov2-bg-1) 0%, var(--ov2-bg-2) 100%);
@@ -533,6 +539,22 @@
     font-size: 10px;
     color: var(--ov2-text-3);
     margin-top: 6px;
+}
+
+/* Paths chart — 12 trajectories + median overlay */
+.overview-prod-root .ov2-echo-paths-wrap {
+    position: relative;
+    height: 180px;
+    width: 100%;
+    margin-bottom: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-echo-paths-label {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    margin-bottom: 4px;
 }
 
 /* List of match dates */

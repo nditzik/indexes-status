@@ -1241,34 +1241,79 @@ async function renderMacroTrail(hist) {
     }
 }
 
+// ─── Enrich Daily Narrative with the "בעבר" history line ──────────────
+//
+// Reads the same Patterns.analyze() output the Echo panel renders,
+// distills it to a single Hebrew sentence, and drops it into the
+// 5th layer of the narrative panel (id ov2_narrativeHistory). The
+// narrative.js module itself stays sync + pure — this enrichment is
+// done in the render layer because it needs the async Historical
+// loader to settle.
+//
+// Verdict logic mirrors the Echo panel's but in a more conversational
+// single-sentence form so it reads naturally as part of the daily
+// briefing.
+function enrichNarrativeWithHistory(analysis) {
+    const el = $('narrativeHistory');
+    if (!el) return;
+    if (!analysis || !analysis.matches || !analysis.matches.length) {
+        el.textContent = 'אין מספיק התאמות בעבר.';
+        return;
+    }
+    const o20 = analysis.outcomes && analysis.outcomes[20];
+    if (!o20 || !o20.samples) {
+        el.textContent = `${analysis.matches.length} ימים דומים בעבר — אין מספיק נתוני המשך לחישוב.`;
+        return;
+    }
+    const med = o20.median;
+    const hit = o20.hitRate;
+    const N = o20.samples;
+    let text;
+    if (med > 1.0 && hit >= 0.6) {
+        text = `${N} ימים דומים בעבר → השוק עלה ב-${(hit*100).toFixed(0)}% מהמקרים תוך 20 ימים, חציון +${med.toFixed(2)}%.`;
+    } else if (med < -1.0 && hit <= 0.4) {
+        text = `${N} ימים דומים בעבר → השוק ירד ב-${((1-hit)*100).toFixed(0)}% מהמקרים תוך 20 ימים, חציון ${med.toFixed(2)}%.`;
+    } else {
+        const sign = med >= 0 ? '+' : '';
+        text = `${N} ימים דומים בעבר → תוצאה מעורבת: ${(hit*100).toFixed(0)}% חיוביים, חציון ${sign}${med.toFixed(2)}% תוך 20 ימים.`;
+    }
+    el.textContent = text;
+}
+
 // ─── Historical Echo — pattern matching panel ─────────────────────────
 //
 // Consumes Patterns.analyze() output and turns it into a 3-card
-// horizon view + match-chip list + Hebrew verdict sentence. Defensive
-// — if the historical loader or Patterns module is missing, or the
-// sample is too thin to be useful, the panel hides itself silently.
+// horizon view + match-chip list + Hebrew verdict sentence + paths
+// chart that overlays the 20-day trajectories of all matched days.
+// Defensive — if the historical loader or Patterns module is missing,
+// or the sample is too thin to be useful, the panel hides itself
+// silently.
 //
 // The Hebrew verdict reads the median across horizons + hit rate to
 // produce one of a handful of summary phrases:
 //   - "נטייה היסטורית חיובית" (median > +1% AND hit > 60%)
 //   - "נטייה היסטורית שלילית" (median < -1% AND hit < 40%)
 //   - "תוצאה מעורבת" (everything else)
+let _echoPathsChart = null;
 async function renderHistoricalEcho(hist) {
     const panel = $('echo');
     if (!panel) return;
     if (!window.Historical || !window.Patterns) {
         panel.style.display = 'none';
+        enrichNarrativeWithHistory(null);
         return;
     }
     try {
         const spliced = await window.Historical.buildSplicedSeries(hist);
         if (!spliced || !spliced.spx.length) {
             panel.style.display = 'none';
+            enrichNarrativeWithHistory(null);
             return;
         }
         const analysis = window.Patterns.analyze(spliced, { k: 12 });
         if (analysis.error || !analysis.matches.length) {
             panel.style.display = 'none';
+            enrichNarrativeWithHistory(null);
             return;
         }
 
@@ -1345,11 +1390,100 @@ async function renderHistoricalEcho(hist) {
             }
         }
 
+        // Paths chart — overlay each match's 20-day trajectory plus the
+        // median path on top. Thin colored lines for individual paths
+        // (faded so the median stands out); bold black for the median.
+        if (_echoPathsChart) { _echoPathsChart.destroy(); _echoPathsChart = null; }
+        const pathsCanvas = $('echoPathsChart');
+        if (pathsCanvas && analysis.paths && analysis.paths.paths.length) {
+            const horizon = analysis.paths.horizon;
+            const labels = [];
+            for (let d = 0; d <= horizon; d++) labels.push('+' + d);
+
+            // Color each path by terminal return (green if ended positive,
+            // red if negative) — at a glance the eye sees the win/loss
+            // mix without needing to read the legend.
+            const datasets = analysis.paths.paths.map((p, i) => {
+                const term = p.points[p.points.length - 1];
+                const positive = term && term.ret >= 0;
+                const data = labels.map((_, d) => {
+                    const pt = p.points.find(pt => pt.day === d);
+                    return pt ? pt.ret : null;
+                });
+                return {
+                    label: p.matchDate,
+                    data,
+                    borderColor: positive ? 'rgba(5, 150, 105, 0.35)' : 'rgba(220, 38, 38, 0.35)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0.15,
+                    order: 2,
+                };
+            });
+            // Median path — black, bold, drawn on top.
+            datasets.push({
+                label: 'חציון',
+                data: labels.map((_, d) => {
+                    const pt = analysis.paths.median.find(pt => pt.day === d);
+                    return pt ? pt.ret : null;
+                }),
+                borderColor: '#111827',
+                backgroundColor: 'rgba(17, 24, 39, 0.04)',
+                borderWidth: 2.4,
+                pointRadius: 0,
+                fill: false,
+                tension: 0.15,
+                order: 1,
+            });
+            _echoPathsChart = new Chart(pathsCanvas, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            filter: (item) => item.dataset.label !== 'חציון' || item.parsed.y != null,
+                            callbacks: {
+                                title: (items) => items[0] ? items[0].label + ' ימים' : '',
+                                label: (ctx) => {
+                                    const sign = ctx.parsed.y >= 0 ? '+' : '';
+                                    return `${ctx.dataset.label}: ${sign}${ctx.parsed.y.toFixed(2)}%`;
+                                },
+                            },
+                        },
+                    },
+                    scales: {
+                        x: {
+                            ticks: { autoSkip: true, maxTicksLimit: 6, font: { size: 10 } },
+                            grid:  { display: false },
+                        },
+                        y: {
+                            ticks: { font: { size: 10 }, callback: (v) => (v >= 0 ? '+' : '') + v.toFixed(1) + '%' },
+                            grid:  { color: 'rgba(0,0,0,0.05)' },
+                        },
+                    },
+                },
+            });
+        }
+
         // Expose for console debugging.
         if (window.__V2) window.__V2.patterns = analysis;
+
+        // ── Enrich the Daily Narrative with a "בעבר" line ──
+        // The narrative was already rendered without this layer (sync).
+        // We fill it in now that the patterns analysis settled. If the
+        // 5th DOM slot exists, populate it; otherwise no-op so the page
+        // stays valid for older HTML.
+        enrichNarrativeWithHistory(analysis);
     } catch (err) {
         console.warn('renderHistoricalEcho failed:', err);
         panel.style.display = 'none';
+        enrichNarrativeWithHistory(null);
     }
 }
 
