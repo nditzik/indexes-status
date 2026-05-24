@@ -283,6 +283,51 @@
         return 'המדד השוויוני והמדד הקאפ-משוקלל בקצב דומה — אין נטייה ברורה.';
     }
 
+    // Given today's metrics and (via metrics.previousMetrics) yesterday's,
+    // identify which thresholds of the current phase the market crossed
+    // today (today passes, yesterday didn't). Returns human-readable
+    // Hebrew strings, one per crossed criterion.
+    //
+    // Thresholds duplicated from regime.js classifyPhase — small enough
+    // and stable enough that the duplication is cheaper than a registry.
+    // If regime.js thresholds change, mirror them here.
+    function identifyThresholdCrossings(phaseId, metrics) {
+        const prev = metrics && metrics.previousMetrics;
+        if (!prev) return [];
+        const out = [];
+        // Helper: today passes AND yesterday didn't → criterion just crossed
+        const flipped = (todayOK, yestOK) => todayOK && !yestOK;
+
+        if (phaseId === 'confirmed_uptrend') {
+            // Criteria: combined >= 70, distributionDays <= 2, vix < 20
+            if (flipped(metrics.combined >= 70, prev.combined >= 70)) {
+                out.push(`ציון בריאות השוק חצה 70 (כעת ${metrics.combined}, אתמול ${prev.combined})`);
+            }
+            if (flipped(metrics.distributionDays <= 2, prev.distributionDays <= 2)) {
+                out.push(`ימי המכירה החזקים ירדו ל-${metrics.distributionDays} מתוך 25 (אתמול ${prev.distributionDays})`);
+            }
+            if (flipped(metrics.vix < 20, prev.vix < 20)) {
+                out.push(`VIX ירד מתחת ל-20 (כעת ${metrics.vix.toFixed(1)}, אתמול ${prev.vix.toFixed(1)})`);
+            }
+        } else if (phaseId === 'uptrend_pressure') {
+            // Default fallback for combined >= 50 — only meaningful flip
+            // is the combined threshold itself.
+            if (flipped(metrics.combined >= 50, prev.combined >= 50)) {
+                out.push(`ציון בריאות השוק חצה 50 (כעת ${metrics.combined}, אתמול ${prev.combined})`);
+            }
+        } else if (phaseId === 'base_building') {
+            // combined 30-50, breadth5dDelta >= 2
+            if (flipped(metrics.breadth5dDelta >= 2, prev.breadth5dDelta >= 2)) {
+                out.push(`רוחב השוק התרחב מעל +2 נק' ב-5 ימים (כעת +${metrics.breadth5dDelta.toFixed(1)})`);
+            }
+        }
+        // Other phases (correction, capitulation, distribution, thrust)
+        // intentionally not detailed here — they're rarer states and
+        // their generic "אחד הקריטריונים" fallback is acceptable.
+
+        return out;
+    }
+
     // ─── 4. Background — phase + duration + dominant driver ───────────
     function buildBackground(metrics, phase, phaseDuration) {
         const phaseLabel = phase && phase.phase ? phase.phase.labelHe : 'לא ידוע';
@@ -296,10 +341,21 @@
         // — same market direction, just crossed an arbitrary line. The
         // strings below describe the classification's *current validity*
         // without suggesting the trend itself just started.
+        //
+        // For days === 0, when we know yesterday's metrics, we can name
+        // the SPECIFIC criterion that flipped from failing to passing —
+        // much more informative than a vague "אחד הקריטריונים".
         if (days == null) {
             parts.push(`הפאזה הנוכחית: "${phaseLabel}".`);
         } else if (days === 0) {
-            parts.push(`הפאזה "${phaseLabel}" — סיווג היום. אחד הקריטריונים של הפאזה הזאת חצה את הסף שלו היום; ייתכן שהמשטר הכללי לא השתנה מהותית.`);
+            const phaseId = phase && phase.phase ? phase.phase.id : null;
+            const crossings = identifyThresholdCrossings(phaseId, metrics);
+            if (crossings.length > 0) {
+                const list = crossings.join(' ו-');
+                parts.push(`הפאזה "${phaseLabel}" — ${list} והתווסף לשאר הקריטריונים שכבר עמדו בתנאי. ייתכן שהמשטר הכללי לא השתנה מהותית.`);
+            } else {
+                parts.push(`הפאזה "${phaseLabel}" — סיווג היום. אחד הקריטריונים של הפאזה הזאת חצה את הסף שלו היום; ייתכן שהמשטר הכללי לא השתנה מהותית.`);
+            }
         } else if (days >= 30) {
             parts.push(`הפאזה "${phaseLabel}" — הסיווג הזה תקף ${days} ימי מסחר. מצב יציב לאורך זמן.`);
         } else {

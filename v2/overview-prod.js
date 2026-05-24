@@ -915,8 +915,12 @@ function computeMetrics(data) {
     const cyclicalLeadership  = top3.length ? cyclicalInTop3 / top3.length : 0;
     const defensiveLeadership = top3.length ? defensiveInTop3 / top3.length : 0;
 
-    // Yesterday phase (for thrust detection)
+    // Yesterday's classifier inputs — used both for thrust detection
+    // and for the narrative's "which criterion just crossed today" line.
+    // Declared at the wider scope so the metrics object can carry it
+    // through to renderNarrative.
     let previousPhase = null;
+    let previousMetrics = null;
     if (hist.length >= 2) {
         const yest = hist[hist.length - 2];
         const yestAgo5 = hist[Math.max(0, hist.length - 7)];
@@ -938,6 +942,7 @@ function computeMetrics(data) {
         };
         const yestResult = Regime.classifyPhase(yestM);
         previousPhase = yestResult.phase.id;
+        previousMetrics = yestM;
     }
 
     // Composed metrics for regime + chips
@@ -1004,6 +1009,9 @@ function computeMetrics(data) {
 
         // Context
         previousPhase,
+        previousMetrics,         // yesterday's classifier inputs (or null
+                                 // if hist < 2 days), used by narrative
+                                 // to identify which threshold crossed today
         dataDate: hist.length ? hist[hist.length - 1].date : null,
         sessionCount: hist.length,
         // Date the regime entered current phase (computed in renderMCC)
