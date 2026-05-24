@@ -283,84 +283,93 @@
         return 'המדד השוויוני והמדד הקאפ-משוקלל בקצב דומה — אין נטייה ברורה.';
     }
 
-    // Given today's metrics and (via metrics.previousMetrics) yesterday's,
-    // identify which thresholds of the current phase the market crossed
-    // today (today passes, yesterday didn't). Returns human-readable
-    // Hebrew strings, one per crossed criterion.
-    //
-    // Thresholds duplicated from regime.js classifyPhase — small enough
-    // and stable enough that the duplication is cheaper than a registry.
-    // If regime.js thresholds change, mirror them here.
-    function identifyThresholdCrossings(phaseId, metrics) {
-        const prev = metrics && metrics.previousMetrics;
-        if (!prev) return [];
-        const out = [];
-        // Helper: today passes AND yesterday didn't → criterion just crossed
-        const flipped = (todayOK, yestOK) => todayOK && !yestOK;
-
-        if (phaseId === 'confirmed_uptrend') {
-            // Criteria: combined >= 70, distributionDays <= 2, vix < 20
-            if (flipped(metrics.combined >= 70, prev.combined >= 70)) {
-                out.push(`ציון בריאות השוק חצה 70 (כעת ${metrics.combined}, אתמול ${prev.combined})`);
-            }
-            if (flipped(metrics.distributionDays <= 2, prev.distributionDays <= 2)) {
-                out.push(`ימי המכירה החזקים ירדו ל-${metrics.distributionDays} מתוך 25 (אתמול ${prev.distributionDays})`);
-            }
-            if (flipped(metrics.vix < 20, prev.vix < 20)) {
-                out.push(`VIX ירד מתחת ל-20 (כעת ${metrics.vix.toFixed(1)}, אתמול ${prev.vix.toFixed(1)})`);
-            }
-        } else if (phaseId === 'uptrend_pressure') {
-            // Default fallback for combined >= 50 — only meaningful flip
-            // is the combined threshold itself.
-            if (flipped(metrics.combined >= 50, prev.combined >= 50)) {
-                out.push(`ציון בריאות השוק חצה 50 (כעת ${metrics.combined}, אתמול ${prev.combined})`);
-            }
-        } else if (phaseId === 'base_building') {
-            // combined 30-50, breadth5dDelta >= 2
-            if (flipped(metrics.breadth5dDelta >= 2, prev.breadth5dDelta >= 2)) {
-                out.push(`רוחב השוק התרחב מעל +2 נק' ב-5 ימים (כעת +${metrics.breadth5dDelta.toFixed(1)})`);
-            }
+    // Count consecutive recent trading days where SPX closed above its
+    // MA200. Used to express "השוק במגמה חיובית כבר X ימי מסחר" —
+    // a structural measure independent of the specific phase classification.
+    // This way we can say "the uptrend has been going for weeks" even
+    // when the SPECIFIC confirmed_uptrend label only crystallised today.
+    function countSpxAboveMa200(hist) {
+        if (!Array.isArray(hist) || hist.length === 0) return 0;
+        let count = 0;
+        for (let i = hist.length - 1; i >= 0; i--) {
+            const spx = hist[i] && hist[i].m && hist[i].m.macro && hist[i].m.macro.spx;
+            if (!spx || spx.price == null || spx.ma200 == null) break;
+            if (!(spx.price > spx.ma200)) break;
+            count++;
         }
-        // Other phases (correction, capitulation, distribution, thrust)
-        // intentionally not detailed here — they're rarer states and
-        // their generic "אחד הקריטריונים" fallback is acceptable.
+        return count;
+    }
 
-        return out;
+    // Phase-specific status descriptor — lists the criteria values that
+    // matter for the active phase, in plain Hebrew. The "כל הקריטריונים
+    // יושבים יחד" framing comes from option ג' (approved 2026-05-24):
+    // describe the present state factually, no "today is new" drama.
+    function phaseCriteriaDescriptor(phaseId, m) {
+        if (phaseId === 'confirmed_uptrend') {
+            return `בריאות ${m.combined}, VIX ${m.vix.toFixed(1)}, ימי מכירה ${m.distributionDays} בלבד מתוך 25`;
+        }
+        if (phaseId === 'uptrend_pressure') {
+            return `ציון בריאות ${m.combined}, VIX ${m.vix.toFixed(1)}`;
+        }
+        if (phaseId === 'distribution') {
+            return `${m.distributionDays} ימי מכירה ב-25 הימים האחרונים (סף ≥4), ציון ${m.combined}`;
+        }
+        if (phaseId === 'correction') {
+            return `ציון ${m.combined}, VIX ${m.vix.toFixed(1)}`;
+        }
+        if (phaseId === 'capitulation') {
+            return `VIX ${m.vix.toFixed(1)}, ציון ${m.combined}, שיאי שפל ${Math.abs(m.nhMinusNl)}`;
+        }
+        if (phaseId === 'base_building') {
+            const delta = m.breadth5dDelta >= 0 ? '+' : '';
+            return `ציון ${m.combined}, רוחב ${delta}${m.breadth5dDelta.toFixed(1)} נק' ב-5 ימים`;
+        }
+        if (phaseId === 'thrust') {
+            return `${m.rsiThrust} מניות חוצות סף RSI כלפי מעלה`;
+        }
+        return null;
     }
 
     // ─── 4. Background — phase + duration + dominant driver ───────────
-    function buildBackground(metrics, phase, phaseDuration) {
+    function buildBackground(metrics, hist, phase, phaseDuration) {
         const phaseLabel = phase && phase.phase ? phase.phase.labelHe : 'לא ידוע';
+        const phaseId = phase && phase.phase ? phase.phase.id : null;
         const days = phaseDuration ? phaseDuration.days : null;
         const parts = [];
 
-        // Phrasing here is deliberately undramatic for a first-time reader.
-        // The previous wording ("שלב חדש שהתחיל היום") implied a market
-        // event even when the regime is just rebalancing on a threshold:
-        // e.g. % of stocks > MA200 went from 64.8% (below) to 65.2% (above)
-        // — same market direction, just crossed an arbitrary line. The
-        // strings below describe the classification's *current validity*
-        // without suggesting the trend itself just started.
+        // Option ג' (2026-05-24): describe the CURRENT state factually,
+        // without claiming "started today" — which misled readers when
+        // the broader uptrend had been ongoing for weeks and only the
+        // specific classification crystallised today.
         //
-        // For days === 0, when we know yesterday's metrics, we can name
-        // the SPECIFIC criterion that flipped from failing to passing —
-        // much more informative than a vague "אחד הקריטריונים".
-        if (days == null) {
-            parts.push(`הפאזה הנוכחית: "${phaseLabel}".`);
-        } else if (days === 0) {
-            const phaseId = phase && phase.phase ? phase.phase.id : null;
-            const crossings = identifyThresholdCrossings(phaseId, metrics);
-            if (crossings.length > 0) {
-                const list = crossings.join(' ו-');
-                parts.push(`הפאזה "${phaseLabel}" — ${list} והתווסף לשאר הקריטריונים שכבר עמדו בתנאי. ייתכן שהמשטר הכללי לא השתנה מהותית.`);
-            } else {
-                parts.push(`הפאזה "${phaseLabel}" — סיווג היום. אחד הקריטריונים של הפאזה הזאת חצה את הסף שלו היום; ייתכן שהמשטר הכללי לא השתנה מהותית.`);
-            }
-        } else if (days >= 30) {
-            parts.push(`הפאזה "${phaseLabel}" — הסיווג הזה תקף ${days} ימי מסחר. מצב יציב לאורך זמן.`);
+        // Structure: phase label · criteria values · broader-trend tail
+        // The tail uses "consecutive recent days SPX > MA200" as the
+        // structural marker, not the specific phase's days counter.
+        const descriptor = phaseCriteriaDescriptor(phaseId, metrics);
+        let line;
+        if (descriptor) {
+            line = `מצב השוק: "${phaseLabel}". כל הקריטריונים יושבים יחד: ${descriptor}.`;
         } else {
-            parts.push(`הפאזה "${phaseLabel}" — הסיווג הזה תקף ${days} ימי מסחר.`);
+            line = `מצב השוק: "${phaseLabel}".`;
         }
+
+        // Broader uptrend duration — only meaningful for the bullish family.
+        // Counted as consecutive recent days where SPX > MA200.
+        if (phaseId === 'confirmed_uptrend' || phaseId === 'uptrend_pressure'
+                || phaseId === 'thrust') {
+            const broadDays = countSpxAboveMa200(hist);
+            if (broadDays >= 30) {
+                line += ` השוק במגמה חיובית (SPX מעל MA200) כבר ${broadDays} ימי מסחר — תקופה ארוכה.`;
+            } else if (broadDays >= 5) {
+                line += ` השוק במגמה חיובית (SPX מעל MA200) ${broadDays} ימי מסחר אחרונים.`;
+            }
+        } else if (days != null && days >= 30) {
+            line += ` הסיווג הזה תקף ${days} ימי מסחר — מצב יציב לאורך זמן.`;
+        } else if (days != null && days >= 1) {
+            line += ` הסיווג הזה תקף ${days} ימי מסחר.`;
+        }
+
+        parts.push(line);
 
         // Selling-days context: honest about what's measured (SPX-based,
         // not volume-based) and aware of FRESHNESS — a cluster in the
@@ -488,7 +497,7 @@
             const headline = buildHeadline(metrics, hist, phase);
             const today = buildToday(metrics);
             const week = buildWeek(hist);
-            const background = buildBackground(metrics, phase, phaseDuration);
+            const background = buildBackground(metrics, hist, phase, phaseDuration);
             const watchFor = buildWatchFor(metrics);
 
             const debug = {
