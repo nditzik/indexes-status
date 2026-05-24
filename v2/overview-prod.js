@@ -698,34 +698,47 @@ function computeFlowAnalytics(flowHistory) {
         z[k] = zscore(today[k], baselines[k]);
     }
 
-    // 5. Flow score (0-100) derived from z-scores
-    //    Mean = 50 (neutral). Adjustments:
-    //    + call_premium_pct z above mean = bullish (up to +25)
-    //    - pc_premium z above mean = hedge demand (penalty up to 15)
-    //    + net_premium z above mean = directional bullish (up to +10)
-    //    - iv_skew z above mean = elevated fear (penalty up to 5)
-    const scoreFromZ = dz => {
+    // 5. Absolute Flow score (0-100) — replaced the z-score baseline
+    //    approach 2026-05-24 after the rolling baseline kept making
+    //    objectively bullish days (76% call premium, 0.32 P/C) read
+    //    as "neutral 51" while less-bullish days (59% calls, 0.69 P/C)
+    //    scored 13 — purely because they were "below the baseline of
+    //    the past 22 mostly-bullish days." That's a relative metric
+    //    wearing absolute clothing. This formula scores each day on
+    //    its OWN flow, no history baseline involved.
+    //
+    //    Three components, all centered at 50% = neutral:
+    //      A = call premium % of total                (±50 weight)
+    //      B = call_ask / (call_ask + call_bid) %     (±25, bullish aggression)
+    //      C = put_ask  / (put_ask  + put_bid)  %     (±25, bearish aggression — subtracted)
+    //    IV skew omitted on purpose — SPX has a structurally positive
+    //    skew (institutional hedging premium on OTM puts) that's noise
+    //    rather than signal in an absolute frame.
+    function scoreFromMetrics(r) {
+        if (!r) return null;
         let s = 50;
-        if (dz.call_premium_pct != null) s += clamp(dz.call_premium_pct * 12, -25, 25);
-        if (dz.pc_premium       != null) s -= clamp(dz.pc_premium * 8, -15, 15);
-        if (dz.net_premium_pct  != null) s += clamp(dz.net_premium_pct * 5, -10, 10);
-        if (dz.iv_skew          != null) s -= clamp(dz.iv_skew * 3, -5, 5);
+        // A — P/C premium balance (dominant input)
+        if (r.call_premium_pct != null && Number.isFinite(r.call_premium_pct)) {
+            s += (r.call_premium_pct - 50) * 1.0;
+        }
+        // B — aggressive call buying share (ask% of directional call premium)
+        if (r.callAskPremPct != null && Number.isFinite(r.callAskPremPct)) {
+            s += (r.callAskPremPct - 50) * 0.5;
+        }
+        // C — aggressive put buying share (subtracted)
+        if (r.putAskPremPct != null && Number.isFinite(r.putAskPremPct)) {
+            s -= (r.putAskPremPct - 50) * 0.5;
+        }
         return Math.max(0, Math.min(100, Math.round(s)));
-    };
-    const score = scoreFromZ(z);
+    }
 
-    // 5b. Compute historical scores per day using SHARED baseline (today's)
-    //     This is approximation: yesterday's score uses today's baseline.
-    //     OK for showing recent trend. Stored on days[i].score
+    const score = scoreFromMetrics(today);
+
+    // 5b. Each historical day's score is computed from its OWN flow
+    //     metrics — no shared baseline, no z-scores. days[i].score is
+    //     therefore reproducible from days[i].raw alone.
     for (let i = 0; i < days.length; i++) {
-        const r = days[i].raw;
-        const dz = {
-            call_premium_pct: zscore(r.call_premium_pct, baselines.call_premium_pct),
-            pc_premium:       zscore(r.pc_premium,       baselines.pc_premium),
-            net_premium_pct:  zscore(r.net_premium_pct,  baselines.net_premium_pct),
-            iv_skew:          zscore(r.iv_skew,          baselines.iv_skew),
-        };
-        days[i].score = scoreFromZ(dz);
+        days[i].score = scoreFromMetrics(days[i].raw);
     }
 
     // 6. Debug log for chip decisions
@@ -1414,7 +1427,7 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
                     labels,
                     datasets: [
                         {
-                            label: 'ציון אופציות (0-100)',
+                            label: 'ציון Flow אבסולוטי (0-100)',
                             data: flowScores,
                             yAxisID: 'yFlow',
                             borderColor: '#7C3AED',
@@ -1449,7 +1462,7 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
                             callbacks: {
                                 label: (ctx) => {
                                     if (ctx.dataset.yAxisID === 'yFlow') {
-                                        return `ציון אופציות: ${ctx.parsed.y.toFixed(1)}`;
+                                        return `ציון Flow אבסולוטי: ${ctx.parsed.y.toFixed(1)}`;
                                     }
                                     const sign = ctx.parsed.y >= 0 ? '+' : '';
                                     return `SPX מצטבר: ${sign}${ctx.parsed.y.toFixed(2)}%`;
@@ -1468,7 +1481,7 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
                             min: 0, max: 100,
                             ticks: { font: { size: 10 }, color: '#7C3AED', callback: (v) => v },
                             grid:  { color: 'rgba(124, 58, 237, 0.06)' },
-                            title: { display: true, text: 'ציון אופציות', color: '#7C3AED', font: { size: 11 } },
+                            title: { display: true, text: 'ציון Flow אבסולוטי', color: '#7C3AED', font: { size: 11 } },
                         },
                         ySpx: {
                             type: 'linear',
@@ -1491,7 +1504,7 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
             const sign = lastSpxCum >= 0 ? '+' : '';
             let phrase, stateClass = '';
             if (corr != null && corr > 0.5) {
-                phrase = `האופציות והמחיר נעים יחד (קורלציה +${corr.toFixed(2)}). ציון אופציות נוכחי: ${lastFlowVal.toFixed(0)}, SPX מצטבר בחלון: ${sign}${lastSpxCum.toFixed(2)}%.`;
+                phrase = `האופציות והמחיר נעים יחד (קורלציה +${corr.toFixed(2)}). ציון Flow אבסולוטי נוכחי: ${lastFlowVal.toFixed(0)}, SPX מצטבר בחלון: ${sign}${lastSpxCum.toFixed(2)}%.`;
                 stateClass = corr > 0.7 ? 'ov2-pos' : '';
             } else if (corr != null && corr < -0.3) {
                 phrase = `דיוואגירציה היסטורית — האופציות נעות הפוך למחיר (קורלציה ${corr.toFixed(2)}). זה דפוס שמופיע כשהשוק מתעלם משינוי בסנטימנט.`;
@@ -1509,7 +1522,7 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
                 phrase = `סנטימנט הגנתי באופציות (${lastFlowVal.toFixed(0)}) למרות מחיר עולה — אזהרה אפשרית.`;
                 stateClass = 'ov2-neg';
             } else {
-                phrase = `מצב מאוזן — ציון אופציות ${lastFlowVal.toFixed(0)} (קרוב לניטרלי 50), SPX מצטבר ${sign}${lastSpxCum.toFixed(2)}%.`;
+                phrase = `מצב מאוזן — ציון Flow אבסולוטי ${lastFlowVal.toFixed(0)} (קרוב לניטרלי 50), SPX מצטבר ${sign}${lastSpxCum.toFixed(2)}%.`;
             }
             verdictEl.textContent = phrase;
             verdictEl.className = 'ov2-fvp-verdict ' + stateClass;
