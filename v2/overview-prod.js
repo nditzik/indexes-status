@@ -1858,7 +1858,7 @@ async function renderHistoricalEcho(hist) {
             enrichNarrativeWithHistory(null);
             return;
         }
-        const analysis = window.Patterns.analyze(spliced, { k: 12 });
+        const analysis = window.Patterns.analyze(spliced, { k: 10 });
         if (analysis.error || !analysis.matches.length) {
             panel.style.display = 'none';
             enrichNarrativeWithHistory(null);

@@ -12,7 +12,7 @@ Mirrors the JS logic in v2/patterns.js exactly:
   - 9 features per day (SPX 5d/20d ret, EQ 5d ret, spread 5d, drawdown
     60d, vol 20d, VIX level/5d delta/vs MA20)
   - z-score normalisation across full history
-  - K=12 nearest neighbours, Euclidean distance, ±20d cluster dedup,
+  - K=10 nearest neighbours, Euclidean distance, ±20d cluster dedup,
     30d exclusion from anchor
   - Cohen's d separation between bullish (20d ≥ +1%) and non-bullish
     cohorts; threshold = midpoint of cohort means
@@ -37,7 +37,7 @@ HIST_DIR = os.path.join(DATA, 'historical')
 SNAP_FILE = os.path.join(DATA, 'forward_snapshots.json')
 
 LOOKBACK = 60
-K = 12
+K = 10
 EXCLUDE_RECENT = 30
 CLUSTER_DEDUP = 20
 EARLY_DAYS = 5

@@ -466,7 +466,7 @@
 
         // Bucket by outcome.
         // bearish AND flat are merged into a single "non-bullish" bucket
-        // for the separation analysis — with K=12 matches the bearish
+        // for the separation analysis — with K=10 matches the bearish
         // bucket on its own is almost always too small (n=1) to compute
         // a stddev. The combined bucket gives us a meaningful "what
         // distinguishes the +1% continuations from everything else?"
