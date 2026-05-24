@@ -1924,6 +1924,95 @@ async function renderHistoricalEcho(hist) {
             }
         }
 
+        // ── Scenario summary — plain-Hebrew digest of the analogs ──
+        //
+        // Goal: a reader who didn't scroll up should understand, in three
+        // short blocks, what 10 historical analogs imply for the next 20
+        // trading days. The text is auto-generated from the snapshot data,
+        // so it stays in sync whenever the KNN refresh runs.
+        //
+        // Three blocks:
+        //   1. Endpoint envelope (median, range, hit rate at 20d)
+        //   2. Intraperiod path nuance (worst close DURING the window —
+        //      almost always deeper than the endpoint return, important
+        //      so the reader doesn't panic at a 2% dip mid-window)
+        //   3. Regime caveat (KNN can't see macro shocks, only the
+        //      9 features it samples)
+        const scenarioEl = $('echoScenario');
+        if (scenarioEl) {
+            const o20 = analysis.outcomes && analysis.outcomes[20];
+            const paths = (analysis.paths && analysis.paths.paths) || [];
+            if (!o20 || !o20.samples || paths.length === 0) {
+                scenarioEl.style.display = 'none';
+            } else {
+                // Compute intraperiod drawdowns: for each path, find the
+                // lowest cumulative return at any day >= 1 (day 0 = anchor).
+                const intraDDs = [];
+                for (const p of paths) {
+                    let low = 0;
+                    for (const pt of p.points) {
+                        if (pt.day === 0) continue;
+                        if (pt.ret < low) low = pt.ret;
+                    }
+                    intraDDs.push(low);
+                }
+                const ddSorted = intraDDs.slice().sort((a, b) => a - b);
+                const ddWorst = ddSorted[0];   // most negative
+                const ddMedian = ddSorted[Math.floor(ddSorted.length / 2)];
+                const deepCount = intraDDs.filter(d => d <= -2).length;
+
+                // Endpoint envelope strings
+                const medSign = o20.median >= 0 ? '+' : '';
+                const maxSign = o20.max >= 0 ? '+' : '';
+                const minSign = o20.min >= 0 ? '+' : '';
+                const hitPct = Math.round(o20.hitRate * 100);
+                const N = o20.samples;
+
+                // Overall lean for the headline color
+                const leanClass = o20.median >= 1 ? 'ov2-pos'
+                                : o20.median <= -1 ? 'ov2-neg'
+                                : '';
+
+                scenarioEl.style.display = '';
+                scenarioEl.className = 'ov2-echo-scenario ' + leanClass;
+                scenarioEl.innerHTML = `
+                    <div class="ov2-echo-scenario-title">תרחיש בסיס — מה צופה ההיסטוריה ל-20 הימים הבאים</div>
+                    <div class="ov2-echo-scenario-blocks">
+                        <div class="ov2-echo-scenario-block">
+                            <div class="ov2-echo-scenario-block-head">סוף 20 ימים</div>
+                            <div class="ov2-echo-scenario-block-body">
+                                ב-${N} מקרים היסטוריים דומים, התשואה ביום ה-20 נעה
+                                בין <strong>${minSign}${o20.min.toFixed(2)}%</strong>
+                                ל-<strong>${maxSign}${o20.max.toFixed(2)}%</strong>.
+                                חציון <strong>${medSign}${o20.median.toFixed(2)}%</strong>.
+                                <strong>${hitPct}%</strong> מהמקרים נסגרו בחיובי.
+                            </div>
+                        </div>
+                        <div class="ov2-echo-scenario-block">
+                            <div class="ov2-echo-scenario-block-head">בתוך 20 הימים (נפילות זמניות)</div>
+                            <div class="ov2-echo-scenario-block-body">
+                                גם בתרחיש "בריא" יש דיפים זמניים. בחלון הנוכחי:
+                                הנפילה הזמנית הכי עמוקה הייתה
+                                <strong>${ddWorst.toFixed(2)}%</strong>,
+                                חציון <strong>${ddMedian.toFixed(2)}%</strong>.
+                                ב-${deepCount} מתוך ${N} מקרים נראה דיף של 2%+ באמצע התקופה
+                                ⇐ דיף כזה בימים הקרובים <em>לא</em> שובר את התבנית.
+                            </div>
+                        </div>
+                        <div class="ov2-echo-scenario-block">
+                            <div class="ov2-echo-scenario-block-head">תנאי תקפות</div>
+                            <div class="ov2-echo-scenario-block-body">
+                                הניתוח מניח שהמאקרו יישאר במשטר דומה (ריבית, גיאופוליטיקה, נזילות).
+                                אירוע חריג — הפתעת ריבית, מלחמה רחבה, משבר אשראי —
+                                מבטל את ה-baseline. ההיסטוריה אינה ביטוח, היא <strong>התפלגות מותנית</strong>:
+                                "אם הרצף נשמר, היסטורית קיבלנו את הטווח הזה".
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
         // Match-chip list — each chip is the date, with a tooltip
         // describing the distance for the curious.
         const matchesEl = $('echoMatches');

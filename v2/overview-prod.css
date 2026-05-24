@@ -551,6 +551,76 @@
     margin-top: 6px;
 }
 
+/* ─── Scenario summary block ─────────────────────────────────────────
+   Three-paragraph digest sitting between the horizon cards and the
+   paths chart: endpoint envelope · intraperiod drawdowns · regime
+   caveat. Designed so a cold reader gets the headline in 15 seconds
+   without scrolling through the rest of the panel. */
+.overview-prod-root .ov2-echo-scenario {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-md);
+    padding: var(--ov2-space-3);
+    margin-bottom: var(--ov2-space-4);
+    border-right: 4px solid var(--ov2-cat-historical, #6366F1);
+}
+.overview-prod-root .ov2-echo-scenario.ov2-pos {
+    border-right-color: var(--ov2-pos);
+    background: var(--ov2-pos-bg);
+}
+.overview-prod-root .ov2-echo-scenario.ov2-neg {
+    border-right-color: var(--ov2-neg);
+    background: var(--ov2-neg-bg);
+}
+.overview-prod-root .ov2-echo-scenario-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    margin-bottom: var(--ov2-space-3);
+    letter-spacing: 0.02em;
+}
+.overview-prod-root .ov2-echo-scenario-blocks {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--ov2-space-3);
+}
+@media (max-width: 900px) {
+    .overview-prod-root .ov2-echo-scenario-blocks {
+        grid-template-columns: 1fr;
+    }
+}
+.overview-prod-root .ov2-echo-scenario-block {
+    background: var(--ov2-bg-2);
+    border-radius: var(--ov2-radius-sm);
+    padding: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-echo-scenario.ov2-pos .ov2-echo-scenario-block,
+.overview-prod-root .ov2-echo-scenario.ov2-neg .ov2-echo-scenario-block {
+    background: var(--ov2-bg-1);
+}
+.overview-prod-root .ov2-echo-scenario-block-head {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ov2-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+}
+.overview-prod-root .ov2-echo-scenario-block-body {
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: var(--ov2-text-2);
+}
+.overview-prod-root .ov2-echo-scenario-block-body strong {
+    color: var(--ov2-text-1);
+    font-family: var(--ov2-font-mono);
+}
+.overview-prod-root .ov2-echo-scenario-block-body em {
+    font-style: normal;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+}
+
 /* Early-warning sub-panel — distills the bullish-vs-bearish
    separation analysis from patterns.js into 2 actionable signals
    the user can check in the days right after a pattern fires. */
