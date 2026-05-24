@@ -1406,6 +1406,55 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
             }
         }
 
+        // Dominant-motif DTE — classify each day in the window as bullish
+        // (score >= 60), bearish (score <= 40), or neutral, then take the
+        // larger non-neutral cohort and compute its premium-weighted average
+        // DTE on the matching side (callAvgDte for bullish, putAvgDte for
+        // bearish). Cross-day weighting: each day's contribution is its own
+        // total call/put premium, so a $5B call day weighs 5x a $1B day.
+        //
+        // Why this matters: short-DTE bullish flow (≤14d) signals tactical
+        // gamma plays, often around events; long-DTE bullish flow (60d+)
+        // signals genuine directional conviction. Same number, very
+        // different stories.
+        const dteEl = $('fvpDte');
+        if (dteEl) {
+            const bull = flowDays.filter(d => d.score >= 60);
+            const bear = flowDays.filter(d => d.score <= 40);
+            const dominant = bull.length === 0 && bear.length === 0
+                ? null
+                : bull.length >= bear.length ? 'bull' : 'bear';
+            let dteVal = null, dteN = 0;
+            if (dominant) {
+                const set = dominant === 'bull' ? bull : bear;
+                let wSum = 0, pSum = 0;
+                for (const d of set) {
+                    const raw = d.raw || {};
+                    const dte = dominant === 'bull' ? raw.callAvgDte : raw.putAvgDte;
+                    const prem = dominant === 'bull' ? raw.callP    : raw.putP;
+                    if (dte != null && Number.isFinite(dte)
+                            && prem != null && prem > 0) {
+                        wSum += dte * prem;
+                        pSum += prem;
+                        dteN++;
+                    }
+                }
+                if (pSum > 0) dteVal = wSum / pSum;
+            }
+            if (dteVal == null) {
+                dteEl.textContent = '—';
+                dteEl.className = 'ov2-fvp-stat-val';
+            } else {
+                const bucket = dteVal <= 14 ? 'טווח קצר'
+                              : dteVal <= 60 ? 'טווח בינוני'
+                              : dteVal <= 180 ? 'טווח ארוך'
+                              : 'טווח ארוך מאוד';
+                const side = dominant === 'bull' ? 'שורי' : 'דובי';
+                dteEl.textContent = `${Math.round(dteVal)}d · ${bucket} (${side}, n=${dteN})`;
+                dteEl.className = 'ov2-fvp-stat-val ' + (dominant === 'bull' ? 'ov2-pos' : 'ov2-neg');
+            }
+        }
+
         // Sub-line — window context
         const subEl = $('fvpSub');
         if (subEl) {
@@ -1421,6 +1470,10 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
         if (_fvpChart) { _fvpChart.destroy(); _fvpChart = null; }
         const canvas = $('fvpChart');
         if (canvas) {
+            // Reference line at score = 50 — the bullish/bearish divider.
+            // Implemented as a flat phantom dataset (no plugin required).
+            // Excluded from the legend via Chart.js' filter callback below.
+            const neutralLine = labels.map(() => 50);
             _fvpChart = new Chart(canvas, {
                 type: 'line',
                 data: {
@@ -1450,6 +1503,20 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
                             fill: false,
                             tension: 0.2,
                         },
+                        {
+                            label: 'גבול 50 (ניטרלי)',
+                            data: neutralLine,
+                            yAxisID: 'yFlow',
+                            borderColor: 'rgba(124, 58, 237, 0.55)',
+                            borderWidth: 1.5,
+                            borderDash: [6, 5],
+                            pointRadius: 0,
+                            pointHoverRadius: 0,
+                            fill: false,
+                            tension: 0,
+                            // Don't react to tooltip / hover — pure reference line
+                            hoverBorderWidth: 1.5,
+                        },
                     ],
                 },
                 options: {
@@ -1459,6 +1526,9 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
                     plugins: {
                         legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
                         tooltip: {
+                            // Skip the neutral-50 reference dataset — it's always 50 by
+                            // construction, so showing it in the tooltip adds noise.
+                            filter: (ctx) => ctx.dataset.label !== 'גבול 50 (ניטרלי)',
                             callbacks: {
                                 label: (ctx) => {
                                     if (ctx.dataset.yAxisID === 'yFlow') {
@@ -1507,7 +1577,7 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
                 phrase = `האופציות והמחיר נעים יחד (קורלציה +${corr.toFixed(2)}). ציון Flow אבסולוטי נוכחי: ${lastFlowVal.toFixed(0)}, SPX מצטבר בחלון: ${sign}${lastSpxCum.toFixed(2)}%.`;
                 stateClass = corr > 0.7 ? 'ov2-pos' : '';
             } else if (corr != null && corr < -0.3) {
-                phrase = `דיוואגירציה היסטורית — האופציות נעות הפוך למחיר (קורלציה ${corr.toFixed(2)}). זה דפוס שמופיע כשהשוק מתעלם משינוי בסנטימנט.`;
+                phrase = `סטייה היסטורית — האופציות נעות הפוך למחיר (קורלציה ${corr.toFixed(2)}). זה דפוס שמופיע כשהשוק מתעלם משינוי בסנטימנט.`;
                 stateClass = 'ov2-neg';
             } else if (lastFlowVal >= 65 && lastSpxCum > 0) {
                 phrase = `אופציות אופטימיות (ציון ${lastFlowVal.toFixed(0)}) + מחיר עולה — אישור מגמה.`;
