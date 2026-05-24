@@ -289,16 +289,21 @@
         const days = phaseDuration ? phaseDuration.days : null;
         const parts = [];
 
+        // Phrasing here is deliberately undramatic for a first-time reader.
+        // The previous wording ("שלב חדש שהתחיל היום") implied a market
+        // event even when the regime is just rebalancing on a threshold:
+        // e.g. % of stocks > MA200 went from 64.8% (below) to 65.2% (above)
+        // — same market direction, just crossed an arbitrary line. The
+        // strings below describe the classification's *current validity*
+        // without suggesting the trend itself just started.
         if (days == null) {
             parts.push(`הפאזה הנוכחית: "${phaseLabel}".`);
+        } else if (days === 0) {
+            parts.push(`הפאזה "${phaseLabel}" — סיווג היום. אחד הקריטריונים של הפאזה הזאת חצה את הסף שלו היום; ייתכן שהמשטר הכללי לא השתנה מהותית.`);
         } else if (days >= 30) {
-            parts.push(`הפאזה "${phaseLabel}" נמשכת ${days} ימים — ממושכת ביחס לתבנית הרגילה.`);
-        } else if (days >= 10) {
-            parts.push(`הפאזה "${phaseLabel}" נמשכת ${days} ימים.`);
-        } else if (days >= 1) {
-            parts.push(`הפאזה "${phaseLabel}" — שלב טרי (${days} ימים).`);
+            parts.push(`הפאזה "${phaseLabel}" — הסיווג הזה תקף ${days} ימי מסחר. מצב יציב לאורך זמן.`);
         } else {
-            parts.push(`הפאזה "${phaseLabel}" — שלב חדש שהתחיל היום.`);
+            parts.push(`הפאזה "${phaseLabel}" — הסיווג הזה תקף ${days} ימי מסחר.`);
         }
 
         // Selling-days context: honest about what's measured (SPX-based,
