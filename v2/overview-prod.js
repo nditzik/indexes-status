@@ -1408,15 +1408,19 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
 
         // Dominant-motif DTE — classify each day in the window as bullish
         // (score >= 60), bearish (score <= 40), or neutral, then take the
-        // larger non-neutral cohort and compute its premium-weighted average
-        // DTE on the matching side (callAvgDte for bullish, putAvgDte for
-        // bearish). Cross-day weighting: each day's contribution is its own
-        // total call/put premium, so a $5B call day weighs 5x a $1B day.
+        // larger non-neutral cohort and compute its ASK-SIDE premium-
+        // weighted average DTE on the matching side: callAskDte+callAskP
+        // for bullish, putAskDte+putAskP for bearish.
         //
-        // Why this matters: short-DTE bullish flow (≤14d) signals tactical
-        // gamma plays, often around events; long-DTE bullish flow (60d+)
-        // signals genuine directional conviction. Same number, very
-        // different stories.
+        // Ask-side only on purpose — those are the aggressive BUYERS (paying
+        // ask, willing to chase the offer), which is the cleanest read of
+        // directional conviction. Mid prints are passive, bid prints are
+        // sellers (or covered-call writers), and including them muddies the
+        // "what are the bulls actually paying for?" signal.
+        //
+        // Short-DTE ask-side bullish flow (≤14d) signals tactical gamma
+        // plays around events; long-DTE (60d+) signals genuine multi-
+        // quarter conviction. Same score, very different stories.
         const dteEl = $('fvpDte');
         if (dteEl) {
             const bull = flowDays.filter(d => d.score >= 60);
@@ -1430,8 +1434,8 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
                 let wSum = 0, pSum = 0;
                 for (const d of set) {
                     const raw = d.raw || {};
-                    const dte = dominant === 'bull' ? raw.callAvgDte : raw.putAvgDte;
-                    const prem = dominant === 'bull' ? raw.callP    : raw.putP;
+                    const dte  = dominant === 'bull' ? raw.callAskDte : raw.putAskDte;
+                    const prem = dominant === 'bull' ? raw.callAskP   : raw.putAskP;
                     if (dte != null && Number.isFinite(dte)
                             && prem != null && prem > 0) {
                         wSum += dte * prem;
