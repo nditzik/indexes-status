@@ -1155,7 +1155,6 @@ function renderStrip(m, phase) {
 // missing, the panel hides itself silently. Never poisons the rest of
 // the dashboard.
 let _macroTrailMain = null;
-let _macroTrailSpread = null;
 
 async function renderMacroTrail(hist) {
     const panel = $('macroTrail');
@@ -1257,43 +1256,14 @@ async function renderMacroTrail(hist) {
             });
         }
 
-        // ── Spread chart: daily (EQ500 − SPX) ──
-        if (_macroTrailSpread) { _macroTrailSpread.destroy(); _macroTrailSpread = null; }
-        const spreadCanvas = $('macroTrailSpreadChart');
-        if (spreadCanvas && spread.length) {
-            _macroTrailSpread = new Chart(spreadCanvas, {
-                type: 'bar',
-                data: {
-                    labels: spread.map(r => r.date),
-                    datasets: [{
-                        label: 'EQ500 − SPX (%)',
-                        data: spread.map(r => r.spreadDaily),
-                        backgroundColor: spread.map(r =>
-                            r.spreadDaily >= 0 ? 'rgba(5, 150, 105, 0.6)' : 'rgba(220, 38, 38, 0.6)'),
-                        borderWidth: 0,
-                    }],
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: (ctx) => `${ctx.parsed.y.toFixed(2)}%`,
-                            },
-                        },
-                    },
-                    scales: {
-                        x: { display: false },
-                        y: {
-                            ticks: { font: { size: 9 }, callback: (v) => v.toFixed(1) + '%' },
-                            grid:  { color: 'rgba(0,0,0,0.04)' },
-                        },
-                    },
-                },
-            });
-        }
+        // Spread chart removed 2026-05-24 — 10 years of daily bars produced
+        // a dense red/green smear with no readable signal. Per-day spread
+        // data is still computed by Historical.buildSplicedSeries and used
+        // internally by patterns.js (KNN feature #4 = 5-day cumulative
+        // spread), so the underlying signal isn't lost — just the visual.
+        // Advance/decline ratio in the daily watchlist CSVs is a cleaner
+        // representation if a chart is wanted here later.
+
         // Expose for console debugging.
         if (window.__V2) window.__V2.macroTrail = built;
     } catch (err) {
