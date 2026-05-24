@@ -670,93 +670,153 @@
     margin-top: var(--ov2-space-3);
 }
 
-/* ─── Forward-tracking snapshot cards ────────────────────────────────
-   Each active pattern (anchor 0-5 trading days back) renders as one
-   .ov2-ft-snapshot wrapper containing a header (anchor date + Day N/5
-   progress + per-snapshot verdict) and a row of inner signal cards. */
-.overview-prod-root .ov2-ft-snapshot {
-    background: var(--ov2-bg-1);
-    border: 1px solid var(--ov2-border);
-    border-radius: var(--ov2-radius-md);
-    padding: var(--ov2-space-3);
+/* ─── Forward-tracking table ─────────────────────────────────────────
+   One table inside the Forward Tracking panel. Each <tr> = one active
+   pattern (anchor 0-5 trading days back). Rows are appended naturally
+   as new trading days produce new snapshots. */
+.overview-prod-root .ov2-ft-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
     margin-bottom: var(--ov2-space-3);
 }
-.overview-prod-root .ov2-ft-snap-head {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: var(--ov2-space-3);
-    padding-bottom: 8px;
+.overview-prod-root .ov2-ft-table thead th {
+    text-align: right;
+    padding: 8px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ov2-text-3);
+    background: var(--ov2-bg-2);
     border-bottom: 1px solid var(--ov2-border);
 }
-.overview-prod-root .ov2-ft-snap-anchor {
-    font-size: 13px;
+.overview-prod-root .ov2-ft-table tbody td {
+    padding: 10px;
+    border-bottom: 1px solid var(--ov2-border);
+    vertical-align: middle;
+}
+.overview-prod-root .ov2-ft-table tbody tr:last-child td {
+    border-bottom: none;
+}
+.overview-prod-root .ov2-ft-table tbody tr:hover {
+    background: var(--ov2-bg-2);
+}
+.overview-prod-root .ov2-ft-td-anchor {
     font-weight: 700;
     color: var(--ov2-text-1);
+    white-space: nowrap;
+    width: 80px;
 }
-.overview-prod-root .ov2-ft-snap-day {
+.overview-prod-root .ov2-ft-td-day {
+    white-space: nowrap;
+    width: 70px;
+}
+.overview-prod-root .ov2-ft-td-signals {
+    min-width: 360px;
+}
+.overview-prod-root .ov2-ft-td-verdict {
+    text-align: left;
+    white-space: nowrap;
+    width: 110px;
+}
+/* Day N/5 progress chip — Day 0 gray, 1-2 amber, 3-4 blue, 5 green. */
+.overview-prod-root .ov2-ft-day {
     font-family: var(--ov2-font-mono);
     font-size: 11px;
     font-weight: 700;
-    padding: 3px 10px;
+    padding: 3px 8px;
     border-radius: 4px;
     background: var(--ov2-bg-2);
-    color: var(--ov2-text-2);
+    color: var(--ov2-text-3);
+    display: inline-block;
 }
-/* Color coding — fuller window = greener.
-   Day 0 (just fired) stays neutral; Days 1-4 progress; Day 5 = pos. */
-.overview-prod-root .ov2-ft-snap-day.ov2-ft-day-0 {
+.overview-prod-root .ov2-ft-day.ov2-ft-day-0 {
     background: var(--ov2-bg-2);
     color: var(--ov2-text-3);
 }
-.overview-prod-root .ov2-ft-snap-day.ov2-ft-day-1,
-.overview-prod-root .ov2-ft-snap-day.ov2-ft-day-2 {
+.overview-prod-root .ov2-ft-day.ov2-ft-day-1,
+.overview-prod-root .ov2-ft-day.ov2-ft-day-2 {
     background: var(--ov2-cat-action-bg, rgba(245, 158, 11, 0.10));
     color: var(--ov2-cat-action, #b45309);
 }
-.overview-prod-root .ov2-ft-snap-day.ov2-ft-day-3,
-.overview-prod-root .ov2-ft-snap-day.ov2-ft-day-4 {
+.overview-prod-root .ov2-ft-day.ov2-ft-day-3,
+.overview-prod-root .ov2-ft-day.ov2-ft-day-4 {
     background: var(--ov2-cat-momentum-bg, rgba(59, 130, 246, 0.10));
     color: var(--ov2-cat-momentum, #1d4ed8);
 }
-.overview-prod-root .ov2-ft-snap-day.ov2-ft-day-5 {
+.overview-prod-root .ov2-ft-day.ov2-ft-day-5 {
     background: var(--ov2-pos-bg);
     color: var(--ov2-pos);
 }
-.overview-prod-root .ov2-ft-snap-verdict {
-    margin-right: auto;
+/* Signal chips — one per top signal, inline in the signals cell. */
+.overview-prod-root .ov2-ft-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.overview-prod-root .ov2-ft-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    background: var(--ov2-bg-2);
+    border: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-ft-chip.ov2-pos {
+    background: var(--ov2-pos-bg);
+    border-color: var(--ov2-pos);
+    color: var(--ov2-pos);
+}
+.overview-prod-root .ov2-ft-chip.ov2-neg {
+    background: var(--ov2-neg-bg);
+    border-color: var(--ov2-neg);
+    color: var(--ov2-neg);
+}
+.overview-prod-root .ov2-ft-chip.ov2-ft-chip-pending {
+    color: var(--ov2-text-3);
+    font-style: italic;
+}
+.overview-prod-root .ov2-ft-chip-name {
+    font-weight: 700;
+}
+.overview-prod-root .ov2-ft-chip-val {
+    font-family: var(--ov2-font-mono);
+    font-weight: 700;
+}
+.overview-prod-root .ov2-ft-chip-cmp {
+    font-family: var(--ov2-font-mono);
+    font-size: 10px;
+    color: inherit;
+    opacity: 0.85;
+}
+.overview-prod-root .ov2-ft-chip-mark {
+    font-weight: 700;
+    margin-right: 2px;
+}
+/* Per-row verdict badge */
+.overview-prod-root .ov2-ft-verdict {
+    font-family: var(--ov2-font-mono);
     font-size: 11px;
     font-weight: 700;
-    padding: 3px 10px;
+    padding: 4px 10px;
     border-radius: 4px;
     background: var(--ov2-bg-2);
     color: var(--ov2-text-2);
+    display: inline-block;
 }
-.overview-prod-root .ov2-ft-snap-verdict.ov2-pos {
+.overview-prod-root .ov2-ft-verdict.ov2-pos {
     background: var(--ov2-pos-bg);
     color: var(--ov2-pos);
 }
-.overview-prod-root .ov2-ft-snap-verdict.ov2-neg {
+.overview-prod-root .ov2-ft-verdict.ov2-neg {
     background: var(--ov2-neg-bg);
     color: var(--ov2-neg);
 }
-.overview-prod-root .ov2-ft-snap-cards {
-    display: flex;
-    flex-direction: column;
-    gap: var(--ov2-space-2);
-}
-/* Partial-window tag inside the live-tracking row */
-.overview-prod-root .ov2-ft-partial {
-    font-size: 10px;
-    color: var(--ov2-text-3);
-    font-family: var(--ov2-font-mono);
-}
-/* "ממתינים — אין עדיין ימי מסחר אחרי המקור" — neutral gray line */
-.overview-prod-root .ov2-echo-ew-signal-live-pending {
+.overview-prod-root .ov2-ft-verdict-pending {
+    background: var(--ov2-bg-2);
     color: var(--ov2-text-3);
     font-style: italic;
-    font-size: 11px;
 }
 
 /* Paths chart — 12 trajectories + median overlay */

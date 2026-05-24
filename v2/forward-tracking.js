@@ -133,11 +133,47 @@
         };
     }
 
+    // Short labels for the table chips — fits in narrow cells without
+    // wrapping. Tooltip on the chip carries the full Hebrew label.
+    const SHORT_LABEL = {
+        'spxRetEarly':   'SPX 5d',
+        'eqRetEarly':    'EQ500 5d',
+        'spreadEarly':   'פער',
+        'earlyDrawdown': 'drawdown',
+        'earlyHigh':     'שיא חדש',
+        'maxDailyMag':   'vol יומית',
+        'vixEarlyPct':   'VIX Δ',
+        'vixEarlyMax':   'VIX max',
+    };
+    function shortenLabel(longLabel) {
+        // Try to match a known key by searching for it in the longLabel
+        // (fall back to first two words if unknown).
+        for (const key of Object.keys(SHORT_LABEL)) {
+            // We don't have feature key here, only the full Hebrew label.
+            // The render function will pass sig.feature separately if it
+            // wants the short label — leaving this as a safety fallback.
+        }
+        return longLabel;
+    }
+
+    // Direct map by feature key — cleaner than text matching.
+    function shortLabelFor(feature, fallback) {
+        return SHORT_LABEL[feature] || fallback || feature;
+    }
+
     // ─── Render the forward-tracking panel ───────────────────────────
     //
-    // Layout: one card per snapshot, ordered NEWEST first. Each card
-    // shows the anchor date, Day N/5 progress, top 3 signals with their
-    // live observation vs threshold, and a verdict line.
+    // Layout: a single table inside one card. Each row = one active
+    // pattern. As new trading days produce new snapshots, rows are
+    // appended automatically. Each row shows the anchor date, Day N/5
+    // progress, the top 3 signals' live status as compact chips, and a
+    // per-row verdict.
+    //
+    // The signals chips are inline (not fixed columns) because different
+    // anchors can have different top-3 signals — each row carries its
+    // own. This keeps the table compact and the signal interpretation
+    // honest (each row's chips are for ITS thresholds, not a forced
+    // unified set).
     function render(snapshots, hist, opts) {
         opts = opts || {};
         const panel = document.getElementById('ov2_echoEarlyWarning');
@@ -151,21 +187,15 @@
             return;
         }
 
-        // Snapshots come oldest → newest from the JSON. We want newest
-        // first, and we want to focus on the ones still in-flight or
-        // just-matured (within last EARLY_DAYS + 2 trading days).
         const sorted = snapshots.slice().sort((a, b) =>
             (a.anchorDate < b.anchorDate ? 1 : a.anchorDate > b.anchorDate ? -1 : 0)
         );
-        // Find which snapshots have anchorDate in the current hist array
-        // and are within EARLY_DAYS of the latest hist day.
-        const lastDate = hist && hist.length ? hist[hist.length - 1].date : null;
         const inFlight = [];
         for (const s of sorted) {
             const idx = findHistIdx(hist, s.anchorDate);
             if (idx < 0) continue;
             const fwd = (hist.length - 1) - idx;
-            if (fwd > EARLY_DAYS) break;   // older — stop (they're already mature)
+            if (fwd > EARLY_DAYS) break;
             inFlight.push({ snap: s, fwd });
         }
 
@@ -176,107 +206,96 @@
 
         if (subEl) {
             subEl.textContent =
-                `מעקב קדימה: ${inFlight.length} תבניות פעילות (תוך 5 ימי מסחר אחרונים). ` +
-                'כל כרטיסייה — מהיום שבו הופעלה תבנית עד היום.';
+                `${inFlight.length} ${inFlight.length === 1 ? 'תבנית פעילה' : 'תבניות פעילות'} ` +
+                '(תוך 5 ימי מסחר אחרונים). שורה לכל תבנית; ' +
+                'מתווספת אוטומטית בכל יום מסחר חדש.';
         }
 
-        // Render
         if (signalsEl) signalsEl.innerHTML = '';
 
         let bullVotes = 0, bearVotes = 0, totalVotes = 0;
 
-        for (const { snap, fwd } of inFlight) {
+        // Build the table rows
+        const rows = [];
+        for (const { snap } of inFlight) {
             const obs = evaluate(snap, hist);
-            const dayLabel = obs.dayIndex >= EARLY_DAYS
-                ? `Day ${EARLY_DAYS}/${EARLY_DAYS} — חלון הושלם`
-                : obs.dayIndex === 0
-                    ? `Day 0/${EARLY_DAYS} — ממתינים לימי מסחר`
-                    : `Day ${obs.dayIndex}/${EARLY_DAYS}`;
+            const dayCell = obs.dayIndex >= EARLY_DAYS
+                ? `<span class="ov2-ft-day ov2-ft-day-${EARLY_DAYS}">${EARLY_DAYS}/${EARLY_DAYS} ✓</span>`
+                : `<span class="ov2-ft-day ov2-ft-day-${obs.dayIndex}">${obs.dayIndex}/${EARLY_DAYS}</span>`;
 
-            const sigCards = [];
             const top = (snap.signals || []).slice(0, 3);
-            let cardBull = 0, cardBear = 0, cardVotes = 0;
+            let rowBull = 0, rowBear = 0, rowVotes = 0;
+            const chips = [];
 
             for (const sig of top) {
-                const strong = sig.absD >= 0.7;
-                const sign = sig.threshold >= 0 ? '+' : '';
-                const thStr = `${sign}${sig.threshold.toFixed(2)}%`;
-
-                let rule;
-                if (sig.interpret === 'bull_above') {
-                    rule = `אם ≥ <strong>${thStr}</strong> → ${sig.tipBull} (חיובי). אחרת → ${sig.tipBear} (אזהרה).`;
-                } else {
-                    rule = `אם ≤ <strong>${thStr}</strong> → ${sig.tipBull} (חיובי). אחרת → ${sig.tipBear} (אזהרה).`;
-                }
-
-                let liveBlock = '';
+                const thSign = sig.threshold >= 0 ? '+' : '';
+                const thStr = `${thSign}${sig.threshold.toFixed(2)}${sig.feature === 'vixEarlyMax' ? '' : '%'}`;
                 const v = obs.values ? obs.values[sig.feature] : null;
-                if (v != null && Number.isFinite(v) && obs.dayIndex > 0) {
-                    cardVotes++; totalVotes++;
-                    const valSign = v >= 0 ? '+' : '';
-                    const valStr = `${valSign}${v.toFixed(2)}%`;
-                    let leaning, klass;
-                    if (sig.interpret === 'bull_above') {
-                        if (v >= sig.threshold) { leaning = 'נוטה חיובי'; klass = 'pos'; cardBull++; bullVotes++; }
-                        else                     { leaning = 'נוטה אזהרה'; klass = 'neg'; cardBear++; bearVotes++; }
-                    } else {
-                        if (v <= sig.threshold) { leaning = 'נוטה חיובי'; klass = 'pos'; cardBull++; bullVotes++; }
-                        else                     { leaning = 'נוטה אזהרה'; klass = 'neg'; cardBear++; bearVotes++; }
-                    }
-                    const partial = obs.dayIndex < EARLY_DAYS
-                        ? ` <span class="ov2-ft-partial">(${obs.dayIndex}/${EARLY_DAYS} ימים)</span>`
-                        : '';
-                    liveBlock = `
-                        <div class="ov2-echo-ew-signal-live">
-                            <span class="ov2-echo-ew-signal-live-label">נכון להיום:</span>
-                            <span class="ov2-echo-ew-signal-live-val">${valStr}</span>
-                            <span class="ov2-echo-ew-signal-live-status ov2-${klass}">${leaning}</span>
-                            ${partial}
-                        </div>`;
-                } else if (obs.dayIndex === 0) {
-                    liveBlock = `
-                        <div class="ov2-echo-ew-signal-live">
-                            <span class="ov2-echo-ew-signal-live-label">ממתינים</span>
-                            <span class="ov2-echo-ew-signal-live-pending">אין עדיין ימי מסחר אחרי המקור</span>
-                        </div>`;
-                }
+                const shortLabel = shortLabelFor(sig.feature, sig.label);
 
-                const signCD = sig.cohensD >= 0 ? '+' : '';
-                sigCards.push(`
-                    <div class="ov2-echo-ew-signal${strong ? ' ov2-strong' : ''}">
-                        <div class="ov2-echo-ew-signal-head">${sig.label}</div>
-                        <div class="ov2-echo-ew-signal-rule">${rule}</div>
-                        ${liveBlock}
-                        <div class="ov2-echo-ew-signal-stats">
-                            חיוביים (n=${sig.bullN}): ${sig.bullMean >= 0 ? '+' : ''}${sig.bullMean.toFixed(2)}% ·
-                            אחרים (n=${sig.bearN}): ${sig.bearMean >= 0 ? '+' : ''}${sig.bearMean.toFixed(2)}% ·
-                            Cohen d: ${signCD}${sig.cohensD.toFixed(2)} ${strong ? '— מובהקת' : '— בינונית'}
-                        </div>
-                    </div>`);
+                if (v != null && Number.isFinite(v) && obs.dayIndex > 0) {
+                    rowVotes++; totalVotes++;
+                    const valSign = v >= 0 ? '+' : '';
+                    const valStr = `${valSign}${v.toFixed(2)}${sig.feature === 'vixEarlyMax' ? '' : '%'}`;
+                    let pass;
+                    if (sig.interpret === 'bull_above')  pass = v >= sig.threshold;
+                    else                                  pass = v <= sig.threshold;
+                    if (pass) { rowBull++; bullVotes++; } else { rowBear++; bearVotes++; }
+                    const cmp = sig.interpret === 'bull_above' ? '≥' : '≤';
+                    const klass = pass ? 'pos' : 'neg';
+                    const mark = pass ? '✓' : '✗';
+                    chips.push(`
+                        <div class="ov2-ft-chip ov2-${klass}" title="${sig.label} — ${shortLabel} · רמת הפרדה: Cohen d ${sig.cohensD >= 0 ? '+' : ''}${sig.cohensD.toFixed(2)}">
+                            <span class="ov2-ft-chip-name">${shortLabel}</span>
+                            <span class="ov2-ft-chip-val">${valStr}</span>
+                            <span class="ov2-ft-chip-cmp">${cmp} ${thStr}</span>
+                            <span class="ov2-ft-chip-mark">${mark}</span>
+                        </div>`);
+                } else {
+                    chips.push(`
+                        <div class="ov2-ft-chip ov2-ft-chip-pending" title="${sig.label} — סף ${thStr}">
+                            <span class="ov2-ft-chip-name">${shortLabel}</span>
+                            <span class="ov2-ft-chip-val">—</span>
+                            <span class="ov2-ft-chip-cmp">סף ${thStr}</span>
+                        </div>`);
+                }
             }
 
-            const cardVerdict = cardVotes === 0
-                ? ''
-                : cardBull === cardVotes
-                    ? `<span class="ov2-ft-snap-verdict ov2-pos">${cardBull}/${cardVotes} חיובי</span>`
-                    : cardBear === cardVotes
-                        ? `<span class="ov2-ft-snap-verdict ov2-neg">${cardBear}/${cardVotes} אזהרה</span>`
-                        : `<span class="ov2-ft-snap-verdict">${cardBull} חיובי · ${cardBear} אזהרה</span>`;
+            let verdict;
+            if (rowVotes === 0) {
+                verdict = '<span class="ov2-ft-verdict ov2-ft-verdict-pending">ממתינים</span>';
+            } else if (rowBull === rowVotes) {
+                verdict = `<span class="ov2-ft-verdict ov2-pos">${rowBull}/${rowVotes} חיובי</span>`;
+            } else if (rowBear === rowVotes) {
+                verdict = `<span class="ov2-ft-verdict ov2-neg">${rowBear}/${rowVotes} אזהרה</span>`;
+            } else {
+                verdict = `<span class="ov2-ft-verdict">${rowBull}/${rowVotes} חיובי</span>`;
+            }
 
-            // Build wrapper for this snapshot
-            const wrap = document.createElement('div');
-            wrap.className = 'ov2-ft-snapshot';
-            wrap.innerHTML = `
-                <div class="ov2-ft-snap-head">
-                    <span class="ov2-ft-snap-anchor">מקור ${formatDate(snap.anchorDate)}</span>
-                    <span class="ov2-ft-snap-day ov2-ft-day-${Math.min(obs.dayIndex, EARLY_DAYS)}">${dayLabel}</span>
-                    ${cardVerdict}
-                </div>
-                <div class="ov2-ft-snap-cards">
-                    ${sigCards.join('')}
-                </div>
-            `;
-            if (signalsEl) signalsEl.appendChild(wrap);
+            rows.push(`
+                <tr>
+                    <td class="ov2-ft-td-anchor">${formatDate(snap.anchorDate)}</td>
+                    <td class="ov2-ft-td-day">${dayCell}</td>
+                    <td class="ov2-ft-td-signals">
+                        <div class="ov2-ft-chips">${chips.join('')}</div>
+                    </td>
+                    <td class="ov2-ft-td-verdict">${verdict}</td>
+                </tr>`);
+        }
+
+        if (signalsEl) {
+            signalsEl.innerHTML = `
+                <table class="ov2-ft-table">
+                    <thead>
+                        <tr>
+                            <th class="ov2-ft-th-anchor">מקור</th>
+                            <th class="ov2-ft-th-day">התקדמות</th>
+                            <th class="ov2-ft-th-signals">סיגנלים מובילים (נכון להיום נגד סף ההפרדה)</th>
+                            <th class="ov2-ft-th-verdict">סיכום</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows.join('')}</tbody>
+                </table>`;
         }
 
         if (verdictEl) {

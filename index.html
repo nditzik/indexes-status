@@ -1921,13 +1921,13 @@
                         </div>
                         <div class="ov2-echo-ew" id="ov2_echoEarlyWarning">
                             <div class="ov2-echo-ew-head">
-                                <div class="ov2-echo-ew-title">מעקב קדימה — תבניות פעילות וההתפתחות בפועל</div>
+                                <div class="ov2-echo-ew-title">מעקב קדימה — תבניות פעילות (שורה לכל תבנית)</div>
                                 <div class="ov2-echo-ew-sub" id="ov2_echoEwSub">טוען snapshots...</div>
                             </div>
                             <div class="ov2-echo-ew-signals" id="ov2_echoEwSignals"></div>
                             <div class="ov2-echo-ew-verdict" id="ov2_echoEwVerdict"></div>
                             <div class="ov2-echo-ew-note">
-                                * כל "תבנית פעילה" היא יום מסחר שבו רץ KNN ונשמר snapshot עם הסימנים והספים שהיו אז. בכל יום מסחר חדש מצטברת מדידה ל-snapshots פתוחים (Day 1/5 → Day 5/5). שורת "נכון להיום" מציגה את ההתקדמות בפועל מאז המקור — לא הסתכלות אחורה. ה-Cohen's d מודד עוצמת ההפרדה — 0.5 בינוני, 0.8 גדול. גודל מדגם קטן (≤10) — הסימנים סוגסטיביים.
+                                * כל שורה = תבנית פעילה אחת. שורה חדשה מתווספת בכל יום מסחר חדש (הסקריפט נועל snapshot של KNN + ספים), ושורה ישנה יוצאת מהתצוגה אחרי 5 ימי מסחר (Day 5/5). הסיגנלים בכרטיסיות הקטנות מציגים את הערך הנוכחי מול סף ההפרדה — ✓ = עומד בתנאי שורי, ✗ = לא. ה-Cohen's d ברקע מודד עוצמת ההפרדה (0.5 בינוני, 0.8 גדול). גודל מדגם קטן (≤10) — הסימנים סוגסטיביים, לא ודאיים.
                             </div>
                         </div>
                         <div class="ov2-echo-matches">
