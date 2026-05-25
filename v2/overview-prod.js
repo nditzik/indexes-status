@@ -2230,10 +2230,12 @@ function renderMCC(phase, metrics, chips, phaseDuration) {
             : '';
     }
 
-    // Confidence
+    // Confidence — width only; the gradient comes from CSS (matches the
+    // score bar's gradient by design). The previous code overrode the
+    // background with the phase color, which made the bar look like a
+    // solid green/red block instead of the score-bar's red→amber→green.
     $('mccConfVal').textContent = phase.confidence + '%';
     $('mccConfBar').style.width = phase.confidence + '%';
-    $('mccConfBar').style.background = p.color;
 
     // Score + bar
     $('mccScoreVal').textContent = metrics.combined != null ? metrics.combined : '—';
