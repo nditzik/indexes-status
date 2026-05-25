@@ -989,6 +989,55 @@ def early_bounce_score(s):
 
 strong = sorted(stocks, key=momentum, reverse=True)[:10]
 
+# ─── Setup screener — mirror of renderSetupScreener() in index.html ─
+# Filter: RSI in {oversold, weak} AND MA score >= 1 AND RVOL > 1.2.
+# Ranked by a momentum-score that blends MA position, RSI level,
+# proximity to 52W high, RVOL, and today's %change.
+#
+# This is NOT the old "buy_picks" (rebound + early-bounce mix). It's
+# the dashboard's own "Setup אידיאלי" filter, ported verbatim. The
+# wording "מועמדות לריבאונד עם נפח" comes straight from the dashboard.
+RSI_APPROX = {
+    'New Above 20': 21, 'Below 30': 25, 'New Below 30': 28, 'New Above 30': 33,
+    'New Below 50': 47, 'Below 50': 42, 'New Above 50': 53, 'Above 50': 62,
+    'New Below 70': 68, 'New Above 70': 72, 'Above 70': 75, 'Above 80': 83,
+}
+RSI_GROUPS = {
+    'oversold':   {'Below 30', 'New Below 30', 'New Above 20'},
+    'weak':       {'Below 50', 'New Below 50', 'New Above 30'},
+    'strong':     {'Above 50', 'New Above 50'},
+    'overbought': {'Above 70', 'Above 80', 'New Above 70', 'New Below 70'},
+}
+
+def rsi_group(rank):
+    for g, ranks in RSI_GROUPS.items():
+        if rank in ranks:
+            return g
+    return 'strong'
+
+def momentum_score(s):
+    """Mirror of getMomentumScore() in index.html. Returns 0-100."""
+    ma_comp   = (s['ma_score'] / 4) * 30
+    rsi_val   = RSI_APPROX.get(s.get('rsi') or '', 50)
+    rsi_comp  = max(0, min(25, (rsi_val - 20) / 65 * 25))
+    w52       = s.get('w52') or 0
+    w52_comp  = max(0, min(20, (100 + w52) / 100 * 20))
+    rvol_comp = min(10, (s.get('rvol') or 0) / 2 * 10)
+    chg       = s.get('chg') or 0
+    chg_comp  = max(0, min(15, (chg + 5) / 10 * 15))
+    return round(ma_comp + rsi_comp + w52_comp + rvol_comp + chg_comp)
+
+setup_picks = [
+    s for s in stocks
+    if rsi_group(s.get('rsi') or '') in ('oversold', 'weak')
+       and s['ma_score'] >= 1
+       and (s.get('rvol') or 0) > 1.2
+]
+for s in setup_picks:
+    s['_momentum'] = momentum_score(s)
+setup_picks.sort(key=lambda s: s['_momentum'], reverse=True)
+setup_picks = setup_picks[:10]
+
 # Unified "מומלצות לקנייה" — rebound (oversold + volume + MA support) and
 # early-bounce (above MA20, below long-term MAs) merged. Rebound is the stronger
 # setup, so we boost its score before ranking.
@@ -1421,6 +1470,50 @@ s_strong_html = f"""
 </div>
 """
 
+# Block 8 — Setup אידיאלי (oversold/weak with volume + MA support)
+def setup_row(s):
+    """One row per setup pick — symbol + sector + 3 key metrics (RSI / MA / RVOL)."""
+    sec_code = SECTOR_MAP.get(s['sym'], '')
+    sec_he = SECTOR_HE.get(sec_code, '')
+    sec_chip = (f'<span style="display:inline-block;font-size:10px;color:#718096;background:#edf2f7;padding:2px 7px;border-radius:10px;margin-right:6px;font-weight:500;">{sec_he}</span>'
+                if sec_he else '')
+    tv_url = f'https://www.tradingview.com/chart/?symbol={s["sym"]}'
+    sym_link = f'<a href="{tv_url}" target="_blank" style="color:#2b6cb0;text-decoration:none;font-weight:700;border-bottom:1px dotted #cbd5e0;">{s["sym"]}</a>'
+    rsi_lbl = s.get('rsi') or '—'
+    ma_str  = f'{s["ma_score"]}/4'
+    rvol_v  = s.get('rvol') or 0
+    rvol_str = f'×{rvol_v:.1f}' if rvol_v else '—'
+    mom = s.get('_momentum', 0)
+    return (
+        f'<tr>'
+        f'<td align="right" dir="ltr" style="padding:8px 10px;width:60px;text-align:right;font-size:13px;vertical-align:middle;">{sym_link}</td>'
+        f'<td align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;text-align:right;vertical-align:middle;">{sec_chip}</td>'
+        f'<td align="right" style="padding:8px 6px;font-size:11px;color:#c05621;text-align:right;vertical-align:middle;white-space:nowrap;">{rsi_lbl}</td>'
+        f'<td align="right" style="padding:8px 6px;font-size:11px;color:#4a5568;text-align:right;vertical-align:middle;white-space:nowrap;">MA {ma_str}</td>'
+        f'<td align="right" style="padding:8px 6px;font-size:11px;color:#2f855a;font-weight:600;text-align:right;vertical-align:middle;white-space:nowrap;">RVOL {rvol_str}</td>'
+        f'<td align="left" style="padding:8px 10px;font-size:12px;font-weight:700;color:#1a202c;font-family:monospace;text-align:left;vertical-align:middle;width:40px;">{mom}</td>'
+        f'</tr>'
+    )
+
+if setup_picks:
+    setup_rows = ''.join(setup_row(s) for s in setup_picks)
+    s_setup_html = f"""
+<div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:4px;text-align:right;">Setup אידיאלי — מועמדות לריבאונד עם נפח</div>
+  <div style="font-size:11px;color:#a0aec0;margin-bottom:10px;text-align:right;">RSI חלש/oversold + MA Score ≥ 1 + RVOL &gt; 1.2 · ממוין לפי ציון מתנע</div>
+  <table dir="rtl" style="width:100%;border-collapse:collapse;direction:rtl;">
+    {setup_rows}
+  </table>
+</div>
+"""
+else:
+    s_setup_html = f"""
+<div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:4px;text-align:right;">Setup אידיאלי — מועמדות לריבאונד עם נפח</div>
+  <div style="font-size:12px;color:#a0aec0;text-align:right;font-style:italic;">אין מניות העומדות בקריטריונים כרגע (RSI חלש + MA ≥ 1 + RVOL &gt; 1.2).</div>
+</div>
+"""
+
 s5_html = ''
 if alerts_list:
     al_items = ''.join(f'<li style="padding:5px 0;font-size:13px;color:#744210;text-align:right;direction:rtl;">• {a}</li>' for a in alerts_list)
@@ -1474,6 +1567,7 @@ html = f"""<!DOCTYPE html>
   {s_hist_html}
   {s_heatmap_html}
   {s_strong_html}
+  {s_setup_html}
 
   <div style="text-align:center;font-size:10px;color:#a0aec0;padding:8px;line-height:1.4;">
     לא מהווה ייעוץ השקעות · מידע אישי למנויים · S&amp;P 500 Dashboard
