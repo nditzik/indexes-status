@@ -2258,6 +2258,108 @@ function renderMCC(phase, metrics, chips, phaseDuration) {
 
     // Chips
     renderChips(chips);
+
+    // Conclusion — one-paragraph synthesis under the chips. Reads the
+    // active chip IDs and core metrics to compose a context-aware
+    // sentence: "what's the real story behind these numbers?"
+    renderMccConclusion(phase, metrics, chips);
+}
+
+// ─── MCC conclusion synthesizer ──────────────────────────────────────
+//
+// Takes today's phase + metrics + active chips and produces one short
+// paragraph that answers: "given all these signals together, what's
+// the actual story?" The phase label tells you the headline, the chips
+// tell you the moving parts — this line ties them into a single
+// readable observation a non-trader can act on.
+//
+// Rules ordered specific-first: each combination of (phase + chip set)
+// returns a different sentence. Falls through to a generic line if
+// no specific pattern matches.
+function renderMccConclusion(phase, metrics, chips) {
+    const el = $('mccConclusion');
+    if (!el) return;
+    const phaseId = phase && phase.phase ? phase.phase.id : null;
+    const isBullish = ['confirmed_uptrend','uptrend_pressure','thrust'].includes(phaseId);
+    const isBearish = ['correction','capitulation','distribution'].includes(phaseId);
+
+    const chipIds = new Set((chips || []).map(c => c.id));
+    const hasNewLows      = chipIds.has('new-lows-rising');
+    const hasDivergent    = chipIds.has('tech-flow-divergent')
+                         || chipIds.has('price-breadth-divergent');
+    const hasBreadthWide  = chipIds.has('breadth-widening');
+    const hasBreadthNarrow= chipIds.has('breadth-narrowing');
+    const hasThrust       = chipIds.has('thrust-confirmed');
+    const hasBroad        = chipIds.has('broad-participation')
+                         || chipIds.has('broad-leadership');
+    const hasNarrowLead   = chipIds.has('narrow-leadership');
+    const hasHedges       = chipIds.has('hedges-elevated');
+    const hasOverbought   = chipIds.has('overbought-concentration');
+
+    // Narrow leadership heuristic: explicit chip, or pctMa200 below
+    // 60% (the "broad uptrend" threshold). Below 60% with a bullish
+    // headline is the K-shape signature.
+    const narrowFromBreadth = metrics.pctMa200 != null && metrics.pctMa200 < 60;
+    const narrow = hasNarrowLead || (isBullish && narrowFromBreadth);
+
+    let text = '', klass = 'ov2-muted';
+
+    if (isBullish) {
+        if (narrow && hasNewLows) {
+            text = 'השוק במגמה שורית אבל לא הומוגנית — מובילים בודדים דוחפים את המדד, יש חולשה רחבה מתחת לפני השטח. הסיכון: אם הקבוצה המובילה תיחלש, אין רשת ביטחון רחבה תחת המחיר.';
+            klass = 'ov2-warn';
+        } else if (narrow) {
+            text = 'מגמה שורית מובלת ע"י קבוצה צרה של מובילות. כל עוד הן חזקות — המגמה נמשכת. הבסיס מתחת פחות רחב מהאידיאלי.';
+            klass = 'ov2-warn';
+        } else if (hasNewLows) {
+            text = 'המגמה השורית נמשכת והרוחב סביר, אבל יש זנב של מניות בחולשה חריגה — שווה לוודא אם זה ספציפי לסקטור מסוים.';
+            klass = 'ov2-warn';
+        } else if (hasDivergent && hasHedges) {
+            text = 'המחיר עולה אבל הכסף הגדול קונה הגנות במקביל — סטייה כפולה (גם בציוני המשנה וגם ב-P/C). דפוס שמופיע לעיתים לפני תיקון.';
+            klass = 'ov2-warn';
+        } else if (hasDivergent) {
+            text = 'המחיר עולה והרוחב טוב, אבל הכסף הגדול באופציות לא רודף באותה עוצמה — סטייה שעשויה להקדים תיקון. לא איתות מכירה, אבל סיגנל לתשומת לב.';
+            klass = 'ov2-warn';
+        } else if (hasOverbought) {
+            text = 'מגמה שורית בריאה, אבל ריכוז של מניות בקניית-יתר מעיד שחלק מהמהלך כבר התרחב — סיכון מוגבר לתיקון קצר-טווח גם בלי שינוי משטר.';
+            klass = 'ov2-warn';
+        } else if (hasThrust && hasBreadthWide && hasBroad) {
+            text = 'מגמה שורית הומוגנית — מומנטום רחב, רוחב משתפר, השתתפות רחבה. בריא מבחינה מבנית; פוטנציאל קצר-טווח מצומצם כי המהלך כבר נצבר.';
+            klass = 'ov2-pos';
+        } else if (hasBreadthWide && hasBroad) {
+            text = 'מגמה שורית עם רוחב משתפר והשתתפות רחבה — מבנה תומך. שווה לחפש מובילים חדשים, פחות לדאוג מהזנבות.';
+            klass = 'ov2-pos';
+        } else {
+            text = 'מגמה שורית יציבה — אין סיגנלי אזהרה משמעותיים במבנה הפנימי.';
+            klass = 'ov2-pos';
+        }
+    } else if (isBearish) {
+        if (hasThrust) {
+            text = 'משטר דובי אבל סיגנל פריצה ראשונית — מומנטום נכנס. שווה לעקוב אחרי אישור עם רוחב משתפר בימים הקרובים לפני שינוי גישה.';
+            klass = 'ov2-pos';
+        } else if (hasBreadthWide) {
+            text = 'משטר עדיין דובי, אבל הרוחב מתחיל להשתפר — סימן ראשון של אפשרות התייצבות. אין מספיק אישור עדיין.';
+            klass = 'ov2-warn';
+        } else {
+            text = `משטר דובי — ${phase.phase.bias}. ההתמקדות עכשיו על הגנה ועל זיהוי סימני התייצבות, לא על הוספת חשיפה.`;
+            klass = 'ov2-neg';
+        }
+    } else {
+        // Mid / neutral / base-building / pressure
+        if (hasBreadthWide) {
+            text = 'מצב ביניים שמתחיל להשתפר — רוחב מתרחב. אם זה ימשיך 5-10 ימי מסחר, הסיכוי לעבור לשלב חיובי גדל.';
+            klass = 'ov2-pos';
+        } else if (hasBreadthNarrow) {
+            text = 'מצב ביניים שמתחיל להחליש — רוחב מצטמצם. שלב מעבר — עדיף לעקוב לפני פעולה.';
+            klass = 'ov2-warn';
+        } else {
+            text = 'מצב ביניים — אין כיוון מבנה ברור. עדיפות להמתין לאות חד-משמעי לפני הגדלת/הקטנת חשיפה.';
+            klass = 'ov2-muted';
+        }
+    }
+
+    el.textContent = text;
+    el.className = 'ov2-mcc-conclusion ' + klass;
 }
 
 function renderChips(chips) {

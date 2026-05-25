@@ -1224,6 +1224,40 @@
     position: relative;
 }
 
+/* MCC conclusion — one-paragraph synthesis under the chips, color-
+   coded by sentiment. Reads as "given everything above, here's the
+   actual story". Hidden when empty. */
+.overview-prod-root .ov2-mcc-conclusion {
+    margin-top: var(--ov2-space-3);
+    padding: var(--ov2-space-3) var(--ov2-space-4);
+    border-radius: var(--ov2-radius-sm);
+    font-size: 13px;
+    line-height: 1.65;
+    background: var(--ov2-bg-2);
+    color: var(--ov2-text-1);
+    border-right: 3px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-mcc-conclusion:empty {
+    display: none;
+}
+.overview-prod-root .ov2-mcc-conclusion.ov2-pos {
+    background: var(--ov2-pos-bg);
+    border-right-color: var(--ov2-pos);
+}
+.overview-prod-root .ov2-mcc-conclusion.ov2-neg {
+    background: var(--ov2-neg-bg);
+    border-right-color: var(--ov2-neg);
+}
+.overview-prod-root .ov2-mcc-conclusion.ov2-warn {
+    background: var(--ov2-warn-bg, rgba(245, 158, 11, 0.08));
+    border-right-color: var(--ov2-warn, #f59e0b);
+}
+.overview-prod-root .ov2-mcc-conclusion.ov2-muted {
+    background: var(--ov2-bg-2);
+    border-right-color: var(--ov2-border);
+    color: var(--ov2-text-2);
+}
+
 /* ── CHIPS ── */
 .overview-prod-root .ov2-chip {
     display: inline-flex;
