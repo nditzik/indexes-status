@@ -1115,6 +1115,36 @@
     flex-direction: column;
     gap: var(--ov2-space-2);
 }
+/* Thin vertical separators between the 4 visual top-row categories:
+   רמת סיכון | הטיית פוזיציה | ציון משולב | רמת ביטחון בשלב
+   In RTL, block-state is rightmost (DOM-first) and block-meta is
+   leftmost (DOM-last). Adding border-right to score and meta puts
+   the divider between visually-adjacent cells. */
+.overview-prod-root .ov2-mcc-block-score,
+.overview-prod-root .ov2-mcc-block-meta {
+    border-right: 1px solid var(--ov2-border);
+    padding-right: var(--ov2-space-4);
+}
+/* Inner separator inside block-state — between רמת סיכון (1st inner div)
+   and הטיית פוזיציה (2nd inner div). The 2nd item gets a right-side
+   border which in RTL appears between the two items. */
+.overview-prod-root .ov2-mcc-block-state > div > div:nth-child(2) {
+    border-right: 1px solid var(--ov2-border);
+    padding-right: var(--ov2-space-3);
+}
+@media (max-width: 800px) {
+    .overview-prod-root .ov2-mcc-block-score,
+    .overview-prod-root .ov2-mcc-block-meta {
+        border-right: none;
+        padding-right: 0;
+        border-top: 1px solid var(--ov2-border);
+        padding-top: var(--ov2-space-3);
+    }
+    .overview-prod-root .ov2-mcc-block-state > div > div:nth-child(2) {
+        border-right: none;
+        padding-right: 0;
+    }
+}
 .overview-prod-root .ov2-mcc-score-top {
     display: flex;
     align-items: baseline;
@@ -1168,26 +1198,33 @@
     font-weight: 700;
     color: var(--ov2-text-1);
 }
+/* Confidence bar — matches the score bar in height + gradient so the
+   two read as the same visual family. Previously this bar was a
+   shorter solid amber, which looked like a secondary indicator. */
 .overview-prod-root .ov2-mcc-conf-bar {
-    height: 6px;
+    height: 8px;
     background: var(--ov2-bg-3);
-    border-radius: 3px;
+    border-radius: 4px;
     margin-top: 6px;
     overflow: hidden;
     border: 1px solid var(--ov2-border);
 }
 .overview-prod-root .ov2-mcc-conf-bar-fill {
     height: 100%;
-    background: var(--ov2-warn);
-    border-radius: 3px;
+    background: linear-gradient(90deg, var(--ov2-neg) 0%, var(--ov2-warn) 50%, var(--ov2-pos) 100%);
+    border-radius: 4px;
     transition: width 400ms, background 200ms;
 }
 
+/* Drivers row — 6 metrics. Each cell: centered label + centered value
+   stacked, with a thin vertical separator between visually-adjacent
+   cells. In RTL the DOM-first cell appears rightmost; border-right on
+   every cell except :first-child gives separators between every pair. */
 .overview-prod-root .ov2-mcc-drivers {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    gap: var(--ov2-space-3);
-    padding: var(--ov2-space-3) 0;
+    gap: 0;
+    padding: var(--ov2-space-3) 0 0;
     border-top: 1px solid var(--ov2-border);
     position: relative;
 }
@@ -1197,8 +1234,20 @@
 .overview-prod-root .ov2-driver {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+    padding: 0 var(--ov2-space-3);
     cursor: help;
+    border-right: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-driver:first-child {
+    border-right: none;
+}
+@media (max-width: 800px) {
+    /* On mobile the grid wraps to 2 rows of 3 — recompute borders so
+       there's no leftover divider at the wrap break. */
+    .overview-prod-root .ov2-driver { border-right: none; padding: var(--ov2-space-2); }
 }
 .overview-prod-root .ov2-driver-lbl {
     font-size: 11px;
