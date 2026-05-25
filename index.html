@@ -1833,6 +1833,70 @@
                 <!-- ═══ MAIN COLUMN ═══ -->
                 <main id="ov2_main">
 
+                    <!-- ═══ MCC CARD — macro view first (above the daily narrative) ═══ -->
+                    <div class="ov2-mcc" id="ov2_mcc">
+                        <div class="ov2-mcc-accent" id="ov2_mccPhaseAccent"></div>
+
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; position:relative; gap:16px;">
+                            <div style="min-width:0;">
+                                <div class="ov2-eyebrow" style="color:var(--ov2-cat-breadth); margin-bottom:4px;">מרכז בקרת שוק · משטר נוכחי</div>
+                                <div class="ov2-mcc-phase-row">
+                                    <span class="ov2-mcc-glyph" id="ov2_mccGlyph">—</span>
+                                    <span class="ov2-mcc-phase-label-he" id="ov2_mccPhaseLabelHe">—</span>
+                                    <span class="ov2-mcc-phase-label" id="ov2_mccPhaseLabel" style="font-size:11px; color:var(--ov2-text-3);">—</span>
+                                </div>
+                                <div class="ov2-mcc-duration-row">
+                                    <span class="ov2-mcc-duration" id="ov2_mccDuration">—</span>
+                                    <span class="ov2-mcc-entered" id="ov2_mccEntered">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ov2-mcc-narrative" id="ov2_mccNarrative" data-tooltip="הסבר השוק לפי האלגוריתם — מבוסס על כללים דטרמיניסטיים שלא משתנים מיום ליום">—</div>
+
+                        <div class="ov2-mcc-grid">
+                            <div class="ov2-mcc-block-state">
+                                <div style="display:flex; align-items:center; gap:12px;">
+                                    <div data-tooltip="רמת הסיכון הנוכחית — נגזרת מ-Combined Score, רוחב השוק ו-VIX">
+                                        <div class="ov2-mcc-meta-label" style="margin-bottom:4px;">רמת סיכון</div>
+                                        <div class="ov2-mcc-meta-value" id="ov2_mccRisk">—</div>
+                                    </div>
+                                    <div style="flex:1;" data-tooltip="הטיית הפוזיציה המומלצת — כיוון פעולה לפי המשטר הנוכחי">
+                                        <div class="ov2-mcc-meta-label" style="margin-bottom:4px;">הטיית פוזיציה</div>
+                                        <div class="ov2-mcc-meta-value" id="ov2_mccBias">—</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ov2-mcc-block-score" data-tooltip="ציון משולב 0-100 שמשקלל את מצב המחיר (40%), זרימת אופציות (35%) ורוחב השוק (25%)">
+                                <div class="ov2-mcc-score-top">
+                                    <span class="ov2-mcc-score-val" id="ov2_mccScoreVal">—</span>
+                                    <span class="ov2-mcc-score-max">/100</span>
+                                    <span style="margin-right:auto; font-size:11px; color:var(--ov2-text-2); font-weight:600;">ציון משולב</span>
+                                </div>
+                                <div class="ov2-mcc-bar"><div class="ov2-mcc-bar-fill" id="ov2_mccBarFill" style="width:0%"></div></div>
+                            </div>
+                            <div class="ov2-mcc-block-meta" data-tooltip="כמה האלגוריתם בטוח בסיווג השלב הנוכחי. מעל 80% = החלטי. מתחת ל-60% = גבולי">
+                                <div class="ov2-mcc-meta-row">
+                                    <span class="ov2-mcc-meta-label">רמת ביטחון בשלב</span>
+                                    <span class="ov2-mcc-meta-value ov2-num" id="ov2_mccConfVal">—</span>
+                                </div>
+                                <div class="ov2-mcc-conf-bar"><div class="ov2-mcc-conf-bar-fill" id="ov2_mccConfBar" style="width:0%"></div></div>
+                            </div>
+                        </div>
+
+                        <div class="ov2-mcc-drivers">
+                            <div class="ov2-driver" data-tooltip="יחס שיאים חדשים (52 שבועות) לעומת שפלים חדשים. גבוה = השוק בריא, רבים בשיא"><span class="ov2-driver-lbl">NH/NL · שיאים/שפלים</span><span class="ov2-driver-val" id="ov2_drvNhnl">—</span></div>
+                            <div class="ov2-driver" data-tooltip="אחוז המניות הנסחרות מעל ממוצע נע 200 ימים — מדד בריאות ארוך-טווח"><span class="ov2-driver-lbl">% מעל MA200</span><span class="ov2-driver-val" id="ov2_drvMa200">—</span></div>
+                            <div class="ov2-driver" data-tooltip="מד הפחד. תנודתיות צפויה ל-30 הימים הקרובים. מתחת 15 רגוע, מעל 25 פאניקה"><span class="ov2-driver-lbl">VIX</span><span class="ov2-driver-val" id="ov2_drvVix">—</span></div>
+                            <div class="ov2-driver" data-tooltip="ימי הפצה — מספר ימים בהם המדד ירד במחזור גבוה ב-25 הימים האחרונים. מעל 4 = לחץ מוסדי"><span class="ov2-driver-lbl">ימי הפצה</span><span class="ov2-driver-val" id="ov2_drvDist">—</span></div>
+                            <div class="ov2-driver" data-tooltip="רוחב השוק — כמה מניות מצטרפות למגמה. רוחב חזק = מגמה בריאה"><span class="ov2-driver-lbl">רוחב</span><span class="ov2-driver-val" id="ov2_drvBreadth">—</span></div>
+                            <div class="ov2-driver" data-tooltip="הציון המשולב — מטריקה אחת שמסכמת את כל סימני השוק"><span class="ov2-driver-lbl">משולב</span><span class="ov2-driver-val" id="ov2_drvCombined">—</span></div>
+                        </div>
+
+                        <div class="ov2-mcc-chips" id="ov2_mccChips"></div>
+                        <div class="ov2-mcc-conclusion" id="ov2_mccConclusion"></div>
+                    </div>
+
                     <!-- ═══ DAILY NARRATIVE ═══ -->
                     <div class="ov2-narrative" id="ov2_narrative">
                         <div class="ov2-narrative-accent" id="ov2_narrativeAccent"></div>
@@ -1970,70 +2034,6 @@
                         <div class="ov2-fvp-caveat">
                             * ציון Flow אבסולוטי = שלושה רכיבי flow גולמיים, 50 = ניטרלי, ללא baseline היסטורי: (A) אחוז פרמיית קולים מסך הפרמיה — משקל ±50; (B) אחוז ask של קולים מסך פרמיית קולים — משקל ±25 (קונה אגרסיבי = שורי); (C) אחוז ask של פוטים — משקל ±25 (קונה אגרסיבי = דובי, מופחת). מעל 70 = יום שורי; מתחת 30 = יום דובי. סטייה = כיוון הציון הפוך לכיוון המחיר ביום מסוים (אופציות אופטימיות נגד SPX יורד, או הפוך).
                         </div>
-                    </div>
-
-                    <!-- ═══ MCC CARD ═══ -->
-                    <div class="ov2-mcc" id="ov2_mcc">
-                        <div class="ov2-mcc-accent" id="ov2_mccPhaseAccent"></div>
-
-                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; position:relative; gap:16px;">
-                            <div style="min-width:0;">
-                                <div class="ov2-eyebrow" style="color:var(--ov2-cat-breadth); margin-bottom:4px;">מרכז בקרת שוק · משטר נוכחי</div>
-                                <div class="ov2-mcc-phase-row">
-                                    <span class="ov2-mcc-glyph" id="ov2_mccGlyph">—</span>
-                                    <span class="ov2-mcc-phase-label-he" id="ov2_mccPhaseLabelHe">—</span>
-                                    <span class="ov2-mcc-phase-label" id="ov2_mccPhaseLabel" style="font-size:11px; color:var(--ov2-text-3);">—</span>
-                                </div>
-                                <div class="ov2-mcc-duration-row">
-                                    <span class="ov2-mcc-duration" id="ov2_mccDuration">—</span>
-                                    <span class="ov2-mcc-entered" id="ov2_mccEntered">—</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="ov2-mcc-narrative" id="ov2_mccNarrative" data-tooltip="הסבר השוק לפי האלגוריתם — מבוסס על כללים דטרמיניסטיים שלא משתנים מיום ליום">—</div>
-
-                        <div class="ov2-mcc-grid">
-                            <div class="ov2-mcc-block-state">
-                                <div style="display:flex; align-items:center; gap:12px;">
-                                    <div data-tooltip="רמת הסיכון הנוכחית — נגזרת מ-Combined Score, רוחב השוק ו-VIX">
-                                        <div class="ov2-mcc-meta-label" style="margin-bottom:4px;">רמת סיכון</div>
-                                        <div class="ov2-mcc-meta-value" id="ov2_mccRisk">—</div>
-                                    </div>
-                                    <div style="flex:1;" data-tooltip="הטיית הפוזיציה המומלצת — כיוון פעולה לפי המשטר הנוכחי">
-                                        <div class="ov2-mcc-meta-label" style="margin-bottom:4px;">הטיית פוזיציה</div>
-                                        <div class="ov2-mcc-meta-value" id="ov2_mccBias">—</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="ov2-mcc-block-score" data-tooltip="ציון משולב 0-100 שמשקלל את מצב המחיר (40%), זרימת אופציות (35%) ורוחב השוק (25%)">
-                                <div class="ov2-mcc-score-top">
-                                    <span class="ov2-mcc-score-val" id="ov2_mccScoreVal">—</span>
-                                    <span class="ov2-mcc-score-max">/100</span>
-                                    <span style="margin-right:auto; font-size:11px; color:var(--ov2-text-2); font-weight:600;">ציון משולב</span>
-                                </div>
-                                <div class="ov2-mcc-bar"><div class="ov2-mcc-bar-fill" id="ov2_mccBarFill" style="width:0%"></div></div>
-                            </div>
-                            <div class="ov2-mcc-block-meta" data-tooltip="כמה האלגוריתם בטוח בסיווג השלב הנוכחי. מעל 80% = החלטי. מתחת ל-60% = גבולי">
-                                <div class="ov2-mcc-meta-row">
-                                    <span class="ov2-mcc-meta-label">רמת ביטחון בשלב</span>
-                                    <span class="ov2-mcc-meta-value ov2-num" id="ov2_mccConfVal">—</span>
-                                </div>
-                                <div class="ov2-mcc-conf-bar"><div class="ov2-mcc-conf-bar-fill" id="ov2_mccConfBar" style="width:0%"></div></div>
-                            </div>
-                        </div>
-
-                        <div class="ov2-mcc-drivers">
-                            <div class="ov2-driver" data-tooltip="יחס שיאים חדשים (52 שבועות) לעומת שפלים חדשים. גבוה = השוק בריא, רבים בשיא"><span class="ov2-driver-lbl">NH/NL · שיאים/שפלים</span><span class="ov2-driver-val" id="ov2_drvNhnl">—</span></div>
-                            <div class="ov2-driver" data-tooltip="אחוז המניות הנסחרות מעל ממוצע נע 200 ימים — מדד בריאות ארוך-טווח"><span class="ov2-driver-lbl">% מעל MA200</span><span class="ov2-driver-val" id="ov2_drvMa200">—</span></div>
-                            <div class="ov2-driver" data-tooltip="מד הפחד. תנודתיות צפויה ל-30 הימים הקרובים. מתחת 15 רגוע, מעל 25 פאניקה"><span class="ov2-driver-lbl">VIX</span><span class="ov2-driver-val" id="ov2_drvVix">—</span></div>
-                            <div class="ov2-driver" data-tooltip="ימי הפצה — מספר ימים בהם המדד ירד במחזור גבוה ב-25 הימים האחרונים. מעל 4 = לחץ מוסדי"><span class="ov2-driver-lbl">ימי הפצה</span><span class="ov2-driver-val" id="ov2_drvDist">—</span></div>
-                            <div class="ov2-driver" data-tooltip="רוחב השוק — כמה מניות מצטרפות למגמה. רוחב חזק = מגמה בריאה"><span class="ov2-driver-lbl">רוחב</span><span class="ov2-driver-val" id="ov2_drvBreadth">—</span></div>
-                            <div class="ov2-driver" data-tooltip="הציון המשולב — מטריקה אחת שמסכמת את כל סימני השוק"><span class="ov2-driver-lbl">משולב</span><span class="ov2-driver-val" id="ov2_drvCombined">—</span></div>
-                        </div>
-
-                        <div class="ov2-mcc-chips" id="ov2_mccChips"></div>
-                        <div class="ov2-mcc-conclusion" id="ov2_mccConclusion"></div>
                     </div>
 
                     <!-- ═══ SPX FLOW CARD ═══ -->
