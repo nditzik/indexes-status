@@ -163,6 +163,69 @@ def weak_sector_names(max_neg=2):
     names = [s['name'] for s in weak_sectors if s['avg_chg'] < -0.1][:max_neg]
     return ', '.join(names) if names else ''
 
+def sector_heatmap_rows_html():
+    """Returns HTML <tr> rows — one per sector, ordered best→worst by
+    today's avg %change, background tinted by performance bucket.
+    Five buckets: strong-green / light-green / neutral / amber / red."""
+    rows = sorted(sectors_data, key=lambda x: -x['avg_chg'])
+    out = []
+    for s in rows:
+        avg = s['avg_chg']
+        if avg >= 0.5:
+            bg, color = '#d1fae5', '#065f46'
+        elif avg >= 0.1:
+            bg, color = '#ecfdf5', '#047857'
+        elif avg >= -0.1:
+            bg, color = '#f7fafc', '#4a5568'
+        elif avg >= -0.5:
+            bg, color = '#fef3c7', '#92400e'
+        else:
+            bg, color = '#fee2e2', '#991b1b'
+        sign = '+' if avg >= 0 else ''
+        out.append(
+            f'<tr style="background:{bg};">'
+            f'<td align="right" style="padding:7px 12px;color:{color};font-weight:600;font-size:13px;text-align:right;">{s["name"]}</td>'
+            f'<td align="left" dir="ltr" style="padding:7px 12px;color:{color};font-family:monospace;font-weight:700;font-size:13px;text-align:left;">{sign}{avg:.2f}%</td>'
+            f'<td align="right" style="padding:7px 12px;color:#718096;font-size:11px;text-align:right;width:80px;">{s["total"]} מניות</td>'
+            f'</tr>'
+        )
+    return '\n'.join(out)
+
+def historical_patterns_text():
+    """Read the latest forward-tracking snapshot and produce a one-line
+    Hebrew digest of the 20-day forward outcomes across the K analogs.
+    Returns None if the snapshot file is missing/empty — caller hides
+    the block in that case."""
+    try:
+        with open('data/forward_snapshots.json', 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        snaps = data.get('snapshots') or []
+        if not snaps:
+            return None
+        snap = snaps[-1]
+        out20 = (snap.get('outcomes') or {}).get('20') or {}
+        n = out20.get('samples', 0)
+        if not n:
+            return None
+        median = out20.get('median', 0)
+        mn = out20.get('min', 0)
+        mx = out20.get('max', 0)
+        hit = out20.get('hitRate', 0)
+        ms = '+' if median >= 0 else ''
+        mns = '+' if mn >= 0 else ''
+        mxs = '+' if mx >= 0 else ''
+        return (
+            f'{n} אנלוגים בעבר → 20 ימים: '
+            f'חציון {ms}{median:.2f}%, '
+            f'טווח {mns}{mn:.2f}% עד {mxs}{mx:.2f}%, '
+            f'{round(hit*100)}% חיובי. מותנה בהמשך משטר יציב.'
+        )
+    except Exception as e:
+        print(f'Historical patterns load error: {e}')
+        return None
+
+historical_patterns_str = historical_patterns_text()
+
 # ═══════════════════════════════════════════════════
 #  Historical avg-change (last 25 sessions) → Dist Days + Weekly
 # ═══════════════════════════════════════════════════
@@ -584,7 +647,7 @@ def early_bounce_score(s):
     if s['w52'] is not None: sc += max(0, (s['w52'] + 50) / 2)
     return sc
 
-strong = sorted(stocks, key=momentum, reverse=True)[:5]
+strong = sorted(stocks, key=momentum, reverse=True)[:10]
 
 # Unified "מומלצות לקנייה" — rebound (oversold + volume + MA support) and
 # early-bounce (above MA20, below long-term MAs) merged. Rebound is the stronger
@@ -753,11 +816,12 @@ def stock_row(s, kind='strong'):
 # Build each section
 CARD = 'background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:12px;direction:rtl;'
 
-s1_html = f"""
+# Block 3 — מצב השוק (state label + risk + bias only; narrative split out)
+s_state_html = f"""
 <div dir="rtl" style="{CARD}padding:20px 22px;border-top:3px solid {accent};text-align:right;">
-  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:6px;text-align:right;">סיכום השוק</div>
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:6px;text-align:right;">מצב השוק</div>
   <div style="font-size:22px;font-weight:700;color:{accent};line-height:1.1;margin-bottom:10px;text-align:right;">{state_label}</div>
-  <table dir="rtl" align="right" style="width:100%;font-size:12px;color:#2d3748;border-collapse:collapse;margin-bottom:10px;direction:rtl;">
+  <table dir="rtl" align="right" style="width:100%;font-size:12px;color:#2d3748;border-collapse:collapse;direction:rtl;">
     <tr>
       <td align="right" style="padding:2px 0;color:#718096;width:80px;text-align:right;">רמת סיכון</td>
       <td align="right" style="padding:2px 0;font-weight:600;text-align:right;">{risk_level}</td>
@@ -767,7 +831,32 @@ s1_html = f"""
       <td align="right" style="padding:2px 0;font-weight:600;text-align:right;">{bias_text}</td>
     </tr>
   </table>
-  <div dir="rtl" style="font-size:13px;color:#4a5568;line-height:1.55;border-top:1px solid #edf2f7;padding-top:10px;text-align:right;">{narrative()}</div>
+</div>
+"""
+
+# Block 4 — סיכום היום (the narrative paragraph in its own card)
+s_summary_html = f"""
+<div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:10px;text-align:right;">סיכום היום</div>
+  <div dir="rtl" style="font-size:13px;color:#4a5568;line-height:1.6;text-align:right;">{narrative()}</div>
+</div>
+"""
+
+# Block 5 — תבניות היסטוריות (text only, no chart). Hidden if no snapshot.
+s_hist_html = (f"""
+<div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:10px;text-align:right;">תבניות היסטוריות</div>
+  <div dir="rtl" style="font-size:13px;color:#4a5568;line-height:1.6;text-align:right;">{historical_patterns_str}</div>
+</div>
+""" if historical_patterns_str else '')
+
+# Block 6 — מפת חום סקטורים (colored rows, best→worst)
+s_heatmap_html = f"""
+<div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:10px;text-align:right;">מפת חום סקטורים</div>
+  <table dir="rtl" style="width:100%;border-collapse:collapse;border-radius:6px;overflow:hidden;font-size:13px;direction:rtl;">
+    {sector_heatmap_rows_html()}
+  </table>
 </div>
 """
 
@@ -821,19 +910,13 @@ s3_html = f"""
 """
 
 strong_rows = ''.join(stock_row(s, 'strong') for s in strong)
-buy_rows    = ''.join(stock_row(s, 'buy')    for s in buy_picks)
 
-buy_section_html = (f'''<tr style="background:#fffbeb;"><td align="right" colspan="2" style="padding:8px 10px;font-size:12px;color:#b7791f;font-weight:700;text-align:right;">★ מומלצות לקנייה — נקודת כניסה</td></tr>
-    <tr><td align="right" colspan="2" style="padding:2px 10px 6px;font-size:11px;color:#92400e;text-align:right;font-style:italic;">מכירת יתר עם נפח, או תחילת התאוששות מעל ממוצע 20 — מועמדות לכניסה</td></tr>
-    {buy_rows}''' if buy_picks else '')
-
-s4_html = f"""
+# Block 7 — 10 חזקות (buy picks removed by user 2026-05-25)
+s_strong_html = f"""
 <div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
-  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:12px;text-align:right;">מניות</div>
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:12px;text-align:right;">10 מניות חזקות</div>
   <table dir="rtl" style="width:100%;border-collapse:collapse;direction:rtl;">
-    <tr style="background:#f0fdf4;"><td align="right" colspan="2" style="padding:8px 10px;font-size:12px;color:#2f855a;font-weight:700;text-align:right;">▲ חזקות</td></tr>
     {strong_rows}
-    {buy_section_html}
   </table>
 </div>
 """
@@ -886,10 +969,11 @@ html = f"""<!DOCTYPE html>
     </p>
   </div>
 
-  {s1_html}
-  {s3_html}
-  {s4_html}
-  {s6_html}
+  {s_state_html}
+  {s_summary_html}
+  {s_hist_html}
+  {s_heatmap_html}
+  {s_strong_html}
 
   <div style="text-align:center;font-size:10px;color:#a0aec0;padding:8px;line-height:1.4;">
     לא מהווה ייעוץ השקעות · מידע אישי למנויים · S&amp;P 500 Dashboard
