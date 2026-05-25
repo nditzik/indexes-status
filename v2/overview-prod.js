@@ -2460,6 +2460,17 @@ const CHIP_TYPE_LABEL = {
     confirmation: 'אישור',
     state:        'מצב'
 };
+// Category labels — Hebrew translations. The raw category keys come from
+// regime.js (breadth/momentum/risk/flow/sector/macro) and now render in
+// Hebrew alongside the type label.
+const CHIP_CATEGORY_LABEL = {
+    breadth:  'רוחב',
+    momentum: 'מומנטום',
+    risk:     'סיכון',
+    flow:     'זרימה',
+    sector:   'סקטור',
+    macro:    'מאקרו',
+};
 
 function renderAlertsRail(chips, metrics) {
     const rail = $('railContent');
@@ -2492,12 +2503,13 @@ function renderAlertsRail(chips, metrics) {
         const el = document.createElement('div');
         el.className = `ov2-alert ov2-severity-${sev}`;
         const typeLabel = CHIP_TYPE_LABEL[c.type] || c.type;
+        const catLabel = CHIP_CATEGORY_LABEL[c.category] || c.category;
         const meaningHtml = c.meaning
             ? `<div class="ov2-alert-meaning">${c.meaning}</div>` : '';
         el.innerHTML = `
             <div class="ov2-alert-head">
                 <span class="ov2-alert-icon">${iconFor(c.type)}</span>
-                <span class="ov2-alert-title">${typeLabel} · ${c.category}</span>
+                <span class="ov2-alert-title">${typeLabel} · ${catLabel}</span>
             </div>
             <div class="ov2-alert-body">${c.text}</div>
             ${meaningHtml}
@@ -2509,6 +2521,38 @@ function renderAlertsRail(chips, metrics) {
         if (c.meaning) el.setAttribute('data-tooltip', c.meaning);
         rail.appendChild(el);
     }
+
+    // Legend card — appended at the bottom. Explains the 4 chip types and
+    // the 6 categories in plain Hebrew so a cold reader can decode every
+    // chip above without scrolling away from the panel.
+    const legend = document.createElement('div');
+    legend.className = 'ov2-alert ov2-severity-info ov2-alert-legend';
+    legend.innerHTML = `
+        <div class="ov2-alert-head">
+            <span class="ov2-alert-icon">📖</span>
+            <span class="ov2-alert-title">מקרא · הסבר הצ'יפים</span>
+        </div>
+        <div class="ov2-alert-body" style="font-size:11.5px; line-height:1.55;">
+            <div style="margin-bottom:6px;"><strong>4 סוגי אות:</strong></div>
+            <div style="margin-bottom:4px;">✓ <strong>אישור</strong> — מחזק את התמונה הנוכחית</div>
+            <div style="margin-bottom:4px;">⚠ <strong>אזהרה</strong> — סיגנל שמטריד, שווה לעקוב</div>
+            <div style="margin-bottom:4px;">↗ <strong>מעבר</strong> — משהו זז בכיוון חדש</div>
+            <div style="margin-bottom:8px;">● <strong>מצב</strong> — תיאור סטטי של "איפה אנחנו עכשיו"</div>
+            <div style="margin-bottom:6px;"><strong>6 קטגוריות:</strong></div>
+            <div style="font-size:11px; color:var(--ov2-text-2);">
+                <strong>רוחב</strong> = כמה מניות משתתפות ·
+                <strong>מומנטום</strong> = תאוצת מגמה ·
+                <strong>סיכון</strong> = VIX ותנודתיות ·
+                <strong>זרימה</strong> = אופציות וכסף מוסדי ·
+                <strong>סקטור</strong> = רוטציה ·
+                <strong>מאקרו</strong> = ריבית/מטבע/אג"ח
+            </div>
+            <div style="margin-top:8px; font-size:11px; color:var(--ov2-text-3);">
+                <strong>עדיפות 0-100</strong> — גבוה יותר = חשוב יותר. הצ'יפים ממוינים מלמעלה למטה.
+            </div>
+        </div>
+    `;
+    rail.appendChild(legend);
 
     $('railCount').textContent = chips.length;
 }

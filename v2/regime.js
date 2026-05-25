@@ -445,7 +445,8 @@ function generateChips(metrics, maxChips) {
                 type:     rule.type,
                 category: rule.category,
                 priority: rule.priority,
-                text:     text
+                text:     text,
+                meaning:  rule.meaning || null,
             });
         }
     }
