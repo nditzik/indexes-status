@@ -2230,11 +2230,12 @@ function renderMCC(phase, metrics, chips, phaseDuration) {
             : '';
     }
 
-    // Confidence — width only; the gradient comes from CSS (matches the
-    // score bar's gradient by design). The previous code overrode the
-    // background with the phase color, which made the bar look like a
-    // solid green/red block instead of the score-bar's red→amber→green.
-    $('mccConfVal').textContent = phase.confidence + '%';
+    // Confidence — value is now rendered in the same structure as the
+    // combined score (big number + small unit suffix + side label).
+    // The "%" sign lives in its own .ov2-mcc-score-max span in HTML;
+    // this JS writes only the number. The bar width drives the fill;
+    // the gradient comes from CSS (matches the score bar exactly).
+    $('mccConfVal').textContent = phase.confidence;
     $('mccConfBar').style.width = phase.confidence + '%';
 
     // Score + bar
