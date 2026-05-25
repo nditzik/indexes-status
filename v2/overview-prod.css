@@ -1504,7 +1504,14 @@
 .overview-prod-root .ov2-pill.ov2-neg  { background: var(--ov2-neg-bg);  color: var(--ov2-neg-bright); }
 .overview-prod-root .ov2-pill.ov2-warn { background: var(--ov2-warn-bg); color: var(--ov2-warn-bright); }
 
-/* ── ALERTS RAIL ── */
+/* ── ALERTS RAIL ──
+   Sticky on desktop so the chip context stays visible while the main
+   column scrolls. After the legend card was added the rail can grow
+   taller than the viewport — without max-height + internal scroll,
+   sticky positions the TOP of the rail while the bottom sits off-screen
+   forever. The combination of position:sticky + max-height + overflow
+   gives the rail a "scroll-within-viewport" behaviour: it follows the
+   page down to its sticky top, then its own content scrolls. */
 .overview-prod-root .ov2-rail {
     background: var(--ov2-bg-1);
     border: 1px solid var(--ov2-border);
@@ -1512,7 +1519,18 @@
     padding: var(--ov2-space-4);
     position: sticky;
     top: var(--ov2-space-4);
+    max-height: calc(100vh - 2 * var(--ov2-space-4));
+    overflow-y: auto;
     box-shadow: var(--ov2-shadow-card);
+}
+@media (max-width: 1200px) {
+    /* Single-column layout — rail stacks under main; sticky/scroll-cap
+       no longer make sense and would clip the content. */
+    .overview-prod-root .ov2-rail {
+        position: static;
+        max-height: none;
+        overflow-y: visible;
+    }
 }
 .overview-prod-root .ov2-rail-head {
     display: flex;

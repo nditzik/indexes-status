@@ -2517,8 +2517,8 @@ function renderAlertsRail(chips, metrics) {
                 <span>עדיפות ${c.priority}</span>
             </div>
         `;
-        // Keep tooltip for additional hover context (some users prefer popover)
-        if (c.meaning) el.setAttribute('data-tooltip', c.meaning);
+        // Meaning is now rendered inline above (in meaningHtml) — no
+        // need for a hover tooltip duplicating the same text.
         rail.appendChild(el);
     }
 
