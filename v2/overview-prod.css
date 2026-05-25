@@ -1174,7 +1174,11 @@
 }
 .overview-prod-root .ov2-mcc-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--ov2-neg) 0%, var(--ov2-warn) 50%, var(--ov2-pos) 100%);
+    /* Gradient direction flipped for RTL: green on the visual right
+       (reading-start in Hebrew), red on the visual left. Score 84%
+       fills from the right; the high portion sits in the green zone
+       and reads as "good" first in RTL eye-flow. */
+    background: linear-gradient(90deg, var(--ov2-pos) 0%, var(--ov2-warn) 50%, var(--ov2-neg) 100%);
     border-radius: 4px;
     transition: width 400ms;
 }
