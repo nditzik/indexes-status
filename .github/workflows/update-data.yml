@@ -27,12 +27,20 @@ jobs:
           print('index.json updated:', len(files), 'files')
           "
 
+      - name: Update forward snapshots (KNN locked-in for today)
+        run: |
+          if [ -f scripts/update_forward_snapshots.py ]; then
+            python3 scripts/update_forward_snapshots.py
+          else
+            echo "Snapshot script not found — skipping."
+          fi
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/data.txt data/index.json
-          git diff --staged --quiet || git commit -m "Auto-update data.txt + index.json"
+          git add data/data.txt data/index.json data/forward_snapshots.json
+          git diff --staged --quiet || git commit -m "Auto-update data.txt + index.json + forward_snapshots.json"
           git push
 
       - name: Send email — daily market report
