@@ -227,29 +227,81 @@ def historical_patterns_text():
 historical_patterns_str = historical_patterns_text()
 
 # ═══════════════════════════════════════════════════
-#  Historical avg-change (last 25 sessions) → Dist Days + Weekly
+#  Historical data — last ~365 trading days (richer than the old
+#  "avg-only" history). Each entry carries date + avg_change +
+#  spx_chg_pct + pctMa200 + spx.{price,ma200} so the narrative,
+#  selling-day rule, and broad-uptrend duration can all read from
+#  the same source. Older code used a flat list of avg values only.
 # ═══════════════════════════════════════════════════
 hist_files = sorted(glob.glob('data/watchlist-sp-500-intraday-*.csv'))
-history = []
-for hf in hist_files[-26:]:
+
+def parse_history_day(hf):
+    """Parse one CSV → dict with the fields the narrative needs.
+    Returns None if the file is unparseable or contains no stock rows."""
     try:
         rows = load_csv(hf)
-        vals = []
-        for r in rows:
-            sym = r.get('Symbol','').strip()
-            if not sym or sym.startswith('$'): continue
-            c = num(r.get('%Change'))
-            if c is not None and c != 0:
-                vals.append(c)
-        if vals:
-            history.append(sum(vals)/len(vals))
     except Exception as e:
         print(f'History load skip {hf}: {e}')
+        return None
+    spx_row = None
+    stock_chgs = []
+    total_stocks = 0
+    above_ma200 = 0
+    for r in rows:
+        sym = (r.get('Symbol') or '').strip()
+        if not sym: continue
+        if sym == '$SPX':
+            spx_row = r
+            continue
+        if sym.startswith('$'): continue
+        latest = num(r.get('Latest'))
+        if latest is None or latest <= 0: continue
+        chg = num(r.get('%Change'))
+        if chg is not None and chg != 0:
+            stock_chgs.append(chg)
+        ma200 = num(r.get('200D MA'))
+        total_stocks += 1
+        if ma200 and latest > ma200:
+            above_ma200 += 1
+    if not stock_chgs:
+        return None
+    # Date from filename
+    base = os.path.basename(hf).replace('watchlist-sp-500-intraday-','').replace('.csv','')
+    # Filename is MM-DD-YYYY → ISO YYYY-MM-DD
+    mp = base.split('-')
+    iso = f'{mp[2]}-{mp[0]}-{mp[1]}' if len(mp) == 3 else base
+    return {
+        'date': iso,
+        'avg_change': sum(stock_chgs) / len(stock_chgs),
+        'spx_chg_pct': num(spx_row.get('%Change')) if spx_row else None,
+        'spx_price':   num(spx_row.get('Latest'))  if spx_row else None,
+        'spx_ma200':   num(spx_row.get('200D MA')) if spx_row else None,
+        'pct_ma200':   above_ma200 / total_stocks * 100 if total_stocks else 0,
+    }
 
+history_rich = [d for d in (parse_history_day(hf) for hf in hist_files[-365:]) if d]
+# Back-compat shim — older code expected `history` (list of avg values)
+# and `last25` / `last5` (lists of avg values). Preserve the names.
+history = [d['avg_change'] for d in history_rich]
+last25_rich = history_rich[-25:]
+last10_rich = history_rich[-10:]
+last5_rich  = history_rich[-5:]
 last25 = history[-25:]
 last5  = history[-5:]
-dist_days     = sum(1 for v in last25 if v < -0.2)
-weekly_change = sum(last5) if len(last5) >= 3 else None
+
+def is_selling_day(d):
+    """Mirrors overview-prod.js (lines 873-878):
+       primary rule SPX < -0.5%, fallback avg < -0.7% when SPX row absent.
+       Replaces the old 'avg < -0.2' which over-counted by ~5x."""
+    spx = d.get('spx_chg_pct')
+    if spx is not None and isinstance(spx, float):
+        return spx < -0.5
+    avg = d.get('avg_change')
+    return avg is not None and avg < -0.7
+
+dist_days        = sum(1 for d in last25_rich if is_selling_day(d))
+sell_days_10     = sum(1 for d in last10_rich if is_selling_day(d))
+weekly_change    = sum(history[-5:]) if len(history) >= 3 else None
 
 # ═══════════════════════════════════════════════════
 #  Score 1 · Market (MCC)
@@ -373,13 +425,17 @@ c_score = combined()
 #  Classification — state / risk / bias
 # ═══════════════════════════════════════════════════
 def classify_combined(s):
-    # Labels match the dashboard's MCC classification
-    if s is None:      return ('—','—','—','neutral')
-    if s >= 80:        return ('שורי',        'נמוך',      'חשיפה רחבה',        'bullish')
-    if s >= 65:        return ('חיובי זהיר', 'בינוני',    'להתמקד בחזקות',     'constructive')
-    if s >= 45:        return ('ניטרלי',      'בינוני',    'לבחור בקפידה',     'neutral')
-    if s >= 30:        return ('זהירות',       'גבוה',      'להקטין חשיפה',    'caution')
-    return              ('סיכון גבוה',        'גבוה מאוד','להגן / מזומן',     'riskoff')
+    # Labels match the dashboard's strip exactly (overview-prod.js
+    # renderStrip @ lines 1107-1121): מצוין / בריא / זהיר / מוחלש / שלילי.
+    # Previous labels (שורי / חיובי זהיר / ניטרלי / זהירות / סיכון גבוה)
+    # diverged from the dashboard wording and confused users who compared
+    # the email to the website.
+    if s is None:      return ('—',        '—',        '—',                 'neutral')
+    if s >= 75:        return ('מצוין',    'נמוך',     'חשיפה רחבה',         'bullish')
+    if s >= 60:        return ('בריא',     'בינוני',   'להתמקד בחזקות',     'constructive')
+    if s >= 45:        return ('זהיר',     'בינוני',   'לבחור בקפידה',      'neutral')
+    if s >= 30:        return ('מוחלש',    'גבוה',     'להקטין חשיפה',      'caution')
+    return              ('שלילי',    'גבוה מאוד','להגן / מזומן',       'riskoff')
 
 state_label, risk_level, bias_text, state_key = classify_combined(c_score)
 STATE_COLORS = {
@@ -392,7 +448,291 @@ STATE_COLORS = {
 accent = STATE_COLORS.get(state_key, '#64748b')
 
 # ═══════════════════════════════════════════════════
-#  Section 1 narrative — 1-2 sentences, trader tone
+#  Narrative replication — mirror of v2/narrative.js v2.0
+#  Produces the same 5-block story shown on the dashboard:
+#    headline (meta-label + rationale) · today · week · background · watchFor
+#
+#  Kept in sync with narrative.js by convention — when the JS changes,
+#  mirror the change here (and vice versa). Both files reference each
+#  other in comments at the top so the relationship is discoverable.
+# ═══════════════════════════════════════════════════
+
+def cumulative_spread(history_rich_arg, days=5):
+    """Sum of (avg - spx_chg) over the last N hist days. None if no overlap."""
+    if not history_rich_arg: return None
+    window = history_rich_arg[-days:]
+    total, counted = 0.0, 0
+    for d in window:
+        avg = d.get('avg_change')
+        spx_chg = d.get('spx_chg_pct')
+        if avg is None or spx_chg is None: continue
+        total += (avg - spx_chg)
+        counted += 1
+    return None if counted == 0 else total
+
+def count_spx_above_ma200(history_rich_arg):
+    """Consecutive recent days where SPX closed above MA200. Mirror of
+       countSpxAboveMa200() in v2/narrative.js."""
+    if not history_rich_arg: return 0
+    count = 0
+    for d in reversed(history_rich_arg):
+        price = d.get('spx_price')
+        ma200 = d.get('spx_ma200')
+        if not price or not ma200: break
+        if not (price > ma200): break
+        count += 1
+    return count
+
+# ─── Phase classifier — minimal port of regime.js ─────────────────
+# Only covers the phases the email needs: confirmed_uptrend,
+# uptrend_pressure, correction, capitulation. Distribution and
+# base_building require breadth5dDelta computed over richer data
+# (loadable but tangential for the email's purpose).
+PHASE_LABELS = {
+    'confirmed_uptrend': 'מגמה חיובית מאושרת',
+    'uptrend_pressure':  'מגמה תחת לחץ',
+    'correction':        'תיקון רחב',
+    'capitulation':      'שיא הפחד',
+    'distribution':      'הפצה פעילה',
+    'base_building':     'בניית בסיס',
+    'thrust':            'פריצה ראשונית',
+}
+
+def classify_phase(m):
+    """m = dict with combined, distributionDays, vix, nhMinusNl."""
+    combined_v = m.get('combined')
+    dist = m.get('distributionDays', 0)
+    vix_v  = m.get('vix') or 0
+    nhnl = m.get('nhMinusNl', 0)
+    if combined_v is None:
+        return 'uptrend_pressure'
+    if combined_v < 30 and vix_v > 30 and nhnl < -50:
+        return 'capitulation'
+    if combined_v < 40 and vix_v > 22:
+        return 'correction'
+    if combined_v >= 70 and dist <= 2 and vix_v < 20:
+        return 'confirmed_uptrend'
+    return 'uptrend_pressure'
+
+def phase_criteria_descriptor(phase_id, m):
+    """Hebrew description of the criteria values that anchor each phase.
+       Mirror of phaseCriteriaDescriptor() in v2/narrative.js."""
+    if phase_id == 'confirmed_uptrend':
+        return (f'בריאות {m["combined"]}, VIX {m["vix"]:.1f}, '
+                f'ימי מכירה {m["distributionDays"]} בלבד מתוך 25')
+    if phase_id == 'uptrend_pressure':
+        return f'ציון בריאות {m["combined"]}, VIX {m["vix"]:.1f}'
+    if phase_id == 'correction':
+        return f'ציון {m["combined"]}, VIX {m["vix"]:.1f}'
+    if phase_id == 'capitulation':
+        return (f'VIX {m["vix"]:.1f}, ציון {m["combined"]}, '
+                f'שיאי שפל {abs(m.get("nhMinusNl", 0))}')
+    return None
+
+# ─── Driver phrases for the headline ──────────────────────────────
+def recent_driver_phrase(metrics, history_rich_arg):
+    s5 = cumulative_spread(history_rich_arg, 5)
+    bd = metrics.get('breadth5dDelta')
+    if s5 is not None and s5 > 1.5:
+        return f'רוחב מתחזק חזק (+{s5:.1f}% השבוע)'
+    if s5 is not None and s5 > 0.5:
+        return f'רוחב משתפר (+{s5:.1f}% השבוע)'
+    if bd is not None and bd > 5:
+        return f'אחוז המניות מעל MA200 עלה ב-{bd:.1f}% בשבוע'
+    return 'תנועה חיובית קצרת-טווח'
+
+def regime_driver_phrase(metrics):
+    dist = metrics.get('distributionDays', 0)
+    dist_recent = metrics.get('sellDaysRecent10', 0)
+    p200 = metrics.get('pctMa200', 0)
+    vix_v = metrics.get('vix') or 0
+    nhnl = metrics.get('nhMinusNl', 0)
+    if dist_recent is not None and dist_recent >= 3:
+        return f'{dist_recent} ימים שליליים חזקים ב-10 ימים אחרונים (אשכול טרי)'
+    if dist >= 5:
+        return f'{dist} ימים שליליים חזקים ב-25 ימים אחרונים'
+    if p200 < 30:
+        return f'רק {round(p200)}% מהמניות מעל MA200'
+    if vix_v > 25:
+        return f'VIX {vix_v:.1f} (מעל סף הפאניקה)'
+    if nhnl <= -50:
+        return f'{nhnl} שיאים-שפלים נטו (חריג שלילי)'
+    if p200 < 50:
+        return f'רוחב טווח-ארוך חלש ({round(p200)}% מעל MA200)'
+    return 'הפאזה הטכנית עדיין שלילית'
+
+# ─── 5 narrative builders ─────────────────────────────────────────
+def build_headline(metrics, history_rich_arg, phase_id):
+    """Returns (meta_label, rationale) per the headline matrix in
+       v2/narrative.js lines 142-201."""
+    regime_class = 'pos' if phase_id in ('confirmed_uptrend','uptrend_pressure','thrust') else (
+                    'neg' if phase_id in ('correction','capitulation','distribution') else 'warn')
+    s5 = cumulative_spread(history_rich_arg, 5) or 0
+    bd = metrics.get('breadth5dDelta') or 0
+    recent_score = s5 * 0.5 + bd * 0.05
+    recent_pos = recent_score > 0.5
+    recent_neg = recent_score < -0.5
+    if regime_class == 'pos':
+        if recent_pos:
+            return ('ראלי חזק',
+                    f'המגמה הטכנית חיובית והרוחב מתחזק '
+                    f'({recent_driver_phrase(metrics, history_rich_arg)})')
+        if recent_neg:
+            sp = cumulative_spread(history_rich_arg, 5)
+            spread_txt = f'הרוחב נחלש ({sp:.1f}% השבוע)' if sp is not None else 'הרוחב נחלש'
+            return ('חולשה מתהווה',
+                    f'המגמה הטכנית עדיין חיובית אבל {spread_txt}')
+        return ('מגמה יציבה',
+                'המגמה הטכנית חיובית, אין סטייה משמעותית השבוע')
+    if regime_class == 'neg':
+        if recent_pos:
+            return ('מצב מעורב',
+                    recent_driver_phrase(metrics, history_rich_arg) + ' אבל '
+                    + regime_driver_phrase(metrics))
+        if recent_neg:
+            return ('אזהרה מסלימה',
+                    f'{regime_driver_phrase(metrics)} בנוסף לחולשה השבוע')
+        return ('מגמה תחת לחץ',
+                f'{regime_driver_phrase(metrics)} (יציב, ללא הסלמה)')
+    # warn / muted
+    if recent_pos:
+        return ('שיפור מתהווה',
+                f'{recent_driver_phrase(metrics, history_rich_arg)} — '
+                'המגמה הטכנית ארוכת-הטווח עדיין לא אישרה')
+    if recent_neg:
+        sp = cumulative_spread(history_rich_arg, 5)
+        spread_txt = f'(פער 5d {sp:.1f}%)' if sp is not None else ''
+        return ('התייצבות שברירית',
+                f'הרוחב מתרופף השבוע {spread_txt} ללא תמיכה מצד המגמה הטכנית')
+    return ('התייצבות', 'אין כיוון מבוסס — לא חיובי ולא שלילי')
+
+def build_today(metrics):
+    """Mirror of buildToday() in v2/narrative.js."""
+    avg = metrics.get('avgChange')
+    spx_chg = metrics.get('spxChgPct')
+    if avg is None or spx_chg is None: return 'אין נתוני יום נוכחי.'
+    avg_verb = 'עלה' if avg >= 0 else 'ירד'
+    spx_verb = 'עלה' if spx_chg >= 0 else 'ירד'
+    cyc = metrics.get('cyclicalLeadership')
+    deff = metrics.get('defensiveLeadership')
+    sector_tail = ''
+    if cyc is not None and cyc >= 0.67:
+        sector_tail = ', סקטורי-צמיחה מובילים — סנטימנט אופטימי'
+    elif deff is not None and deff >= 0.67:
+        sector_tail = ', סקטורים הגנתיים מובילים — סנטימנט זהיר'
+    elif cyc is not None and deff is not None:
+        if cyc > deff + 0.1:
+            sector_tail = ', נטייה חיובית — סקטורי צמיחה מובילים'
+        elif deff > cyc + 0.1:
+            sector_tail = ', נטייה זהירה — סקטורי הגנה מובילים'
+    return (f'המדד השוויוני {avg_verb} {abs(avg):.2f}% '
+            f'בעוד המדד {spx_verb} {abs(spx_chg):.2f}%{sector_tail}.')
+
+def build_week(history_rich_arg):
+    """Mirror of buildWeek() in v2/narrative.js."""
+    s5 = cumulative_spread(history_rich_arg, 5)
+    if s5 is None: return 'אין מספיק היסטוריה לחישוב שבועי.'
+    mag = abs(s5)
+    if s5 > 1.0:
+        return f'המדד השוויוני הביס את המדד הקאפ-משוקלל ב-{mag:.1f}% — מגמת השתתפות חיובית.'
+    if s5 < -1.0:
+        return f'המדד הקאפ-משוקלל הביס את המדד השוויוני ב-{mag:.1f}% — דפוס של ראלי צר, מובל ע"י מעטות.'
+    return 'המדד השוויוני והמדד הקאפ-משוקלל בקצב דומה — אין נטייה ברורה.'
+
+def build_background(metrics, history_rich_arg, phase_id):
+    """Mirror of buildBackground() in v2/narrative.js — option ג' wording
+       (state-based, no 'started today' drama)."""
+    phase_label = PHASE_LABELS.get(phase_id, 'לא ידוע')
+    descriptor = phase_criteria_descriptor(phase_id, metrics)
+    line = (f'מצב השוק: "{phase_label}". כל הקריטריונים יושבים יחד: {descriptor}.'
+            if descriptor else f'מצב השוק: "{phase_label}".')
+    if phase_id in ('confirmed_uptrend','uptrend_pressure','thrust'):
+        broad = count_spx_above_ma200(history_rich_arg)
+        if broad >= 30:
+            line += f' השוק במגמה חיובית (SPX מעל MA200) כבר {broad} ימי מסחר — תקופה ארוכה.'
+        elif broad >= 5:
+            line += f' השוק במגמה חיובית (SPX מעל MA200) {broad} ימי מסחר אחרונים.'
+    # Selling-days tail
+    dist = metrics.get('distributionDays', 0)
+    recent10 = metrics.get('sellDaysRecent10', 0)
+    if recent10 is not None and recent10 >= 3:
+        line += f' {recent10} ימים שליליים חזקים ב-10 הימים האחרונים — אשכול טרי, סימן אזהרה.'
+    elif dist >= 5:
+        rf = f' (מהם {recent10} ב-10 הימים האחרונים)' if recent10 is not None else ''
+        line += f' {dist} ימים שליליים חזקים ב-25 ימים אחרונים{rf} — מעל הסף הרגיל.'
+    elif dist >= 2:
+        rf = f' (מהם {recent10} ב-10 ימים אחרונים)' if recent10 is not None and recent10 > 0 else ''
+        line += f' {dist} ימים שליליים חזקים ב-25 ימים אחרונים{rf} — בטווח נורמלי, ללא אשכול חריג.'
+    elif dist <= 1:
+        line += f' {dist} ימים שליליים חזקים בלבד ב-25 ימים — שוק ללא מכירות בולטות.'
+    return line
+
+def build_watch_for(metrics):
+    """Mirror of buildWatchFor() in v2/narrative.js, with the 2026-05-25
+       VIX bug fix applied."""
+    triggers = []
+    p50 = metrics.get('pctMa50')
+    if p50 is not None:
+        if p50 < 50 and p50 > 25:
+            triggers.append((1, f'%MA50 חוצה 50% (כעת {round(p50)}%) → הפאזה תשתפר.'))
+        elif p50 >= 50 and p50 < 75:
+            triggers.append((3, f'%MA50 יורד מתחת ל-50% (כעת {round(p50)}%) → סיכון להידרדרות.'))
+    vix_v = metrics.get('vix')
+    if vix_v is not None:
+        if vix_v < 18:
+            triggers.append((3, f'VIX מטפס מעל 18 (כעת {vix_v:.1f}) → התחלת אי-וודאות.'))
+        elif vix_v < 22:
+            triggers.append((2, f'VIX מטפס מעל 22 (כעת {vix_v:.1f}) → אזהרה חדשה.'))
+        else:
+            triggers.append((1, f'VIX יורד מתחת ל-18 (כעת {vix_v:.1f}) → רגיעה ובחזרה לסיכון.'))
+    dist = metrics.get('distributionDays', 0)
+    if dist >= 5:
+        triggers.append((1, f'ימי מכירה כבדה יורדים מתחת ל-5 (כעת {dist}) → שיפור פאזה.'))
+    nhnl = metrics.get('nhMinusNl', 0)
+    if nhnl <= -30:
+        triggers.append((2, f'שיאים-שפלים מתאזנים (כעת {nhnl}) → סוף החולשה.'))
+    elif nhnl >= 50:
+        triggers.append((3, 'שיאים-שפלים יורדים מתחת ל-20 → אובדן מומנטום.'))
+    triggers.sort(key=lambda t: t[0])
+    return [t[1] for t in triggers[:2]]
+
+# Compose the metrics dict the narrative builders consume.
+# Cyclical / defensive leadership are computed from the top-3 sectors
+# by avg %change, matching the dashboard's sector classification.
+CYCLICAL = {'IT','CD','FIN','IND','MAT','EN','COMM'}
+DEFENSIVE = {'HC','CS','UTIL','REIT'}
+top3_sectors_data = sorted(sectors_data, key=lambda x: -x['avg_chg'])[:3]
+cyclical_lead = (sum(1 for s in top3_sectors_data if s['sec'] in CYCLICAL) /
+                 len(top3_sectors_data)) if top3_sectors_data else 0
+defensive_lead = (sum(1 for s in top3_sectors_data if s['sec'] in DEFENSIVE) /
+                  len(top3_sectors_data)) if top3_sectors_data else 0
+
+narrative_metrics = {
+    'combined': c_score,
+    'avgChange': avg_change,
+    'spxChgPct': spx['chgPct'] if spx else None,
+    'vix': vix,
+    'distributionDays': dist_days,
+    'sellDaysRecent10': sell_days_10,
+    'pctMa200': p200,
+    'pctMa50':  a50 / total * 100 if total else 0,
+    'nhMinusNl': nh - nl,
+    'cyclicalLeadership': cyclical_lead,
+    'defensiveLeadership': defensive_lead,
+    'breadth5dDelta': (history_rich[-1]['pct_ma200'] - history_rich[-6]['pct_ma200'])
+                      if len(history_rich) >= 6 else None,
+}
+phase_id_now = classify_phase(narrative_metrics)
+phase_label_now = PHASE_LABELS.get(phase_id_now, 'לא ידוע')
+meta_label_now, rationale_now = build_headline(narrative_metrics, history_rich, phase_id_now)
+today_line_now      = build_today(narrative_metrics)
+week_line_now       = build_week(history_rich)
+background_line_now = build_background(narrative_metrics, history_rich, phase_id_now)
+watch_for_now       = build_watch_for(narrative_metrics)
+
+# ═══════════════════════════════════════════════════
+#  Legacy narrative — kept for backwards-compat if anywhere reads it,
+#  but the new email body uses the layered builders above instead.
 # ═══════════════════════════════════════════════════
 def narrative():
     """
@@ -816,49 +1156,209 @@ def stock_row(s, kind='strong'):
 # Build each section
 CARD = 'background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:12px;direction:rtl;'
 
-# Block 3 — מצב השוק (state label + risk + bias only; narrative split out)
+# ─── Block 3 — מצב השוק (label + score, like dashboard's top strip) ─
 s_state_html = f"""
-<div dir="rtl" style="{CARD}padding:20px 22px;border-top:3px solid {accent};text-align:right;">
+<div dir="rtl" style="{CARD}padding:18px 22px;border-top:3px solid {accent};text-align:right;">
   <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:6px;text-align:right;">מצב השוק</div>
-  <div style="font-size:22px;font-weight:700;color:{accent};line-height:1.1;margin-bottom:10px;text-align:right;">{state_label}</div>
-  <table dir="rtl" align="right" style="width:100%;font-size:12px;color:#2d3748;border-collapse:collapse;direction:rtl;">
-    <tr>
-      <td align="right" style="padding:2px 0;color:#718096;width:80px;text-align:right;">רמת סיכון</td>
-      <td align="right" style="padding:2px 0;font-weight:600;text-align:right;">{risk_level}</td>
-    </tr>
-    <tr>
-      <td align="right" style="padding:2px 0;color:#718096;text-align:right;">הטיית פוזיציה</td>
-      <td align="right" style="padding:2px 0;font-weight:600;text-align:right;">{bias_text}</td>
-    </tr>
-  </table>
+  <div dir="rtl" style="text-align:right;">
+    <span style="font-size:24px;font-weight:700;color:{accent};line-height:1;">{state_label}</span>
+    <span style="font-size:18px;color:#a0aec0;margin:0 8px;line-height:1;">·</span>
+    <span style="font-size:24px;font-weight:700;color:{accent};font-family:monospace;line-height:1;">{c_score if c_score is not None else '—'}</span>
+    <span style="font-size:12px;color:#718096;margin-right:6px;">/ 100</span>
+  </div>
 </div>
 """
 
-# Block 4 — סיכום היום (the narrative paragraph in its own card)
+# ─── Block 4 — סיכום היום (5 sub-blocks: ראלי חזק / היום / השבוע /
+#                                          הרקע / לעקוב / בעבר) ─────
+watch_for_str = ' · '.join(watch_for_now) if watch_for_now else ''
+sub_block_style = ('font-size:13px;color:#4a5568;line-height:1.65;'
+                   'border-top:1px solid #edf2f7;padding-top:10px;'
+                   'margin-top:10px;text-align:right;direction:rtl;')
+sub_label_style = 'color:#718096;font-weight:700;margin-left:6px;'
+
+# Headline label gets a color matching the rationale's state.
+HEADLINE_COLORS = {
+    'ראלי חזק':           '#10b981',
+    'מגמה יציבה':         '#10b981',
+    'שיפור מתהווה':       '#14b8a6',
+    'חולשה מתהווה':       '#f59e0b',
+    'התייצבות שברירית':  '#f59e0b',
+    'התייצבות':           '#64748b',
+    'מצב מעורב':          '#f59e0b',
+    'אזהרה מסלימה':      '#ef4444',
+    'מגמה תחת לחץ':       '#ef4444',
+}
+headline_color = HEADLINE_COLORS.get(meta_label_now, accent)
+historical_summary_str = historical_patterns_str or ''
+
 s_summary_html = f"""
 <div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
   <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:10px;text-align:right;">סיכום היום</div>
-  <div dir="rtl" style="font-size:13px;color:#4a5568;line-height:1.6;text-align:right;">{narrative()}</div>
+  <div dir="rtl" style="text-align:right;direction:rtl;">
+    <div style="font-size:18px;font-weight:700;color:{headline_color};line-height:1.2;margin-bottom:4px;text-align:right;">{meta_label_now}</div>
+    <div style="font-size:12px;color:#718096;margin-bottom:8px;text-align:right;">·</div>
+    <div style="font-size:13px;color:#4a5568;line-height:1.6;text-align:right;">{rationale_now}</div>
+  </div>
+  <div style="{sub_block_style}"><span style="{sub_label_style}">היום:</span>{today_line_now}</div>
+  <div style="{sub_block_style}"><span style="{sub_label_style}">השבוע:</span>{week_line_now}</div>
+  <div style="{sub_block_style}"><span style="{sub_label_style}">הרקע:</span>{background_line_now}</div>
+  {('<div style="' + sub_block_style + '"><span style="' + sub_label_style + '">לעקוב:</span>' + watch_for_str + '</div>') if watch_for_str else ''}
+  {('<div style="' + sub_block_style + '"><span style="' + sub_label_style + '">בעבר:</span>' + historical_summary_str + '</div>') if historical_summary_str else ''}
 </div>
 """
 
-# Block 5 — תבניות היסטוריות (text only, no chart). Hidden if no snapshot.
-s_hist_html = (f"""
+# ─── Block 5 — מה קרה בעבר במצב דומה (3 horizon cards + scenario) ──
+def historical_block_html():
+    """Build the full historical patterns block — description, 3 horizon
+    cards (5/10/20 days), and 3-block scenario summary. Returns '' when
+    no snapshot is available so the email still renders."""
+    try:
+        with open('data/forward_snapshots.json', 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception:
+        return ''
+    snaps = data.get('snapshots') or []
+    if not snaps:
+        return ''
+    snap = snaps[-1]
+    outcomes = snap.get('outcomes') or {}
+    matches = snap.get('matches') or []
+    n = len(matches)
+    out20 = outcomes.get('20') or {}
+    if not out20 or not out20.get('samples'):
+        return ''
+    # Description + tendency lines
+    median20 = out20.get('median', 0)
+    hit20 = out20.get('hitRate', 0)
+    ms = '+' if median20 >= 0 else ''
+    tendency_color = '#10b981' if median20 > 0 else '#ef4444' if median20 < 0 else '#64748b'
+    anchor_date = snap.get('anchorDate', '')
+    if anchor_date:
+        # ISO YYYY-MM-DD → DD/MM/YYYY for the Hebrew sentence
+        ap = anchor_date.split('-')
+        if len(ap) == 3:
+            anchor_date = f'{ap[2]}/{ap[1]}/{ap[0]}'
+    desc_line = (f'{n} ימים דומים מתוך 2553 ימי מסחר ב-10 השנים האחרונות. '
+                 f'נכון ל-{anchor_date}.')
+    tendency_line = (f'נטייה היסטורית '
+                     f'<span style="color:{tendency_color};font-weight:700;">'
+                     f'{"חיובית" if median20 > 0 else "שלילית" if median20 < 0 else "ניטרלית"}</span>: '
+                     f'ב-{round(hit20*100)}% מהמקרים הדומים, השוק '
+                     f'{"עלה" if median20 >= 0 else "ירד"} תוך 20 ימים '
+                     f'(חציון {ms}{median20:.2f}%).')
+    # 3 horizon cards (5/10/20)
+    def card(window_days):
+        o = outcomes.get(str(window_days)) or {}
+        if not o.get('samples'):
+            return ''
+        med = o.get('median', 0)
+        q25 = o.get('q25', 0)
+        q75 = o.get('q75', 0)
+        hit = o.get('hitRate', 0)
+        sign = '+' if med >= 0 else ''
+        col = '#10b981' if med > 0 else '#ef4444' if med < 0 else '#64748b'
+        return (
+            f'<td align="center" style="padding:12px 6px;width:33%;vertical-align:top;text-align:center;background:#f7fafc;border-radius:6px;">'
+            f'<div style="font-size:11px;color:#718096;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">{window_days} ימים</div>'
+            f'<div style="font-size:22px;font-weight:700;color:{col};line-height:1;font-family:monospace;">{sign}{med:.2f}%</div>'
+            f'<div style="font-size:11px;color:#4a5568;margin-top:4px;">חציון · {round(hit*100)}% חיובי</div>'
+            f'<div style="font-size:10px;color:#a0aec0;margin-top:4px;font-family:monospace;">טווח: {q25:.1f}% עד {q75:.1f}%</div>'
+            f'</td>'
+        )
+    cards_row = (
+        '<td style="width:8px;"></td>'.join(filter(None,
+            [card(5), card(10), card(20)]))
+    )
+    # Scenario summary — three blocks (endpoint envelope, intraperiod, caveat)
+    out5d_full = out20  # alias for clarity
+    median20 = out5d_full.get('median', 0)
+    mn20 = out5d_full.get('min', 0)
+    mx20 = out5d_full.get('max', 0)
+    samples = out5d_full.get('samples', 0)
+    # Intraperiod drawdowns aren't stored in the snapshot — would need
+    # per-match daily paths. For the email we use the worst final 20d
+    # return (out20.min) as a proxy. This is more conservative than the
+    # true intraperiod minimum (which the dashboard computes live by
+    # walking each match's path), so the email says "worst FINAL close"
+    # explicitly rather than overclaiming intraperiod precision.
+    worst_close = out5d_full.get('min', 0)
+    block1 = (
+        f'<b>סוף 20 ימים</b><br>'
+        f'ב-{samples} מקרים היסטוריים דומים, התשואה ביום ה-20 נעה בין '
+        f'<b>{("+" if mn20 >= 0 else "")}{mn20:.2f}%</b> ל-'
+        f'<b>{("+" if mx20 >= 0 else "")}{mx20:.2f}%</b>. '
+        f'חציון <b>{("+" if median20 >= 0 else "")}{median20:.2f}%</b>. '
+        f'<b>{round(hit20*100)}%</b> מהמקרים נסגרו בחיובי.'
+    )
+    block2 = (
+        f'<b>בתוך 20 הימים (נפילות זמניות)</b><br>'
+        f'גם בתרחיש "בריא" יש דיפים זמניים. המקרה ההיסטורי הגרוע ביותר '
+        f'בסיום 20 הימים: <b>{worst_close:+.2f}%</b>. בתוך החלון הדיף '
+        f'יכול להיות עמוק יותר ועדיין להתאושש — דיף כזה בימים הקרובים '
+        f'<i>לא</i> שובר את התבנית.'
+    )
+    block3 = (
+        '<b>תנאי תקפות</b><br>'
+        'הניתוח מניח שהמאקרו יישאר במשטר דומה (ריבית, גיאופוליטיקה, נזילות). '
+        'אירוע חריג — הפתעת ריבית, מלחמה רחבה, משבר אשראי — מבטל את ה-baseline. '
+        'ההיסטוריה אינה ביטוח, היא <b>התפלגות מותנית</b>.'
+    )
+    scenario_blocks_html = ''.join(
+        f'<div style="background:#f7fafc;padding:10px 14px;margin-top:8px;border-radius:6px;font-size:12px;color:#4a5568;line-height:1.6;text-align:right;direction:rtl;">{b}</div>'
+        for b in (block1, block2, block3))
+    return f"""
 <div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
-  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:10px;text-align:right;">תבניות היסטוריות</div>
-  <div dir="rtl" style="font-size:13px;color:#4a5568;line-height:1.6;text-align:right;">{historical_patterns_str}</div>
-</div>
-""" if historical_patterns_str else '')
-
-# Block 6 — מפת חום סקטורים (colored rows, best→worst)
-s_heatmap_html = f"""
-<div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
-  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:10px;text-align:right;">מפת חום סקטורים</div>
-  <table dir="rtl" style="width:100%;border-collapse:collapse;border-radius:6px;overflow:hidden;font-size:13px;direction:rtl;">
-    {sector_heatmap_rows_html()}
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:8px;text-align:right;">מה קרה בעבר במצב דומה</div>
+  <div style="font-size:12px;color:#718096;margin-bottom:6px;text-align:right;">{desc_line}</div>
+  <div style="font-size:13px;color:#2d3748;margin-bottom:14px;text-align:right;line-height:1.5;">{tendency_line}</div>
+  <table dir="rtl" style="width:100%;border-collapse:separate;border-spacing:0;direction:rtl;">
+    <tr>{cards_row}</tr>
   </table>
+  <div style="font-size:11px;color:#718096;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-top:16px;margin-bottom:6px;text-align:right;">תרחיש בסיס — מה צופה ההיסטוריה ל-20 הימים הבאים</div>
+  {scenario_blocks_html}
 </div>
 """
+
+s_hist_html = historical_block_html()
+
+# ─── Block 6 — מפת חום סקטוריאלית (now with leader/laggard/dispersion) ──
+def sector_heatmap_block_html():
+    if not sectors_data:
+        return ''
+    rows = sorted(sectors_data, key=lambda x: -x['avg_chg'])
+    leader = rows[0]
+    laggard = rows[-1]
+    dispersion = leader['avg_chg'] - laggard['avg_chg']
+    table = sector_heatmap_rows_html()
+    stats_block = f"""
+<table dir="rtl" style="width:100%;margin-top:10px;border-collapse:collapse;direction:rtl;font-size:12px;">
+  <tr>
+    <td align="right" style="padding:6px 10px;color:#718096;width:33%;text-align:right;">המוביל</td>
+    <td align="right" style="padding:6px 10px;color:#065f46;font-weight:700;text-align:right;">{leader['name']} · {('+' if leader['avg_chg'] >= 0 else '')}{leader['avg_chg']:.2f}% היום</td>
+  </tr>
+  <tr style="background:#f7fafc;">
+    <td align="right" style="padding:6px 10px;color:#718096;text-align:right;">החלש ביותר</td>
+    <td align="right" style="padding:6px 10px;color:#991b1b;font-weight:700;text-align:right;">{laggard['name']} · {('+' if laggard['avg_chg'] >= 0 else '')}{laggard['avg_chg']:.2f}% היום</td>
+  </tr>
+  <tr>
+    <td align="right" style="padding:6px 10px;color:#718096;text-align:right;">פיזור היום</td>
+    <td align="right" style="padding:6px 10px;font-weight:700;color:#2d3748;text-align:right;">{dispersion:.1f}%</td>
+  </tr>
+</table>
+"""
+    return f"""
+<div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:6px;text-align:right;">מפת חום סקטוריאלית — היום</div>
+  <div style="font-size:11px;color:#a0aec0;margin-bottom:10px;text-align:right;">11 סקטורי S&amp;P 500 · שינוי יומי ממוצע · ממוין מהחזק לחלש</div>
+  <table dir="rtl" style="width:100%;border-collapse:collapse;border-radius:6px;overflow:hidden;font-size:13px;direction:rtl;">
+    {table}
+  </table>
+  {stats_block}
+</div>
+"""
+
+s_heatmap_html = sector_heatmap_block_html()
 
 s2_items_html = ''.join(f'<li style="padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:13px;color:#2d3748;text-align:right;direction:rtl;">{it}</li>' for it in signals_items)
 s2_conclusion_html = (f'<div dir="rtl" style="margin-top:12px;padding:10px 14px;background:#f7fafc;border-right:3px solid {accent};font-size:13px;color:#2d3748;font-weight:600;text-align:right;">{conclusion}</div>'
@@ -1006,7 +1506,7 @@ else:
 payload = json.dumps({
     "sender": {"name": "S&P Dashboard", "email": "nditzik@gmail.com"},
     "to": recipients,
-    "subject": f"{subject_prefix}{state_label} · S&P 500 {date_label}",
+    "subject": f"{subject_prefix}S&P 500 {date_label}",
     "htmlContent": html
 }).encode()
 

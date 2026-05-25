@@ -437,20 +437,26 @@
         }
 
         // VIX — the volatility fear gauge. 18 / 22 are the conventional
-        // 'calm' / 'caution' rails.
+        // 'calm' / 'caution' rails. Each branch describes what to WATCH
+        // FOR from the current zone — not what the current value is.
+        // (Fixed 2026-05-25: previous wording said "VIX מעל 22" even when
+        //  VIX was 16.7 — it conflated "where we are" with "what to watch".)
         const vix = metrics.vix;
         if (vix != null) {
             if (vix < 18) {
+                // Calm zone. Watch for VIX climbing into caution range.
                 triggers.push({
                     priority: 3,
-                    text: `VIX מעל 22 (כעת ${vix.toFixed(1)}) → אזהרה חדשה.`,
+                    text: `VIX מטפס מעל 18 (כעת ${vix.toFixed(1)}) → התחלת אי-וודאות.`,
                 });
             } else if (vix >= 18 && vix < 22) {
+                // Mid zone. Watch for VIX crossing into stress range.
                 triggers.push({
                     priority: 2,
-                    text: `VIX מעל 22 (כעת ${vix.toFixed(1)}) → אזהרה חדשה.`,
+                    text: `VIX מטפס מעל 22 (כעת ${vix.toFixed(1)}) → אזהרה חדשה.`,
                 });
             } else if (vix >= 22) {
+                // Stressed. Watch for VIX easing back into the calm zone.
                 triggers.push({
                     priority: 1,
                     text: `VIX יורד מתחת ל-18 (כעת ${vix.toFixed(1)}) → רגיעה ובחזרה לסיכון.`,
