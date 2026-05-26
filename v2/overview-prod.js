@@ -2958,18 +2958,29 @@ function renderFlowCard(metrics, flowAnalytics) {
         `;
     }
 
-    // Flow internal formula
-    const zCall = z.call_premium_pct, zPCp = z.pc_premium, zNet = z.net_premium_pct, zSkew = z.iv_skew;
+    // Flow internal formula — absolute, no z-scores (rewritten 2026-05-26
+    // to match the new absolute formula implemented in computeFlowAnalytics).
+    // Previous text described the OLD z-score baseline approach that was
+    // replaced on 2026-05-24; the score itself was correct but the
+    // breakdown shown to the user was misleading.
     const flowFormula = $('flowFormulaInternal');
     if (flowFormula) {
-        const fmtZ = v => v != null ? (v >= 0 ? '+' : '') + v.toFixed(2) + 'σ' : '—';
+        const A = raw.call_premium_pct;
+        const B = raw.callAskPremPct;
+        const C = raw.putAskPremPct;
+        const fmtPct = v => v != null && Number.isFinite(v)
+                            ? v.toFixed(1) + '%' : '—';
+        // Contributions matching the formula in computeFlowAnalytics
+        const contribA = A != null ? (A - 50) * 1.0 : 0;
+        const contribB = B != null ? (B - 50) * 0.5 : 0;
+        const contribC = C != null ? -(C - 50) * 0.5 : 0;
+        const fmtContrib = v => (v >= 0 ? '+' : '') + v.toFixed(1);
         flowFormula.innerHTML = `
-            ציון Flow מתחיל מ-50 ועובר תיקונים:<br>
-            <b>+ Call %</b> (${fmtZ(zCall)} × 12, capped ±25)
-            <b>- P/C Premium</b> (${fmtZ(zPCp)} × 8, capped ±15)
-            <b>+ Net Premium</b> (${fmtZ(zNet)} × 5, capped ±10)
-            <b>- IV Skew</b> (${fmtZ(zSkew)} × 3, capped ±5)
-            <br>= <b>${fScore != null ? fScore : '—'}/100</b>
+            ציון Flow מתחיל מ-50 ומתעדכן לפי שלושה רכיבי flow גולמיים של היום (ללא baseline היסטורי):<br>
+            <b>+ A — אחוז קולים</b> ((${fmtPct(A)} − 50) × 1.0 = ${fmtContrib(contribA)})
+            <b>+ B — Ask% של קולים</b> ((${fmtPct(B)} − 50) × 0.5 = ${fmtContrib(contribB)})
+            <b>− C — Ask% של פוטים</b> ((${fmtPct(C)} − 50) × 0.5 → ${fmtContrib(contribC)})
+            <br>50 ${fmtContrib(contribA)} ${fmtContrib(contribB)} ${fmtContrib(contribC)} = <b>${fScore != null ? fScore : '—'}/100</b>
         `;
     }
 }

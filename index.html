@@ -2022,8 +2022,8 @@
                                     <span class="ov2-fvp-stat-label">סטייה היום (אופציות נגד מחיר)</span>
                                     <span class="ov2-fvp-stat-val" id="ov2_fvpDiv">—</span>
                                 </div>
-                                <div class="ov2-fvp-stat" data-tooltip="DTE = Days To Expiration. מתוך כל הימים בחלון מסווגים כשוריים (ציון ≥ 60) או דוביים (ציון ≤ 40) — הצד עם יותר ימים הוא הדומיננטי. ערך = ממוצע DTE משוקלל-פרמיה של עסקאות ASK-SIDE בלבד (קונים אגרסיביים שמשלמים את מחיר ההיצע) על הצד הרלוונטי: קולים אם שורי, פוטים אם דובי. ask-side לבד מסנן החוצה את הצד הפסיבי (bid/mid) ומתמקד בקונים האגרסיביים. DTE קצר = הימור טקטי, DTE ארוך = הימור מבני.">
-                                    <span class="ov2-fvp-stat-label">DTE ממוצע · קונים ב-ask (מוטיב דומיננטי)</span>
+                                <div class="ov2-fvp-stat" data-tooltip="DTE = Days To Expiration. ממוצע משוקלל-פרמיה של עסקאות ASK-side בלבד (קונים אגרסיביים שמשלמים את מחיר ההיצע) על-פני כל הימים השוריים (ציון ≥ 60) או הדוביים (ציון ≤ 40) בחלון של 22 ימי מסחר. הצד הדומיננטי = זה עם יותר ימים. שונה ממספר ה-DTE היומי בכרטיסיית Flow (שמתאר רק היום אחד) — זה ממוצע מצטבר על-פני 22 הימים. DTE קצר = הימור טקטי קצר טווח, DTE ארוך = הימור מבני מוסדי.">
+                                    <span class="ov2-fvp-stat-label">DTE ממוצע — חלון 22 ימי מסחר (מוטיב דומיננטי, ask)</span>
                                     <span class="ov2-fvp-stat-val" id="ov2_fvpDte">—</span>
                                 </div>
                             </div>
@@ -2080,7 +2080,8 @@
 
                         <!-- ─── Call vs Put breakdown · Side × {Trades, Premium} ─── -->
                         <div class="ov2-panel-divider"></div>
-                        <div class="ov2-eyebrow" style="color:var(--ov2-text-2); margin-bottom:8px;">פירוט CALL vs PUT · לפי עסקאות ופרמיה</div>
+                        <div class="ov2-eyebrow" style="color:var(--ov2-text-2); margin-bottom:2px;">פירוט CALL vs PUT · לפי עסקאות ופרמיה</div>
+                        <div style="font-size:11px; color:var(--ov2-text-3); margin-bottom:10px;">ערכי DTE בטבלה זו = <strong>היום בלבד</strong> (לא ממוצע חודש). השוו לערך ב-"מגמת אופציות מול מחיר" שמתאר ממוצע 22 ימי מסחר.</div>
                         <div class="ov2-flow-cp-grid">
                             <div class="ov2-flow-cp-card cp-call" data-tooltip="עסקאות CALL — הימור על עלייה. כל שורה: כמה עסקאות + כמה פרמיה ב-Ask/Bid/Mid. השורה התחתונה מסכמת ה-Ask% על directional בלבד (לא כולל Mid). פרמיה = signal חזק יותר ממספר עסקאות, כי עסקה אחת של $50M שווה יותר מ-10 קטנות">
                                 <div class="ov2-flow-cp-head">
@@ -2145,8 +2146,7 @@
                                     <div style="margin-bottom:8px;" id="ov2_flowFormulaCombined">—</div>
                                     <div style="border-top:1px dashed var(--ov2-border); padding-top:8px;" id="ov2_flowFormulaInternal">—</div>
                                     <div style="margin-top:8px; font-size:11px; color:var(--ov2-text-3);">
-                                        ה-z-scores מחושבים מול baseline של 22 ימי מסחר אחורנית.
-                                        מטריקה שזזה +1σ פירושה היא רחוקה סטיית-תקן אחת מהממוצע — חריגה בולטת.
+                                        הציון חושב כאבסולוטי, ללא baseline היסטורי — כל יום עומד לעצמו. 50 = ניטרלי, 70+ = יום שורי, 30- = יום דובי.
                                     </div>
                                 </div>
                             </div>
