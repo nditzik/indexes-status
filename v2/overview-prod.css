@@ -2388,7 +2388,8 @@
 }
 .overview-prod-root .ov2-synergy-signal-text { flex: 1; }
 
-/* Narrative box */
+/* Narrative box — kept for legacy callers but no longer rendered by the
+   main synergy panel (replaced by ov2-synergy-conclusion + Q&A below). */
 .overview-prod-root .ov2-synergy-narrative {
     background: var(--ov2-text-1);
     color: var(--ov2-text-inverse);
@@ -2406,6 +2407,115 @@
 .overview-prod-root .ov2-synergy-narrative-text b {
     color: #ffffff;
     font-weight: 800;
+}
+
+/* ─── Conclusion-first layout (2026-05-26) ────────────────────────────
+   The synergy panel was redesigned around 3 user goals:
+   1. Show the takeaway FIRST (banner at top)
+   2. Answer 3 questions in plain Hebrew (Q&A blocks)
+   3. Hide technical numbers in a collapsible <details>
+   These styles support all three. */
+.overview-prod-root .ov2-synergy-conclusion {
+    border-radius: var(--ov2-radius-md);
+    padding: 16px 18px;
+    margin-bottom: var(--ov2-space-3);
+    border-right: 4px solid var(--ov2-border);
+    background: var(--ov2-bg-2);
+}
+.overview-prod-root .ov2-synergy-conclusion.ov2-synergy-confirm {
+    background: var(--ov2-pos-bg);
+    border-right-color: var(--ov2-pos);
+}
+.overview-prod-root .ov2-synergy-conclusion.ov2-synergy-bullish-div {
+    background: var(--ov2-pos-bg);
+    border-right-color: var(--ov2-pos);
+}
+.overview-prod-root .ov2-synergy-conclusion.ov2-synergy-bearish-div {
+    background: var(--ov2-warn-bg, rgba(245, 158, 11, 0.08));
+    border-right-color: var(--ov2-warn, #f59e0b);
+}
+.overview-prod-root .ov2-synergy-conclusion.ov2-synergy-muted {
+    background: var(--ov2-bg-2);
+    border-right-color: var(--ov2-border);
+}
+.overview-prod-root .ov2-synergy-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ov2-text-2);
+    margin-bottom: 8px;
+}
+.overview-prod-root .ov2-synergy-status-icon { font-size: 14px; }
+.overview-prod-root .ov2-synergy-headline {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    line-height: 1.4;
+    margin-bottom: 6px;
+}
+.overview-prod-root .ov2-synergy-action {
+    font-size: 13px;
+    color: var(--ov2-text-2);
+    line-height: 1.5;
+}
+
+/* Q&A blocks */
+.overview-prod-root .ov2-synergy-qa {
+    padding: 12px 16px;
+    margin-bottom: var(--ov2-space-2);
+    background: var(--ov2-bg-1);
+    border-radius: var(--ov2-radius-sm);
+    border: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-synergy-q {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    margin-bottom: 6px;
+}
+.overview-prod-root .ov2-synergy-a {
+    font-size: 13px;
+    color: var(--ov2-text-2);
+    line-height: 1.6;
+}
+.overview-prod-root .ov2-synergy-list {
+    margin: 4px 0 0 0;
+    padding: 0;
+    list-style: none;
+}
+.overview-prod-root .ov2-synergy-list li {
+    font-size: 13px;
+    color: var(--ov2-text-2);
+    line-height: 1.6;
+    padding: 4px 0;
+}
+
+/* Collapsible technical details */
+.overview-prod-root .ov2-synergy-tech {
+    margin-top: var(--ov2-space-3);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    background: var(--ov2-bg-2);
+}
+.overview-prod-root .ov2-synergy-tech > summary {
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ov2-text-2);
+    user-select: none;
+}
+.overview-prod-root .ov2-synergy-tech > summary:hover {
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-synergy-tech-body {
+    padding: 12px 14px 14px;
+    border-top: 1px solid var(--ov2-border);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ov2-space-3);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

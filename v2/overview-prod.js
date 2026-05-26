@@ -3559,67 +3559,223 @@ function renderMarketFlowSynergy(phase, metrics) {
                      : alignment.level === 'bearish_div' ? 'ov2-synergy-bearish-div'
                      : 'ov2-synergy-neutral';
 
+    // ─── New layout (2026-05-26): conclusion-first + Q&A + collapsible
+    // technical details. Replaces the old vertical stack (pair → lean →
+    // alignment → signals → narrative) which forced the user to scan
+    // five separate blocks before reaching the takeaway. The redesign:
+    //   1. Status badge + headline + action (the takeaway, top)
+    //   2. Three Q&A blocks (plain Hebrew, no jargon)
+    //   3. Technical details collapsed by default (numbers, lean bar)
+    // ──────────────────────────────────────────────────────────────────
+    const synergy = buildSynergyContent(phase, metrics, flowLean, alignment, signals);
+
     const html = `
-        <!-- Pair: Phase × Flow -->
-        <div class="ov2-synergy-pair">
-            <div class="ov2-synergy-side">
-                <div class="ov2-eyebrow">מצב השוק</div>
-                <div class="ov2-synergy-side-headline" style="color:${p.color}">${p.glyph} ${p.stateLabel}</div>
-                <div class="ov2-synergy-side-detail">${p.labelHe} · Combined ${metrics.combined != null ? metrics.combined : '—'}/100</div>
+        <!-- Top conclusion banner — status + headline + action -->
+        <div class="ov2-synergy-conclusion ${synergy.statusClass}">
+            <div class="ov2-synergy-status-badge">
+                <span class="ov2-synergy-status-icon">${synergy.statusIcon}</span>
+                <span>${synergy.statusLabel}</span>
             </div>
-            <div class="ov2-synergy-arrow">↔</div>
-            <div class="ov2-synergy-side">
-                <div class="ov2-eyebrow">זרימת אופציות</div>
-                <div class="ov2-synergy-side-headline" style="color:var(--ov2-cat-flow)">${flowPattern.label}</div>
-                <div class="ov2-synergy-side-detail">Flow ${metrics.flow.score != null ? metrics.flow.score : '—'}/100 · ${flowPattern.label}</div>
-            </div>
+            <div class="ov2-synergy-headline">${synergy.headline}</div>
+            <div class="ov2-synergy-action">${synergy.action}</div>
         </div>
 
-        <!-- Flow Lean bar -->
-        <div class="ov2-synergy-lean">
-            <div class="ov2-synergy-lean-label">
-                <span>Flow Lean</span>
-                <span class="ov2-synergy-lean-value" style="color:${leanColor}">${flowLean != null ? (flowLean >= 0 ? '+' : '') + flowLean : '—'} · ${leanText}</span>
-            </div>
-            <div class="ov2-synergy-lean-track">
-                <div class="ov2-synergy-lean-zone-neg"></div>
-                <div class="ov2-synergy-lean-zone-mid"></div>
-                <div class="ov2-synergy-lean-zone-pos"></div>
-                <div class="ov2-synergy-lean-marker" style="left:${leanPct}%; background:${leanColor}"></div>
-            </div>
-            <div class="ov2-synergy-lean-scale">
-                <span>−100</span><span>0</span><span>+100</span>
-            </div>
+        <!-- Q1: alignment -->
+        <div class="ov2-synergy-qa">
+            <div class="ov2-synergy-q">❓ הכסף הגדול תומך במגמה?</div>
+            <div class="ov2-synergy-a">${synergy.q1Answer}</div>
         </div>
 
-        <!-- Alignment verdict -->
-        <div class="ov2-synergy-alignment ${alignClass}">
-            <div class="ov2-synergy-align-emoji">${alignment.emoji}</div>
-            <div class="ov2-synergy-align-content">
-                <div class="ov2-synergy-align-label">Phase × Flow alignment · <b>${alignment.label}</b></div>
-                <div class="ov2-synergy-align-desc">${alignment.desc || ''}</div>
-            </div>
+        <!-- Q2: what's troubling (or confirming) -->
+        ${synergy.q2Items.length ? `
+        <div class="ov2-synergy-qa">
+            <div class="ov2-synergy-q">${synergy.q2Question}</div>
+            <ul class="ov2-synergy-list">
+                ${synergy.q2Items.map(t => `<li>${t}</li>`).join('')}
+            </ul>
+        </div>` : ''}
+
+        <!-- Q3: what to do -->
+        <div class="ov2-synergy-qa">
+            <div class="ov2-synergy-q">❓ מה לעשות עם זה?</div>
+            <ul class="ov2-synergy-list">
+                ${synergy.q3Items.map(t => `<li>${t}</li>`).join('')}
+            </ul>
         </div>
 
-        <!-- Cross signals -->
-        ${signals.length ? `
-            <div class="ov2-synergy-signals">
-                <div class="ov2-eyebrow">סיגנלים מצולבים</div>
-                ${signals.map(s => `
-                    <div class="ov2-synergy-signal ov2-signal-${s.tone}">
-                        <span class="ov2-synergy-signal-icon">${s.icon}</span>
-                        <span class="ov2-synergy-signal-text">${s.text}</span>
+        <!-- Technical details (collapsed by default) -->
+        <details class="ov2-synergy-tech">
+            <summary>פירוט טכני · מספרים גולמיים</summary>
+            <div class="ov2-synergy-tech-body">
+                <div class="ov2-synergy-pair">
+                    <div class="ov2-synergy-side">
+                        <div class="ov2-eyebrow">מצב השוק</div>
+                        <div class="ov2-synergy-side-headline" style="color:${p.color}">${p.glyph} ${p.stateLabel}</div>
+                        <div class="ov2-synergy-side-detail">${p.labelHe} · Combined ${metrics.combined != null ? metrics.combined : '—'}/100</div>
                     </div>
-                `).join('')}
-            </div>` : ''}
-
-        <!-- Narrative -->
-        <div class="ov2-synergy-narrative">
-            <div class="ov2-eyebrow" style="margin-bottom:6px;">השורה התחתונה</div>
-            <div class="ov2-synergy-narrative-text">${narrative}</div>
-        </div>
+                    <div class="ov2-synergy-arrow">↔</div>
+                    <div class="ov2-synergy-side">
+                        <div class="ov2-eyebrow">זרימת אופציות</div>
+                        <div class="ov2-synergy-side-headline" style="color:var(--ov2-cat-flow)">${flowPattern.label}</div>
+                        <div class="ov2-synergy-side-detail">Flow ${metrics.flow.score != null ? metrics.flow.score : '—'}/100 · ${flowPattern.label}</div>
+                    </div>
+                </div>
+                <div class="ov2-synergy-lean">
+                    <div class="ov2-synergy-lean-label">
+                        <span>כיוון הזרימה (-100 דובי, +100 שורי)</span>
+                        <span class="ov2-synergy-lean-value" style="color:${leanColor}">${flowLean != null ? (flowLean >= 0 ? '+' : '') + flowLean : '—'} · ${leanText}</span>
+                    </div>
+                    <div class="ov2-synergy-lean-track">
+                        <div class="ov2-synergy-lean-zone-neg"></div>
+                        <div class="ov2-synergy-lean-zone-mid"></div>
+                        <div class="ov2-synergy-lean-zone-pos"></div>
+                        <div class="ov2-synergy-lean-marker" style="left:${leanPct}%; background:${leanColor}"></div>
+                    </div>
+                    <div class="ov2-synergy-lean-scale">
+                        <span>−100</span><span>0</span><span>+100</span>
+                    </div>
+                </div>
+                <div class="ov2-synergy-alignment ${alignClass}">
+                    <div class="ov2-synergy-align-emoji">${alignment.emoji}</div>
+                    <div class="ov2-synergy-align-content">
+                        <div class="ov2-synergy-align-label">השוואת מגמה לזרימה · <b>${alignment.label}</b></div>
+                        <div class="ov2-synergy-align-desc">${alignment.desc || ''}</div>
+                    </div>
+                </div>
+            </div>
+        </details>
     `;
     wrap.innerHTML = html;
+}
+
+// ─── Synergy content builder ─────────────────────────────────────────
+// Produces the strings the new Q&A layout needs. Takes the same inputs
+// as renderMarketFlowSynergy and returns:
+//   { statusClass, statusIcon, statusLabel, headline, action,
+//     q1Answer, q2Question, q2Items, q3Items }
+// Each field is plain Hebrew; numbers are quoted only when essential.
+function buildSynergyContent(phase, metrics, flowLean, alignment, signals) {
+    const phaseId = phase.phase.id;
+    const isBullishPhase = ['confirmed_uptrend','uptrend_pressure','thrust'].includes(phaseId);
+    const isBearishPhase = ['correction','capitulation','distribution'].includes(phaseId);
+    const level = alignment.level; // confirm / bullish_div / bearish_div / neutral / unknown
+
+    // ─── Status badge (top-left of conclusion banner) ──
+    let statusIcon = '⚪', statusLabel = 'אין נתון', statusClass = 'ov2-synergy-muted';
+    if (level === 'confirm') {
+        statusIcon = '🟢'; statusLabel = 'תואם'; statusClass = 'ov2-synergy-confirm';
+    } else if (level === 'bullish_div') {
+        statusIcon = '🟢'; statusLabel = 'הזרימה חזקה מהפאזה';
+        statusClass = 'ov2-synergy-bullish-div';
+    } else if (level === 'bearish_div') {
+        statusIcon = '🟡'; statusLabel = 'סטייה — זרימה זהירה';
+        statusClass = 'ov2-synergy-bearish-div';
+    }
+
+    // ─── Headline + action (top conclusion) ──
+    let headline, action;
+    if (level === 'confirm' && isBullishPhase) {
+        headline = 'השוק שורי והכסף הגדול מאשר את המגמה.';
+        action = 'אישור מבנה — אפשר להמשיך בגישה הנוכחית.';
+    } else if (level === 'confirm' && isBearishPhase) {
+        headline = 'השוק חלש והכסף הגדול מאשר את הסיכון.';
+        action = 'אישור מבנה — להישאר בגישת הגנה.';
+    } else if (level === 'confirm') {
+        headline = 'הזרימה תואמת לשלב הנוכחי של השוק.';
+        action = 'אין סתירה בין המקורות — אפשר להמשיך בגישה הנוכחית.';
+    } else if (level === 'bullish_div' && isBearishPhase) {
+        headline = 'השוק עוד חלש אבל הכסף הגדול מתחיל להיכנס.';
+        action = 'סיגנל ראשוני להתאוששות — להמתין לאישור מחיר לפני הוספת חשיפה.';
+    } else if (level === 'bullish_div') {
+        headline = 'הזרימה חיובית יותר מהשלב הנוכחי.';
+        action = 'אפשר התאוששות — שווה לעקוב אחרי הפאזה לשיפור.';
+    } else if (level === 'bearish_div' && isBullishPhase) {
+        headline = 'השוק שורי אבל הכסף הגדול זהיר יותר.';
+        action = 'סימן אזהרה — להמשיך לעקוב, לא לפעול.';
+    } else if (level === 'bearish_div' && isBearishPhase) {
+        headline = 'הזרימה אפילו יותר חלשה מהשוק.';
+        action = 'הסיכון מתחזק — להגן יותר.';
+    } else if (level === 'bearish_div') {
+        headline = 'הזרימה זהירה יותר מהשלב הנוכחי.';
+        action = 'סימן זהירות — להמתין לפני פעולה.';
+    } else {
+        headline = 'אין מספיק נתונים לחיבור בין השוק לזרימה.';
+        action = '—';
+    }
+
+    // ─── Q1 answer — supportive? ──
+    const combinedStr = metrics.combined != null ? `${metrics.combined}/100` : '—';
+    const flowScoreStr = metrics.flow && metrics.flow.score != null
+                        ? `${metrics.flow.score}/100` : '—';
+    let q1Answer;
+    if (level === 'confirm') {
+        q1Answer = `<b>כן.</b> מצב השוק (${combinedStr}) והזרימה (${flowScoreStr}) שניהם באותו הכיוון.`;
+    } else if (level === 'bullish_div') {
+        q1Answer = `<b>הזרימה חזקה יותר.</b> הפאזה (${combinedStr}) פחות שורית מהזרימה (${flowScoreStr}) — אולי שיפור בדרך.`;
+    } else if (level === 'bearish_div') {
+        q1Answer = `<b>חלקית.</b> הפאזה (${combinedStr}) במצב חזק מהזרימה (${flowScoreStr}) — הכסף הגדול לא מאשר את העוצמה.`;
+    } else {
+        q1Answer = '<b>לא ניתן לקבוע.</b> אין מספיק נתוני זרימה לקישור.';
+    }
+
+    // ─── Q2 items — translate the existing signals to friendlier Hebrew ──
+    const q2Items = signals.map(s => translateSignal(s));
+    const q2Question = level === 'confirm' && isBullishPhase
+        ? '❓ מה מחזק את התמונה?'
+        : '❓ מה מטריד את הכסף הגדול?';
+
+    // ─── Q3 items — action recommendations based on alignment + phase ──
+    const q3Items = [];
+    if (level === 'confirm' && isBullishPhase) {
+        q3Items.push('☞ אפשר להמשיך בגישת long, אבל לא בלי משמעת stop-loss');
+        q3Items.push('☞ לעקוב אחרי MA50 — ירידה מתחת ל-50% מסמנת חולשה');
+    } else if (level === 'bearish_div' && isBullishPhase) {
+        q3Items.push('☞ לא להוסיף חשיפה כרגע — להמתין לאישור הכסף הגדול');
+        q3Items.push('☞ לעקוב אחרי כיוון הזרימה — חזרה ל-25+ תסגור את הסטייה');
+        q3Items.push('☞ לעקוב אחרי MA50 — ירידה מתחת ל-50% תאשר חולשה');
+    } else if (level === 'bullish_div' && isBearishPhase) {
+        q3Items.push('☞ עדיין לא לרכוש — להמתין לאישור מחיר');
+        q3Items.push('☞ לעקוב אחרי % מעל MA200 — מעל 50% יסמן התייצבות');
+        q3Items.push('☞ לעקוב אחרי VIX — ירידה ל-18 ומטה תרמז סוף משבר');
+    } else if (level === 'bearish_div' && isBearishPhase) {
+        q3Items.push('☞ להעמיק הגנה — הסיכון מצטבר');
+        q3Items.push('☞ לא לתפוס תחתית עד שהזרימה תהפוך חיובית');
+    } else if (level === 'confirm' && isBearishPhase) {
+        q3Items.push('☞ להישאר בגישת הגנה — שני המקורות מאשרים סיכון');
+        q3Items.push('☞ לחפש סימני היפוך — VIX יורד, רוחב משתפר');
+    } else {
+        q3Items.push('☞ להמתין לסיגנל ברור לפני פעולה');
+    }
+
+    return {
+        statusClass, statusIcon, statusLabel,
+        headline, action,
+        q1Answer, q2Question, q2Items, q3Items,
+    };
+}
+
+// Translate a cross-signal object (existing format from generateCrossSignals)
+// to plain Hebrew without internal jargon — drops words like "Conviction",
+// "scalping", "BTO/STO" in favor of full Hebrew explanations.
+function translateSignal(s) {
+    const icon = s.icon || '·';
+    let text = s.text || '';
+    // Strip internal terms that confuse first-time readers
+    text = text
+        .replace(/Conviction דובי חזק בפותחות \((\d+)% לפי פרמיה\)/g,
+                 'פותחות פוזיציות חדשות היו $1% לכיוון דובי')
+        .replace(/Conviction שורי חזק בפותחות \((\d+)% לפי פרמיה\)/g,
+                 'פותחות פוזיציות חדשות היו $1% לכיוון שורי')
+        .replace(/Calls אסטרטגיים \((\d+)d\) vs Puts קצרים \((\d+)d\)/g,
+                 'קולים ל-$1 ימים מול פוטים ל-$2 ימים')
+        .replace(/Puts אסטרטגיים \((\d+)d\) vs Calls קצרים \((\d+)d\)/g,
+                 'פוטים ל-$1 ימים (הגנה ארוכה) מול קולים ל-$2 ימים (טווח קצר)')
+        .replace(/scalping/g, 'טווח קצר')
+        .replace(/calls רק לטווח קצר/g, 'הקולים רק לטווח קצר — פחות אמונה במגמה')
+        .replace(/Flow lean ([+-]?\d+)/g, 'כיוון הזרימה $1')
+        .replace(/transition אפשרי ל-❶/g, 'מעבר אפשרי לפאזה חיובית יותר')
+        .replace(/transition ל-❸/g, 'מעבר לפאזת הפצה');
+    return `${icon} ${text}`;
 }
 
 // ═════════════════════════════════════════════════════════════════════
