@@ -161,6 +161,87 @@
         return SHORT_LABEL[feature] || fallback || feature;
     }
 
+    // ─── Trading-day arithmetic (US market) ───────────────────────────
+    // Used to project the "Day 20" target date when a pattern reaches
+    // Day 5/5 — the user wants to see WHEN the 20-day historical median
+    // outcome would land. Skips weekends + a hardcoded list of US market
+    // holidays for 2026-2027. Years beyond 2027 will be approximate.
+    const US_HOLIDAYS = new Set([
+        // 2026
+        '2026-01-01','2026-01-19','2026-02-16','2026-04-03',
+        '2026-05-25','2026-06-19','2026-07-03','2026-09-07',
+        '2026-11-26','2026-12-25',
+        // 2027
+        '2027-01-01','2027-01-18','2027-02-15','2027-03-26',
+        '2027-05-31','2027-06-18','2027-07-05','2027-09-06',
+        '2027-11-25','2027-12-24',
+    ]);
+
+    function isoFromDate(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dd}`;
+    }
+
+    function addTradingDays(isoDate, n) {
+        const [y, m, d] = isoDate.split('-').map(Number);
+        const date = new Date(y, m - 1, d);
+        let added = 0;
+        while (added < n) {
+            date.setDate(date.getDate() + 1);
+            const day = date.getDay();
+            if (day === 0 || day === 6) continue;          // weekend
+            if (US_HOLIDAYS.has(isoFromDate(date))) continue; // holiday
+            added++;
+        }
+        return isoFromDate(date);
+    }
+
+    // Build the "matured" projection row HTML — appears immediately below
+    // any pattern that has reached Day 5/5. Pulls outcome stats from the
+    // snapshot's 20-day distribution.
+    function maturedRowHtml(snap, rowBull, rowVotes) {
+        const out20 = (snap.outcomes && snap.outcomes['20']) || {};
+        if (!out20.samples) return '';
+        const day20Iso = addTradingDays(snap.anchorDate, 20);
+        const day20 = formatDate(day20Iso);
+        const med = out20.median, mn = out20.min, mx = out20.max;
+        const hit = out20.hitRate || 0;
+        const medClass = med > 0 ? 'ov2-pos' : med < 0 ? 'ov2-neg' : '';
+        const medSign = med >= 0 ? '+' : '';
+        const minSign = mn >= 0 ? '+' : '';
+        const maxSign = mx >= 0 ? '+' : '';
+        // Confidence tone — full confirmation (3/3) gets a positive border,
+        // partial confirmation a neutral one. Reflects how much weight to
+        // place on the historical median.
+        const confClass = rowVotes > 0 && rowBull === rowVotes
+            ? 'ov2-ft-matured-confirmed'
+            : (rowVotes > 0 && rowBull > 0
+                ? 'ov2-ft-matured-mixed'
+                : 'ov2-ft-matured-failed');
+        const confLabel = rowVotes > 0
+            ? `${rowBull}/${rowVotes} סיגנלים אישרו`
+            : '';
+        return `
+            <tr class="ov2-ft-matured-row">
+                <td colspan="4">
+                    <div class="ov2-ft-matured ${confClass}">
+                        <span class="ov2-ft-matured-icon">🎯</span>
+                        <span><b>תבנית ${formatDate(snap.anchorDate)} השלימה 5 ימי מסחר</b>${confLabel ? ' · ' + confLabel : ''}</span>
+                        <span class="ov2-ft-matured-sep">·</span>
+                        <span>צפי ליום ה-20 (סביב <b>${day20}</b>):</span>
+                        <b class="${medClass}">${medSign}${med.toFixed(2)}% חציון</b>
+                        <span class="ov2-ft-matured-sep">·</span>
+                        <span>טווח ${minSign}${mn.toFixed(2)}% עד ${maxSign}${mx.toFixed(2)}%</span>
+                        <span class="ov2-ft-matured-sep">·</span>
+                        <span>הצלחה היסטורית <b>${Math.round(hit * 100)}%</b></span>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
     // ─── Render the forward-tracking panel ───────────────────────────
     //
     // Layout: a single table inside one card. Each row = one active
@@ -281,6 +362,14 @@
                     </td>
                     <td class="ov2-ft-td-verdict">${verdict}</td>
                 </tr>`);
+            // When pattern reaches Day 5/5 (the last day it appears in
+            // the table before falling out), append a "matured" projection
+            // row right below it — shows day-20 target date + expected
+            // outcome from the historical analogs.
+            if (obs.dayIndex >= EARLY_DAYS) {
+                const maturedHtml = maturedRowHtml(snap, rowBull, rowVotes);
+                if (maturedHtml) rows.push(maturedHtml);
+            }
         }
 
         if (signalsEl) {
