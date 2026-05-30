@@ -114,7 +114,9 @@ oversold    = sum(1 for s in stocks if s['rsi'] in ('Below 30','New Below 30'))
 p200   = a200 / total * 100 if total else 0
 health = round((a200/total*100)*0.30 + (golden/total*100)*0.25 + (rsi_above50/total*100)*0.25 + (a20/total*100)*0.20) if total else 0
 
-chg_vals   = [s['chg'] for s in stocks if s['chg'] is not None]
+# Exclude split anomalies (|chg|>=50%) — matches overview-prod.js +
+# update_forward_snapshots.py so the email's avgChange aligns with RSP.
+chg_vals   = [s['chg'] for s in stocks if s['chg'] is not None and abs(s['chg']) < 50]
 avg_change = sum(chg_vals) / len(chg_vals) if chg_vals else 0
 
 # ═══════════════════════════════════════════════════
@@ -257,7 +259,8 @@ def parse_history_day(hf):
         latest = num(r.get('Latest'))
         if latest is None or latest <= 0: continue
         chg = num(r.get('%Change'))
-        if chg is not None and chg != 0:
+        # Exclude split anomalies (see overview-prod.js note on RSP parity)
+        if chg is not None and chg != 0 and abs(chg) < 50:
             stock_chgs.append(chg)
         ma200 = num(r.get('200D MA'))
         total_stocks += 1

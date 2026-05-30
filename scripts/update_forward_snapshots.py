@@ -143,7 +143,10 @@ def parse_watchlist(path):
             elif sym.startswith('$'):
                 continue
             else:
-                if chg is not None and chg != 0:
+                # Exclude split-related anomalies (|%Change| > 50%) so the
+                # equal-weight average matches what RSP-like ETFs report
+                # (they auto-adjust for splits). See overview-prod.js note.
+                if chg is not None and chg != 0 and abs(chg) < 50:
                     stock_chgs.append(chg)
     avg_chg = sum(stock_chgs) / len(stock_chgs) if stock_chgs else None
     return {'spxPct': spx_pct, 'spxClose': spx_close, 'vixClose': vix_close,

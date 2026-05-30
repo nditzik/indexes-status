@@ -288,7 +288,17 @@ function extractDayMetrics(rows, sectorsMap) {
         s.rsiRank === 'New Above 30' || s.rsiRank === 'New Above 50'
     ).length;
 
-    const chgs = stocks.map(s => s.chg).filter(v => v !== null && v !== 0);
+    // Exclude split-related anomalies: a stock that splits 10-for-1 shows
+    // up with %Change ≈ -90% in the watchlist (Barchart reports raw price
+    // change, not split-adjusted). This is NOT a real decline — RSP and
+    // other equal-weight ETFs adjust for splits automatically, so to match
+    // their behavior we drop anything with |%Change| > 50%. Observed on
+    // 2026-05-29 with GS and LLY both around -90%, which dragged the raw
+    // avgChange from +0.06% (real) to -0.30% (broken) and flipped the
+    // 22/05 spread chip from above its threshold to below.
+    const SPLIT_THRESHOLD = 50;
+    const chgs = stocks.map(s => s.chg).filter(v =>
+        v !== null && v !== 0 && Math.abs(v) < SPLIT_THRESHOLD);
     const avgChange = chgs.length ? chgs.reduce((a,b) => a+b, 0) / chgs.length : null;
     const advancing = chgs.filter(v => v > 0).length;
     const declining = chgs.filter(v => v < 0).length;
