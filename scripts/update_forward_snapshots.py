@@ -142,13 +142,32 @@ def parse_watchlist(path):
                 vix_close = latest
             elif sym.startswith('$'):
                 continue
+            elif sym == 'RSP':
+                # Use the actual RSP ETF %Change if present in the CSV.
+                # Matches real quote feeds; avoids drift between simple
+                # stock-mean and quarterly-rebalanced ETF performance.
+                pass  # captured below
             else:
                 # Exclude split-related anomalies (|%Change| > 50%) so the
                 # equal-weight average matches what RSP-like ETFs report
                 # (they auto-adjust for splits). See overview-prod.js note.
                 if chg is not None and chg != 0 and abs(chg) < 50:
                     stock_chgs.append(chg)
-    avg_chg = sum(stock_chgs) / len(stock_chgs) if stock_chgs else None
+    # Second pass for RSP — separate from the main loop so the variable
+    # scoping is unambiguous (Python list comprehensions can't share state).
+    rsp_chg = None
+    with open(path, 'r', encoding='utf-8') as f:
+        for row in csv.DictReader(f):
+            if (row.get('Symbol') or '').strip() == 'RSP':
+                v = (row.get('%Change') or '').replace('%','').replace('+','').strip()
+                try: rsp_chg = float(v)
+                except: rsp_chg = None
+                break
+    # Prefer RSP if present and reasonable; fall back to computed mean.
+    if rsp_chg is not None and abs(rsp_chg) < 50:
+        avg_chg = rsp_chg
+    else:
+        avg_chg = sum(stock_chgs) / len(stock_chgs) if stock_chgs else None
     return {'spxPct': spx_pct, 'spxClose': spx_close, 'vixClose': vix_close,
             'avgChange': avg_chg}
 

@@ -240,6 +240,13 @@ async function loadFlowHistory(history, daysBack) {
 function extractDayMetrics(rows, sectorsMap) {
     // Find macros
     const macro = {};
+    // If RSP is in the watchlist (Invesco S&P 500 Equal Weight ETF), grab
+    // its %Change for direct use as the equal-weight benchmark below.
+    // Cleaner than approximating with a simple stock-mean: RSP reflects
+    // quarterly-rebalanced ETF weights + dividends + split adjustments,
+    // exactly matching what the user sees in real quote feeds. Falls
+    // back to the computed mean when RSP isn't present in the CSV.
+    let rspChange = null;
     for (const r of rows) {
         const s = String(r.Symbol || '').trim();
         if (s === '$VIX') { macro.vix = num(r.Latest); macro.vixChgPct = num(r['%Change']); }
@@ -256,11 +263,18 @@ function extractDayMetrics(rows, sectorsMap) {
                 high52: num(r['52W %/High'])
             };
         }
+        else if (s === 'RSP') {
+            rspChange = num(r['%Change']);
+        }
     }
 
-    // Stocks
+    // Stocks — exclude RSP itself (it's an ETF, not a constituent) so it
+    // doesn't bias breadth metrics or get double-counted in avgChange.
     const stocks = rows
-        .filter(r => isStockRow(String(r.Symbol || '').trim()))
+        .filter(r => {
+            const sym = String(r.Symbol || '').trim();
+            return isStockRow(sym) && sym !== 'RSP';
+        })
         .map(normRow)
         .filter(s => s.latest !== null && s.latest > 0);
 
@@ -299,7 +313,17 @@ function extractDayMetrics(rows, sectorsMap) {
     const SPLIT_THRESHOLD = 50;
     const chgs = stocks.map(s => s.chg).filter(v =>
         v !== null && v !== 0 && Math.abs(v) < SPLIT_THRESHOLD);
-    const avgChange = chgs.length ? chgs.reduce((a,b) => a+b, 0) / chgs.length : null;
+    // avgChange — if RSP is in the watchlist, use its exact %Change as the
+    // equal-weight benchmark (matches what real quote feeds show; accounts
+    // for quarterly rebalance drift + dividends + corporate actions that
+    // simple stock-mean misses). Falls back to the computed mean when RSP
+    // isn't present. The drift can be 0.1-0.3% on tech-led rally days,
+    // which was enough to flip the 22/05 KNN spread signal from ✓ to ✗.
+    const computedMean = chgs.length ? chgs.reduce((a,b) => a+b, 0) / chgs.length : null;
+    const avgChange = (rspChange != null && Number.isFinite(rspChange)
+                       && Math.abs(rspChange) < SPLIT_THRESHOLD)
+                      ? rspChange
+                      : computedMean;
     const advancing = chgs.filter(v => v > 0).length;
     const declining = chgs.filter(v => v < 0).length;
 

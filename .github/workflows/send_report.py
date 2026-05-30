@@ -114,10 +114,16 @@ oversold    = sum(1 for s in stocks if s['rsi'] in ('Below 30','New Below 30'))
 p200   = a200 / total * 100 if total else 0
 health = round((a200/total*100)*0.30 + (golden/total*100)*0.25 + (rsi_above50/total*100)*0.25 + (a20/total*100)*0.20) if total else 0
 
-# Exclude split anomalies (|chg|>=50%) — matches overview-prod.js +
-# update_forward_snapshots.py so the email's avgChange aligns with RSP.
-chg_vals   = [s['chg'] for s in stocks if s['chg'] is not None and abs(s['chg']) < 50]
-avg_change = sum(chg_vals) / len(chg_vals) if chg_vals else 0
+# Exclude split anomalies AND prefer RSP if present in watchlist.
+# stocks[] already excludes $-prefixed symbols, but RSP would be there.
+# We pull it out for direct use as the equal-weight benchmark.
+rsp_obj = next((s for s in stocks if s['sym'] == 'RSP'), None)
+chg_vals = [s['chg'] for s in stocks
+            if s['sym'] != 'RSP' and s['chg'] is not None and abs(s['chg']) < 50]
+if rsp_obj and rsp_obj['chg'] is not None and abs(rsp_obj['chg']) < 50:
+    avg_change = rsp_obj['chg']
+else:
+    avg_change = sum(chg_vals) / len(chg_vals) if chg_vals else 0
 
 # ═══════════════════════════════════════════════════
 #  Sector breakdown — who's pushing the market down / up today
@@ -259,6 +265,9 @@ def parse_history_day(hf):
         latest = num(r.get('Latest'))
         if latest is None or latest <= 0: continue
         chg = num(r.get('%Change'))
+        # Skip RSP from stock_chgs — we'll use it directly below if present
+        if sym == 'RSP':
+            continue
         # Exclude split anomalies (see overview-prod.js note on RSP parity)
         if chg is not None and chg != 0 and abs(chg) < 50:
             stock_chgs.append(chg)
@@ -268,6 +277,19 @@ def parse_history_day(hf):
             above_ma200 += 1
     if not stock_chgs:
         return None
+    # Re-scan for RSP (cleaner than tracking inside the loop)
+    rsp_chg = None
+    try:
+        with open(hf, 'r', encoding='utf-8') as f2:
+            for row in csv.DictReader(f2):
+                if (row.get('Symbol') or '').strip() == 'RSP':
+                    rsp_chg = num(row.get('%Change'))
+                    break
+    except Exception:
+        pass
+    eq_change = (rsp_chg
+                 if rsp_chg is not None and abs(rsp_chg) < 50
+                 else sum(stock_chgs) / len(stock_chgs))
     # Date from filename
     base = os.path.basename(hf).replace('watchlist-sp-500-intraday-','').replace('.csv','')
     # Filename is MM-DD-YYYY → ISO YYYY-MM-DD
@@ -275,7 +297,7 @@ def parse_history_day(hf):
     iso = f'{mp[2]}-{mp[0]}-{mp[1]}' if len(mp) == 3 else base
     return {
         'date': iso,
-        'avg_change': sum(stock_chgs) / len(stock_chgs),
+        'avg_change': eq_change,
         'spx_chg_pct': num(spx_row.get('%Change')) if spx_row else None,
         'spx_price':   num(spx_row.get('Latest'))  if spx_row else None,
         'spx_ma200':   num(spx_row.get('200D MA')) if spx_row else None,
