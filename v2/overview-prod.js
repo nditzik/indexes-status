@@ -3312,7 +3312,36 @@ function buildSynergyNarrative(phase, alignment, flowLean, metrics) {
 // Main entry point — called from renderFlowCard / init
 function analyzeMarketFlow(phase, metrics) {
     const flowLean = computeFlowLean(metrics);
-    const alignment = classifyPhaseFlowAlignment(phase.phase.id, flowLean);
+    let alignment = classifyPhaseFlowAlignment(phase.phase.id, flowLean);
+
+    // Hard cross-check: even if the multi-component flowLean lands inside
+    // the phase's expected band, override 'confirm' when the headline
+    // Flow Score itself contradicts the phase strongly. This keeps the
+    // synergy panel honest after the directional-only Flow Score fix —
+    // a 30-point gap between Combined and Flow can't be called "aligned".
+    const fScore = metrics.flow && metrics.flow.score;
+    const cScore = metrics.combined;
+    const isBullishPhase = ['confirmed_uptrend','uptrend_pressure','thrust'].includes(phase.phase.id);
+    const isBearishPhase = ['correction','capitulation','distribution'].includes(phase.phase.id);
+    if (alignment.level === 'confirm' && fScore != null && cScore != null) {
+        const gap = cScore - fScore;
+        if (isBullishPhase && fScore <= 30 && gap >= 20) {
+            alignment = {
+                level: 'bearish_div',
+                label: 'flow שלילי מהצפוי',
+                emoji: '↘',
+                desc: `Flow Score ${fScore} סותר את הפאזה השורית (Combined ${cScore}) — הכסף הגדול לא תומך`
+            };
+        } else if (isBearishPhase && fScore >= 70 && -gap >= 20) {
+            alignment = {
+                level: 'bullish_div',
+                label: 'flow חיובי מהצפוי',
+                emoji: '↗',
+                desc: `Flow Score ${fScore} מעל הפאזה החלשה (Combined ${cScore}) — הכסף הגדול אופטימי`
+            };
+        }
+    }
+
     const signals = generateCrossSignals(phase, metrics, flowLean);
     const narrative = buildSynergyNarrative(phase, alignment, flowLean, metrics);
     return { flowLean, alignment, signals, narrative };
@@ -3823,8 +3852,18 @@ function buildSynergyContent(phase, metrics, flowLean, alignment, signals) {
     const combinedStr = metrics.combined != null ? `${metrics.combined}/100` : '—';
     const flowScoreStr = metrics.flow && metrics.flow.score != null
                         ? `${metrics.flow.score}/100` : '—';
+    const cVal = metrics.combined;
+    const fVal = metrics.flow && metrics.flow.score;
+    // Sanity: are Combined and Flow actually on the same side of 50?
+    const sameSide = (cVal != null && fVal != null)
+        ? ((cVal - 50) * (fVal - 50) >= 0)
+        : null;
     let q1Answer;
-    if (level === 'confirm') {
+    if (level === 'confirm' && sameSide === false) {
+        // Belt-and-suspenders — should be rare after the alignment override,
+        // but if numbers still disagree don't claim they don't.
+        q1Answer = `<b>חלקית.</b> מצב השוק (${combinedStr}) והזרימה (${flowScoreStr}) בכיוונים הפוכים — הסתירה דורשת תשומת לב.`;
+    } else if (level === 'confirm') {
         q1Answer = `<b>כן.</b> מצב השוק (${combinedStr}) והזרימה (${flowScoreStr}) שניהם באותו הכיוון.`;
     } else if (level === 'bullish_div') {
         q1Answer = `<b>הזרימה חזקה יותר.</b> הפאזה (${combinedStr}) פחות שורית מהזרימה (${flowScoreStr}) — אולי שיפור בדרך.`;
