@@ -2907,60 +2907,42 @@ function renderFlowCard(metrics, flowAnalytics) {
         dteSummaryEl.innerHTML = dteSummaryHtml;
     }
 
-    // ─── Aggressive direction interpretation (PREMIUM-WEIGHTED 6-quadrant) ───
+    // ─── Aggressive direction interpretation ───
     //
-    // Premium-Ask% high  = aggressive BUYERS (paid up)
-    // Premium-Ask% low   = aggressive SELLERS (hit bids)
-    //
-    // For calls:  high = bullish (buying)   · low = bearish OR short-vol (writing)
-    // For puts:   high = bearish (hedging)  · low = bullish OR short-vol (writing)
-    //
-    // 6 quadrants:
-    //   • Both high   → Long Volatility (buying premium both sides)
-    //   • Both low    → Short Volatility (writing premium both sides) ← THIS IS TODAY
-    //   • C-high P-low → Strong Bull (buy calls + write puts)
-    //   • C-low  P-high → Strong Bear / Hedge (write calls + buy puts)
-    //   • Mixed       → directional lean per side
-    let aggInterpretation;
+    // Single source of truth: directional premium share (Mid excluded).
+    // call$ vs put$ tells us where aggressive money is going. Same
+    // classifier the Flow Score and 7-day pattern badges use.
     const cAskPm = raw.callAskPremPct;
     const pAskPm = raw.putAskPremPct;
     const cAskTr = raw.callAskPct;
     const pAskTr = raw.putAskPct;
+    const callDirP = (raw.callAskP || 0) + (raw.callBidP || 0);
+    const putDirP  = (raw.putAskP  || 0) + (raw.putBidP  || 0);
+    const pattern = classifyByPremium(callDirP, putDirP);
 
     let headline = '', meaning = '';
-    if (cAskPm == null || pAskPm == null) {
+    if (pattern.id === 'unknown') {
         headline = 'אין מספיק עסקאות directional לקריאה ברורה';
     } else {
-        const cHigh = cAskPm >= 60, cLow = cAskPm <= 40;
-        const pHigh = pAskPm >= 60, pLow = pAskPm <= 40;
-
-        if (cHigh && pLow) {
-            headline = 'שורי חזק 📈';
-            meaning = 'הכסף הגדול קונה calls וכותב puts — מהמרים על עלייה.';
-        } else if (cLow && pHigh) {
-            headline = 'הגנתי / דובי 📉';
-            meaning = 'הכסף הגדול כותב calls וקונה puts — נערכים לירידה או הגנה.';
-        } else if (cLow && pLow) {
-            headline = 'Short Volatility — הימור על דשדוש ⚖️';
-            meaning = 'הכסף הגדול מוכר פרמיה בשני הצדדים — לא מהמרים על כיוון, מהמרים על תנועה הצידה (שוק שלא יזוז משמעותית).';
-        } else if (cHigh && pHigh) {
-            headline = 'Long Volatility — צופים תנודה חזקה ⚡';
-            meaning = 'הכסף הגדול קונה פרמיה בשני הצדדים — מצפים לזעזוע (כיוון לא ידוע).';
-        } else if (cAskPm >= 55) {
-            headline = 'שורי מתון 📈';
-            meaning = 'נטייה לקנייה ב-calls, puts מאוזנים.';
-        } else if (cAskPm <= 45) {
-            headline = 'מטה למכירת calls 🔻';
-            meaning = 'הכסף הגדול כותב calls — סימן ל-cap על העלייה.';
-        } else if (pAskPm >= 55) {
-            headline = 'דרישת הגנה 🛡';
-            meaning = 'הכסף הגדול קונה puts, calls מאוזנים.';
-        } else if (pAskPm <= 45) {
-            headline = 'כותבי puts פעילים 📈';
-            meaning = 'הכסף הגדול כותב puts — אופטימיות שקטה (סימן ל"השוק לא יירד").';
-        } else {
-            headline = 'מאוזן 🔄';
-            meaning = 'אין דומיננטיות ברורה.';
+        const cShare = pattern.callShare;
+        const pShare = Math.round((100 - cShare) * 10) / 10;
+        const callDirM = Math.round(callDirP / 1e6);
+        const putDirM  = Math.round(putDirP  / 1e6);
+        if (pattern.id === 'bullish_strong') {
+            headline = `${pattern.emoji} ${pattern.label} (${cShare}% calls)`;
+            meaning = `הכסף הגדול שופך ל-calls — $${callDirM}M directional ב-calls מול $${putDirM}M ב-puts. ביטחון בעלייה.`;
+        } else if (pattern.id === 'bullish_mild') {
+            headline = `${pattern.emoji} ${pattern.label} (${cShare}% calls)`;
+            meaning = `יותר כסף ל-calls מאשר ל-puts — $${callDirM}M מול $${putDirM}M. נטייה לעלייה.`;
+        } else if (pattern.id === 'balanced') {
+            headline = `${pattern.emoji} ${pattern.label} (${cShare}% / ${pShare}%)`;
+            meaning = `הפרמיה ה-directional חצויה כמעט שווה — $${callDirM}M calls מול $${putDirM}M puts. ללא כיוון ברור.`;
+        } else if (pattern.id === 'bearish_mild') {
+            headline = `${pattern.emoji} ${pattern.label} (${pShare}% puts)`;
+            meaning = `יותר כסף ל-puts מאשר ל-calls — $${putDirM}M מול $${callDirM}M. נטייה לזהירות.`;
+        } else if (pattern.id === 'bearish_strong') {
+            headline = `${pattern.emoji} ${pattern.label} (${pShare}% puts)`;
+            meaning = `הכסף הגדול שופך ל-puts — $${putDirM}M directional ב-puts מול $${callDirM}M ב-calls. חששות אגרסיביים או הגנה כבדה.`;
         }
     }
 
@@ -3311,57 +3293,73 @@ function buildSynergyNarrative(phase, alignment, flowLean, metrics) {
 
 // Main entry point — called from renderFlowCard / init
 function analyzeMarketFlow(phase, metrics) {
+    // flowLean is kept only as input to generateCrossSignals (Q2 items);
+    // alignment + headlines are derived from the premium classifier so
+    // every panel on the page tells the same sentiment story.
     const flowLean = computeFlowLean(metrics);
-    let alignment = classifyPhaseFlowAlignment(phase.phase.id, flowLean);
 
-    // Hard cross-check: even if the multi-component flowLean lands inside
-    // the phase's expected band, override 'confirm' when the headline
-    // Flow Score itself contradicts the phase strongly. This keeps the
-    // synergy panel honest after the directional-only Flow Score fix —
-    // a 30-point gap between Combined and Flow can't be called "aligned".
-    const fScore = metrics.flow && metrics.flow.score;
-    const cScore = metrics.combined;
-    const isBullishPhase = ['confirmed_uptrend','uptrend_pressure','thrust'].includes(phase.phase.id);
-    const isBearishPhase = ['correction','capitulation','distribution'].includes(phase.phase.id);
-    if (alignment.level === 'confirm' && fScore != null && cScore != null) {
-        const gap = cScore - fScore;
-        if (isBullishPhase && fScore <= 30 && gap >= 20) {
-            alignment = {
-                level: 'bearish_div',
-                label: 'flow שלילי מהצפוי',
-                emoji: '↘',
-                desc: `Flow Score ${fScore} סותר את הפאזה השורית (Combined ${cScore}) — הכסף הגדול לא תומך`
-            };
-        } else if (isBearishPhase && fScore >= 70 && -gap >= 20) {
-            alignment = {
-                level: 'bullish_div',
-                label: 'flow חיובי מהצפוי',
-                emoji: '↗',
-                desc: `Flow Score ${fScore} מעל הפאזה החלשה (Combined ${cScore}) — הכסף הגדול אופטימי`
-            };
-        }
+    const raw = metrics.flow && metrics.flow.raw;
+    const flowSentiment = raw ? classifyFlowPattern(raw) : { id: 'unknown', label: 'לא ידוע' };
+    const phaseId = phase.phase.id;
+    const isBullishPhase = ['confirmed_uptrend','uptrend_pressure','thrust'].includes(phaseId);
+    const isBearishPhase = ['correction','capitulation','distribution'].includes(phaseId);
+    const flowBullish = flowSentiment.id === 'bullish_strong' || flowSentiment.id === 'bullish_mild';
+    const flowBearish = flowSentiment.id === 'bearish_strong' || flowSentiment.id === 'bearish_mild';
+    const flowBalanced = flowSentiment.id === 'balanced';
+
+    // Alignment from premium sentiment vs phase direction
+    let alignment;
+    if (flowSentiment.id === 'unknown') {
+        alignment = { level: 'unknown', label: 'אין נתון', emoji: '—', desc: 'אין מספיק נתוני זרימה', flowSentiment };
+    } else if (isBullishPhase && flowBullish) {
+        alignment = { level: 'confirm', label: 'תואם', emoji: '✓', desc: `פאזה שורית + flow ${flowSentiment.label}`, flowSentiment };
+    } else if (isBearishPhase && flowBearish) {
+        alignment = { level: 'confirm', label: 'תואם', emoji: '✓', desc: `פאזה דובית + flow ${flowSentiment.label}`, flowSentiment };
+    } else if (isBullishPhase && flowBearish) {
+        alignment = { level: 'bearish_div', label: 'סטייה דובית', emoji: '↘', desc: `פאזה שורית מול flow ${flowSentiment.label}`, flowSentiment };
+    } else if (isBearishPhase && flowBullish) {
+        alignment = { level: 'bullish_div', label: 'סטייה שורית', emoji: '↗', desc: `פאזה דובית מול flow ${flowSentiment.label}`, flowSentiment };
+    } else if (flowBalanced) {
+        alignment = { level: isBullishPhase || isBearishPhase ? 'neutral_div' : 'confirm', label: 'מאוזן', emoji: '⚖️', desc: `flow מאוזן (${flowSentiment.callShare}%)`, flowSentiment };
+    } else {
+        alignment = { level: 'confirm', label: 'תואם', emoji: '✓', desc: `flow ${flowSentiment.label}`, flowSentiment };
     }
 
     const signals = generateCrossSignals(phase, metrics, flowLean);
     const narrative = buildSynergyNarrative(phase, alignment, flowLean, metrics);
-    return { flowLean, alignment, signals, narrative };
+    return { flowLean, alignment, signals, narrative, flowSentiment };
 }
 
-// ─── Flow pattern classifier (shared between today + history) ───
-// Same 9 quadrants used in the interpretation text.
-function classifyFlowPattern(cAskPm, pAskPm) {
-    if (cAskPm == null || pAskPm == null) return { id: 'unknown', label: 'לא ידוע' };
-    const cHigh = cAskPm >= 60, cLow = cAskPm <= 40;
-    const pHigh = pAskPm >= 60, pLow = pAskPm <= 40;
-    if (cHigh && pLow)         return { id: 'bullish_strong',  label: 'שורי חזק' };
-    if (cLow && pHigh)         return { id: 'bearish_strong',  label: 'דובי חזק' };
-    if (cLow && pLow)          return { id: 'short_vol',       label: 'Short Volatility' };
-    if (cHigh && pHigh)        return { id: 'long_vol',        label: 'Long Volatility' };
-    if (cAskPm >= 55)          return { id: 'bullish_mild',    label: 'שורי מתון' };
-    if (cAskPm <= 45)          return { id: 'bearish_mild',    label: 'מטה למכירת calls' };
-    if (pAskPm >= 55)          return { id: 'hedge_demand',    label: 'דרישת הגנה' };
-    if (pAskPm <= 45)          return { id: 'writing_puts',    label: 'כותבי puts' };
-    return                              { id: 'balanced',      label: 'מאוזן' };
+// ─── Unified premium-based sentiment classifier ───
+//
+// Single source of truth for sentiment across the whole page. Compares
+// directional call premium against directional put premium (Ask+Bid,
+// Mid excluded as dealer/block). Used by:
+//   1. Flow Score (component A — already implemented)
+//   2. 7-day pattern badges (classifyFlowPattern, below)
+//   3. Aggressive-direction headline inside the Flow card
+//   4. Synergy panel headline + Q1 answer
+//
+// Five levels — same thresholds, same labels, same colors everywhere.
+function classifyByPremium(callDirP, putDirP) {
+    const tot = (callDirP || 0) + (putDirP || 0);
+    if (tot <= 0) return { id: 'unknown', label: 'לא ידוע', callShare: null, tone: 'muted' };
+    const callShare = (callDirP / tot) * 100;
+    let id, label, tone, emoji;
+    if      (callShare >= 70) { id = 'bullish_strong'; label = 'שורי חזק';   tone = 'pos';  emoji = '💪'; }
+    else if (callShare >= 58) { id = 'bullish_mild';   label = 'שורי מתון';  tone = 'pos';  emoji = '📈'; }
+    else if (callShare >= 42) { id = 'balanced';       label = 'מאוזן';      tone = 'warn'; emoji = '⚖️'; }
+    else if (callShare >  30) { id = 'bearish_mild';   label = 'באריש מתון'; tone = 'warn'; emoji = '📉'; }
+    else                       { id = 'bearish_strong'; label = 'באריש חזק'; tone = 'neg';  emoji = '🔻'; }
+    return { id, label, tone, emoji, callShare: Math.round(callShare * 10) / 10 };
+}
+
+// Convenience: classify directly from a raw row.
+function classifyFlowPattern(raw) {
+    if (!raw) return { id: 'unknown', label: 'לא ידוע' };
+    const callDir = (raw.callAskP || 0) + (raw.callBidP || 0);
+    const putDir  = (raw.putAskP  || 0) + (raw.putBidP  || 0);
+    return classifyByPremium(callDir, putDir);
 }
 
 // ═════════════════════════════════════════════════════════════════════
@@ -3683,7 +3681,7 @@ function renderMarketFlowSynergy(phase, metrics) {
     const p = phase.phase;
 
     // Flow pattern (from existing classifier)
-    const flowPattern = classifyFlowPattern(metrics.flow.raw.callAskPremPct, metrics.flow.raw.putAskPremPct);
+    const flowPattern = classifyFlowPattern(metrics.flow.raw);
 
     // Lean visual — horizontal bar with marker
     const leanPct = flowLean != null ? Math.max(0, Math.min(100, (flowLean + 100) / 2)) : 50;
@@ -3702,6 +3700,7 @@ function renderMarketFlowSynergy(phase, metrics) {
     const alignClass = alignment.level === 'confirm' ? 'ov2-synergy-confirm'
                      : alignment.level === 'bullish_div' ? 'ov2-synergy-bullish-div'
                      : alignment.level === 'bearish_div' ? 'ov2-synergy-bearish-div'
+                     : alignment.level === 'neutral_div' ? 'ov2-synergy-bearish-div'
                      : 'ov2-synergy-neutral';
 
     // ─── New layout (2026-05-26): conclusion-first + Q&A + collapsible
@@ -3805,44 +3804,63 @@ function buildSynergyContent(phase, metrics, flowLean, alignment, signals) {
     const isBearishPhase = ['correction','capitulation','distribution'].includes(phaseId);
     const level = alignment.level; // confirm / bullish_div / bearish_div / neutral / unknown
 
+    const flowSentiment = alignment.flowSentiment || { id: 'unknown', label: 'לא ידוע' };
+    const flowLabel = flowSentiment.label;
+    const flowStrong = flowSentiment.id === 'bullish_strong' || flowSentiment.id === 'bearish_strong';
+
     // ─── Status badge (top-left of conclusion banner) ──
     let statusIcon = '⚪', statusLabel = 'אין נתון', statusClass = 'ov2-synergy-muted';
     if (level === 'confirm') {
-        statusIcon = '🟢'; statusLabel = 'תואם'; statusClass = 'ov2-synergy-confirm';
+        statusIcon = '🟢'; statusLabel = `תואם · ${flowLabel}`; statusClass = 'ov2-synergy-confirm';
     } else if (level === 'bullish_div') {
-        statusIcon = '🟢'; statusLabel = 'הזרימה חזקה מהפאזה';
+        statusIcon = '🟢'; statusLabel = `סטייה שורית · ${flowLabel}`;
         statusClass = 'ov2-synergy-bullish-div';
     } else if (level === 'bearish_div') {
-        statusIcon = '🟡'; statusLabel = 'סטייה — זרימה זהירה';
+        statusIcon = flowStrong ? '🔴' : '🟡';
+        statusLabel = `סטייה דובית · ${flowLabel}`;
+        statusClass = 'ov2-synergy-bearish-div';
+    } else if (level === 'neutral_div') {
+        statusIcon = '🟡'; statusLabel = `flow מאוזן`;
         statusClass = 'ov2-synergy-bearish-div';
     }
 
     // ─── Headline + action (top conclusion) ──
+    // Phrasing now mentions the actual flow sentiment label so the synergy
+    // narrative is literally derived from the same classifier as the
+    // Flow Score, the 7-day badges, and the Aggressive-direction line.
     let headline, action;
     if (level === 'confirm' && isBullishPhase) {
-        headline = 'השוק שורי והכסף הגדול מאשר את המגמה.';
+        headline = `השוק שורי והכסף הגדול ${flowLabel} — מאשר את המגמה.`;
         action = 'אישור מבנה — אפשר להמשיך בגישה הנוכחית.';
     } else if (level === 'confirm' && isBearishPhase) {
-        headline = 'השוק חלש והכסף הגדול מאשר את הסיכון.';
+        headline = `השוק חלש והכסף הגדול ${flowLabel} — מאשר את הסיכון.`;
         action = 'אישור מבנה — להישאר בגישת הגנה.';
     } else if (level === 'confirm') {
-        headline = 'הזרימה תואמת לשלב הנוכחי של השוק.';
+        headline = `הזרימה ${flowLabel} — תואמת לשלב הנוכחי של השוק.`;
         action = 'אין סתירה בין המקורות — אפשר להמשיך בגישה הנוכחית.';
     } else if (level === 'bullish_div' && isBearishPhase) {
-        headline = 'השוק עוד חלש אבל הכסף הגדול מתחיל להיכנס.';
+        headline = `השוק עוד חלש אבל הכסף הגדול ${flowLabel} — מתחיל להיכנס.`;
         action = 'סיגנל ראשוני להתאוששות — להמתין לאישור מחיר לפני הוספת חשיפה.';
     } else if (level === 'bullish_div') {
-        headline = 'הזרימה חיובית יותר מהשלב הנוכחי.';
+        headline = `הזרימה ${flowLabel} — חיובית יותר מהשלב הנוכחי.`;
         action = 'אפשר התאוששות — שווה לעקוב אחרי הפאזה לשיפור.';
     } else if (level === 'bearish_div' && isBullishPhase) {
-        headline = 'השוק שורי אבל הכסף הגדול זהיר יותר.';
-        action = 'סימן אזהרה — להמשיך לעקוב, לא לפעול.';
+        headline = `השוק שורי אבל הכסף הגדול ${flowLabel} — סתירה ${flowStrong ? 'דרמטית' : 'משמעותית'}.`;
+        action = flowStrong
+            ? 'אזהרה ברורה — הכסף הגדול נערך לירידה. לא להוסיף חשיפה, להדק stop-loss.'
+            : 'סימן אזהרה — להמשיך לעקוב, לא לפעול.';
     } else if (level === 'bearish_div' && isBearishPhase) {
-        headline = 'הזרימה אפילו יותר חלשה מהשוק.';
+        headline = `הזרימה ${flowLabel} — אפילו יותר חלשה מהשוק.`;
         action = 'הסיכון מתחזק — להגן יותר.';
     } else if (level === 'bearish_div') {
-        headline = 'הזרימה זהירה יותר מהשלב הנוכחי.';
+        headline = `הזרימה ${flowLabel} — זהירה יותר מהשלב הנוכחי.`;
         action = 'סימן זהירות — להמתין לפני פעולה.';
+    } else if (level === 'neutral_div' && isBullishPhase) {
+        headline = `השוק שורי אבל הכסף הגדול ${flowLabel} — חוסר אישור.`;
+        action = 'התקדמות בלי תמיכת flow — להמשיך בזהירות.';
+    } else if (level === 'neutral_div' && isBearishPhase) {
+        headline = `השוק חלש אבל הכסף הגדול ${flowLabel} — אין שיפור עדיין.`;
+        action = 'אין סימן להתאוששות — להמשיך בהגנה.';
     } else {
         headline = 'אין מספיק נתונים לחיבור בין השוק לזרימה.';
         action = '—';
@@ -3852,23 +3870,18 @@ function buildSynergyContent(phase, metrics, flowLean, alignment, signals) {
     const combinedStr = metrics.combined != null ? `${metrics.combined}/100` : '—';
     const flowScoreStr = metrics.flow && metrics.flow.score != null
                         ? `${metrics.flow.score}/100` : '—';
-    const cVal = metrics.combined;
-    const fVal = metrics.flow && metrics.flow.score;
-    // Sanity: are Combined and Flow actually on the same side of 50?
-    const sameSide = (cVal != null && fVal != null)
-        ? ((cVal - 50) * (fVal - 50) >= 0)
-        : null;
+    const shareStr = flowSentiment.callShare != null
+        ? `${flowSentiment.callShare}% מהפרמיה ה-directional ל-calls`
+        : '';
     let q1Answer;
-    if (level === 'confirm' && sameSide === false) {
-        // Belt-and-suspenders — should be rare after the alignment override,
-        // but if numbers still disagree don't claim they don't.
-        q1Answer = `<b>חלקית.</b> מצב השוק (${combinedStr}) והזרימה (${flowScoreStr}) בכיוונים הפוכים — הסתירה דורשת תשומת לב.`;
-    } else if (level === 'confirm') {
-        q1Answer = `<b>כן.</b> מצב השוק (${combinedStr}) והזרימה (${flowScoreStr}) שניהם באותו הכיוון.`;
+    if (level === 'confirm') {
+        q1Answer = `<b>כן.</b> השוק (${combinedStr}) והזרימה (${flowScoreStr} · ${flowLabel}) באותו הכיוון. ${shareStr}.`;
     } else if (level === 'bullish_div') {
-        q1Answer = `<b>הזרימה חזקה יותר.</b> הפאזה (${combinedStr}) פחות שורית מהזרימה (${flowScoreStr}) — אולי שיפור בדרך.`;
+        q1Answer = `<b>הזרימה חזקה יותר.</b> הפאזה (${combinedStr}) פחות שורית מהזרימה (${flowScoreStr} · ${flowLabel}). ${shareStr}.`;
     } else if (level === 'bearish_div') {
-        q1Answer = `<b>חלקית.</b> הפאזה (${combinedStr}) במצב חזק מהזרימה (${flowScoreStr}) — הכסף הגדול לא מאשר את העוצמה.`;
+        q1Answer = `<b>לא.</b> הפאזה ב-${combinedStr} אבל הזרימה ${flowLabel} (${flowScoreStr}). ${shareStr} — הכסף הגדול בכיוון הפוך.`;
+    } else if (level === 'neutral_div') {
+        q1Answer = `<b>לא ברור.</b> הפאזה (${combinedStr}) אבל הזרימה ${flowLabel} (${flowScoreStr}). ${shareStr} — אין הכרעה מצד הכסף הגדול.`;
     } else {
         q1Answer = '<b>לא ניתן לקבוע.</b> אין מספיק נתוני זרימה לקישור.';
     }
@@ -3941,14 +3954,14 @@ function renderFlowHistory(rawToday, scoreToday, allDays) {
     const wrap = $('flowHistory');
     if (!wrap || !allDays || allDays.length === 0) return;
 
-    // Today's pattern (using premium-weighted Ask%)
-    const todayPattern = classifyFlowPattern(rawToday.callAskPremPct, rawToday.putAskPremPct);
+    // Today's pattern — directional premium share (call$ vs put$)
+    const todayPattern = classifyFlowPattern(rawToday);
 
     // Count pattern occurrences across all historical days
     let sameAsToday = 0;
     const patternCounts = {};  // by id
     for (const d of allDays) {
-        const p = classifyFlowPattern(d.raw.callAskPremPct, d.raw.putAskPremPct);
+        const p = classifyFlowPattern(d.raw);
         patternCounts[p.id] = (patternCounts[p.id] || 0) + 1;
         if (p.id === todayPattern.id) sameAsToday++;
     }
@@ -3976,7 +3989,7 @@ function renderFlowHistory(rawToday, scoreToday, allDays) {
     // Recent pattern history — last 7 days
     const last7Days = allDays.slice(-7);
     const recentPatterns = last7Days.map(d => {
-        const p = classifyFlowPattern(d.raw.callAskPremPct, d.raw.putAskPremPct);
+        const p = classifyFlowPattern(d.raw);
         return { date: d.date, score: d.score, patternId: p.id, patternLabel: p.label };
     });
 
