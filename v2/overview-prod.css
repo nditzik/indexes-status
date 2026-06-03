@@ -1781,6 +1781,12 @@
     font-weight: 700;
     margin-top: 4px;
 }
+.overview-prod-root .ov2-flow-score-side {
+    font-size: 11px;
+    font-family: var(--ov2-font-mono);
+    margin-top: 6px;
+    line-height: 1.4;
+}
 .overview-prod-root .ov2-flow-status {
     font-size: 14px;
     font-weight: 700;

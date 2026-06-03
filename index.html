@@ -2059,10 +2059,11 @@
                         </div>
 
                         <div class="ov2-flow-grid">
-                            <div class="ov2-flow-score-block" data-tooltip="ציון 0-100 שמסכם את כיוון זרימת הכסף. גבוה = כסף קונה calls (אופטימי), נמוך = כסף קונה puts (הגנתי)">
+                            <div class="ov2-flow-score-block" data-tooltip="ציון 0-100 שמסכם את כיוון זרימת הכסף הישיר (Ask+Bid). גבוה = כסף קונה calls אגרסיבי, נמוך = כסף קונה puts אגרסיבי. Mid מוחרג מהחישוב — דילרים/בלוקים אינם כיווניים.">
                                 <div class="ov2-flow-score-val" id="ov2_flowScoreVal">—</div>
-                                <div class="ov2-flow-score-label">ציון Flow</div>
+                                <div class="ov2-flow-score-label">ציון Flow · directional</div>
                                 <div class="ov2-flow-status" id="ov2_flowStatus">—</div>
+                                <div class="ov2-flow-score-side" id="ov2_flowScoreSide" style="display:none;"></div>
                             </div>
 
                             <div class="ov2-flow-metric" data-tooltip="P/C Premium = יחס פרמיית puts ל-calls. ב-SPX הממוצע הוא 0.34. ערכים גבוהים = יותר ביקוש להגנה. ה-z-score מודד כמה רחוק מהממוצע">

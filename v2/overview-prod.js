@@ -748,12 +748,41 @@ function computeFlowAnalytics(flowHistory) {
     //    IV skew omitted on purpose — SPX has a structurally positive
     //    skew (institutional hedging premium on OTM puts) that's noise
     //    rather than signal in an absolute frame.
+    // Component A — share of DIRECTIONAL premium that's calls.
+    // CRITICAL revision 2026-06-03: previous A used overall premium
+    // (calls / total) which lumped Mid trades in with Ask/Bid. On
+    // block-heavy days (e.g. 2026-06-03 with $8.09B in call Mid = 95%
+    // of call premium), this inflated A to ~65% and produced a "67
+    // neutral-bullish" reading while the actual directional flow had
+    // puts outpacing calls 5:1. The whole purpose of the score is to
+    // surface what aggressive buyers are doing — Mid (dealer blocks /
+    // RFQ / spread legs) doesn't reflect directional intent.
+    function directionalCallPct(r) {
+        const dCall = (r.callAskP || 0) + (r.callBidP || 0);
+        const dPut  = (r.putAskP  || 0) + (r.putBidP  || 0);
+        const tot = dCall + dPut;
+        if (tot <= 0) return null;
+        return (dCall / tot) * 100;
+    }
+
+    // Mid dominance — fraction of premium that's in Mid trades. Used
+    // both as a warning indicator and as a fallback signal (when Mid
+    // dominates, the directional read is reliable but small-sample).
+    function midDominance(r) {
+        const mid = (r.callMidP || 0) + (r.putMidP || 0);
+        const tot = (r.callP || 0) + (r.putP || 0);
+        if (tot <= 0) return 0;
+        return (mid / tot) * 100;
+    }
+
     function scoreFromMetrics(r) {
         if (!r) return null;
         let s = 50;
-        // A — P/C premium balance (dominant input)
-        if (r.call_premium_pct != null && Number.isFinite(r.call_premium_pct)) {
-            s += (r.call_premium_pct - 50) * 1.0;
+        // A — directional P/C balance (Mid excluded). Was overall premium
+        // until 2026-06-03; see directionalCallPct comment for the why.
+        const aDirectional = directionalCallPct(r);
+        if (aDirectional != null) {
+            s += (aDirectional - 50) * 1.0;
         }
         // B — aggressive call buying share (ask% of directional call premium)
         if (r.callAskPremPct != null && Number.isFinite(r.callAskPremPct)) {
@@ -766,13 +795,35 @@ function computeFlowAnalytics(flowHistory) {
         return Math.max(0, Math.min(100, Math.round(s)));
     }
 
+    // Old "absolute" formula — kept for display alongside the directional
+    // score so the user can see both reads. Uses the overall premium %.
+    function scoreFromMetricsAbsolute(r) {
+        if (!r) return null;
+        let s = 50;
+        if (r.call_premium_pct != null && Number.isFinite(r.call_premium_pct)) {
+            s += (r.call_premium_pct - 50) * 1.0;
+        }
+        if (r.callAskPremPct != null && Number.isFinite(r.callAskPremPct)) {
+            s += (r.callAskPremPct - 50) * 0.5;
+        }
+        if (r.putAskPremPct != null && Number.isFinite(r.putAskPremPct)) {
+            s -= (r.putAskPremPct - 50) * 0.5;
+        }
+        return Math.max(0, Math.min(100, Math.round(s)));
+    }
+
     const score = scoreFromMetrics(today);
+    const scoreAbsolute = scoreFromMetricsAbsolute(today);
+    const midPct = midDominance(today);
 
     // 5b. Each historical day's score is computed from its OWN flow
     //     metrics — no shared baseline, no z-scores. days[i].score is
-    //     therefore reproducible from days[i].raw alone.
+    //     therefore reproducible from days[i].raw alone. Each day also
+    //     gets the absolute score + mid dominance for display.
     for (let i = 0; i < days.length; i++) {
         days[i].score = scoreFromMetrics(days[i].raw);
+        days[i].scoreAbsolute = scoreFromMetricsAbsolute(days[i].raw);
+        days[i].midPct = midDominance(days[i].raw);
     }
 
     // 6. Debug log for chip decisions
@@ -803,7 +854,7 @@ function computeFlowAnalytics(flowHistory) {
                      ? `z=${z.iv_skew.toFixed(2)} ${z.iv_skew > 1.0 ? '> +1.0 → SKEW ELEVATED' : 'normal'}`
                      : 'no baseline');
 
-    return { score, today, ema, z, baselines, days, debug };
+    return { score, scoreAbsolute, midPct, today, ema, z, baselines, days, debug };
 }
 
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
@@ -2618,10 +2669,28 @@ function renderFlowCard(metrics, flowAnalytics) {
     else if (score >= 30)     { status = 'הגנתי · כסף קונה protection';        statusClass = 'ov2-warn'; }
     else                       { status = 'הגנה אגרסיבית · חששות';             statusClass = 'ov2-neg'; }
 
-    // Top score block
+    // Top score block — main number is the directional score, with a
+    // small footer showing the absolute (overall premium) read for
+    // context when Mid dominates. The mid-warning surfaces only when
+    // Mid is >=70% (the "block-heavy day" regime).
     $('flowScoreVal').textContent = score != null ? score : '—';
     $('flowStatus').textContent = status;
     $('flowStatus').className = 'ov2-flow-status ' + statusClass;
+    const sideEl = $('flowScoreSide');
+    if (sideEl) {
+        if (f.midPct != null && f.midPct >= 70 && f.scoreAbsolute != null) {
+            sideEl.style.display = '';
+            sideEl.innerHTML =
+                `<span style="color:#b45309;">⚠ ${f.midPct.toFixed(0)}% Mid</span> · ` +
+                `<span style="color:var(--ov2-text-3);">absolute: <b>${f.scoreAbsolute}</b></span>`;
+        } else if (f.scoreAbsolute != null && Math.abs(f.scoreAbsolute - score) >= 10) {
+            sideEl.style.display = '';
+            sideEl.innerHTML =
+                `<span style="color:var(--ov2-text-3);">absolute: <b>${f.scoreAbsolute}</b></span>`;
+        } else {
+            sideEl.style.display = 'none';
+        }
+    }
 
     // Top metrics row
     $('flowPcPremiumVal').textContent = raw.pc_premium != null ? raw.pc_premium.toFixed(2) : '—';
@@ -2992,16 +3061,21 @@ function renderFlowCard(metrics, flowAnalytics) {
         `;
     }
 
-    // Flow internal formula — absolute, no z-scores (rewritten 2026-05-26
-    // to match the new absolute formula implemented in computeFlowAnalytics).
-    // Previous text described the OLD z-score baseline approach that was
-    // replaced on 2026-05-24; the score itself was correct but the
-    // breakdown shown to the user was misleading.
+    // Flow internal formula — directional (Mid excluded as of 2026-06-03).
+    // Component A used to be call_premium_pct (overall premium, included
+    // Mid). On block-heavy days that read as misleadingly bullish — see
+    // computeFlowAnalytics scoreFromMetrics comment. Now A uses only
+    // directional premium (Ask + Bid).
     const flowFormula = $('flowFormulaInternal');
     if (flowFormula) {
-        const A = raw.call_premium_pct;
+        // Recompute A_directional locally for display
+        const dCall = (raw.callAskP || 0) + (raw.callBidP || 0);
+        const dPut  = (raw.putAskP  || 0) + (raw.putBidP  || 0);
+        const dTot  = dCall + dPut;
+        const A = dTot > 0 ? (dCall / dTot) * 100 : null;
         const B = raw.callAskPremPct;
         const C = raw.putAskPremPct;
+        const A_absolute = raw.call_premium_pct;
         const fmtPct = v => v != null && Number.isFinite(v)
                             ? v.toFixed(1) + '%' : '—';
         // Contributions matching the formula in computeFlowAnalytics
@@ -3009,12 +3083,20 @@ function renderFlowCard(metrics, flowAnalytics) {
         const contribB = B != null ? (B - 50) * 0.5 : 0;
         const contribC = C != null ? -(C - 50) * 0.5 : 0;
         const fmtContrib = v => (v >= 0 ? '+' : '') + v.toFixed(1);
+        const midNote = f.midPct >= 70
+            ? `<div style="margin-top:6px;font-size:11px;color:#b45309;background:rgba(245,158,11,0.10);padding:6px 10px;border-radius:4px;border-right:3px solid #f59e0b;">⚠ <b>${f.midPct.toFixed(0)}% מהפרמיה ב-Mid</b> — דילרים/בלוקים דומיננטיים, רק ${(100-f.midPct).toFixed(0)}% directional. הציון המתוקן (${f.score}) משקף את ה-directional בלבד; הציון "אבסולוטי" הישן (${f.scoreAbsolute}) היה ${f.scoreAbsolute - f.score >= 0 ? 'גבוה יותר ב-' + (f.scoreAbsolute - f.score) + ' נקודות' : 'נמוך יותר ב-' + (f.score - f.scoreAbsolute) + ' נקודות'} כי הוא כלל את ה-Mid.</div>`
+            : '';
         flowFormula.innerHTML = `
             ציון Flow מתחיל מ-50 ומתעדכן לפי שלושה רכיבי flow גולמיים של היום (ללא baseline היסטורי):<br>
-            <b>+ A — אחוז קולים</b> ((${fmtPct(A)} − 50) × 1.0 = ${fmtContrib(contribA)})
-            <b>+ B — Ask% של קולים</b> ((${fmtPct(B)} − 50) × 0.5 = ${fmtContrib(contribB)})
-            <b>− C — Ask% של פוטים</b> ((${fmtPct(C)} − 50) × 0.5 → ${fmtContrib(contribC)})
+            <b>+ A — אחוז קולים בעסקאות directional</b> (Ask+Bid בלבד, ללא Mid) ((${fmtPct(A)} − 50) × 1.0 = ${fmtContrib(contribA)})
+            <b>+ B — Ask% מתוך קולים directional</b> ((${fmtPct(B)} − 50) × 0.5 = ${fmtContrib(contribB)})
+            <b>− C — Ask% מתוך פוטים directional</b> ((${fmtPct(C)} − 50) × 0.5 → ${fmtContrib(contribC)})
             <br>50 ${fmtContrib(contribA)} ${fmtContrib(contribB)} ${fmtContrib(contribC)} = <b>${fScore != null ? fScore : '—'}/100</b>
+            <div style="margin-top:8px;font-size:11px;color:var(--ov2-text-3);">
+                להשוואה: ציון "אבסולוטי" (גרסה ישנה, A על-בסיס כל הפרמיה כולל Mid) = <b>${f.scoreAbsolute != null ? f.scoreAbsolute : '—'}/100</b>.
+                A_absolute = ${fmtPct(A_absolute)}.
+            </div>
+            ${midNote}
         `;
     }
 }
