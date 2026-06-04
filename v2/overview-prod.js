@@ -3963,7 +3963,7 @@ function renderFlowHistory(rawToday, scoreToday, allDays) {
     if (!wrap || !allDays || allDays.length === 0) return;
 
     // Today's pattern — derived from the Flow Score
-    const todayPattern = classifyFlowPattern(rawToday, score);
+    const todayPattern = classifyFlowPattern(rawToday, scoreToday);
 
     // Count pattern occurrences across all historical days
     let sameAsToday = 0;
