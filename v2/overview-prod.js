@@ -2918,7 +2918,7 @@ function renderFlowCard(metrics, flowAnalytics) {
     const pAskTr = raw.putAskPct;
     const callDirP = (raw.callAskP || 0) + (raw.callBidP || 0);
     const putDirP  = (raw.putAskP  || 0) + (raw.putBidP  || 0);
-    const pattern = classifyByPremium(callDirP, putDirP);
+    const pattern = classifyByScore(score, raw);
 
     let headline = '', meaning = '';
     if (pattern.id === 'unknown') {
@@ -3299,7 +3299,8 @@ function analyzeMarketFlow(phase, metrics) {
     const flowLean = computeFlowLean(metrics);
 
     const raw = metrics.flow && metrics.flow.raw;
-    const flowSentiment = raw ? classifyFlowPattern(raw) : { id: 'unknown', label: 'לא ידוע' };
+    const fScore = metrics.flow && metrics.flow.score;
+    const flowSentiment = raw ? classifyFlowPattern(raw, fScore) : { id: 'unknown', label: 'לא ידוע' };
     const phaseId = phase.phase.id;
     const isBullishPhase = ['confirmed_uptrend','uptrend_pressure','thrust'].includes(phaseId);
     const isBearishPhase = ['correction','capitulation','distribution'].includes(phaseId);
@@ -3330,36 +3331,43 @@ function analyzeMarketFlow(phase, metrics) {
     return { flowLean, alignment, signals, narrative, flowSentiment };
 }
 
-// ─── Unified premium-based sentiment classifier ───
+// ─── Unified sentiment classifier — derives from Flow Score ───
 //
-// Single source of truth for sentiment across the whole page. Compares
-// directional call premium against directional put premium (Ask+Bid,
-// Mid excluded as dealer/block). Used by:
-//   1. Flow Score (component A — already implemented)
-//   2. 7-day pattern badges (classifyFlowPattern, below)
+// Single source of truth for sentiment across the whole page. Maps the
+// (already directional, premium-based) Flow Score to a 5-level label.
+// Used by:
+//   1. Flow Score's status text (Risk-On / nautral / defensive...)
+//   2. 7-day pattern badges
 //   3. Aggressive-direction headline inside the Flow card
 //   4. Synergy panel headline + Q1 answer
 //
-// Five levels — same thresholds, same labels, same colors everywhere.
-function classifyByPremium(callDirP, putDirP) {
-    const tot = (callDirP || 0) + (putDirP || 0);
-    if (tot <= 0) return { id: 'unknown', label: 'לא ידוע', callShare: null, tone: 'muted' };
-    const callShare = (callDirP / tot) * 100;
+// Bands chosen so the labels match what people expect from a 0-100
+// score: the midpoint ±10 is "balanced", and "strong" only kicks in
+// past ±30 from 50.
+function classifyByScore(score, raw) {
+    if (score == null) return { id: 'unknown', label: 'לא ידוע', tone: 'muted', emoji: '—' };
     let id, label, tone, emoji;
-    if      (callShare >= 70) { id = 'bullish_strong'; label = 'שורי חזק';   tone = 'pos';  emoji = '💪'; }
-    else if (callShare >= 58) { id = 'bullish_mild';   label = 'שורי מתון';  tone = 'pos';  emoji = '📈'; }
-    else if (callShare >= 42) { id = 'balanced';       label = 'מאוזן';      tone = 'warn'; emoji = '⚖️'; }
-    else if (callShare >  30) { id = 'bearish_mild';   label = 'באריש מתון'; tone = 'warn'; emoji = '📉'; }
-    else                       { id = 'bearish_strong'; label = 'באריש חזק'; tone = 'neg';  emoji = '🔻'; }
-    return { id, label, tone, emoji, callShare: Math.round(callShare * 10) / 10 };
+    if      (score >= 80) { id = 'bullish_strong'; label = 'שורי חזק';   tone = 'pos';  emoji = '💪'; }
+    else if (score >= 60) { id = 'bullish_mild';   label = 'שורי מתון';  tone = 'pos';  emoji = '📈'; }
+    else if (score >= 40) { id = 'balanced';       label = 'מאוזן';      tone = 'warn'; emoji = '⚖️'; }
+    else if (score >= 20) { id = 'bearish_mild';   label = 'באריש מתון'; tone = 'warn'; emoji = '📉'; }
+    else                   { id = 'bearish_strong'; label = 'באריש חזק'; tone = 'neg';  emoji = '🔻'; }
+
+    // Attach the headline directional read for callers that want to quote it.
+    let callShare = null;
+    if (raw) {
+        const callDir = (raw.callAskP || 0) + (raw.callBidP || 0);
+        const putDir  = (raw.putAskP  || 0) + (raw.putBidP  || 0);
+        const tot = callDir + putDir;
+        if (tot > 0) callShare = Math.round((callDir / tot) * 1000) / 10;
+    }
+    return { id, label, tone, emoji, callShare };
 }
 
-// Convenience: classify directly from a raw row.
-function classifyFlowPattern(raw) {
-    if (!raw) return { id: 'unknown', label: 'לא ידוע' };
-    const callDir = (raw.callAskP || 0) + (raw.callBidP || 0);
-    const putDir  = (raw.putAskP  || 0) + (raw.putBidP  || 0);
-    return classifyByPremium(callDir, putDir);
+// Convenience: classify by Flow Score (callers always have it computed).
+function classifyFlowPattern(raw, score) {
+    if (!raw || score == null) return { id: 'unknown', label: 'לא ידוע' };
+    return classifyByScore(score, raw);
 }
 
 // ═════════════════════════════════════════════════════════════════════
@@ -3681,7 +3689,7 @@ function renderMarketFlowSynergy(phase, metrics) {
     const p = phase.phase;
 
     // Flow pattern (from existing classifier)
-    const flowPattern = classifyFlowPattern(metrics.flow.raw);
+    const flowPattern = classifyFlowPattern(metrics.flow.raw, metrics.flow.score);
 
     // Lean visual — horizontal bar with marker
     const leanPct = flowLean != null ? Math.max(0, Math.min(100, (flowLean + 100) / 2)) : 50;
@@ -3954,14 +3962,14 @@ function renderFlowHistory(rawToday, scoreToday, allDays) {
     const wrap = $('flowHistory');
     if (!wrap || !allDays || allDays.length === 0) return;
 
-    // Today's pattern — directional premium share (call$ vs put$)
-    const todayPattern = classifyFlowPattern(rawToday);
+    // Today's pattern — derived from the Flow Score
+    const todayPattern = classifyFlowPattern(rawToday, score);
 
     // Count pattern occurrences across all historical days
     let sameAsToday = 0;
     const patternCounts = {};  // by id
     for (const d of allDays) {
-        const p = classifyFlowPattern(d.raw);
+        const p = classifyFlowPattern(d.raw, d.score);
         patternCounts[p.id] = (patternCounts[p.id] || 0) + 1;
         if (p.id === todayPattern.id) sameAsToday++;
     }
@@ -3989,7 +3997,7 @@ function renderFlowHistory(rawToday, scoreToday, allDays) {
     // Recent pattern history — last 7 days
     const last7Days = allDays.slice(-7);
     const recentPatterns = last7Days.map(d => {
-        const p = classifyFlowPattern(d.raw);
+        const p = classifyFlowPattern(d.raw, d.score);
         return { date: d.date, score: d.score, patternId: p.id, patternLabel: p.label };
     });
 
