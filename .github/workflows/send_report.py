@@ -392,7 +392,52 @@ def tech_score():
 t_score = tech_score()
 
 # ═══════════════════════════════════════════════════
-#  Score 3 · Options Flow
+#  Score 2b · Breadth — mirror of dashboard scoreBreadth
+#  Replaces market_score in the Combined weighting so the email's
+#  Combined number matches the dashboard's (0.40·T + 0.35·F + 0.25·B).
+# ═══════════════════════════════════════════════════
+def breadth_score():
+    parts, max_ = [], 0
+    # MA200 component (25)
+    parts.append(25 if p200 >= 65 else 18 if p200 >= 50 else 10 if p200 >= 40 else 3)
+    max_ += 25
+    # Health (15)
+    parts.append(15 if health >= 70 else 10 if health >= 55 else 5 if health >= 40 else 1)
+    max_ += 15
+    # NH/NL ratio (10)
+    if nh_nl == 99 or nh_nl >= 1.5: parts.append(10)
+    elif nh_nl >= 1.0: parts.append(7)
+    elif nh_nl >= 0.7: parts.append(3)
+    else: parts.append(0)
+    max_ += 10
+    # Avg change (5)
+    if avg_change is not None:
+        parts.append(5 if avg_change > 0.5 else 3 if avg_change >= -0.5 else 0)
+        max_ += 5
+    # RSI ≥50 share (10)
+    if total:
+        rsi50pct = rsi_above50 / total * 100
+        parts.append(10 if rsi50pct >= 65 else 7 if rsi50pct >= 50 else 4 if rsi50pct >= 40 else 1)
+        max_ += 10
+    if max_ == 0: return None
+    return clamp(round(sum(parts) / max_ * 100))
+
+b_score = breadth_score()
+
+# ═══════════════════════════════════════════════════
+#  Score 3 · Options Flow — mirror of dashboard formula
+#
+#  Dashboard's directional Flow Score (overview-prod.js scoreFromMetrics):
+#    score = 50
+#          + (callShare       - 50) * 1.0    # directional premium share
+#          + (callAskPmDir    - 50) * 0.5    # call Ask aggression
+#          - (putAskPmDir     - 50) * 0.5    # put Ask aggression (inverted)
+#  where:
+#    callShare    = callDir$ / (callDir$ + putDir$)
+#    callDir$     = callAskP + callBidP            (Mid excluded — block/dealer)
+#    putDir$      = putAskP  + putBidP
+#    callAskPmDir = callAskP / (callAskP + callBidP + callMidP) * 100
+#    putAskPmDir  = putAskP  / (putAskP  + putBidP  + putMidP)  * 100
 # ═══════════════════════════════════════════════════
 flow_files = sorted(glob.glob('data/spx-options-flow-*.csv'))
 flow = None
@@ -400,26 +445,57 @@ if flow_files:
     try:
         rows = load_csv(flow_files[-1])
         call_tr = put_tr = 0
-        call_p = put_p = 0.0
+        callAskP = callBidP = callMidP = 0.0
+        putAskP  = putBidP  = putMidP  = 0.0
         for r in rows:
             t = (r.get('Type','') or '').strip().lower()
+            side = (r.get('Side','') or '').strip().lower()
             pr = num(r.get('Premium')) or 0
             if t == 'call':
-                call_tr += 1; call_p += pr
+                call_tr += 1
+                if   side == 'ask': callAskP += pr
+                elif side == 'bid': callBidP += pr
+                else:               callMidP += pr
             elif t == 'put':
-                put_tr += 1; put_p += pr
+                put_tr += 1
+                if   side == 'ask': putAskP += pr
+                elif side == 'bid': putBidP += pr
+                else:               putMidP += pr
+        call_p = callAskP + callBidP + callMidP
+        put_p  = putAskP  + putBidP  + putMidP
         total_tr = call_tr + put_tr
         total_p  = call_p + put_p
-        if total_tr > 0:
+        callDirP = callAskP + callBidP
+        putDirP  = putAskP  + putBidP
+
+        if total_tr > 0 and (callDirP + putDirP) > 0:
+            callShare    = callDirP / (callDirP + putDirP) * 100
+            callAskPmDir = callAskP / call_p * 100 if call_p > 0 else 50
+            putAskPmDir  = putAskP  / put_p  * 100 if put_p  > 0 else 50
+            score = 50 + (callShare - 50) * 1.0 + (callAskPmDir - 50) * 0.5 - (putAskPmDir - 50) * 0.5
+            score = clamp(round(score))
+
+            # Map score → 5-level label (mirror of classifyByScore in JS)
+            if   score >= 80: label, tone = 'שורי חזק',   'pos'
+            elif score >= 60: label, tone = 'שורי מתון',  'pos'
+            elif score >= 40: label, tone = 'מאוזן',      'warn'
+            elif score >= 20: label, tone = 'באריש מתון', 'warn'
+            else:             label, tone = 'באריש חזק',  'neg'
+
+            # Legacy ratios — kept for narrative compatibility but now
+            # computed from DIRECTIONAL premium so they line up with the
+            # dashboard's interpretation (Mid blocks excluded).
             pc_tr  = put_tr / call_tr if call_tr > 0 else None
-            pc_p   = put_p  / call_p  if call_p  > 0 else None
-            net_p  = call_p - put_p
-            ts = 0 if pc_tr is None else 35 if pc_tr < 0.70 else 27 if pc_tr < 1.00 else 15 if pc_tr < 1.30 else 5
-            ps = 0 if pc_p  is None else 50 if pc_p  < 0.70 else 38 if pc_p  < 1.00 else 22 if pc_p  < 1.30 else 5
-            net_pct = net_p / total_p if total_p > 0 else 0
-            ns = 15 if net_pct > 0.10 else 8 if net_pct > -0.10 else 2
+            pc_p   = putDirP / callDirP if callDirP > 0 else None
+            net_p  = callDirP - putDirP
             flow = {
-                'score': clamp(round(ts + ps + ns)),
+                'score': score,
+                'label': label,
+                'tone':  tone,
+                'callShare': round(callShare, 1),
+                'callAskPmDir': round(callAskPmDir, 1),
+                'putAskPmDir':  round(putAskPmDir, 1),
+                'midPct': round((callMidP + putMidP) / total_p * 100, 1) if total_p else 0,
                 'pc_tr': pc_tr, 'pc_p': pc_p, 'net_p': net_p,
                 'call_p_pct': call_p/total_p*100 if total_p else 0,
                 'put_p_pct':  put_p/total_p*100  if total_p else 0,
@@ -433,14 +509,17 @@ if flow_files:
 f_score = flow['score'] if flow else None
 
 # ═══════════════════════════════════════════════════
-#  Combined signal (40% M + 35% T + 25% F, auto re-normalize)
+#  Combined signal — mirror of dashboard combineScores
+#  Weights: 40% Tech + 35% Flow + 25% Breadth (auto re-normalize)
+#  m_score (market health) is kept as a separate narrative input,
+#  not part of Combined any more.
 # ═══════════════════════════════════════════════════
 def combined():
-    w = {'m': 0.40, 't': 0.35, 'f': 0.25}
+    w = {'t': 0.40, 'f': 0.35, 'b': 0.25}
     num_, den = 0.0, 0.0
-    if m_score is not None: num_ += w['m']*m_score; den += w['m']
     if t_score is not None: num_ += w['t']*t_score; den += w['t']
     if f_score is not None: num_ += w['f']*f_score; den += w['f']
+    if b_score is not None: num_ += w['b']*b_score; den += w['b']
     if den == 0: return None
     return clamp(round(num_/den))
 
@@ -1396,6 +1475,171 @@ def historical_block_html():
 
 s_hist_html = historical_block_html()
 
+# ─── Block 5b — תבניות אחרי 5 ימים (cumulative history) ──
+def add_trading_days(iso_date, n):
+    """Mirror of forward-tracking.js addTradingDays. Adds n US trading
+    days to iso_date, skipping weekends + a small holiday whitelist."""
+    from datetime import date as _date2, timedelta
+    holidays = {
+        '2026-01-01','2026-01-19','2026-02-16','2026-04-03','2026-05-25',
+        '2026-06-19','2026-07-03','2026-09-07','2026-11-26','2026-12-25',
+        '2027-01-01','2027-01-18','2027-02-15','2027-03-26','2027-05-31',
+        '2027-06-18','2027-07-05','2027-09-06','2027-11-25','2027-12-24',
+    }
+    y, m, d = map(int, iso_date.split('-'))
+    cur = _date2(y, m, d)
+    added = 0
+    while added < n:
+        cur = cur + timedelta(days=1)
+        if cur.weekday() >= 5: continue
+        if cur.isoformat() in holidays: continue
+        added += 1
+    return cur.isoformat()
+
+def find_hist_idx(iso_date):
+    """Index of iso_date in history_rich, or -1."""
+    for i, h in enumerate(history_rich):
+        if h.get('date') == iso_date:
+            return i
+    return -1
+
+def fmt_iso_short(iso):
+    if not iso or len(iso) < 10: return iso or '—'
+    return f'{iso[8:10]}/{iso[5:7]}'
+
+def matured_patterns_block_html():
+    """Cumulative table of every locked-in snapshot. For each: capture
+    date, target date (+5 trading days), KNN 5-day forecast, hit-rate,
+    matches, status, actual SPX %change. Bottom: median/range summary
+    across matured rows only."""
+    EARLY = 5
+    try:
+        with open('data/forward_snapshots.json', 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception:
+        return ''
+    snaps = data.get('snapshots') or []
+    if not snaps:
+        return ''
+    sorted_snaps = sorted(snaps, key=lambda s: s.get('anchorDate', ''), reverse=True)
+    last_idx = len(history_rich) - 1
+
+    rows_html = []
+    matured_forecasts = []
+    matured_actuals = []
+    matured_count = 0
+    for snap in sorted_snaps:
+        anchor = snap.get('anchorDate', '')
+        out5 = (snap.get('outcomes') or {}).get('5') or {}
+        forecast = out5.get('median')
+        hit = out5.get('hitRate')
+        samples = out5.get('samples') or len(snap.get('matches') or [])
+        target_iso = add_trading_days(anchor, EARLY) if anchor else ''
+
+        fc_sign = '+' if (forecast is not None and forecast >= 0) else ''
+        fc_str = f'{fc_sign}{forecast:.2f}%' if forecast is not None else '—'
+        fc_color = '#10b981' if (forecast is not None and forecast > 0) else ('#ef4444' if (forecast is not None and forecast < 0) else '#64748b')
+        hit_str = f'{round(hit * 100)}%' if hit is not None else '—'
+        matches_str = f'{samples}/{samples}' if samples else '—'
+
+        a_idx = find_hist_idx(anchor)
+        status_html = ''
+        actual_html = ''
+        actual_color = '#64748b'
+        if a_idx >= 0:
+            fwd = last_idx - a_idx
+            if fwd >= EARLY:
+                a_lvl = history_rich[a_idx].get('spx_price')
+                t_lvl = history_rich[a_idx + EARLY].get('spx_price') if a_idx + EARLY < len(history_rich) else None
+                if a_lvl and t_lvl:
+                    actual = (t_lvl / a_lvl - 1) * 100
+                    a_sign = '+' if actual >= 0 else ''
+                    actual_html = f'{a_sign}{actual:.2f}%'
+                    actual_color = '#10b981' if actual > 0 else ('#ef4444' if actual < 0 else '#64748b')
+                    status_html = '<span style="color:#10b981;font-weight:700;">מאומת</span>'
+                    if forecast is not None:
+                        matured_forecasts.append(forecast)
+                        matured_actuals.append(actual)
+                        matured_count += 1
+                else:
+                    actual_html = '<span style="color:#a0aec0;font-style:italic;">אין מחיר SPX</span>'
+                    status_html = '<span style="color:#10b981;font-weight:700;">מאומת</span>'
+            else:
+                remaining = EARLY - fwd
+                status_html = f'<span style="color:#f59e0b;font-weight:600;">יום {fwd}/{EARLY} ({remaining} נשארו)</span>'
+                actual_html = '<span style="color:#a0aec0;font-style:italic;">לא מאומת</span>'
+        else:
+            status_html = '<span style="color:#a0aec0;font-style:italic;">לא נמצא</span>'
+            actual_html = '<span style="color:#a0aec0;font-style:italic;">לא מאומת</span>'
+
+        rows_html.append(
+            f'<tr>'
+            f'<td align="right" style="padding:8px 10px;font-weight:700;color:#2d3748;font-size:12px;text-align:right;white-space:nowrap;">{fmt_iso_short(anchor)}</td>'
+            f'<td align="right" style="padding:8px 10px;color:#4a5568;font-size:12px;text-align:right;white-space:nowrap;">{fmt_iso_short(target_iso)}</td>'
+            f'<td align="right" style="padding:8px 10px;color:{fc_color};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">{fc_str}</td>'
+            f'<td align="right" style="padding:8px 10px;color:#4a5568;font-size:12px;text-align:right;">{hit_str}</td>'
+            f'<td align="right" style="padding:8px 10px;color:#4a5568;font-size:11px;text-align:right;">{matches_str}</td>'
+            f'<td align="right" style="padding:8px 10px;font-size:11px;text-align:right;">{status_html}</td>'
+            f'<td align="right" style="padding:8px 10px;color:{actual_color};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">{actual_html}</td>'
+            f'</tr>'
+        )
+
+    # Summary rows
+    summary_html = ''
+    if matured_count > 0:
+        def median_of(arr):
+            s = sorted(arr)
+            m = len(s) // 2
+            return s[m] if len(s) % 2 else (s[m-1] + s[m]) / 2
+        def fmt_pct(v):
+            return f'{"+" if v >= 0 else ""}{v:.2f}%'
+        def col(v):
+            return '#10b981' if v > 0 else ('#ef4444' if v < 0 else '#64748b')
+        fc_med = median_of(matured_forecasts)
+        fc_max = max(matured_forecasts); fc_min = min(matured_forecasts)
+        ac_med = median_of(matured_actuals)
+        ac_max = max(matured_actuals); ac_min = min(matured_actuals)
+        summary_html = (
+            f'<tr style="background:#f7fafc;border-top:2px solid #cbd5e0;">'
+            f'<td colspan="2" align="right" style="padding:8px 10px;font-weight:700;color:#2d3748;font-size:12px;text-align:right;">סיכום מאומתים ({matured_count})</td>'
+            f'<td align="right" style="padding:8px 10px;color:{col(fc_med)};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">חציון {fmt_pct(fc_med)}</td>'
+            f'<td colspan="3"></td>'
+            f'<td align="right" style="padding:8px 10px;color:{col(ac_med)};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">חציון {fmt_pct(ac_med)}</td>'
+            f'</tr>'
+            f'<tr style="background:#f7fafc;">'
+            f'<td colspan="2" align="right" style="padding:8px 10px;font-weight:700;color:#2d3748;font-size:11px;text-align:right;">טווח צפי / בפועל</td>'
+            f'<td align="right" style="padding:8px 10px;color:#4a5568;font-family:monospace;font-size:11px;text-align:right;">{fmt_pct(fc_min)} עד {fmt_pct(fc_max)}</td>'
+            f'<td colspan="3"></td>'
+            f'<td align="right" style="padding:8px 10px;color:#4a5568;font-family:monospace;font-size:11px;text-align:right;">{fmt_pct(ac_min)} עד {fmt_pct(ac_max)}</td>'
+            f'</tr>'
+        )
+
+    return f"""
+<div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:6px;text-align:right;">תבניות אחרי 5 ימי מסחר — היסטוריה מצטברת</div>
+  <div style="font-size:12px;color:#718096;margin-bottom:12px;text-align:right;">{len(snaps)} snapshots בסך הכל · {matured_count} מאומתים · המאוחרים בראש</div>
+  <table dir="rtl" style="width:100%;border-collapse:collapse;direction:rtl;font-size:12px;">
+    <thead>
+      <tr style="background:#edf2f7;">
+        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">תאריך תפיסה</th>
+        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">תאריך יעד</th>
+        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">צפי 5 ימים</th>
+        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">אחוז סיכוי</th>
+        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">התאמות</th>
+        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">סטטוס</th>
+        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">בפועל</th>
+      </tr>
+    </thead>
+    <tbody>{''.join(rows_html)}{summary_html}</tbody>
+  </table>
+  <div style="font-size:10px;color:#a0aec0;margin-top:10px;line-height:1.5;text-align:right;">
+    "מאומת" = עברו 5 ימי מסחר מתאריך התפיסה. "צפי" = חציון של 10 ימים היסטוריים דומים (KNN). "בפועל" = שינוי SPX אמיתי בין תפיסה ליעד.
+  </div>
+</div>
+"""
+
+s_matured_html = matured_patterns_block_html()
+
 # ─── Block 6 — מפת חום סקטוריאלית (now with leader/laggard/dispersion) ──
 def sector_heatmap_block_html():
     if not sectors_data:
@@ -1590,6 +1834,7 @@ html = f"""<!DOCTYPE html>
   {s_state_html}
   {s_summary_html}
   {s_hist_html}
+  {s_matured_html}
   {s_heatmap_html}
   {s_strong_html}
   {s_setup_html}

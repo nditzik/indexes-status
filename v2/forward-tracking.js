@@ -411,11 +411,153 @@
         return `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
     }
 
+    // ─── Matured patterns table ──────────────────────────────────────
+    //
+    // Cumulative history of EVERY snapshot ever locked in. Each row
+    // pairs the snapshot's KNN 5-day forecast against the actual SPX
+    // 5-day return. Matured rows (≥ 5 trading days after anchor) carry
+    // a real "actual" %; not-yet-matured rows show "לא מאומת" plus a
+    // days-remaining countdown. A bottom summary row aggregates
+    // median/max/min of forecast and actual across matured rows.
+    function spxLevelOn(hist, idx) {
+        if (idx < 0 || idx >= hist.length) return null;
+        const h = hist[idx];
+        if (!h || !h.m || !h.m.macro || !h.m.macro.spx) return null;
+        const lvl = h.m.macro.spx.price;
+        return (lvl != null && Number.isFinite(lvl)) ? lvl : null;
+    }
+
+    function renderMaturedTable(snapshots, hist) {
+        const wrap = document.getElementById('ov2_maturedTableWrap');
+        const tbl = document.getElementById('ov2_maturedTable');
+        const sub = document.getElementById('ov2_maturedTableSub');
+        if (!wrap || !tbl) return;
+        if (!Array.isArray(snapshots) || snapshots.length === 0) {
+            wrap.style.display = 'none';
+            return;
+        }
+        const sorted = snapshots.slice().sort((a, b) =>
+            (a.anchorDate < b.anchorDate ? 1 : a.anchorDate > b.anchorDate ? -1 : 0)
+        );
+        const lastIdx = hist.length - 1;
+        const rows = [];
+        const maturedForecasts = [];
+        const maturedActuals = [];
+        let maturedCount = 0;
+        for (const snap of sorted) {
+            const aIdx = findHistIdx(hist, snap.anchorDate);
+            const out5 = (snap.outcomes && snap.outcomes['5']) || {};
+            const forecast = out5.median;
+            const hit = out5.hitRate;
+            const samples = out5.samples || (snap.matches ? snap.matches.length : 0);
+            const targetIso = addTradingDays(snap.anchorDate, EARLY_DAYS);
+            const dateCell = formatDate(snap.anchorDate);
+            const targetCell = formatDate(targetIso);
+            const fcSign = (forecast != null && forecast >= 0) ? '+' : '';
+            const fcStr = forecast != null ? `${fcSign}${forecast.toFixed(2)}%` : '—';
+            const fcClass = forecast > 0 ? 'ov2-pos' : forecast < 0 ? 'ov2-neg' : '';
+            const hitStr = hit != null ? `${Math.round(hit * 100)}%` : '—';
+            const matchesStr = samples ? `${samples}/${samples}` : '—';
+
+            let statusCell, actualCell, actualClass = '';
+            if (aIdx >= 0) {
+                const fwd = lastIdx - aIdx;
+                if (fwd >= EARLY_DAYS) {
+                    const anchorLvl = spxLevelOn(hist, aIdx);
+                    const targetLvl = spxLevelOn(hist, aIdx + EARLY_DAYS);
+                    if (anchorLvl && targetLvl) {
+                        const actual = (targetLvl / anchorLvl - 1) * 100;
+                        const aSign = actual >= 0 ? '+' : '';
+                        actualCell = `${aSign}${actual.toFixed(2)}%`;
+                        actualClass = actual > 0 ? 'ov2-pos' : actual < 0 ? 'ov2-neg' : '';
+                        statusCell = '<span class="ov2-ft-status-matured">מאומת</span>';
+                        maturedForecasts.push(forecast);
+                        maturedActuals.push(actual);
+                        maturedCount++;
+                    } else {
+                        actualCell = '<span class="ov2-ft-status-pending">אין מחיר SPX</span>';
+                        statusCell = '<span class="ov2-ft-status-matured">מאומת</span>';
+                    }
+                } else {
+                    const remaining = EARLY_DAYS - fwd;
+                    statusCell = `<span class="ov2-ft-status-inflight">יום ${fwd}/${EARLY_DAYS} (${remaining} נשארו)</span>`;
+                    actualCell = '<span class="ov2-ft-status-pending">לא מאומת</span>';
+                }
+            } else {
+                statusCell = '<span class="ov2-ft-status-pending">לא נמצא בהיסטוריה</span>';
+                actualCell = '<span class="ov2-ft-status-pending">לא מאומת</span>';
+            }
+
+            rows.push(`
+                <tr>
+                    <td class="ov2-ft-td-anchor">${dateCell}</td>
+                    <td class="ov2-ft-td-anchor">${targetCell}</td>
+                    <td class="${fcClass}">${fcStr}</td>
+                    <td>${hitStr}</td>
+                    <td>${matchesStr}</td>
+                    <td>${statusCell}</td>
+                    <td class="${actualClass}">${actualCell}</td>
+                </tr>`);
+        }
+
+        // Summary row — median/max/min across matured only
+        let summaryRow = '';
+        if (maturedCount > 0) {
+            const med = (arr) => {
+                const s = arr.slice().sort((a, b) => a - b);
+                const m = Math.floor(s.length / 2);
+                return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+            };
+            const fmt = (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
+            const cls = (v) => v > 0 ? 'ov2-pos' : v < 0 ? 'ov2-neg' : '';
+            const fcMed = med(maturedForecasts);
+            const fcMax = Math.max(...maturedForecasts);
+            const fcMin = Math.min(...maturedForecasts);
+            const acMed = med(maturedActuals);
+            const acMax = Math.max(...maturedActuals);
+            const acMin = Math.min(...maturedActuals);
+            summaryRow = `
+                <tr class="ov2-ft-summary-row">
+                    <td colspan="2"><b>סיכום מאומתים (${maturedCount})</b></td>
+                    <td class="${cls(fcMed)}">חציון ${fmt(fcMed)}</td>
+                    <td colspan="3"></td>
+                    <td class="${cls(acMed)}">חציון ${fmt(acMed)}</td>
+                </tr>
+                <tr class="ov2-ft-summary-row">
+                    <td colspan="2"><b>טווח צפי / בפועל</b></td>
+                    <td>${fmt(fcMin)} עד ${fmt(fcMax)}</td>
+                    <td colspan="3"></td>
+                    <td>${fmt(acMin)} עד ${fmt(acMax)}</td>
+                </tr>`;
+        }
+
+        if (sub) {
+            sub.textContent = `${snapshots.length} snapshots בסך הכל · ${maturedCount} מאומתים · החל מ-${formatDate(sorted[sorted.length - 1].anchorDate)}`;
+        }
+        tbl.innerHTML = `
+            <table class="ov2-ft-table">
+                <thead>
+                    <tr>
+                        <th class="ov2-ft-th-anchor">תאריך תפיסה</th>
+                        <th class="ov2-ft-th-anchor">תאריך יעד</th>
+                        <th>צפי 5 ימים</th>
+                        <th>אחוז סיכוי</th>
+                        <th>התאמות</th>
+                        <th class="ov2-ft-th-day">סטטוס</th>
+                        <th>בפועל</th>
+                    </tr>
+                </thead>
+                <tbody>${rows.join('')}${summaryRow}</tbody>
+            </table>`;
+        wrap.style.display = '';
+    }
+
     window.ForwardTracking = {
         VERSION,
         EARLY_DAYS,
         load,
         evaluate,
         render,
+        renderMaturedTable,
     };
 })();

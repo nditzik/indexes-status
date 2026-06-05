@@ -2195,7 +2195,11 @@ async function renderHistoricalEcho(hist) {
         // computed here from the current hist array.
         if (window.ForwardTracking) {
             window.ForwardTracking.load().then(data => {
-                window.ForwardTracking.render(data.snapshots || [], hist);
+                const snaps = data.snapshots || [];
+                window.ForwardTracking.render(snaps, hist);
+                if (window.ForwardTracking.renderMaturedTable) {
+                    window.ForwardTracking.renderMaturedTable(snaps, hist);
+                }
             }).catch(err => {
                 console.warn('ForwardTracking render failed:', err);
             });

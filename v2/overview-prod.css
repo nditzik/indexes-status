@@ -755,6 +755,30 @@
 .overview-prod-root .ov2-ft-table tbody tr:hover {
     background: var(--ov2-bg-2);
 }
+.overview-prod-root .ov2-ft-status-matured {
+    color: var(--ov2-pos);
+    font-weight: 700;
+    font-size: 11px;
+}
+.overview-prod-root .ov2-ft-status-inflight {
+    color: var(--ov2-warn);
+    font-weight: 600;
+    font-size: 11px;
+}
+.overview-prod-root .ov2-ft-status-pending {
+    color: var(--ov2-text-3);
+    font-size: 11px;
+    font-style: italic;
+}
+.overview-prod-root .ov2-ft-summary-row td {
+    background: var(--ov2-bg-2);
+    font-weight: 700;
+    font-size: 11px;
+    border-top: 2px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-ft-summary-row:hover td {
+    background: var(--ov2-bg-2);
+}
 .overview-prod-root .ov2-ft-td-anchor {
     font-weight: 700;
     color: var(--ov2-text-1);
