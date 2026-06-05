@@ -11,11 +11,20 @@
 const DATA_BASE = 'data';
 
 // CORS proxy for live market data (Yahoo Finance).
-// Replaces corsproxy.io which went paywall mid-2026.
-// The worker source lives at /cloudflare-worker.js in this repo; see
-// DEPLOY-WORKER.md for the 5-minute setup. Until the worker is deployed,
-// live data fetches will just fail silently and the ticker stays blank.
-const PROXY_BASE = 'https://indexes-status-proxy.nditzik.workers.dev/?url=';
+// corsproxy.io went paywall mid-2026; we route through Jina AI's
+// reader (r.jina.ai/<url>) — it returns the upstream body with a
+// Markdown envelope and proper CORS headers. No signup, no setup.
+// proxyFetchJSON below strips the envelope.
+const PROXY_BASE = 'https://r.jina.ai/';
+
+async function proxyFetchJSON(targetUrl) {
+    const r = await fetch(PROXY_BASE + targetUrl, { cache: 'no-store' });
+    if (!r.ok) throw new Error('proxy ' + r.status);
+    const text = await r.text();
+    const i = text.indexOf('{');
+    if (i < 0) throw new Error('no JSON in proxy response');
+    return JSON.parse(text.slice(i));
+}
 // Load up to a year of CSVs so the EQ500 cumulative index has a fixed
 // baseline (anchored to the earliest available trading day). Other
 // downstream calcs still slice within (`last25` for distribution
@@ -186,11 +195,8 @@ async function loadSpxBackfill() {
     const now = Math.floor(Date.now() / 1000);
     const oneYearAgo = now - 365 * 24 * 60 * 60;
     const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/^GSPC?period1=${oneYearAgo}&period2=${now}&interval=1d`;
-    const url = PROXY_BASE + encodeURIComponent(yahooUrl);
     try {
-        const r = await fetch(url, { cache: 'no-store' });
-        if (!r.ok) return {};
-        const json = await r.json();
+        const json = await proxyFetchJSON(yahooUrl);
         const result = json && json.chart && json.chart.result && json.chart.result[0];
         if (!result || !result.timestamp || !result.indicators
                 || !result.indicators.quote || !result.indicators.quote[0]) {
@@ -4127,14 +4133,10 @@ async function fetchLiveIndices() {
     const fetchOne = async (key, sym) => {
         const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d`;
         try {
-            const r = await fetch(PROXY_BASE + encodeURIComponent(yahooUrl), { cache: 'no-store' });
-            if (!r.ok) return;
-            const json = await r.json();
+            const json = await proxyFetchJSON(yahooUrl);
             const meta = json && json.chart && json.chart.result && json.chart.result[0] && json.chart.result[0].meta;
             if (!meta) return;
-            const close = meta.regularMarketPrice;
-            const prev  = meta.chartPreviousClose;
-            apply(key, close, prev);
+            apply(key, meta.regularMarketPrice, meta.chartPreviousClose);
         } catch (_) { /* silent — keep last value */ }
     };
     await Promise.all(Object.entries(symbols).map(([k, s]) => fetchOne(k, s)));
