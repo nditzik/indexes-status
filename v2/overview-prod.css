@@ -770,6 +770,17 @@
     font-size: 11px;
     font-style: italic;
 }
+.overview-prod-root .ov2-ft-status-warn {
+    color: var(--ov2-neg);
+    font-weight: 700;
+    font-size: 11px;
+}
+.overview-prod-root .ov2-ft-range {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    margin-top: 2px;
+    font-weight: 400;
+}
 .overview-prod-root .ov2-ft-summary-row td {
     background: var(--ov2-bg-2);
     font-weight: 700;

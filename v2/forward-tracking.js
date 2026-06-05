@@ -441,110 +441,120 @@
         );
         const lastIdx = hist.length - 1;
         const rows = [];
-        const maturedForecasts = [];
-        const maturedActuals = [];
-        let maturedCount = 0;
+        const matchedFc20 = [];
+        const allFc20 = [];
+        let matchedCount = 0;
+        let totalRows = 0;
         for (const snap of sorted) {
             const aIdx = findHistIdx(hist, snap.anchorDate);
-            const out5 = (snap.outcomes && snap.outcomes['5']) || {};
-            const forecast = out5.median;
-            const hit = out5.hitRate;
-            const samples = out5.samples || (snap.matches ? snap.matches.length : 0);
-            const targetIso = addTradingDays(snap.anchorDate, EARLY_DAYS);
-            const dateCell = formatDate(snap.anchorDate);
-            const targetCell = formatDate(targetIso);
-            const fcSign = (forecast != null && forecast >= 0) ? '+' : '';
-            const fcStr = forecast != null ? `${fcSign}${forecast.toFixed(2)}%` : '—';
-            const fcClass = forecast > 0 ? 'ov2-pos' : forecast < 0 ? 'ov2-neg' : '';
-            const hitStr = hit != null ? `${Math.round(hit * 100)}%` : '—';
-            const matchesStr = samples ? `${samples}/${samples}` : '—';
+            if (aIdx < 0) continue;
+            const fwd = lastIdx - aIdx;
+            // Only show rows where 5 trading days have already passed
+            if (fwd < EARLY_DAYS) continue;
 
-            let statusCell, actualCell, actualClass = '';
-            if (aIdx >= 0) {
-                const fwd = lastIdx - aIdx;
-                if (fwd >= EARLY_DAYS) {
-                    const anchorLvl = spxLevelOn(hist, aIdx);
-                    const targetLvl = spxLevelOn(hist, aIdx + EARLY_DAYS);
-                    if (anchorLvl && targetLvl) {
-                        const actual = (targetLvl / anchorLvl - 1) * 100;
-                        const aSign = actual >= 0 ? '+' : '';
-                        actualCell = `${aSign}${actual.toFixed(2)}%`;
-                        actualClass = actual > 0 ? 'ov2-pos' : actual < 0 ? 'ov2-neg' : '';
-                        statusCell = '<span class="ov2-ft-status-matured">מאומת</span>';
-                        maturedForecasts.push(forecast);
-                        maturedActuals.push(actual);
-                        maturedCount++;
-                    } else {
-                        actualCell = '<span class="ov2-ft-status-pending">אין מחיר SPX</span>';
-                        statusCell = '<span class="ov2-ft-status-matured">מאומת</span>';
-                    }
+            const out5  = (snap.outcomes && snap.outcomes['5'])  || {};
+            const out20 = (snap.outcomes && snap.outcomes['20']) || {};
+            const fc5   = out5.median;
+            const fc20  = out20.median;
+            const hit20 = out20.hitRate;
+            const min20 = out20.min;
+            const max20 = out20.max;
+            const samples = out20.samples || (snap.matches ? snap.matches.length : 0);
+
+            // Actual SPX 5d return from anchor close to anchor+5d close
+            const anchorLvl = spxLevelOn(hist, aIdx);
+            const targetLvl = spxLevelOn(hist, aIdx + EARLY_DAYS);
+            let actual5 = null;
+            if (anchorLvl && targetLvl) {
+                actual5 = (targetLvl / anchorLvl - 1) * 100;
+            }
+
+            // Match decision — same sign as forecast?
+            // (KNN is statistical, so direction match is the honest test.)
+            let matchCell;
+            let matched = false;
+            if (actual5 != null && fc5 != null) {
+                if ((actual5 >= 0) === (fc5 >= 0)) {
+                    matchCell = '<span class="ov2-ft-status-matured">✓ יש התאמה</span>';
+                    matched = true;
                 } else {
-                    const remaining = EARLY_DAYS - fwd;
-                    statusCell = `<span class="ov2-ft-status-inflight">יום ${fwd}/${EARLY_DAYS} (${remaining} נשארו)</span>`;
-                    actualCell = '<span class="ov2-ft-status-pending">לא מאומת</span>';
+                    matchCell = '<span class="ov2-ft-status-warn">✗ אין התאמה</span>';
                 }
             } else {
-                statusCell = '<span class="ov2-ft-status-pending">לא נמצא בהיסטוריה</span>';
-                actualCell = '<span class="ov2-ft-status-pending">לא מאומת</span>';
+                matchCell = '<span class="ov2-ft-status-pending">—</span>';
             }
+
+            const fmtPct  = (v) => v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
+            const colorOf = (v) => v == null ? '' : v > 0 ? 'ov2-pos' : v < 0 ? 'ov2-neg' : '';
+            const target20Iso = addTradingDays(snap.anchorDate, 20);
+            const fc20Range = (min20 != null && max20 != null)
+                ? `<div class="ov2-ft-range">${fmtPct(min20)} עד ${fmtPct(max20)}</div>` : '';
+            const fc20Cell = `${fmtPct(fc20)}${fc20Range}`;
+            const hitStr = hit20 != null ? `${Math.round(hit20 * 100)}%` : '—';
+            const matchesStr = samples ? `${samples}/${samples}` : '—';
 
             rows.push(`
                 <tr>
-                    <td class="ov2-ft-td-anchor">${dateCell}</td>
-                    <td class="ov2-ft-td-anchor">${targetCell}</td>
-                    <td class="${fcClass}">${fcStr}</td>
+                    <td class="ov2-ft-td-anchor">${formatDate(snap.anchorDate)}</td>
+                    <td class="${colorOf(actual5)}">${fmtPct(actual5)}</td>
+                    <td class="${colorOf(fc5)}">${fmtPct(fc5)}</td>
+                    <td>${matchCell}</td>
+                    <td class="ov2-ft-td-anchor">${formatDate(target20Iso)}</td>
+                    <td class="${colorOf(fc20)}">${fc20Cell}</td>
                     <td>${hitStr}</td>
                     <td>${matchesStr}</td>
-                    <td>${statusCell}</td>
-                    <td class="${actualClass}">${actualCell}</td>
                 </tr>`);
+            totalRows++;
+            if (fc20 != null) {
+                allFc20.push(fc20);
+                if (matched) matchedFc20.push(fc20);
+                if (matched) matchedCount++;
+            }
         }
 
-        // Summary row — median/max/min across matured only
         let summaryRow = '';
-        if (maturedCount > 0) {
+        if (totalRows > 0) {
             const med = (arr) => {
+                if (!arr.length) return null;
                 const s = arr.slice().sort((a, b) => a - b);
                 const m = Math.floor(s.length / 2);
                 return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
             };
-            const fmt = (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
-            const cls = (v) => v > 0 ? 'ov2-pos' : v < 0 ? 'ov2-neg' : '';
-            const fcMed = med(maturedForecasts);
-            const fcMax = Math.max(...maturedForecasts);
-            const fcMin = Math.min(...maturedForecasts);
-            const acMed = med(maturedActuals);
-            const acMax = Math.max(...maturedActuals);
-            const acMin = Math.min(...maturedActuals);
+            const fmt = (v) => v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
+            const cls = (v) => v == null ? '' : v > 0 ? 'ov2-pos' : v < 0 ? 'ov2-neg' : '';
+            const allMed = med(allFc20);
+            const matchedMed = matchedFc20.length ? med(matchedFc20) : null;
             summaryRow = `
                 <tr class="ov2-ft-summary-row">
-                    <td colspan="2"><b>סיכום מאומתים (${maturedCount})</b></td>
-                    <td class="${cls(fcMed)}">חציון ${fmt(fcMed)}</td>
-                    <td colspan="3"></td>
-                    <td class="${cls(acMed)}">חציון ${fmt(acMed)}</td>
-                </tr>
-                <tr class="ov2-ft-summary-row">
-                    <td colspan="2"><b>טווח צפי / בפועל</b></td>
-                    <td>${fmt(fcMin)} עד ${fmt(fcMax)}</td>
-                    <td colspan="3"></td>
-                    <td>${fmt(acMin)} עד ${fmt(acMax)}</td>
+                    <td colspan="3"><b>סיכום (${totalRows} שורות)</b></td>
+                    <td><b>${matchedCount}/${totalRows} עם התאמה</b></td>
+                    <td><b>חציון צפי 20d</b></td>
+                    <td class="${cls(allMed)}"><b>הכל: ${fmt(allMed)}</b>${matchedFc20.length ? `<br><span class="ov2-ft-range">מתואמים: ${fmt(matchedMed)}</span>` : ''}</td>
+                    <td colspan="2"></td>
                 </tr>`;
         }
 
         if (sub) {
-            sub.textContent = `${snapshots.length} snapshots בסך הכל · ${maturedCount} מאומתים · החל מ-${formatDate(sorted[sorted.length - 1].anchorDate)}`;
+            sub.textContent = totalRows > 0
+                ? `${totalRows} תבניות שעברו 5 ימי מסחר · מתוכן ${matchedCount} עם התאמת כיוון`
+                : 'אין עדיין תבניות שהשלימו 5 ימי מסחר';
+        }
+        if (totalRows === 0) {
+            wrap.style.display = 'none';
+            return;
         }
         tbl.innerHTML = `
             <table class="ov2-ft-table">
                 <thead>
                     <tr>
                         <th class="ov2-ft-th-anchor">תאריך תפיסה</th>
-                        <th class="ov2-ft-th-anchor">תאריך יעד</th>
-                        <th>צפי 5 ימים</th>
-                        <th>אחוז סיכוי</th>
+                        <th>בפועל 5d</th>
+                        <th>צפי 5d</th>
+                        <th>התאמה?</th>
+                        <th class="ov2-ft-th-anchor">תאריך יעד 20d</th>
+                        <th>צפי 20d</th>
+                        <th>סיכוי 20d</th>
                         <th>התאמות</th>
-                        <th class="ov2-ft-th-day">סטטוס</th>
-                        <th>בפועל</th>
                     </tr>
                 </thead>
                 <tbody>${rows.join('')}${summaryRow}</tbody>

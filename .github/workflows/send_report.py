@@ -1508,10 +1508,13 @@ def fmt_iso_short(iso):
     return f'{iso[8:10]}/{iso[5:7]}'
 
 def matured_patterns_block_html():
-    """Cumulative table of every locked-in snapshot. For each: capture
-    date, target date (+5 trading days), KNN 5-day forecast, hit-rate,
-    matches, status, actual SPX %change. Bottom: median/range summary
-    across matured rows only."""
+    """Table of snapshots that have PASSED their 5-day examination window.
+    For each row:
+      - Capture date
+      - Actual SPX 5d return + KNN 5d forecast
+      - Match indicator (same direction = ✓ יש התאמה)
+      - Day-20 target date + KNN 20d forecast + range + hit-rate + samples
+    Bottom: how many rows matched out of total, median 20d forecast."""
     EARLY = 5
     try:
         with open('data/forward_snapshots.json', 'r', encoding='utf-8') as f:
@@ -1525,115 +1528,129 @@ def matured_patterns_block_html():
     last_idx = len(history_rich) - 1
 
     rows_html = []
-    matured_forecasts = []
-    matured_actuals = []
-    matured_count = 0
+    all_fc20 = []
+    matched_fc20 = []
+    matched_count = 0
+    total_rows = 0
     for snap in sorted_snaps:
         anchor = snap.get('anchorDate', '')
-        out5 = (snap.get('outcomes') or {}).get('5') or {}
-        forecast = out5.get('median')
-        hit = out5.get('hitRate')
-        samples = out5.get('samples') or len(snap.get('matches') or [])
-        target_iso = add_trading_days(anchor, EARLY) if anchor else ''
-
-        fc_sign = '+' if (forecast is not None and forecast >= 0) else ''
-        fc_str = f'{fc_sign}{forecast:.2f}%' if forecast is not None else '—'
-        fc_color = '#10b981' if (forecast is not None and forecast > 0) else ('#ef4444' if (forecast is not None and forecast < 0) else '#64748b')
-        hit_str = f'{round(hit * 100)}%' if hit is not None else '—'
-        matches_str = f'{samples}/{samples}' if samples else '—'
-
         a_idx = find_hist_idx(anchor)
-        status_html = ''
-        actual_html = ''
-        actual_color = '#64748b'
-        if a_idx >= 0:
-            fwd = last_idx - a_idx
-            if fwd >= EARLY:
-                a_lvl = history_rich[a_idx].get('spx_price')
-                t_lvl = history_rich[a_idx + EARLY].get('spx_price') if a_idx + EARLY < len(history_rich) else None
-                if a_lvl and t_lvl:
-                    actual = (t_lvl / a_lvl - 1) * 100
-                    a_sign = '+' if actual >= 0 else ''
-                    actual_html = f'{a_sign}{actual:.2f}%'
-                    actual_color = '#10b981' if actual > 0 else ('#ef4444' if actual < 0 else '#64748b')
-                    status_html = '<span style="color:#10b981;font-weight:700;">מאומת</span>'
-                    if forecast is not None:
-                        matured_forecasts.append(forecast)
-                        matured_actuals.append(actual)
-                        matured_count += 1
-                else:
-                    actual_html = '<span style="color:#a0aec0;font-style:italic;">אין מחיר SPX</span>'
-                    status_html = '<span style="color:#10b981;font-weight:700;">מאומת</span>'
-            else:
-                remaining = EARLY - fwd
-                status_html = f'<span style="color:#f59e0b;font-weight:600;">יום {fwd}/{EARLY} ({remaining} נשארו)</span>'
-                actual_html = '<span style="color:#a0aec0;font-style:italic;">לא מאומת</span>'
+        if a_idx < 0:
+            continue
+        fwd = last_idx - a_idx
+        # Only show rows where 5 trading days have already passed
+        if fwd < EARLY:
+            continue
+        total_rows += 1
+
+        out5  = (snap.get('outcomes') or {}).get('5')  or {}
+        out20 = (snap.get('outcomes') or {}).get('20') or {}
+        fc5   = out5.get('median')
+        fc20  = out20.get('median')
+        hit20 = out20.get('hitRate')
+        min20 = out20.get('min')
+        max20 = out20.get('max')
+        samples = out20.get('samples') or len(snap.get('matches') or [])
+
+        # Actual SPX 5d return
+        a_lvl = history_rich[a_idx].get('spx_price')
+        t_lvl = history_rich[a_idx + EARLY].get('spx_price') if a_idx + EARLY < len(history_rich) else None
+        actual5 = None
+        if a_lvl and t_lvl:
+            actual5 = (t_lvl / a_lvl - 1) * 100
+
+        # Match — same sign as forecast?
+        matched = False
+        if actual5 is not None and fc5 is not None:
+            matched = (actual5 >= 0) == (fc5 >= 0)
+            match_html = (f'<span style="color:#10b981;font-weight:700;">✓ יש התאמה</span>'
+                          if matched else
+                          f'<span style="color:#ef4444;font-weight:700;">✗ אין התאמה</span>')
         else:
-            status_html = '<span style="color:#a0aec0;font-style:italic;">לא נמצא</span>'
-            actual_html = '<span style="color:#a0aec0;font-style:italic;">לא מאומת</span>'
+            match_html = '<span style="color:#a0aec0;font-style:italic;">—</span>'
+
+        def fmt_pct(v):
+            if v is None: return '—'
+            return f'{"+" if v >= 0 else ""}{v:.2f}%'
+        def col(v):
+            if v is None: return '#64748b'
+            return '#10b981' if v > 0 else ('#ef4444' if v < 0 else '#64748b')
+
+        target20_iso = add_trading_days(anchor, 20) if anchor else ''
+        fc20_range = (f'<div style="font-size:10px;color:#a0aec0;font-weight:400;margin-top:2px;">'
+                      f'{fmt_pct(min20)} עד {fmt_pct(max20)}</div>'
+                      if (min20 is not None and max20 is not None) else '')
+        hit_str = f'{round(hit20 * 100)}%' if hit20 is not None else '—'
+        matches_str = f'{samples}/{samples}' if samples else '—'
 
         rows_html.append(
             f'<tr>'
             f'<td align="right" style="padding:8px 10px;font-weight:700;color:#2d3748;font-size:12px;text-align:right;white-space:nowrap;">{fmt_iso_short(anchor)}</td>'
-            f'<td align="right" style="padding:8px 10px;color:#4a5568;font-size:12px;text-align:right;white-space:nowrap;">{fmt_iso_short(target_iso)}</td>'
-            f'<td align="right" style="padding:8px 10px;color:{fc_color};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">{fc_str}</td>'
+            f'<td align="right" style="padding:8px 10px;color:{col(actual5)};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">{fmt_pct(actual5)}</td>'
+            f'<td align="right" style="padding:8px 10px;color:{col(fc5)};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">{fmt_pct(fc5)}</td>'
+            f'<td align="right" style="padding:8px 10px;font-size:11px;text-align:right;">{match_html}</td>'
+            f'<td align="right" style="padding:8px 10px;color:#4a5568;font-size:12px;text-align:right;white-space:nowrap;">{fmt_iso_short(target20_iso)}</td>'
+            f'<td align="right" style="padding:8px 10px;color:{col(fc20)};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">{fmt_pct(fc20)}{fc20_range}</td>'
             f'<td align="right" style="padding:8px 10px;color:#4a5568;font-size:12px;text-align:right;">{hit_str}</td>'
             f'<td align="right" style="padding:8px 10px;color:#4a5568;font-size:11px;text-align:right;">{matches_str}</td>'
-            f'<td align="right" style="padding:8px 10px;font-size:11px;text-align:right;">{status_html}</td>'
-            f'<td align="right" style="padding:8px 10px;color:{actual_color};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">{actual_html}</td>'
             f'</tr>'
         )
+        if fc20 is not None:
+            all_fc20.append(fc20)
+            if matched:
+                matched_fc20.append(fc20)
+                matched_count += 1
 
-    # Summary rows
+    if total_rows == 0:
+        return ''
+
+    # Summary row
     summary_html = ''
-    if matured_count > 0:
+    if total_rows > 0:
         def median_of(arr):
             s = sorted(arr)
             m = len(s) // 2
             return s[m] if len(s) % 2 else (s[m-1] + s[m]) / 2
         def fmt_pct(v):
-            return f'{"+" if v >= 0 else ""}{v:.2f}%'
+            return '—' if v is None else f'{"+" if v >= 0 else ""}{v:.2f}%'
         def col(v):
+            if v is None: return '#64748b'
             return '#10b981' if v > 0 else ('#ef4444' if v < 0 else '#64748b')
-        fc_med = median_of(matured_forecasts)
-        fc_max = max(matured_forecasts); fc_min = min(matured_forecasts)
-        ac_med = median_of(matured_actuals)
-        ac_max = max(matured_actuals); ac_min = min(matured_actuals)
+        all_med = median_of(all_fc20) if all_fc20 else None
+        matched_med = median_of(matched_fc20) if matched_fc20 else None
+        matched_sub = (f'<div style="font-size:10px;color:#a0aec0;font-weight:400;margin-top:2px;">'
+                       f'מתואמים: {fmt_pct(matched_med)}</div>') if matched_fc20 else ''
         summary_html = (
             f'<tr style="background:#f7fafc;border-top:2px solid #cbd5e0;">'
-            f'<td colspan="2" align="right" style="padding:8px 10px;font-weight:700;color:#2d3748;font-size:12px;text-align:right;">סיכום מאומתים ({matured_count})</td>'
-            f'<td align="right" style="padding:8px 10px;color:{col(fc_med)};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">חציון {fmt_pct(fc_med)}</td>'
-            f'<td colspan="3"></td>'
-            f'<td align="right" style="padding:8px 10px;color:{col(ac_med)};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">חציון {fmt_pct(ac_med)}</td>'
-            f'</tr>'
-            f'<tr style="background:#f7fafc;">'
-            f'<td colspan="2" align="right" style="padding:8px 10px;font-weight:700;color:#2d3748;font-size:11px;text-align:right;">טווח צפי / בפועל</td>'
-            f'<td align="right" style="padding:8px 10px;color:#4a5568;font-family:monospace;font-size:11px;text-align:right;">{fmt_pct(fc_min)} עד {fmt_pct(fc_max)}</td>'
-            f'<td colspan="3"></td>'
-            f'<td align="right" style="padding:8px 10px;color:#4a5568;font-family:monospace;font-size:11px;text-align:right;">{fmt_pct(ac_min)} עד {fmt_pct(ac_max)}</td>'
+            f'<td colspan="3" align="right" style="padding:8px 10px;font-weight:700;color:#2d3748;font-size:12px;text-align:right;">סיכום ({total_rows} שורות)</td>'
+            f'<td align="right" style="padding:8px 10px;font-weight:700;color:#2d3748;font-size:12px;text-align:right;">{matched_count}/{total_rows} עם התאמה</td>'
+            f'<td align="right" style="padding:8px 10px;font-weight:700;color:#2d3748;font-size:11px;text-align:right;">חציון צפי 20d</td>'
+            f'<td align="right" style="padding:8px 10px;color:{col(all_med)};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">הכל: {fmt_pct(all_med)}{matched_sub}</td>'
+            f'<td colspan="2"></td>'
             f'</tr>'
         )
 
     return f"""
 <div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
-  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:6px;text-align:right;">תבניות אחרי 5 ימי מסחר — היסטוריה מצטברת</div>
-  <div style="font-size:12px;color:#718096;margin-bottom:12px;text-align:right;">{len(snaps)} snapshots בסך הכל · {matured_count} מאומתים · המאוחרים בראש</div>
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:6px;text-align:right;">תבניות שעברו 5 ימי בחינה — התאמה + צפי ל-Day 20</div>
+  <div style="font-size:12px;color:#718096;margin-bottom:12px;text-align:right;">{total_rows} תבניות שעברו 5 ימי מסחר · {matched_count} עם התאמת כיוון</div>
   <table dir="rtl" style="width:100%;border-collapse:collapse;direction:rtl;font-size:12px;">
     <thead>
       <tr style="background:#edf2f7;">
         <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">תאריך תפיסה</th>
-        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">תאריך יעד</th>
-        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">צפי 5 ימים</th>
-        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">אחוז סיכוי</th>
+        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">בפועל 5d</th>
+        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">צפי 5d</th>
+        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">התאמה?</th>
+        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">תאריך יעד 20d</th>
+        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">צפי 20d</th>
+        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">סיכוי 20d</th>
         <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">התאמות</th>
-        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">סטטוס</th>
-        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">בפועל</th>
       </tr>
     </thead>
     <tbody>{''.join(rows_html)}{summary_html}</tbody>
   </table>
   <div style="font-size:10px;color:#a0aec0;margin-top:10px;line-height:1.5;text-align:right;">
-    "מאומת" = עברו 5 ימי מסחר מתאריך התפיסה. "צפי" = חציון של 10 ימים היסטוריים דומים (KNN). "בפועל" = שינוי SPX אמיתי בין תפיסה ליעד.
+    "התאמה" = כיוון בפועל ב-5 הימים זהה לכיוון צפי 5d (KNN). "צפי 20d" = חציון התוצאה של 10 הימים ההיסטוריים הדומים, 20 ימי מסחר אחרי הזיהוי. "סיכוי" = אחוז המקרים שנסגרו בחיובי ביום ה-20.
   </div>
 </div>
 """
