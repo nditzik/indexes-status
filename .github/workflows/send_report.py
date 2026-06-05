@@ -1580,6 +1580,13 @@ def matured_patterns_block_html():
         fc20_range = (f'<div style="font-size:10px;color:#a0aec0;font-weight:400;margin-top:2px;">'
                       f'{fmt_pct(min20)} עד {fmt_pct(max20)}</div>'
                       if (min20 is not None and max20 is not None) else '')
+        # Absolute SPX price range = anchor close * (1 + min/100) … (1 + max/100)
+        fc20_prices = ''
+        if a_lvl and (min20 is not None) and (max20 is not None):
+            low_px  = round(a_lvl * (1 + min20 / 100))
+            high_px = round(a_lvl * (1 + max20 / 100))
+            fc20_prices = (f'<div style="font-size:10px;color:#a0aec0;font-weight:400;margin-top:2px;">'
+                           f'{low_px:,} — {high_px:,}</div>')
         hit_str = f'{round(hit20 * 100)}%' if hit20 is not None else '—'
         matches_str = f'{samples}/{samples}' if samples else '—'
 
@@ -1590,7 +1597,7 @@ def matured_patterns_block_html():
             f'<td align="right" style="padding:8px 10px;color:{col(fc5)};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">{fmt_pct(fc5)}</td>'
             f'<td align="right" style="padding:8px 10px;font-size:11px;text-align:right;">{match_html}</td>'
             f'<td align="right" style="padding:8px 10px;color:#4a5568;font-size:12px;text-align:right;white-space:nowrap;">{fmt_iso_short(target20_iso)}</td>'
-            f'<td align="right" style="padding:8px 10px;color:{col(fc20)};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">{fmt_pct(fc20)}{fc20_range}</td>'
+            f'<td align="right" style="padding:8px 10px;color:{col(fc20)};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">{fmt_pct(fc20)}{fc20_range}{fc20_prices}</td>'
             f'<td align="right" style="padding:8px 10px;color:#4a5568;font-size:12px;text-align:right;">{hit_str}</td>'
             f'<td align="right" style="padding:8px 10px;color:#4a5568;font-size:11px;text-align:right;">{matches_str}</td>'
             f'</tr>'

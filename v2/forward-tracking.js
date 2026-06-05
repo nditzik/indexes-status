@@ -485,11 +485,15 @@
             }
 
             const fmtPct  = (v) => v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
+            const fmtPx   = (v) => v == null ? '—' : Math.round(v).toLocaleString('en-US');
             const colorOf = (v) => v == null ? '' : v > 0 ? 'ov2-pos' : v < 0 ? 'ov2-neg' : '';
             const target20Iso = addTradingDays(snap.anchorDate, 20);
             const fc20Range = (min20 != null && max20 != null)
                 ? `<div class="ov2-ft-range">${fmtPct(min20)} עד ${fmtPct(max20)}</div>` : '';
-            const fc20Cell = `${fmtPct(fc20)}${fc20Range}`;
+            // Price range = anchor SPX price * (1 + min/100) … (1 + max/100)
+            const fc20Prices = (anchorLvl && min20 != null && max20 != null)
+                ? `<div class="ov2-ft-range">${fmtPx(anchorLvl * (1 + min20 / 100))} — ${fmtPx(anchorLvl * (1 + max20 / 100))}</div>` : '';
+            const fc20Cell = `${fmtPct(fc20)}${fc20Range}${fc20Prices}`;
             const hitStr = hit20 != null ? `${Math.round(hit20 * 100)}%` : '—';
             const matchesStr = samples ? `${samples}/${samples}` : '—';
 
