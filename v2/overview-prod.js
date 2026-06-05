@@ -9,6 +9,13 @@
 // ─── Constants ────────────────────────────────────────────────────────
 
 const DATA_BASE = 'data';
+
+// CORS proxy for live market data (Yahoo Finance).
+// Replaces corsproxy.io which went paywall mid-2026.
+// The worker source lives at /cloudflare-worker.js in this repo; see
+// DEPLOY-WORKER.md for the 5-minute setup. Until the worker is deployed,
+// live data fetches will just fail silently and the ticker stays blank.
+const PROXY_BASE = 'https://indexes-status-proxy.nditzik.workers.dev/?url=';
 // Load up to a year of CSVs so the EQ500 cumulative index has a fixed
 // baseline (anchored to the earliest available trading day). Other
 // downstream calcs still slice within (`last25` for distribution
@@ -179,7 +186,7 @@ async function loadSpxBackfill() {
     const now = Math.floor(Date.now() / 1000);
     const oneYearAgo = now - 365 * 24 * 60 * 60;
     const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/^GSPC?period1=${oneYearAgo}&period2=${now}&interval=1d`;
-    const url = 'https://corsproxy.io/?' + encodeURIComponent(yahooUrl);
+    const url = PROXY_BASE + encodeURIComponent(yahooUrl);
     try {
         const r = await fetch(url, { cache: 'no-store' });
         if (!r.ok) return {};
@@ -4101,47 +4108,41 @@ async function startLiveTicker(metrics) {
 }
 
 async function fetchLiveIndices() {
-    // Use ETFs instead of indices — they have extended hours + frequent updates on Stooq
-    const symbols = { SPY: 'spy.us', NDX: 'qqq.us', DJI: 'dia.us', RUT: 'iwm.us' };
-    const query = Object.values(symbols).join('+');
-    const stooq = `https://stooq.com/q/l/?s=${query}&f=snd2t2ohlcpv&h&e=csv`;
-    const url = 'https://corsproxy.io/?' + encodeURIComponent(stooq);
-    try {
-        const r = await fetch(url, { cache: 'no-store' });
-        if (!r.ok) return;
-        const text = await r.text();
-        const lines = text.trim().split(/\r?\n/);
-        if (lines.length < 2) return;
-        const header = lines[0].split(',');
-        const iSym = header.indexOf('Symbol');
-        const iClose = header.indexOf('Close');
-        const iPrev = header.indexOf('Prev');
-        const bySym = {};
-        for (let i = 1; i < lines.length; i++) {
-            const cols = lines[i].split(',');
-            bySym[(cols[iSym] || '').toUpperCase()] = cols;
-        }
-        const apply = (key, close, prev) => {
-            const valEl = $('tk' + key);
-            const chgEl = $('tk' + key + 'Chg');
-            if (!valEl || !chgEl || !close || !prev) return;
-            const c = parseFloat(close), p = parseFloat(prev);
-            if (!Number.isFinite(c) || !Number.isFinite(p) || p === 0) return;
-            const pctChg = (c - p) / p * 100;
-            valEl.textContent = c.toLocaleString('en-US', { maximumFractionDigits: 2 });
-            chgEl.textContent = (pctChg >= 0 ? '+' : '') + pctChg.toFixed(2) + '%';
-            chgEl.style.color = pctChg >= 0 ? 'var(--ov2-pos)' : 'var(--ov2-neg)';
-        };
-        for (const [key, sym] of Object.entries(symbols)) {
-            const row = bySym[sym.toUpperCase()];
-            if (row) apply(key, row[iClose], row[iPrev]);
-        }
-        const upd = $('tkUpdated');
-        if (upd) {
-            const now = new Date();
-            upd.textContent = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-        }
-    } catch (e) { /* silent — keep showing last value */ }
+    // Yahoo Finance via the Cloudflare Worker proxy. We call per-symbol
+    // because v7/finance/quote returned 401 mid-2025; v8/finance/chart
+    // is the stable free endpoint. Each response carries meta.regularMarketPrice
+    // and meta.chartPreviousClose, which is everything the ticker needs.
+    const symbols = { SPY: 'SPY', NDX: 'QQQ', DJI: 'DIA', RUT: 'IWM' };
+    const apply = (key, close, prev) => {
+        const valEl = $('tk' + key);
+        const chgEl = $('tk' + key + 'Chg');
+        if (!valEl || !chgEl) return;
+        const c = parseFloat(close), p = parseFloat(prev);
+        if (!Number.isFinite(c) || !Number.isFinite(p) || p === 0) return;
+        const pctChg = (c - p) / p * 100;
+        valEl.textContent = c.toLocaleString('en-US', { maximumFractionDigits: 2 });
+        chgEl.textContent = (pctChg >= 0 ? '+' : '') + pctChg.toFixed(2) + '%';
+        chgEl.style.color = pctChg >= 0 ? 'var(--ov2-pos)' : 'var(--ov2-neg)';
+    };
+    const fetchOne = async (key, sym) => {
+        const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d`;
+        try {
+            const r = await fetch(PROXY_BASE + encodeURIComponent(yahooUrl), { cache: 'no-store' });
+            if (!r.ok) return;
+            const json = await r.json();
+            const meta = json && json.chart && json.chart.result && json.chart.result[0] && json.chart.result[0].meta;
+            if (!meta) return;
+            const close = meta.regularMarketPrice;
+            const prev  = meta.chartPreviousClose;
+            apply(key, close, prev);
+        } catch (_) { /* silent — keep last value */ }
+    };
+    await Promise.all(Object.entries(symbols).map(([k, s]) => fetchOne(k, s)));
+    const upd = $('tkUpdated');
+    if (upd) {
+        const now = new Date();
+        upd.textContent = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    }
 }
 
 function renderError(e) {
