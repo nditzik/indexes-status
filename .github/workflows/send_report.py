@@ -68,6 +68,7 @@ if spx_row:
         'high52': num(spx_row.get('52W %/High')),
     }
 vix = num(vix_row.get('Latest')) if vix_row else None
+vix_chg_pct = num(vix_row.get('%Change')) if vix_row else None
 dxy = num(dxy_row.get('Latest')) if dxy_row else None
 tnx = num(tnx_row.get('Latest')) if tnx_row else None
 
@@ -326,7 +327,27 @@ def is_selling_day(d):
 
 dist_days        = sum(1 for d in last25_rich if is_selling_day(d))
 sell_days_10     = sum(1 for d in last10_rich if is_selling_day(d))
+sell_days_3      = sum(1 for d in history_rich[-3:] if is_selling_day(d))
 weekly_change    = sum(history[-5:]) if len(history) >= 3 else None
+
+# ═══════════════════════════════════════════════════
+#  Risk-Off detection — surfaces when the structural scores will
+#  under-react to a real risk event. Same triggers as the dashboard.
+# ═══════════════════════════════════════════════════
+def detect_risk_off():
+    reasons = []
+    spx_chg = spx['chgPct'] if spx else None
+    if spx_chg is not None and spx_chg <= -1.5:
+        reasons.append(f'SPX {spx_chg:+.2f}% — מהלך כבד ביום אחד')
+    if vix_chg_pct is not None and vix_chg_pct >= 25:
+        reasons.append(f'VIX +{vix_chg_pct:.1f}% — קפיצה חדה בפחד')
+    if dist_days >= 4:
+        reasons.append(f'{dist_days} ימי מכירות ב-25 ימים — קרוב לסף האזהרה')
+    if sell_days_3 >= 2:
+        reasons.append(f'{sell_days_3} ימי מכירות בתוך 3 ימי מסחר — קיבוץ הדוק')
+    return reasons
+
+risk_off_reasons = detect_risk_off()
 
 # ═══════════════════════════════════════════════════
 #  Score 1 · Market (MCC)
@@ -382,10 +403,16 @@ def tech_score():
         d = abs(spx['high52'])
         parts.append(10 if d <= 5 else 7 if d <= 10 else 4 if d <= 20 else 1)
         max_ += 10
+    # Day %Change weight bumped from 5 → 15 (mirror of overview-prod.js)
     if spx['chgPct'] is not None:
         c = spx['chgPct']
-        parts.append(5 if c > 0.5 else 3 if c >= -0.5 else 0)
-        max_ += 5
+        parts.append(15 if c > 1.0 else 12 if c > 0.5 else 9 if c >= -0.5 else 5 if c >= -1.0 else 2 if c >= -1.5 else 0)
+        max_ += 15
+    # VIX-delta — forward-looking risk component (10 pts)
+    if vix_chg_pct is not None:
+        v = vix_chg_pct
+        parts.append(10 if v <= -10 else 8 if v <= 0 else 5 if v <= 10 else 2 if v <= 25 else 0)
+        max_ += 10
     if max_ == 0: return None
     return clamp(round(sum(parts) / max_ * 100))
 
@@ -1824,6 +1851,54 @@ s6_html = f"""
 </div>
 """
 
+# ─── Risk-Off banner (sits at the very top when triggered) ──
+def risk_off_block_html():
+    if not risk_off_reasons:
+        return ''
+    items = ''.join(
+        f'<li style="padding:4px 0;font-size:13px;color:#fee2e2;line-height:1.5;text-align:right;">• {r}</li>'
+        for r in risk_off_reasons
+    )
+    return f"""
+<div dir="rtl" style="background:linear-gradient(135deg,#7f1d1d,#991b1b);color:#fef2f2;border-radius:10px;padding:18px 22px;margin-bottom:12px;direction:rtl;text-align:right;border:1px solid rgba(254,226,226,0.15);">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;text-align:right;direction:rtl;">
+    <span style="font-size:22px;">🚨</span>
+    <span style="font-size:15px;font-weight:800;">יום סיכון — הציון המבני לא משקף את האירוע</span>
+  </div>
+  <ul dir="rtl" style="margin:0 0 10px;padding:0;list-style:none;text-align:right;direction:rtl;">{items}</ul>
+  <div style="font-size:11px;color:#fecaca;line-height:1.6;padding-top:8px;border-top:1px solid rgba(254,226,226,0.18);text-align:right;direction:rtl;">
+    הציון המשולב נשאר גבוה כי הוא מבוסס על מבנה (מחיר מול ממוצעים, רוחב). זה לא משקר — זה פשוט לא מודד את התנודה היומית. הציון הזה תופס מגמה, לא אירוע.
+  </div>
+</div>
+"""
+
+s_risk_off_html = risk_off_block_html()
+
+# ─── KNN outlier flag — appended to the matured-patterns block ──
+def knn_outlier_flag_html():
+    try:
+        with open('data/forward_snapshots.json', 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception:
+        return ''
+    snaps = data.get('snapshots') or []
+    if not snaps:
+        return ''
+    latest = snaps[-1]
+    matches = latest.get('matches') or []
+    if not matches:
+        return ''
+    nearest = matches[0].get('distance')
+    if nearest is None or nearest <= 0.7:
+        return ''
+    return f"""
+<div dir="rtl" style="background:#fef3c7;color:#92400e;border-radius:8px;padding:12px 16px;margin-bottom:12px;border:1px solid #fcd34d;direction:rtl;text-align:right;font-size:13px;">
+  <b>⚠ regime outlier:</b> ההתאמה ההיסטורית הקרובה ביותר למצב היום ב-distance {nearest:.2f} (טיפוסי ≤ 0.5). 10 הימים הדומים שהמודל מצא רחוקים יותר מהרגיל — המודל פחות בטוח, צריך לקחת את התחזיות עם זהירות.
+</div>
+"""
+
+s_knn_outlier_html = knn_outlier_flag_html()
+
 html = f"""<!DOCTYPE html>
 <html dir="rtl" lang="he">
 <head><meta charset="utf-8"></head>
@@ -1855,9 +1930,11 @@ html = f"""<!DOCTYPE html>
     </p>
   </div>
 
+  {s_risk_off_html}
   {s_state_html}
   {s_summary_html}
   {s_hist_html}
+  {s_knn_outlier_html}
   {s_matured_html}
   {s_heatmap_html}
   {s_strong_html}

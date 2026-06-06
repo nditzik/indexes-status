@@ -387,7 +387,7 @@ function extractDayMetrics(rows, sectorsMap) {
 
 // ─── Scoring ──────────────────────────────────────────────────────────
 
-function scoreTech(spx) {
+function scoreTech(spx, vixChgPct) {
     if (!spx || spx.price == null) return null;
     let parts = 0, max = 0;
     const p = spx.price;
@@ -406,9 +406,28 @@ function scoreTech(spx) {
         parts += d <= 5 ? 10 : d <= 10 ? 7 : d <= 20 ? 4 : 1;
         max += 10;
     }
+    // Day %Change — weight bumped from 5 → 15 so a -2%+ session
+    // actually moves the score. 5 pts was barely a rounding error.
     if (spx.chgPct != null) {
-        parts += spx.chgPct > 0.5 ? 5 : spx.chgPct >= -0.5 ? 3 : 0;
-        max += 5;
+        const c = spx.chgPct;
+        parts += c >  1.0 ? 15
+               : c >  0.5 ? 12
+               : c >= -0.5 ? 9
+               : c >= -1.0 ? 5
+               : c >= -1.5 ? 2
+               : 0;
+        max += 15;
+    }
+    // VIX-delta — captures forward-looking risk. A +25% VIX day signals
+    // panic even if SPX MAs are still intact. A calming VIX (-10%) on a
+    // grindy day adds a constructive read.
+    if (vixChgPct != null && Number.isFinite(vixChgPct)) {
+        parts += vixChgPct <= -10 ? 10
+               : vixChgPct <=   0 ? 8
+               : vixChgPct <=  10 ? 5
+               : vixChgPct <=  25 ? 2
+               : 0;
+        max += 10;
     }
     if (max === 0) return null;
     return Math.max(0, Math.min(100, Math.round(parts / max * 100)));
@@ -989,6 +1008,11 @@ function computeMetrics(data) {
     };
     const distributionDays = last25.filter(isSellingDay).length;
     const sellDaysRecent10 = last10.filter(isSellingDay).length;
+    // Tight cluster — 2+ selling days inside the last 3 trading sessions
+    // is a strong "wave just hit" signal even if the broader 25d count
+    // is still low.
+    const last3 = hist.slice(-3);
+    const sellDaysRecent3 = last3.filter(isSellingDay).length;
 
     // Days since last "new low" appeared
     let daysSinceNewLow = 0;
@@ -998,7 +1022,7 @@ function computeMetrics(data) {
     }
 
     // Scores
-    const techScore = scoreTech(todayM.macro.spx);
+    const techScore = scoreTech(todayM.macro.spx, vix1dPct);
     const breadthScore = scoreBreadth(todayM);
     const flowAnalytics = computeFlowAnalytics(flowHistory);
     const flowScore = flowAnalytics.score;
@@ -1025,7 +1049,8 @@ function computeMetrics(data) {
         const yestBreadth5d = yestAgo5 ? (yest.m.pctMa200 - yestAgo5.m.pctMa200) : 0;
         const yestDist = hist.slice(-26, -1)
             .filter(h => h.m.avgChange != null && h.m.avgChange < -0.2).length;
-        const yestTech = scoreTech(yest.m.macro.spx);
+        const yestVixChg = yest.m.macro && yest.m.macro.vixChgPct;
+        const yestTech = scoreTech(yest.m.macro.spx, yestVixChg);
         const yestBreadth = scoreBreadth(yest.m);
         const yestCombined = combineScores(yestTech, null, yestBreadth);
         const yestM = {
@@ -1083,7 +1108,22 @@ function computeMetrics(data) {
         spxRebased,
         distributionDays,
         sellDaysRecent10,
+        sellDaysRecent3,
         daysSinceNewLow,
+
+        // Risk-Off detection — if ANY of these fire, the structural
+        // scores are likely to under-react to a real risk event, so the
+        // UI must show a banner to keep the user honest about what
+        // happened today.
+        riskOff: (function () {
+            const reasons = [];
+            const spxChg = todayM.macro.spx ? todayM.macro.spx.chgPct : null;
+            if (spxChg != null && spxChg <= -1.5) reasons.push({ type: 'spx_crash', value: spxChg, text: `SPX ${spxChg.toFixed(2)}% — מהלך כבד ביום אחד` });
+            if (vix1dPct != null && vix1dPct >= 25) reasons.push({ type: 'vix_spike', value: vix1dPct, text: `VIX +${vix1dPct.toFixed(1)}% — קפיצה חדה בפחד` });
+            if (distributionDays >= 4) reasons.push({ type: 'dist_count', value: distributionDays, text: `${distributionDays} ימי מכירות ב-25 ימים — קרוב לסף האזהרה` });
+            if (sellDaysRecent3 >= 2) reasons.push({ type: 'dist_cluster', value: sellDaysRecent3, text: `${sellDaysRecent3} ימי מכירות בתוך 3 ימי מסחר — קיבוץ הדוק` });
+            return { active: reasons.length > 0, reasons };
+        })(),
 
         // Flow — backwards-compat top-level (raw values)
         pcPremium:  flowAnalytics.today ? flowAnalytics.today.pc_premium  : null,
@@ -1132,7 +1172,7 @@ function computeDaysInPhase(hist, sectorsMap, currentPhaseId) {
         const breadth5d = m.pctMa200 - ago5.pctMa200;
         const last25 = hist.slice(Math.max(0, i - 24), i + 1)
             .filter(h => h.m.avgChange != null && h.m.avgChange < -0.2).length;
-        const t = scoreTech(m.macro.spx);
+        const t = scoreTech(m.macro.spx, m.macro && m.macro.vixChgPct);
         const b = scoreBreadth(m);
         const c = combineScores(t, null, b);
         const dayMetrics = {
@@ -1194,6 +1234,19 @@ function sectorHmClass(chg) {
     if (chg <=  0.3) return 'ov2-hm-bg-weak-pos';
     if (chg <=  1)   return 'ov2-hm-bg-pos';
     return 'ov2-hm-bg-strong-pos';
+}
+
+function renderRiskOffBanner(metrics) {
+    const wrap = $('riskOff');
+    const list = $('riskOffList');
+    if (!wrap || !list) return;
+    const ro = metrics.riskOff;
+    if (!ro || !ro.active) {
+        wrap.style.display = 'none';
+        return;
+    }
+    list.innerHTML = ro.reasons.map(r => `<li>${r.text}</li>`).join('');
+    wrap.style.display = '';
 }
 
 function renderStrip(m, phase) {
@@ -2695,15 +2748,45 @@ function renderFlowCard(metrics, flowAnalytics) {
     $('flowStatus').className = 'ov2-flow-status ' + statusClass;
     const sideEl = $('flowScoreSide');
     if (sideEl) {
-        if (f.midPct != null && f.midPct >= 70 && f.scoreAbsolute != null) {
+        // Build a 3-layer context: Mid warning (existing), absolute score
+        // reference (existing), plus a NEW "institutional positioning"
+        // line that fires when the directional flow has a notable
+        // concentration in put-writing, put-buying, call-writing, or
+        // call-buying. The score by itself can hide what the big money
+        // is actually DOING — these contexts add the missing color.
+        const lines = [];
+        if (f.midPct != null && f.midPct >= 50) {
+            const tone = f.midPct >= 70 ? '#b45309' : '#92400e';
+            lines.push(`<span style="color:${tone};">⚠ ${f.midPct.toFixed(0)}% Mid (בלוקים/דילרים)</span>`);
+        }
+        if (f.scoreAbsolute != null && (f.midPct >= 70 || Math.abs(f.scoreAbsolute - score) >= 10)) {
+            lines.push(`<span style="color:var(--ov2-text-3);">absolute: <b>${f.scoreAbsolute}</b></span>`);
+        }
+        // Institutional positioning context — looks for large notional
+        // on Bid/Ask sides ($1B+ is a "headline" event for SPX flow).
+        const pBid = raw.putBidP || 0;
+        const pAsk = raw.putAskP || 0;
+        const cBid = raw.callBidP || 0;
+        const cAsk = raw.callAskP || 0;
+        const billionsToStr = v => `$${(v / 1e9).toFixed(2)}B`;
+        const contextLines = [];
+        if (pBid >= 1e9) {
+            contextLines.push(`<span style="color:#047857;">📥 כתיבת puts מסיבית (${billionsToStr(pBid)})</span> — מוסדיים מוכנים לקנות בתחתית, contrarian-bullish`);
+        }
+        if (pAsk >= 1e9) {
+            contextLines.push(`<span style="color:#b91c1c;">🛡 קניית puts אגרסיבית (${billionsToStr(pAsk)})</span> — דרישת הגנה כבדה`);
+        }
+        if (cBid >= 1e9) {
+            contextLines.push(`<span style="color:#b91c1c;">🔻 כתיבת calls אגרסיבית (${billionsToStr(cBid)})</span> — תקרה על העלייה`);
+        }
+        if (cAsk >= 1e9) {
+            contextLines.push(`<span style="color:#047857;">📈 קניית calls מסיבית (${billionsToStr(cAsk)})</span> — הימור על המשך עלייה`);
+        }
+        if (lines.length || contextLines.length) {
             sideEl.style.display = '';
             sideEl.innerHTML =
-                `<span style="color:#b45309;">⚠ ${f.midPct.toFixed(0)}% Mid</span> · ` +
-                `<span style="color:var(--ov2-text-3);">absolute: <b>${f.scoreAbsolute}</b></span>`;
-        } else if (f.scoreAbsolute != null && Math.abs(f.scoreAbsolute - score) >= 10) {
-            sideEl.style.display = '';
-            sideEl.innerHTML =
-                `<span style="color:var(--ov2-text-3);">absolute: <b>${f.scoreAbsolute}</b></span>`;
+                (lines.length ? lines.join(' · ') : '') +
+                (contextLines.length ? `<div style="margin-top:6px; line-height:1.6;">${contextLines.join('<br>')}</div>` : '');
         } else {
             sideEl.style.display = 'none';
         }
@@ -4190,6 +4273,7 @@ async function init() {
         const duration = computeDaysInPhase(hist, data.sectors, phaseResult.phase.id);
         const chips = Regime.generateChips(metrics, 6);
 
+        renderRiskOffBanner(metrics);
         renderStrip(metrics, phaseResult);
         renderEqTicker(metrics, hist);
         renderNarrative(metrics, hist, phaseResult, duration);

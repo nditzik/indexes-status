@@ -781,6 +781,67 @@
     margin-top: 2px;
     font-weight: 400;
 }
+
+/* ─── Risk-Off banner ─── */
+.overview-prod-root .ov2-risk-off {
+    background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+    color: #fef2f2;
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(127, 29, 29, 0.25);
+    border: 1px solid rgba(254, 226, 226, 0.15);
+}
+.overview-prod-root .ov2-risk-off-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.overview-prod-root .ov2-risk-off-icon {
+    font-size: 22px;
+}
+.overview-prod-root .ov2-risk-off-title {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+}
+.overview-prod-root .ov2-risk-off-list {
+    margin: 0 0 10px;
+    padding: 0;
+    list-style: none;
+}
+.overview-prod-root .ov2-risk-off-list li {
+    font-size: 13px;
+    padding: 4px 0;
+    line-height: 1.5;
+    color: #fee2e2;
+}
+.overview-prod-root .ov2-risk-off-list li::before {
+    content: "• ";
+    margin-left: 4px;
+    color: #fca5a5;
+    font-weight: 700;
+}
+.overview-prod-root .ov2-risk-off-note {
+    font-size: 11px;
+    color: #fecaca;
+    line-height: 1.6;
+    padding-top: 8px;
+    border-top: 1px solid rgba(254, 226, 226, 0.18);
+    font-weight: 400;
+}
+.overview-prod-root .ov2-ft-outlier-flag {
+    display: inline-block;
+    background: #fef3c7;
+    color: #92400e;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-right: 6px;
+    border: 1px solid #fcd34d;
+}
 .overview-prod-root .ov2-ft-summary-row td {
     background: var(--ov2-bg-2);
     font-weight: 700;

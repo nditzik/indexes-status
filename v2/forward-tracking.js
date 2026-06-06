@@ -285,11 +285,20 @@
             return;
         }
 
+        // Outlier detection — when the latest snapshot's nearest match is
+        // unusually far (> 0.7), the day is in a rare regime with few
+        // confident historical analogs. Surface this prominently.
+        const latestSnap = sorted[0];
+        const latestNearest = latestSnap && latestSnap.matches && latestSnap.matches.length
+            ? latestSnap.matches[0].distance : null;
+        const outlierWarn = (latestNearest != null && latestNearest > 0.7)
+            ? ` <span class="ov2-ft-outlier-flag">⚠ regime outlier — ההתאמה הקרובה ביותר ב-${latestNearest.toFixed(2)} מרחק (טיפוסי ${'<'} 0.5). המודל פחות בטוח.</span>`
+            : '';
         if (subEl) {
-            subEl.textContent =
+            subEl.innerHTML =
                 `${inFlight.length} ${inFlight.length === 1 ? 'תבנית פעילה' : 'תבניות פעילות'} ` +
                 '(תוך 5 ימי מסחר אחרונים). שורה לכל תבנית; ' +
-                'מתווספת אוטומטית בכל יום מסחר חדש.';
+                'מתווספת אוטומטית בכל יום מסחר חדש.' + outlierWarn;
         }
 
         if (signalsEl) signalsEl.innerHTML = '';
