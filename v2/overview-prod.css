@@ -842,6 +842,40 @@
     margin-right: 6px;
     border: 1px solid #fcd34d;
 }
+.overview-prod-root .ov2-ft-quality-flag {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-right: 6px;
+}
+.overview-prod-root .ov2-ft-quality-insufficient {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+}
+.overview-prod-root .ov2-ft-insufficient-row td {
+    background: #fef2f2;
+    color: #7f1d1d;
+}
+.overview-prod-root .ov2-ft-insufficient-msg {
+    color: #991b1b;
+    font-weight: 700;
+    font-size: 11px;
+    font-style: italic;
+}
+.overview-prod-root .ov2-echo-insufficient {
+    display: block;
+    background: #fef2f2;
+    color: #7f1d1d;
+    border: 1px solid #fca5a5;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 4px 0;
+}
 .overview-prod-root .ov2-ft-summary-row td {
     background: var(--ov2-bg-2);
     font-weight: 700;

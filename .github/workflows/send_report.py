@@ -1388,6 +1388,22 @@ s_summary_html = f"""
 </div>
 """
 
+# ─── Match-quality classification ──
+#
+# Mirror of forward-tracking.js classifyMatchQuality. Forces honesty
+# when the KNN can't find enough close neighbors instead of pretending
+# a "forecast" exists.
+MATCH_GOOD_THRESHOLD = 1.0
+MIN_GOOD_FOR_TRUSTED = 7
+
+def classify_match_quality(snap):
+    matches = (snap or {}).get('matches') or []
+    good = [m for m in matches if m.get('distance') is not None and m['distance'] <= MATCH_GOOD_THRESHOLD]
+    if len(good) >= MIN_GOOD_FOR_TRUSTED:
+        return {'tier': 'trusted', 'goodCount': len(good), 'goodMatches': good}
+    return {'tier': 'insufficient', 'goodCount': len(good), 'goodMatches': good}
+
+
 # ─── Block 5 — מה קרה בעבר במצב דומה (3 horizon cards + scenario) ──
 def historical_block_html():
     """Build the full historical patterns block — description, 3 horizon
@@ -1402,6 +1418,27 @@ def historical_block_html():
     if not snaps:
         return ''
     snap = snaps[-1]
+    # Gate: when the latest snapshot has insufficient matches, the
+    # historical block's outcomes were computed from a polluted KNN
+    # sample and would mislead. Show an honest "model can't help"
+    # block instead of the horizon cards.
+    quality = classify_match_quality(snap)
+    anchor_date_iso = snap.get('anchorDate', '')
+    anchor_date = anchor_date_iso
+    if anchor_date_iso:
+        ap = anchor_date_iso.split('-')
+        if len(ap) == 3:
+            anchor_date = f'{ap[2]}/{ap[1]}/{ap[0]}'
+    if quality['tier'] == 'insufficient':
+        return f"""
+<div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
+  <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:8px;text-align:right;">מה קרה בעבר במצב דומה</div>
+  <div style="background:#fef2f2;color:#7f1d1d;border:1px solid #fca5a5;border-radius:8px;padding:16px;font-size:13px;line-height:1.6;text-align:right;">
+    <div style="font-weight:800;font-size:14px;margin-bottom:8px;">⛔ לא מצאתי ימים דומים מספיק ב-{anchor_date}</div>
+    רק <b>{quality['goodCount']} מתוך 10 התאמות</b> נמצאו במרחק ≤ {MATCH_GOOD_THRESHOLD:.1f}. המצב היום נדיר היסטורית — המודל לא יכול לבסס תחזית 5/10/20 ימים. <b>להישען על האינדיקטורים המבניים</b> (Tech, Flow, Breadth, רוחב, VIX) ולא על אנלוגיה היסטורית.
+  </div>
+</div>
+"""
     outcomes = snap.get('outcomes') or {}
     matches = snap.get('matches') or []
     n = len(matches)
@@ -1559,6 +1596,7 @@ def matured_patterns_block_html():
     matched_fc20 = []
     matched_count = 0
     total_rows = 0
+    insufficient_count = 0
     for snap in sorted_snaps:
         anchor = snap.get('anchorDate', '')
         a_idx = find_hist_idx(anchor)
@@ -1569,6 +1607,8 @@ def matured_patterns_block_html():
         if fwd < EARLY:
             continue
         total_rows += 1
+
+        quality = classify_match_quality(snap)
 
         out5  = (snap.get('outcomes') or {}).get('5')  or {}
         out20 = (snap.get('outcomes') or {}).get('20') or {}
@@ -1586,6 +1626,29 @@ def matured_patterns_block_html():
         if a_lvl and t_lvl:
             actual5 = (t_lvl / a_lvl - 1) * 100
 
+        def fmt_pct(v):
+            if v is None: return '—'
+            return f'{"+" if v >= 0 else ""}{v:.2f}%'
+        def col(v):
+            if v is None: return '#64748b'
+            return '#10b981' if v > 0 else ('#ef4444' if v < 0 else '#64748b')
+
+        # Insufficient match quality — blank out the forecast columns
+        # so we don't pretend the model has a useful prediction.
+        if quality['tier'] == 'insufficient':
+            insufficient_count += 1
+            actual_str = fmt_pct(actual5)
+            rows_html.append(
+                f'<tr style="background:#fef2f2;color:#7f1d1d;">'
+                f'<td align="right" style="padding:8px 10px;font-weight:700;font-size:12px;text-align:right;white-space:nowrap;">{fmt_iso_short(anchor)}</td>'
+                f'<td align="right" style="padding:8px 10px;color:{col(actual5)};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">{actual_str}</td>'
+                f'<td align="right" style="padding:8px 10px;color:#a0aec0;font-size:12px;text-align:right;">—</td>'
+                f'<td align="right" style="padding:8px 10px;font-size:11px;text-align:right;color:#a0aec0;">—</td>'
+                f'<td colspan="4" align="right" style="padding:8px 10px;font-style:italic;color:#991b1b;font-weight:700;font-size:11px;text-align:right;">⛔ רק {quality["goodCount"]}/10 התאמות במרחק ≤ {MATCH_GOOD_THRESHOLD:.1f} — לא מציגים תחזית</td>'
+                f'</tr>'
+            )
+            continue
+
         # Match — same sign as forecast?
         matched = False
         if actual5 is not None and fc5 is not None:
@@ -1595,13 +1658,6 @@ def matured_patterns_block_html():
                           f'<span style="color:#ef4444;font-weight:700;">✗ אין התאמה</span>')
         else:
             match_html = '<span style="color:#a0aec0;font-style:italic;">—</span>'
-
-        def fmt_pct(v):
-            if v is None: return '—'
-            return f'{"+" if v >= 0 else ""}{v:.2f}%'
-        def col(v):
-            if v is None: return '#64748b'
-            return '#10b981' if v > 0 else ('#ef4444' if v < 0 else '#64748b')
 
         target20_iso = add_trading_days(anchor, 20) if anchor else ''
         fc20_range = (f'<div style="font-size:10px;color:#a0aec0;font-weight:400;margin-top:2px;">'
@@ -1874,7 +1930,6 @@ def risk_off_block_html():
 
 s_risk_off_html = risk_off_block_html()
 
-# ─── KNN outlier flag — appended to the matured-patterns block ──
 def knn_outlier_flag_html():
     try:
         with open('data/forward_snapshots.json', 'r', encoding='utf-8') as f:
@@ -1888,14 +1943,24 @@ def knn_outlier_flag_html():
     matches = latest.get('matches') or []
     if not matches:
         return ''
-    nearest = matches[0].get('distance')
-    if nearest is None or nearest <= 0.7:
-        return ''
-    return f"""
-<div dir="rtl" style="background:#fef3c7;color:#92400e;border-radius:8px;padding:12px 16px;margin-bottom:12px;border:1px solid #fcd34d;direction:rtl;text-align:right;font-size:13px;">
-  <b>⚠ regime outlier:</b> ההתאמה ההיסטורית הקרובה ביותר למצב היום ב-distance {nearest:.2f} (טיפוסי ≤ 0.5). 10 הימים הדומים שהמודל מצא רחוקים יותר מהרגיל — המודל פחות בטוח, צריך לקחת את התחזיות עם זהירות.
+    quality = classify_match_quality(latest)
+    if quality['tier'] == 'insufficient':
+        # Strong message — model can't help
+        return f"""
+<div dir="rtl" style="background:#fee2e2;color:#7f1d1d;border-radius:8px;padding:14px 18px;margin-bottom:12px;border:1px solid #fca5a5;direction:rtl;text-align:right;font-size:13px;line-height:1.6;">
+  <div style="font-weight:800;font-size:14px;margin-bottom:6px;">⛔ לא מצאתי ימים דומים מספיק</div>
+  רק <b>{quality['goodCount']}/10 התאמות במרחק ≤ {MATCH_GOOD_THRESHOLD:.1f}</b> (סף האיכות). המצב הנוכחי <b>נדיר היסטורית</b> — המודל לא יכול לבסס תחזית אמינה. <b>תחזיות 5/10/20 ימים מוסתרות בטבלת המאומתים</b>. להישען על אינדיקטורים אחרים (Tech, Flow, Breadth).
 </div>
 """
+    # Soft warning when nearest match still further than typical
+    nearest = matches[0].get('distance')
+    if nearest is not None and nearest > 0.7:
+        return f"""
+<div dir="rtl" style="background:#fef3c7;color:#92400e;border-radius:8px;padding:12px 16px;margin-bottom:12px;border:1px solid #fcd34d;direction:rtl;text-align:right;font-size:13px;">
+  <b>⚠ ההתאמה הקרובה ביותר ב-{nearest:.2f} מרחק (טיפוסי ≤ 0.5).</b> 10 ימים דומים נמצאו אבל מעט רחוקים מהרגיל — המודל פחות בטוח. לקחת את התחזיות עם זהירות.
+</div>
+"""
+    return ''
 
 s_knn_outlier_html = knn_outlier_flag_html()
 

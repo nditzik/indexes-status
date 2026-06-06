@@ -34,6 +34,37 @@
     const VERSION = '1.0';
     const EARLY_DAYS = 5;
 
+    // ─── Match quality classification ────────────────────────────────
+    //
+    // KNN always returns K neighbors regardless of how far they are. On
+    // regime-outlier days that produces meaningless "forecasts" derived
+    // from days that aren't really similar. Filter explicitly.
+    //
+    // Threshold calibrated against the 11 snapshots in the file: 10 of
+    // them have all 10 matches at distance <= 1.0 (typical regime). The
+    // 2026-06-05 crash day has only 2 matches under 1.0 — this is the
+    // exact case we want to flag as "insufficient" rather than pretend
+    // a forecast exists.
+    const MATCH_GOOD_THRESHOLD = 1.0;
+    const MIN_GOOD_FOR_TRUSTED = 7;
+
+    function classifyMatchQuality(snap) {
+        const matches = (snap && snap.matches) || [];
+        const goodCount = matches.filter(m => m.distance != null && m.distance <= MATCH_GOOD_THRESHOLD).length;
+        const goodMatches = matches.filter(m => m.distance != null && m.distance <= MATCH_GOOD_THRESHOLD);
+        let tier, label, color;
+        if (goodCount >= MIN_GOOD_FOR_TRUSTED) {
+            tier = 'trusted';
+            label = `${goodCount}/10 התאמות תקפות`;
+            color = '#10b981';
+        } else {
+            tier = 'insufficient';
+            label = `רק ${goodCount}/10 התאמות במרחק ≤ ${MATCH_GOOD_THRESHOLD} — לא מצאתי ימים דומים מספיק`;
+            color = '#ef4444';
+        }
+        return { tier, goodCount, goodMatches, label, color, threshold: MATCH_GOOD_THRESHOLD };
+    }
+
     function cacheBust() {
         return new Date().toISOString().slice(0, 10);
     }
@@ -285,20 +316,20 @@
             return;
         }
 
-        // Outlier detection — when the latest snapshot's nearest match is
-        // unusually far (> 0.7), the day is in a rare regime with few
-        // confident historical analogs. Surface this prominently.
+        // Match-quality check — when the latest snapshot has insufficient
+        // good matches, surface this prominently. Replaces the older
+        // "outlier" flag with a stronger statement: the model can't help.
         const latestSnap = sorted[0];
-        const latestNearest = latestSnap && latestSnap.matches && latestSnap.matches.length
-            ? latestSnap.matches[0].distance : null;
-        const outlierWarn = (latestNearest != null && latestNearest > 0.7)
-            ? ` <span class="ov2-ft-outlier-flag">⚠ regime outlier — ההתאמה הקרובה ביותר ב-${latestNearest.toFixed(2)} מרחק (טיפוסי ${'<'} 0.5). המודל פחות בטוח.</span>`
-            : '';
+        const latestQuality = latestSnap ? classifyMatchQuality(latestSnap) : null;
+        let qualityWarn = '';
+        if (latestQuality && latestQuality.tier === 'insufficient') {
+            qualityWarn = ` <span class="ov2-ft-quality-flag ov2-ft-quality-insufficient">⛔ ${latestQuality.label}. המודל לא יכול לעזור — תלוי באינדיקטורים אחרים</span>`;
+        }
         if (subEl) {
             subEl.innerHTML =
                 `${inFlight.length} ${inFlight.length === 1 ? 'תבנית פעילה' : 'תבניות פעילות'} ` +
                 '(תוך 5 ימי מסחר אחרונים). שורה לכל תבנית; ' +
-                'מתווספת אוטומטית בכל יום מסחר חדש.' + outlierWarn;
+                'מתווספת אוטומטית בכל יום מסחר חדש.' + qualityWarn;
         }
 
         if (signalsEl) signalsEl.innerHTML = '';
@@ -461,6 +492,8 @@
             // Only show rows where 5 trading days have already passed
             if (fwd < EARLY_DAYS) continue;
 
+            const quality = classifyMatchQuality(snap);
+
             const out5  = (snap.outcomes && snap.outcomes['5'])  || {};
             const out20 = (snap.outcomes && snap.outcomes['20']) || {};
             const fc5   = out5.median;
@@ -478,6 +511,31 @@
                 actual5 = (targetLvl / anchorLvl - 1) * 100;
             }
 
+            const fmtPct  = (v) => v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
+            const fmtPx   = (v) => v == null ? '—' : Math.round(v).toLocaleString('en-US');
+            const colorOf = (v) => v == null ? '' : v > 0 ? 'ov2-pos' : v < 0 ? 'ov2-neg' : '';
+            const target20Iso = addTradingDays(snap.anchorDate, 20);
+
+            // Insufficient-quality snapshots: blank out forecast columns
+            // and tell the truth ("no similar days found"). The forecast
+            // numbers were derived from a polluted sample of 10 KNN
+            // neighbors that aren't really similar — showing them would
+            // be misleading.
+            if (quality.tier === 'insufficient') {
+                const aSign = actual5 != null ? (actual5 >= 0 ? '+' : '') : '';
+                const actStr = actual5 != null ? `${aSign}${actual5.toFixed(2)}%` : '—';
+                rows.push(`
+                    <tr class="ov2-ft-insufficient-row">
+                        <td class="ov2-ft-td-anchor">${formatDate(snap.anchorDate)}</td>
+                        <td class="${colorOf(actual5)}">${actStr}</td>
+                        <td class="ov2-ft-status-pending">—</td>
+                        <td><span class="ov2-ft-status-pending">—</span></td>
+                        <td colspan="4"><span class="ov2-ft-insufficient-msg">⚠ ${quality.label} — לא מציגים תחזית</span></td>
+                    </tr>`);
+                totalRows++;
+                continue;
+            }
+
             // Match decision — same sign as forecast?
             // (KNN is statistical, so direction match is the honest test.)
             let matchCell;
@@ -492,11 +550,6 @@
             } else {
                 matchCell = '<span class="ov2-ft-status-pending">—</span>';
             }
-
-            const fmtPct  = (v) => v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
-            const fmtPx   = (v) => v == null ? '—' : Math.round(v).toLocaleString('en-US');
-            const colorOf = (v) => v == null ? '' : v > 0 ? 'ov2-pos' : v < 0 ? 'ov2-neg' : '';
-            const target20Iso = addTradingDays(snap.anchorDate, 20);
             const fc20Range = (min20 != null && max20 != null)
                 ? `<div class="ov2-ft-range">${fmtPct(min20)} עד ${fmtPct(max20)}</div>` : '';
             // Price range = anchor SPX price * (1 + min/100) … (1 + max/100)

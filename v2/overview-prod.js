@@ -1994,12 +1994,27 @@ async function renderHistoricalEcho(hist) {
             return;
         }
 
+        // Match quality — gates everything downstream. When the KNN
+        // can't find enough close neighbors, the outcomes/verdict/scenario
+        // cards are derived from polluted data and must be hidden so we
+        // don't lend the model false confidence.
+        const _MATCH_GOOD_THRESHOLD = 1.0;
+        const _MIN_GOOD_FOR_TRUSTED = 7;
+        const _goodCount = analysis.matches.filter(m => m.distance != null && m.distance <= _MATCH_GOOD_THRESHOLD).length;
+        const _insufficient = _goodCount < _MIN_GOOD_FOR_TRUSTED;
+
         // Sub-line — context about the sample
         const subEl = $('echoSub');
         if (subEl) {
-            subEl.textContent =
-                `${analysis.matches.length} ימים דומים מתוך ${analysis.sampleSize} ימי מסחר ב-10 השנים האחרונות. ` +
-                `נכון ל-${fmtDate(analysis.asOfDate)}.`;
+            if (_insufficient) {
+                subEl.innerHTML =
+                    `<span style="color:#b91c1c; font-weight:700;">⛔ רק ${_goodCount}/10 התאמות במרחק ≤ ${_MATCH_GOOD_THRESHOLD}</span> — ` +
+                    `המצב היום נדיר היסטורית, המודל לא יכול לבסס תחזית. נכון ל-${fmtDate(analysis.asOfDate)}.`;
+            } else {
+                subEl.textContent =
+                    `${analysis.matches.length} ימים דומים מתוך ${analysis.sampleSize} ימי מסחר ב-10 השנים האחרונות. ` +
+                    `נכון ל-${fmtDate(analysis.asOfDate)}.`;
+            }
         }
 
         // Verdict — Hebrew summary sentence with state-aware coloring.
@@ -2007,7 +2022,10 @@ async function renderHistoricalEcho(hist) {
         // weighted by the hit rate so we don't overstate weak signals.
         const o20 = analysis.outcomes[20];
         const verdictEl = $('echoVerdict');
-        if (verdictEl && o20 && o20.samples) {
+        if (_insufficient && verdictEl) {
+            verdictEl.textContent = 'המודל ההיסטורי לא יכול לעזור היום — להישען על Tech, Flow ו-Breadth.';
+            verdictEl.className = 'ov2-echo-verdict ov2-neg';
+        } else if (verdictEl && o20 && o20.samples) {
             const med = o20.median;
             const hit = o20.hitRate;
             let phrase, stateClass;
@@ -2026,8 +2044,13 @@ async function renderHistoricalEcho(hist) {
         }
 
         // 3-card horizon grid: 5d / 10d / 20d
+        // Hidden when matches are insufficient — the medians and hit
+        // rates were derived from polluted data and would mislead.
         const horizonsEl = $('echoHorizons');
-        if (horizonsEl) {
+        if (horizonsEl && _insufficient) {
+            horizonsEl.style.display = 'none';
+        } else if (horizonsEl) {
+            horizonsEl.style.display = '';
             horizonsEl.innerHTML = '';
             for (const W of [5, 10, 20]) {
                 const o = analysis.outcomes[W];
@@ -2068,7 +2091,9 @@ async function renderHistoricalEcho(hist) {
         //   3. Regime caveat (KNN can't see macro shocks, only the
         //      9 features it samples)
         const scenarioEl = $('echoScenario');
-        if (scenarioEl) {
+        if (scenarioEl && _insufficient) {
+            scenarioEl.style.display = 'none';
+        } else if (scenarioEl) {
             const o20 = analysis.outcomes && analysis.outcomes[20];
             const paths = (analysis.paths && analysis.paths.paths) || [];
             if (!o20 || !o20.samples || paths.length === 0) {
@@ -2142,12 +2167,24 @@ async function renderHistoricalEcho(hist) {
             }
         }
 
-        // Match-chip list — each chip is the date, with a tooltip
-        // describing the distance for the curious.
+        // Match-chip list — only show matches that pass the quality
+        // threshold (distance <= 1.0). The KNN always returns K=10
+        // neighbors but if the bottom of the list is far away those
+        // aren't real matches. When < 7 good matches exist, the panel
+        // displays an insufficient-quality message instead.
+        const MATCH_GOOD_THRESHOLD = 1.0;
+        const MIN_GOOD_FOR_TRUSTED = 7;
+        const goodMatches = analysis.matches.filter(m => m.distance != null && m.distance <= MATCH_GOOD_THRESHOLD);
         const matchesEl = $('echoMatches');
         if (matchesEl) {
             matchesEl.innerHTML = '';
-            for (const m of analysis.matches) {
+            if (goodMatches.length < MIN_GOOD_FOR_TRUSTED) {
+                const msg = document.createElement('span');
+                msg.className = 'ov2-echo-insufficient';
+                msg.innerHTML = `⛔ <b>רק ${goodMatches.length}/10 התאמות במרחק ≤ ${MATCH_GOOD_THRESHOLD}</b> — לא מצאתי ימים דומים מספיק. המצב הנוכחי נדיר היסטורית. ההתאמות הרחוקות לא מוצגות.`;
+                matchesEl.appendChild(msg);
+            }
+            for (const m of goodMatches) {
                 const chip = document.createElement('span');
                 chip.className = 'ov2-echo-match-chip';
                 chip.textContent = fmtDate(m.date);
