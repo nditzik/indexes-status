@@ -209,16 +209,33 @@
     }
 
     function normalize(vec, params) {
+        // Keep missing features as NaN so pairDistance can SKIP them
+        // (treating missing as the mean = z=0 falsely IMPROVES the
+        // partial-data candidate's distance — see README §audit-fix-3).
         const out = new Array(vec.length);
         for (let d = 0; d < vec.length; d++) {
-            // NaN features (e.g. VIX missing for early history days)
-            // become z=0 so they contribute zero distance instead of
-            // poisoning the L2 sum with NaN. KNN then matches on the
-            // remaining dimensions for those rows.
-            if (!Number.isFinite(vec[d])) { out[d] = 0; continue; }
+            if (!Number.isFinite(vec[d])) { out[d] = NaN; continue; }
             out[d] = (vec[d] - params.mu[d]) / params.sigma[d];
         }
         return out;
+    }
+
+    // Distance ignoring dimensions missing in either vector. The partial
+    // squared sum is scaled back to full-D scale (sklearn nan_euclidean
+    // approach) so a 4-of-9-dim distance is comparable to a 9-of-9-dim
+    // distance, which prevents partial-data candidates from winning by
+    // having fewer terms to sum.
+    function pairDistance(a, b) {
+        const D = a.length;
+        let d2 = 0, used = 0;
+        for (let k = 0; k < D; k++) {
+            const av = a[k], bv = b[k];
+            if (!Number.isFinite(av) || !Number.isFinite(bv)) continue;
+            d2 += (av - bv) * (av - bv);
+            used++;
+        }
+        if (used === 0) return { distance: Infinity, dimsUsed: 0 };
+        return { distance: Math.sqrt(d2 * (D / used)), dimsUsed: used };
     }
 
     // ─── KNN: find closest historical days ────────────────────────────
@@ -237,17 +254,17 @@
 
         const todayNorm = normalize(todayVec, params);
         const lastIdx = rows[rows.length - 1].idx;
-        // Compute distance to every row except the most-recent N
+        // Compute distance to every row except the most-recent N.
+        // pairDistance skips dimensions missing in either vector and
+        // scales the partial sum back to full-D scale so partial-data
+        // candidates aren't unfairly favoured.
         const candidates = [];
         for (const r of rows) {
             if (lastIdx - r.idx <= excludeRecent) continue;
             const v = normalize(r.features, params);
-            let d2 = 0;
-            for (let k = 0; k < v.length; k++) {
-                const d = v[k] - todayNorm[k];
-                d2 += d * d;
-            }
-            candidates.push({ row: r, distance: Math.sqrt(d2) });
+            const { distance, dimsUsed } = pairDistance(todayNorm, v);
+            if (!Number.isFinite(distance)) continue;
+            candidates.push({ row: r, distance, dimsUsed });
         }
         candidates.sort((a, b) => a.distance - b.distance);
 
@@ -613,6 +630,7 @@
                 date: m.row.date,
                 idx: m.row.idx,
                 distance: m.distance,
+                dimsUsed: m.dimsUsed,
                 features: m.row.features,
             })),
             outcomes,

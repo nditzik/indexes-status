@@ -10,20 +10,59 @@
 
 const DATA_BASE = 'data';
 
-// CORS proxy for live market data (Yahoo Finance).
-// corsproxy.io went paywall mid-2026; we route through Jina AI's
-// reader (r.jina.ai/<url>) — it returns the upstream body with a
-// Markdown envelope and proper CORS headers. No signup, no setup.
-// proxyFetchJSON below strips the envelope.
+// CORS proxy chain for live market data (Yahoo Finance).
+// Public CORS proxies churn (corsproxy.io went paywall mid-2026), so
+// we try each backend in order. The first that returns parseable JSON
+// wins. Adding a self-hosted Cloudflare Worker URL to the front of
+// the chain takes precedence — see DEPLOY-WORKER.md.
+// See README §audit-fix-8.
+const PROXY_CHAIN = [
+    {
+        // Jina reader — returns upstream body in a Markdown envelope
+        // ("Title:...\nURL Source:...\nMarkdown Content:\n{json}").
+        name: 'jina',
+        build: url => 'https://r.jina.ai/' + url,
+        parse: text => {
+            const i = text.indexOf('{');
+            if (i < 0) throw new Error('no JSON in jina response');
+            return JSON.parse(text.slice(i));
+        },
+    },
+    {
+        // allorigins.win — JSON wrapper with .contents holding the
+        // upstream body as a string. Adequate fallback when jina is
+        // rate-limited.
+        name: 'allorigins',
+        build: url => 'https://api.allorigins.win/get?url=' + encodeURIComponent(url),
+        parse: text => {
+            const wrapper = JSON.parse(text);
+            if (!wrapper || typeof wrapper.contents !== 'string') {
+                throw new Error('allorigins: malformed envelope');
+            }
+            return JSON.parse(wrapper.contents);
+        },
+    },
+];
+
+// Back-compat — kept for any legacy callers reading the constant.
 const PROXY_BASE = 'https://r.jina.ai/';
 
 async function proxyFetchJSON(targetUrl) {
-    const r = await fetch(PROXY_BASE + targetUrl, { cache: 'no-store' });
-    if (!r.ok) throw new Error('proxy ' + r.status);
-    const text = await r.text();
-    const i = text.indexOf('{');
-    if (i < 0) throw new Error('no JSON in proxy response');
-    return JSON.parse(text.slice(i));
+    const errors = [];
+    for (const proxy of PROXY_CHAIN) {
+        try {
+            const r = await fetch(proxy.build(targetUrl), { cache: 'no-store' });
+            if (!r.ok) {
+                errors.push(`${proxy.name}: HTTP ${r.status}`);
+                continue;
+            }
+            const text = await r.text();
+            return proxy.parse(text);
+        } catch (err) {
+            errors.push(`${proxy.name}: ${err && err.message}`);
+        }
+    }
+    throw new Error('all proxies failed: ' + errors.join(' | '));
 }
 // Load up to a year of CSVs so the EQ500 cumulative index has a fixed
 // baseline (anchored to the earliest available trading day). Other
@@ -387,27 +426,37 @@ function extractDayMetrics(rows, sectorsMap) {
 
 // ─── Scoring ──────────────────────────────────────────────────────────
 
+// Tech score with FULL coverage = 90 points distributed across 7 inputs.
+// The "coverage" field tells callers how much of that ideal was actually
+// available — so the UI can warn when a score is computed from partial
+// data. See README §audit-fix-2.
+const _TECH_FULL_MAX = 90;
 function scoreTech(spx, vixChgPct) {
+    const r = scoreTechFull(spx, vixChgPct);
+    return r ? r.value : null;
+}
+function scoreTechFull(spx, vixChgPct) {
     if (!spx || spx.price == null) return null;
     let parts = 0, max = 0;
+    const missing = [];
     const p = spx.price;
-    if (spx.ma20)  { parts += p > spx.ma20  ? 15 : 5; max += 15; }
-    if (spx.ma50)  { parts += p > spx.ma50  ? 20 : 5; max += 20; }
-    if (spx.ma200) { parts += p > spx.ma200 ? 25 : 3; max += 25; }
+    if (spx.ma20)  { parts += p > spx.ma20  ? 15 : 5; max += 15; } else missing.push('MA20');
+    if (spx.ma50)  { parts += p > spx.ma50  ? 20 : 5; max += 20; } else missing.push('MA50');
+    if (spx.ma200) { parts += p > spx.ma200 ? 25 : 3; max += 25; } else missing.push('MA200');
     if (spx.ma20 && spx.ma50 && spx.ma200) {
         if (spx.ma20 > spx.ma50 && spx.ma50 > spx.ma200) parts += 15;
         else if (spx.ma20 < spx.ma50 && spx.ma50 < spx.ma200) parts += 0;
         else if (spx.ma20 > spx.ma50) parts += 10;
         else parts += 5;
         max += 15;
+    } else {
+        missing.push('סדר MA');
     }
     if (spx.high52 != null) {
         const d = Math.abs(spx.high52);
         parts += d <= 5 ? 10 : d <= 10 ? 7 : d <= 20 ? 4 : 1;
         max += 10;
-    }
-    // Day %Change — weight bumped from 5 → 15 so a -2%+ session
-    // actually moves the score. 5 pts was barely a rounding error.
+    } else missing.push('52W high');
     if (spx.chgPct != null) {
         const c = spx.chgPct;
         parts += c >  1.0 ? 15
@@ -417,10 +466,7 @@ function scoreTech(spx, vixChgPct) {
                : c >= -1.5 ? 2
                : 0;
         max += 15;
-    }
-    // VIX-delta — captures forward-looking risk. A +25% VIX day signals
-    // panic even if SPX MAs are still intact. A calming VIX (-10%) on a
-    // grindy day adds a constructive read.
+    } else missing.push('שינוי יומי');
     if (vixChgPct != null && Number.isFinite(vixChgPct)) {
         parts += vixChgPct <= -10 ? 10
                : vixChgPct <=   0 ? 8
@@ -428,17 +474,25 @@ function scoreTech(spx, vixChgPct) {
                : vixChgPct <=  25 ? 2
                : 0;
         max += 10;
-    }
+    } else missing.push('VIX יומי');
     if (max === 0) return null;
-    return Math.max(0, Math.min(100, Math.round(parts / max * 100)));
+    return {
+        value: Math.max(0, Math.min(100, Math.round(parts / max * 100))),
+        coverage: max / _TECH_FULL_MAX,
+        max, parts, missing,
+    };
 }
 
+const _BREADTH_FULL_MAX = 65;
 function scoreBreadth(metrics) {
-    // Mirror of MCC score logic — keep aligned with email_monitor logic
+    const r = scoreBreadthFull(metrics);
+    return r ? r.value : null;
+}
+function scoreBreadthFull(metrics) {
     const p200 = metrics.pctMa200 || 0;
     let parts = 0, max = 0;
-
-    // MA200 component (25)
+    const missing = [];
+    // MA200 (25) — always computed; no "missing" path
     parts += p200 >= 65 ? 25 : p200 >= 50 ? 18 : p200 >= 40 ? 10 : 3;
     max += 25;
     // Health (15)
@@ -453,15 +507,19 @@ function scoreBreadth(metrics) {
     if (metrics.avgChange != null) {
         parts += metrics.avgChange > 0.5 ? 5 : metrics.avgChange >= -0.5 ? 3 : 0;
         max += 5;
-    }
-    // RSI dispersion: avg of strong / oversold weighted
+    } else missing.push('שינוי ממוצע');
+    // RSI distribution (10)
     if (metrics.total) {
         const rsi50pct = metrics.rsiAbove50 / metrics.total * 100;
         parts += rsi50pct >= 65 ? 10 : rsi50pct >= 50 ? 7 : rsi50pct >= 40 ? 4 : 1;
         max += 10;
-    }
+    } else missing.push('התפלגות RSI');
     if (max === 0) return null;
-    return Math.max(0, Math.min(100, Math.round(parts / max * 100)));
+    return {
+        value: Math.max(0, Math.min(100, Math.round(parts / max * 100))),
+        coverage: max / _BREADTH_FULL_MAX,
+        max, parts, missing,
+    };
 }
 
 // ─── Flow Analytics (z-score + EMA based) ──────────────────────────
@@ -886,7 +944,30 @@ function computeFlowAnalytics(flowHistory) {
                      ? `z=${z.iv_skew.toFixed(2)} ${z.iv_skew > 1.0 ? '> +1.0 → SKEW ELEVATED' : 'normal'}`
                      : 'no baseline');
 
-    return { score, scoreAbsolute, midPct, today, ema, z, baselines, days, debug };
+    // Flow coverage — primarily reflects Mid-dominance (not "missing
+    // inputs" but "directional vs non-directional"). High Mid means the
+    // score reflects a smaller and noisier directional pool.
+    // See README §audit-fix-2 / §audit-fix-6.
+    let flowCoverage = null;
+    if (today) {
+        const totalP = (today.callP || 0) + (today.putP || 0);
+        const midP   = (today.callMidP || 0) + (today.putMidP || 0);
+        const dirP   = totalP - midP;
+        const missing = [];
+        if (midPct >= 70) missing.push(`Mid דומיננטי (${Math.round(midPct)}%)`);
+        else if (midPct >= 50) missing.push(`Mid גבוה (${Math.round(midPct)}%)`);
+        // Directional coverage = how much of total premium is actually
+        // directional. 1.0 = no Mid; 0.5 = half is dealer blocks; lower
+        // = the score reflects a small slice of the day's premium.
+        flowCoverage = {
+            coverage: totalP > 0 ? dirP / totalP : 0,
+            midPct,
+            directionalP: dirP,
+            totalP,
+            missing,
+        };
+    }
+    return { score, scoreAbsolute, midPct, today, ema, z, baselines, days, debug, coverage: flowCoverage };
 }
 
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
@@ -1021,9 +1102,13 @@ function computeMetrics(data) {
         else break;
     }
 
-    // Scores
-    const techScore = scoreTech(todayM.macro.spx, vix1dPct);
-    const breadthScore = scoreBreadth(todayM);
+    // Scores — also capture coverage / missing-input breakdown so the UI
+    // can warn when a composite score was computed from partial data.
+    // See README §audit-fix-2.
+    const techFull = scoreTechFull(todayM.macro.spx, vix1dPct);
+    const techScore = techFull ? techFull.value : null;
+    const breadthFull = scoreBreadthFull(todayM);
+    const breadthScore = breadthFull ? breadthFull.value : null;
     const flowAnalytics = computeFlowAnalytics(flowHistory);
     const flowScore = flowAnalytics.score;
     const combined = combineScores(techScore, flowScore, breadthScore);
@@ -1072,6 +1157,12 @@ function computeMetrics(data) {
     const metrics = {
         // Today scores
         techScore, flowScore, breadthScore, combined,
+        // Coverage report — populated by scoreTechFull / scoreBreadthFull
+        // and computeFlowAnalytics. Each is { coverage: 0..1, missing: [...] }.
+        // UI uses these to surface a ⚠ chip when coverage < 1.
+        techCoverage: techFull ? { coverage: techFull.coverage, missing: techFull.missing } : null,
+        breadthCoverage: breadthFull ? { coverage: breadthFull.coverage, missing: breadthFull.missing } : null,
+        flowCoverage: flowAnalytics.coverage || null,
 
         // Breadth
         pctMa200: todayM.pctMa200,
@@ -2009,7 +2100,7 @@ async function renderHistoricalEcho(hist) {
             if (_insufficient) {
                 subEl.innerHTML =
                     `<span style="color:#b91c1c; font-weight:700;">⛔ רק ${_goodCount}/10 התאמות במרחק ≤ ${_MATCH_GOOD_THRESHOLD}</span> — ` +
-                    `המצב היום נדיר היסטורית, המודל לא יכול לבסס תחזית. נכון ל-${fmtDate(analysis.asOfDate)}.`;
+                    `המצב היום נדיר היסטורית, המודל לא יכול להציע אינדיקציה היסטורית. נכון ל-${fmtDate(analysis.asOfDate)}.`;
             } else {
                 subEl.textContent =
                     `${analysis.matches.length} ימים דומים מתוך ${analysis.sampleSize} ימי מסחר ב-10 השנים האחרונות. ` +
@@ -2434,6 +2525,34 @@ function renderMCC(phase, metrics, chips, phaseDuration) {
     $('mccScoreVal').textContent = metrics.combined != null ? metrics.combined : '—';
     $('mccBarFill').style.width = (metrics.combined || 0) + '%';
 
+    // Coverage chip — surface when any composite score was computed from
+    // partial data. See README §audit-fix-2.
+    const covChip = $('coverageChip');
+    if (covChip) {
+        const parts = [];
+        if (metrics.techCoverage && metrics.techCoverage.coverage < 1) {
+            parts.push(`Tech ${Math.round(metrics.techCoverage.coverage * 100)}%`);
+        }
+        if (metrics.breadthCoverage && metrics.breadthCoverage.coverage < 1) {
+            parts.push(`Breadth ${Math.round(metrics.breadthCoverage.coverage * 100)}%`);
+        }
+        if (metrics.flowCoverage && metrics.flowCoverage.midPct >= 50) {
+            parts.push(`Flow ${Math.round(metrics.flowCoverage.coverage * 100)}% directional · ${Math.round(metrics.flowCoverage.midPct)}% Mid`);
+        }
+        if (parts.length) {
+            covChip.style.display = '';
+            covChip.innerHTML = `⚠ <b>שלמות נתונים חלקית:</b> ${parts.join(' · ')}`;
+            const missing = [
+                ...(metrics.techCoverage && metrics.techCoverage.missing || []).map(m => `Tech: ${m}`),
+                ...(metrics.breadthCoverage && metrics.breadthCoverage.missing || []).map(m => `Breadth: ${m}`),
+                ...(metrics.flowCoverage && metrics.flowCoverage.missing || []).map(m => `Flow: ${m}`),
+            ];
+            if (missing.length) covChip.title = missing.join('\n');
+        } else {
+            covChip.style.display = 'none';
+        }
+    }
+
     // Risk + bias (already Hebrew from regime.js)
     $('mccRisk').textContent = p.risk;
     $('mccBias').textContent = p.bias;
@@ -2791,10 +2910,21 @@ function renderFlowCard(metrics, flowAnalytics) {
         // concentration in put-writing, put-buying, call-writing, or
         // call-buying. The score by itself can hide what the big money
         // is actually DOING — these contexts add the missing color.
+        // Flow confidence tier — derived from Mid dominance.
+        // See README §audit-fix-6. The Flow Score is computed from
+        // directional premium only; when Mid > 50% of total, the
+        // score reflects a SMALLER slice of the day's flow and should
+        // be flagged. > 80% means almost everything was blocks and
+        // the score is borderline meaningless.
         const lines = [];
-        if (f.midPct != null && f.midPct >= 50) {
-            const tone = f.midPct >= 70 ? '#b45309' : '#92400e';
-            lines.push(`<span style="color:${tone};">⚠ ${f.midPct.toFixed(0)}% Mid (בלוקים/דילרים)</span>`);
+        if (f.midPct != null) {
+            if (f.midPct >= 80) {
+                lines.push(`<span style="color:#991b1b; font-weight:800;">⛔ ${f.midPct.toFixed(0)}% Mid — ביטחון נמוך בציון</span>`);
+            } else if (f.midPct >= 70) {
+                lines.push(`<span style="color:#b45309; font-weight:700;">⚠ ${f.midPct.toFixed(0)}% Mid — ביטחון מוגבל</span>`);
+            } else if (f.midPct >= 50) {
+                lines.push(`<span style="color:#92400e;">⚠ ${f.midPct.toFixed(0)}% Mid (בלוקים/דילרים)</span>`);
+            }
         }
         if (f.scoreAbsolute != null && (f.midPct >= 70 || Math.abs(f.scoreAbsolute - score) >= 10)) {
             lines.push(`<span style="color:var(--ov2-text-3);">absolute: <b>${f.scoreAbsolute}</b></span>`);
@@ -4238,11 +4368,16 @@ async function startLiveTicker(metrics) {
 }
 
 async function fetchLiveIndices() {
-    // Yahoo Finance via the Cloudflare Worker proxy. We call per-symbol
-    // because v7/finance/quote returned 401 mid-2025; v8/finance/chart
-    // is the stable free endpoint. Each response carries meta.regularMarketPrice
-    // and meta.chartPreviousClose, which is everything the ticker needs.
+    // Yahoo Finance via the CORS proxy chain. We call per-symbol because
+    // v7/finance/quote returned 401 mid-2025; v8/finance/chart is the
+    // stable free endpoint.
+    //
+    // Each response is cached in localStorage. When ALL proxies fail we
+    // hydrate from cache and mark the ticker as "stale" so the user
+    // knows the data is from the last successful fetch, not live.
+    // See README §audit-fix-8.
     const symbols = { SPY: 'SPY', NDX: 'QQQ', DJI: 'DIA', RUT: 'IWM' };
+    let anyFresh = false, anyStaleFromCache = false;
     const apply = (key, close, prev) => {
         const valEl = $('tk' + key);
         const chgEl = $('tk' + key + 'Chg');
@@ -4254,20 +4389,52 @@ async function fetchLiveIndices() {
         chgEl.textContent = (pctChg >= 0 ? '+' : '') + pctChg.toFixed(2) + '%';
         chgEl.style.color = pctChg >= 0 ? 'var(--ov2-pos)' : 'var(--ov2-neg)';
     };
+    const cacheKey = sym => `liveTicker_${sym}`;
     const fetchOne = async (key, sym) => {
         const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d`;
         try {
             const json = await proxyFetchJSON(yahooUrl);
             const meta = json && json.chart && json.chart.result && json.chart.result[0] && json.chart.result[0].meta;
-            if (!meta) return;
+            if (!meta) throw new Error('no meta');
             apply(key, meta.regularMarketPrice, meta.chartPreviousClose);
-        } catch (_) { /* silent — keep last value */ }
+            anyFresh = true;
+            try {
+                localStorage.setItem(cacheKey(sym), JSON.stringify({
+                    close: meta.regularMarketPrice,
+                    prev:  meta.chartPreviousClose,
+                    fetchedAt: Date.now(),
+                }));
+            } catch (_) { /* quota / disabled */ }
+        } catch (_) {
+            // All proxies failed for this symbol — hydrate from cache
+            try {
+                const cached = localStorage.getItem(cacheKey(sym));
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    apply(key, parsed.close, parsed.prev);
+                    anyStaleFromCache = true;
+                }
+            } catch (_) { /* keep showing whatever was already there */ }
+        }
     };
     await Promise.all(Object.entries(symbols).map(([k, s]) => fetchOne(k, s)));
     const upd = $('tkUpdated');
     if (upd) {
         const now = new Date();
-        upd.textContent = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        const hhmm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        if (anyFresh) {
+            upd.textContent = hhmm;
+            upd.style.color = '';
+            upd.title = '';
+        } else if (anyStaleFromCache) {
+            upd.textContent = '⚠ ' + hhmm + ' · cached';
+            upd.style.color = 'var(--ov2-warn)';
+            upd.title = 'נתונים מ-cache מקומי — כל ספקי ה-proxy חזרו שגיאה';
+        } else {
+            upd.textContent = '⛔ —';
+            upd.style.color = 'var(--ov2-neg)';
+            upd.title = 'נתונים לא זמינים — אין cache, אין proxy';
+        }
     }
 }
 

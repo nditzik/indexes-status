@@ -2,3 +2,7 @@
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Audit handoff package — regenerated on demand
+handoff/
+indexes-status-audit.zip

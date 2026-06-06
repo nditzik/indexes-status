@@ -4,7 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>S&P 500</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!--
+        Chart.js — pinned version + Subresource Integrity so a compromised
+        CDN can't inject script. If the SRI check fails the browser refuses
+        to execute the script and the dashboard renders without charts
+        rather than running malicious code. See README §audit-fix-8.
+        To update: bump the version, fetch the file, compute sha384:
+            curl -sL https://cdn.jsdelivr.net/npm/chart.js@X.Y.Z/dist/chart.umd.js | openssl dgst -sha384 -binary | openssl base64 -A
+    -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"
+            integrity="sha384-FcQlsUOd0TJjROrBxhJdUhXTUgNJQxTMcxZe6nHbaEfFL1zjQ+bq/uRoBQxb0KMo"
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
@@ -1884,6 +1895,7 @@
                                     <span style="margin-right:auto; font-size:11px; color:var(--ov2-text-2); font-weight:600;">ציון משולב</span>
                                 </div>
                                 <div class="ov2-mcc-bar"><div class="ov2-mcc-bar-fill" id="ov2_mccBarFill" style="width:0%"></div></div>
+                                <div class="ov2-coverage-chip" id="ov2_coverageChip" style="display:none;"></div>
                             </div>
                             <div class="ov2-mcc-block-meta" data-tooltip="כמה האלגוריתם בטוח בסיווג השלב הנוכחי. מעל 80% = החלטי. מתחת ל-60% = גבולי">
                                 <div class="ov2-mcc-score-top">
@@ -2020,12 +2032,12 @@
                         </div>
                         <div class="ov2-ft-matured-table-wrap" id="ov2_maturedTableWrap" style="margin-top:18px;">
                             <div class="ov2-echo-ew-head">
-                                <div class="ov2-echo-ew-title">תבניות שעברו 5 ימי בחינה — בדיקת התאמה + צפי ל-Day 20</div>
+                                <div class="ov2-echo-ew-title">תבניות שעברו 5 ימי בחינה — בדיקת התאמה + אינדיקציה היסטורית ל-Day 20</div>
                                 <div class="ov2-echo-ew-sub" id="ov2_maturedTableSub">טוען snapshots...</div>
                             </div>
                             <div id="ov2_maturedTable"></div>
                             <div class="ov2-echo-ew-note">
-                                * רק שורות שעברו 5 ימי מסחר. "התאמה" = כיוון בפועל ב-5 הימים זהה לכיוון צפי 5d (KNN). "צפי 20d" = חציון התוצאה של 10 הימים ההיסטוריים הדומים, 20 ימי מסחר מהזיהוי. "סיכוי" = אחוז המקרים ההיסטוריים שנסגרו בחיובי ביום ה-20.
+                                * רק שורות שעברו 5 ימי מסחר. "התאמה" = כיוון בפועל ב-5 הימים זהה לכיוון אינדיקציה 5d (KNN). "אינדיקציה 20d" = חציון התוצאה של 10 הימים ההיסטוריים הדומים, 20 ימי מסחר מהזיהוי. "סיכוי" = אחוז המקרים ההיסטוריים שנסגרו בחיובי ביום ה-20. <b>זו לא תחזית — זו התפלגות מותנית של מקרים דומים בעבר.</b>
                             </div>
                         </div>
                         <div class="ov2-echo-matches">

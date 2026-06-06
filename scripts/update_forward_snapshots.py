@@ -330,20 +330,52 @@ def compute_norm_params(rows):
 
 
 def normalize(vec, params):
+    """Z-score normalize. Missing features stay as NaN so the distance
+    function can SKIP them rather than treating them as the mean (zero
+    after z-score). See README §audit-fix-3."""
     out = []
     for d, v in enumerate(vec):
         if not math.isfinite(v):
-            out.append(0.0)
+            out.append(float('nan'))
             continue
         out.append((v - params['mu'][d]) / params['sigma'][d])
     return out
+
+
+def pair_distance(vec_a_norm, vec_b_norm):
+    """Euclidean distance between two normalized vectors that may have
+    NaN dimensions. Skips any dim missing in EITHER vector. Scales the
+    partial sum back to full-D scale (sklearn nan_euclidean approach)
+    so distances are comparable across pairs with different completeness.
+
+    Returns (distance, dims_used). distance is float('inf') when no
+    shared dim exists, so the candidate is never selected.
+    """
+    D = len(vec_a_norm)
+    d2_sum = 0.0
+    dims_used = 0
+    for k in range(D):
+        a, b = vec_a_norm[k], vec_b_norm[k]
+        if not (math.isfinite(a) and math.isfinite(b)):
+            continue
+        d2_sum += (a - b) ** 2
+        dims_used += 1
+    if dims_used == 0:
+        return float('inf'), 0
+    d2_scaled = d2_sum * (D / dims_used)
+    return math.sqrt(d2_scaled), dims_used
 
 
 # ─── KNN with cluster dedup ──────────────────────────────────────────
 def find_matches(rows, params, anchor_idx, today_vec):
     """anchor_idx = index in rows array of the 'today' row.
     Excludes rows within EXCLUDE_RECENT trading days of the anchor (not of
-    the latest row — keeps snapshots reproducible later)."""
+    the latest row — keeps snapshots reproducible later).
+
+    Each accepted match carries `dimsUsed` (number of feature dimensions
+    actually compared) so the dashboard can warn when a match is built
+    on incomplete data.
+    """
     today_norm = normalize(today_vec, params)
     anchor_row_idx = rows[anchor_idx]['idx']
 
@@ -352,8 +384,10 @@ def find_matches(rows, params, anchor_idx, today_vec):
         if anchor_row_idx - r['idx'] <= EXCLUDE_RECENT:
             continue
         v = normalize(r['features'], params)
-        d2 = sum((v[k] - today_norm[k]) ** 2 for k in range(len(v)))
-        candidates.append({'row': r, 'distance': math.sqrt(d2)})
+        dist, dims_used = pair_distance(today_norm, v)
+        if not math.isfinite(dist):
+            continue
+        candidates.append({'row': r, 'distance': dist, 'dimsUsed': dims_used})
     candidates.sort(key=lambda c: c['distance'])
 
     accepted = []
@@ -577,6 +611,7 @@ def build_snapshot(fm, anchor_idx_in_rows):
         'asOfFeatures': anchor_row['features'],
         'matches': [
             {'date': m['row']['date'], 'distance': m['distance'],
+             'dimsUsed': m.get('dimsUsed', len(m['row']['features'])),
              'features': m['row']['features']}
             for m in matches
         ],

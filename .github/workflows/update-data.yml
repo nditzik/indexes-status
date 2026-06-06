@@ -16,15 +16,29 @@ jobs:
 
       - name: Update data.txt and index.json
         run: |
-          LATEST=$(ls data/watchlist-sp-500-intraday-*.csv | sort | tail -1)
-          echo "Latest: $LATEST"
-          cp "$LATEST" data/data.txt
           python3 -c "
-          import json, glob, os
-          files = sorted([os.path.basename(f) for f in glob.glob('data/watchlist-sp-500-intraday-*.csv')])
+          import json, glob, os, re, shutil
+          # Filenames are MM-DD-YYYY which lex-sort wrong across year
+          # boundaries. Parse the real date and sort by ISO so 'latest'
+          # always means 'most recent trading day', not the alphabetical
+          # tail. See README §audit-fix-1.
+          DATE_RE = re.compile(r'watchlist-sp-500-intraday-(\d{2})-(\d{2})-(\d{4})\.csv$')
+          def iso_key(path):
+              m = DATE_RE.search(path)
+              if not m: return ''
+              mm, dd, yyyy = m.groups()
+              return f'{yyyy}-{mm}-{dd}'
+          paths = glob.glob('data/watchlist-sp-500-intraday-*.csv')
+          paths.sort(key=iso_key)
+          if not paths:
+              raise SystemExit('no watchlist CSVs found')
+          latest = paths[-1]
+          print('Latest:', latest)
+          shutil.copy(latest, 'data/data.txt')
+          files = [os.path.basename(p) for p in paths]
           with open('data/index.json', 'w') as f:
               json.dump(files, f, indent=2)
-          print('index.json updated:', len(files), 'files')
+          print(f'index.json updated: {len(files)} files (ISO-sorted)')
           "
 
       - name: Update forward snapshots (KNN locked-in for today)
@@ -46,4 +60,9 @@ jobs:
       - name: Send email — daily market report
         env:
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          # Subscriber list. Set the EMAIL_SUBSCRIBERS GitHub Secret
+          # (JSON array or comma-separated emails) to override the
+          # local data/email_subscribers.json fallback.
+          # See README §audit-fix-7.
+          EMAIL_SUBSCRIBERS: ${{ secrets.EMAIL_SUBSCRIBERS }}
         run: python3 .github/workflows/send_report.py

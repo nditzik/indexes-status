@@ -876,6 +876,17 @@
     line-height: 1.5;
     margin: 4px 0;
 }
+.overview-prod-root .ov2-coverage-chip {
+    margin-top: 8px;
+    padding: 6px 10px;
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+    border-radius: 6px;
+    font-size: 11px;
+    line-height: 1.4;
+    cursor: help;
+}
 .overview-prod-root .ov2-ft-summary-row td {
     background: var(--ov2-bg-2);
     font-weight: 700;

@@ -6,8 +6,30 @@ Replicates the dashboard's scoring logic (MCC, Technical, Options Flow)
 and renders as a compact HTML email sent via Brevo on every CSV push.
 """
 
-import csv, json, os, urllib.request, urllib.error, glob, io, hashlib
+import csv, json, os, urllib.request, urllib.error, glob, io, hashlib, re
 from datetime import date as _date
+
+# ═══════════════════════════════════════════════════
+#  File-date helpers — see README §audit-fix-1
+#
+#  Filenames are MM-DD-YYYY. Lex-sorting them is wrong across year
+#  boundaries (01-01-2026 sorts before 12-31-2025 alphabetically). Always
+#  sort by the parsed ISO date so "latest" means the most recent trading
+#  day, not the alphabetical tail.
+# ═══════════════════════════════════════════════════
+_WATCHLIST_DATE_RE = re.compile(r'watchlist-sp-500-intraday-(\d{2})-(\d{2})-(\d{4})\.csv$')
+_FLOW_DATE_RE      = re.compile(r'spx-options-flow-(\d{2})-(\d{2})-(\d{4})\.csv$')
+
+def _iso_key(path, pattern=None):
+    if pattern is None:
+        pattern = _WATCHLIST_DATE_RE if 'watchlist' in path else _FLOW_DATE_RE
+    m = pattern.search(path)
+    if not m: return ''
+    mm, dd, yyyy = m.groups()
+    return f'{yyyy}-{mm}-{dd}'
+
+def sorted_by_date(paths, pattern):
+    return sorted(paths, key=lambda p: _iso_key(p, pattern))
 
 # ═══════════════════════════════════════════════════
 #  Helpers
@@ -242,7 +264,7 @@ historical_patterns_str = historical_patterns_text()
 #  selling-day rule, and broad-uptrend duration can all read from
 #  the same source. Older code used a flat list of avg values only.
 # ═══════════════════════════════════════════════════
-hist_files = sorted(glob.glob('data/watchlist-sp-500-intraday-*.csv'))
+hist_files = sorted_by_date(glob.glob('data/watchlist-sp-500-intraday-*.csv'), _WATCHLIST_DATE_RE)
 
 def parse_history_day(hf):
     """Parse one CSV → dict with the fields the narrative needs.
@@ -466,7 +488,7 @@ b_score = breadth_score()
 #    callAskPmDir = callAskP / (callAskP + callBidP + callMidP) * 100
 #    putAskPmDir  = putAskP  / (putAskP  + putBidP  + putMidP)  * 100
 # ═══════════════════════════════════════════════════
-flow_files = sorted(glob.glob('data/spx-options-flow-*.csv'))
+flow_files = sorted_by_date(glob.glob('data/spx-options-flow-*.csv'), _FLOW_DATE_RE)
 flow = None
 if flow_files:
     try:
@@ -509,6 +531,14 @@ if flow_files:
             elif score >= 20: label, tone = 'באריש מתון', 'warn'
             else:             label, tone = 'באריש חזק',  'neg'
 
+            # Flow confidence tier — derived from Mid dominance.
+            # See README §audit-fix-6.
+            midPct = (callMidP + putMidP) / total_p * 100 if total_p else 0
+            if   midPct >= 80: confidence_tier, confidence_note = 'low',     f'⛔ {midPct:.0f}% Mid — ביטחון נמוך בציון'
+            elif midPct >= 70: confidence_tier, confidence_note = 'limited', f'⚠ {midPct:.0f}% Mid — ביטחון מוגבל'
+            elif midPct >= 50: confidence_tier, confidence_note = 'mid',     f'⚠ {midPct:.0f}% Mid (בלוקים/דילרים)'
+            else:              confidence_tier, confidence_note = 'high',    ''
+
             # Legacy ratios — kept for narrative compatibility but now
             # computed from DIRECTIONAL premium so they line up with the
             # dashboard's interpretation (Mid blocks excluded).
@@ -522,13 +552,20 @@ if flow_files:
                 'callShare': round(callShare, 1),
                 'callAskPmDir': round(callAskPmDir, 1),
                 'putAskPmDir':  round(putAskPmDir, 1),
-                'midPct': round((callMidP + putMidP) / total_p * 100, 1) if total_p else 0,
+                'midPct': round(midPct, 1),
+                'confidence_tier': confidence_tier,
+                'confidence_note': confidence_note,
                 'pc_tr': pc_tr, 'pc_p': pc_p, 'net_p': net_p,
                 'call_p_pct': call_p/total_p*100 if total_p else 0,
                 'put_p_pct':  put_p/total_p*100  if total_p else 0,
                 'call_tr_pct': call_tr/total_tr*100,
                 'put_tr_pct':  put_tr/total_tr*100,
                 'call_tr': call_tr, 'put_tr': put_tr,
+                # Directional notionals — surfaced in the email's flow
+                # block when Mid is dominant, so the reader sees what the
+                # institutional positioning actually looked like.
+                'callAskP': callAskP, 'callBidP': callBidP,
+                'putAskP': putAskP, 'putBidP': putBidP,
             }
     except Exception as e:
         print(f'Options flow parse error: {e}')
@@ -1435,7 +1472,7 @@ def historical_block_html():
   <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:8px;text-align:right;">מה קרה בעבר במצב דומה</div>
   <div style="background:#fef2f2;color:#7f1d1d;border:1px solid #fca5a5;border-radius:8px;padding:16px;font-size:13px;line-height:1.6;text-align:right;">
     <div style="font-weight:800;font-size:14px;margin-bottom:8px;">⛔ לא מצאתי ימים דומים מספיק ב-{anchor_date}</div>
-    רק <b>{quality['goodCount']} מתוך 10 התאמות</b> נמצאו במרחק ≤ {MATCH_GOOD_THRESHOLD:.1f}. המצב היום נדיר היסטורית — המודל לא יכול לבסס תחזית 5/10/20 ימים. <b>להישען על האינדיקטורים המבניים</b> (Tech, Flow, Breadth, רוחב, VIX) ולא על אנלוגיה היסטורית.
+    רק <b>{quality['goodCount']} מתוך 10 התאמות</b> נמצאו במרחק ≤ {MATCH_GOOD_THRESHOLD:.1f}. המצב היום נדיר היסטורית — המודל לא יכול להציע אינדיקציה היסטורית ל-5/10/20 ימים. <b>להישען על האינדיקטורים המבניים</b> (Tech, Flow, Breadth, רוחב, VIX) ולא על אנלוגיה היסטורית.
   </div>
 </div>
 """
@@ -1644,7 +1681,7 @@ def matured_patterns_block_html():
                 f'<td align="right" style="padding:8px 10px;color:{col(actual5)};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">{actual_str}</td>'
                 f'<td align="right" style="padding:8px 10px;color:#a0aec0;font-size:12px;text-align:right;">—</td>'
                 f'<td align="right" style="padding:8px 10px;font-size:11px;text-align:right;color:#a0aec0;">—</td>'
-                f'<td colspan="4" align="right" style="padding:8px 10px;font-style:italic;color:#991b1b;font-weight:700;font-size:11px;text-align:right;">⛔ רק {quality["goodCount"]}/10 התאמות במרחק ≤ {MATCH_GOOD_THRESHOLD:.1f} — לא מציגים תחזית</td>'
+                f'<td colspan="4" align="right" style="padding:8px 10px;font-style:italic;color:#991b1b;font-weight:700;font-size:11px;text-align:right;">⛔ רק {quality["goodCount"]}/10 התאמות במרחק ≤ {MATCH_GOOD_THRESHOLD:.1f} — לא מציגים אינדיקציה</td>'
                 f'</tr>'
             )
             continue
@@ -1714,7 +1751,7 @@ def matured_patterns_block_html():
             f'<tr style="background:#f7fafc;border-top:2px solid #cbd5e0;">'
             f'<td colspan="3" align="right" style="padding:8px 10px;font-weight:700;color:#2d3748;font-size:12px;text-align:right;">סיכום ({total_rows} שורות)</td>'
             f'<td align="right" style="padding:8px 10px;font-weight:700;color:#2d3748;font-size:12px;text-align:right;">{matched_count}/{total_rows} עם התאמה</td>'
-            f'<td align="right" style="padding:8px 10px;font-weight:700;color:#2d3748;font-size:11px;text-align:right;">חציון צפי 20d</td>'
+            f'<td align="right" style="padding:8px 10px;font-weight:700;color:#2d3748;font-size:11px;text-align:right;">חציון אינדיקציה 20d</td>'
             f'<td align="right" style="padding:8px 10px;color:{col(all_med)};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">הכל: {fmt_pct(all_med)}{matched_sub}</td>'
             f'<td colspan="2"></td>'
             f'</tr>'
@@ -1729,10 +1766,10 @@ def matured_patterns_block_html():
       <tr style="background:#edf2f7;">
         <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">תאריך תפיסה</th>
         <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">בפועל 5d</th>
-        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">צפי 5d</th>
+        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">אינדיקציה 5d</th>
         <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">התאמה?</th>
         <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">תאריך יעד 20d</th>
-        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">צפי 20d</th>
+        <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">אינדיקציה 20d</th>
         <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">סיכוי 20d</th>
         <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">התאמות</th>
       </tr>
@@ -1740,7 +1777,7 @@ def matured_patterns_block_html():
     <tbody>{''.join(rows_html)}{summary_html}</tbody>
   </table>
   <div style="font-size:10px;color:#a0aec0;margin-top:10px;line-height:1.5;text-align:right;">
-    "התאמה" = כיוון בפועל ב-5 הימים זהה לכיוון צפי 5d (KNN). "צפי 20d" = חציון התוצאה של 10 הימים ההיסטוריים הדומים, 20 ימי מסחר אחרי הזיהוי. "סיכוי" = אחוז המקרים שנסגרו בחיובי ביום ה-20.
+    "התאמה" = כיוון בפועל ב-5 הימים זהה לכיוון אינדיקציה 5d (KNN). "אינדיקציה 20d" = חציון התוצאה של 10 הימים ההיסטוריים הדומים, 20 ימי מסחר אחרי הזיהוי. "סיכוי" = אחוז המקרים שנסגרו בחיובי ביום ה-20.
   </div>
 </div>
 """
@@ -1949,7 +1986,7 @@ def knn_outlier_flag_html():
         return f"""
 <div dir="rtl" style="background:#fee2e2;color:#7f1d1d;border-radius:8px;padding:14px 18px;margin-bottom:12px;border:1px solid #fca5a5;direction:rtl;text-align:right;font-size:13px;line-height:1.6;">
   <div style="font-weight:800;font-size:14px;margin-bottom:6px;">⛔ לא מצאתי ימים דומים מספיק</div>
-  רק <b>{quality['goodCount']}/10 התאמות במרחק ≤ {MATCH_GOOD_THRESHOLD:.1f}</b> (סף האיכות). המצב הנוכחי <b>נדיר היסטורית</b> — המודל לא יכול לבסס תחזית אמינה. <b>תחזיות 5/10/20 ימים מוסתרות בטבלת המאומתים</b>. להישען על אינדיקטורים אחרים (Tech, Flow, Breadth).
+  רק <b>{quality['goodCount']}/10 התאמות במרחק ≤ {MATCH_GOOD_THRESHOLD:.1f}</b> (סף האיכות). המצב הנוכחי <b>נדיר היסטורית</b> — המודל לא יכול להציע אינדיקציה היסטורית אמינה. <b>אינדיקציות 5/10/20 ימים מוסתרות בטבלת המאומתים</b>. להישען על אינדיקטורים אחרים (Tech, Flow, Breadth).
 </div>
 """
     # Soft warning when nearest match still further than typical
@@ -2016,22 +2053,46 @@ html = f"""<!DOCTYPE html>
 # ═══════════════════════════════════════════════════
 api_key = os.environ.get("BREVO_API_KEY", "")
 
-# TEST_RECIPIENTS env var overrides default list (comma-separated emails)
-_test = os.environ.get("TEST_RECIPIENTS", "").strip()
-if _test:
-    recipients = [{"email": e.strip()} for e in _test.split(",") if e.strip()]
-    subject_prefix = "🧪 [TEST] "
-    print(f"TEST MODE — sending only to: {[r['email'] for r in recipients]}")
-else:
-    recipients = [
-        {"email": "nditzik@gmail.com"},
-        {"email": "eddie@teco.org.il"},
-        {"email": "yakiryona3@gmail.com"},
-        {"email": "ofeknidam@gmail.com"},
-        {"email": "anavot70@gmail.com"},
-        {"email": "shlomo@nimrodi.co.il"}
-    ]
-    subject_prefix = "📊 "
+# Recipient resolution — see README §audit-fix-7
+#   tier 1: TEST_RECIPIENTS env var (manual test workflow)
+#   tier 2: EMAIL_SUBSCRIBERS env var (GitHub Secret, JSON array or CSV)
+#   tier 3: data/email_subscribers.json file (gitignored)
+#   tier 4: error out — no hardcoded list any more.
+def _load_recipients():
+    _test = os.environ.get("TEST_RECIPIENTS", "").strip()
+    if _test:
+        emails = [e.strip() for e in _test.split(",") if e.strip()]
+        print(f"TEST MODE — sending only to: {emails}")
+        return [{"email": e} for e in emails], "🧪 [TEST] "
+    env_subs = os.environ.get("EMAIL_SUBSCRIBERS", "").strip()
+    if env_subs:
+        emails = None
+        try:
+            parsed = json.loads(env_subs)
+            if isinstance(parsed, list):
+                emails = [str(e).strip() for e in parsed if str(e).strip()]
+        except (json.JSONDecodeError, ValueError):
+            emails = [e.strip() for e in env_subs.split(",") if e.strip()]
+        if emails:
+            print(f"Loaded {len(emails)} recipients from EMAIL_SUBSCRIBERS env var")
+            return [{"email": e} for e in emails], "📊 "
+    try:
+        with open("data/email_subscribers.json", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, list) and data:
+            emails = [str(e).strip() for e in data if str(e).strip()]
+            print(f"Loaded {len(emails)} recipients from data/email_subscribers.json")
+            return [{"email": e} for e in emails], "📊 "
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        print(f"WARN: failed to read data/email_subscribers.json: {e}")
+    raise SystemExit(
+        "ERROR: no email recipients configured. Set EMAIL_SUBSCRIBERS env var "
+        "(JSON array or comma-separated) or create data/email_subscribers.json."
+    )
+
+recipients, subject_prefix = _load_recipients()
 
 payload = json.dumps({
     "sender": {"name": "S&P Dashboard", "email": "nditzik@gmail.com"},

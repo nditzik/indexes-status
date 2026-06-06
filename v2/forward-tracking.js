@@ -530,7 +530,7 @@
                         <td class="${colorOf(actual5)}">${actStr}</td>
                         <td class="ov2-ft-status-pending">—</td>
                         <td><span class="ov2-ft-status-pending">—</span></td>
-                        <td colspan="4"><span class="ov2-ft-insufficient-msg">⚠ ${quality.label} — לא מציגים תחזית</span></td>
+                        <td colspan="4"><span class="ov2-ft-insufficient-msg">⚠ ${quality.label} — לא מציגים אינדיקציה</span></td>
                     </tr>`);
                 totalRows++;
                 continue;
@@ -594,7 +594,7 @@
                 <tr class="ov2-ft-summary-row">
                     <td colspan="3"><b>סיכום (${totalRows} שורות)</b></td>
                     <td><b>${matchedCount}/${totalRows} עם התאמה</b></td>
-                    <td><b>חציון צפי 20d</b></td>
+                    <td><b>חציון אינדיקציה 20d</b></td>
                     <td class="${cls(allMed)}"><b>הכל: ${fmt(allMed)}</b>${matchedFc20.length ? `<br><span class="ov2-ft-range">מתואמים: ${fmt(matchedMed)}</span>` : ''}</td>
                     <td colspan="2"></td>
                 </tr>`;
@@ -615,10 +615,10 @@
                     <tr>
                         <th class="ov2-ft-th-anchor">תאריך תפיסה</th>
                         <th>בפועל 5d</th>
-                        <th>צפי 5d</th>
+                        <th>אינדיקציה 5d</th>
                         <th>התאמה?</th>
                         <th class="ov2-ft-th-anchor">תאריך יעד 20d</th>
-                        <th>צפי 20d</th>
+                        <th>אינדיקציה 20d</th>
                         <th>סיכוי 20d</th>
                         <th>התאמות</th>
                     </tr>
