@@ -4362,9 +4362,12 @@ async function startLiveTicker(metrics) {
         }
     }
     await fetchLiveIndices();
-    // Refresh every 60 seconds (was 120s — user wants more responsive)
+    // Refresh every 5 minutes — balances freshness with proxy quota.
+    // Each tick fires 4 Yahoo calls (one per ETF) through the proxy
+    // chain; 60s was hammering Jina unnecessarily for a dashboard
+    // the user checks a few times a day, not actively trades from.
     if (_tickerTimer) clearInterval(_tickerTimer);
-    _tickerTimer = setInterval(fetchLiveIndices, 60000);
+    _tickerTimer = setInterval(fetchLiveIndices, 5 * 60 * 1000);
 }
 
 async function fetchLiveIndices() {
