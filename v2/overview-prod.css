@@ -887,6 +887,21 @@
     line-height: 1.4;
     cursor: help;
 }
+.overview-prod-root .ov2-mcc-interpretation {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: var(--ov2-bg-2);
+    border-radius: 6px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--ov2-text-1);
+    text-align: right;
+    direction: rtl;
+}
+.overview-prod-root .ov2-mcc-interpretation b {
+    color: var(--ov2-text-1);
+    font-weight: 700;
+}
 .overview-prod-root .ov2-ft-summary-row td {
     background: var(--ov2-bg-2);
     font-weight: 700;

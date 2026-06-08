@@ -1128,6 +1128,7 @@ function computeMetrics(data) {
     // through to renderNarrative.
     let previousPhase = null;
     let previousMetrics = null;
+    let yesterdayScores = null;   // {tech, flow, breadth, combined, raw}
     if (hist.length >= 2) {
         const yest = hist[hist.length - 2];
         const yestAgo5 = hist[Math.max(0, hist.length - 7)];
@@ -1137,7 +1138,17 @@ function computeMetrics(data) {
         const yestVixChg = yest.m.macro && yest.m.macro.vixChgPct;
         const yestTech = scoreTech(yest.m.macro.spx, yestVixChg);
         const yestBreadth = scoreBreadth(yest.m);
-        const yestCombined = combineScores(yestTech, null, yestBreadth);
+        // Yesterday's Flow Score + raw — pulled from the per-day analytics
+        // array. The raw row is used by the interpretation sentence to
+        // explain WHY the Flow Score moved (callShare swing etc).
+        let yestFlow = null;
+        let yestFlowRaw = null;
+        if (flowAnalytics && flowAnalytics.days && flowAnalytics.days.length >= 2) {
+            const fy = flowAnalytics.days[flowAnalytics.days.length - 2];
+            if (fy && Number.isFinite(fy.score)) yestFlow = fy.score;
+            if (fy && fy.raw) yestFlowRaw = fy.raw;
+        }
+        const yestCombined = combineScores(yestTech, yestFlow, yestBreadth);
         const yestM = {
             combined: yestCombined != null ? yestCombined : 50,
             breadth5dDelta: yestBreadth5d,
@@ -1151,6 +1162,10 @@ function computeMetrics(data) {
         const yestResult = Regime.classifyPhase(yestM);
         previousPhase = yestResult.phase.id;
         previousMetrics = yestM;
+        yesterdayScores = {
+            tech: yestTech, flow: yestFlow, breadth: yestBreadth,
+            combined: yestCombined, raw: yest, flowRaw: yestFlowRaw,
+        };
     }
 
     // Composed metrics for regime + chips
@@ -1163,6 +1178,11 @@ function computeMetrics(data) {
         techCoverage: techFull ? { coverage: techFull.coverage, missing: techFull.missing } : null,
         breadthCoverage: breadthFull ? { coverage: breadthFull.coverage, missing: breadthFull.missing } : null,
         flowCoverage: flowAnalytics.coverage || null,
+
+        // Yesterday's score breakdown — drives the adaptive interpretation
+        // line under the MCC combined score ("נחתך מ-X ל-Y בשל ..."). See
+        // README §section-2-interpretation.
+        yesterdayScores,
 
         // Breadth
         pctMa200: todayM.pctMa200,
@@ -2494,6 +2514,188 @@ function renderNarrative(metrics, hist, phase, phaseDuration) {
     }
 }
 
+// ─── Adaptive interpretation sentence under the MCC score ───────────
+//
+// Builds a Hebrew one-liner that explains how today's combined score
+// was derived. Per-component rules:
+//
+//   |Δ| < 5  → component is skipped entirely (no noise)
+//   5..9   → mention with previous value: "טכני בריא (68, היה 65)"
+//   ≥10    → full story with reason: "טכני נחתך מ-93 ל-68 בשל ..."
+//
+// When breadth is included, also append its 3 most-informative inputs
+// (per the §section-2 design). All thresholds are adjustable here.
+//
+// Returns null when there is no yesterday to compare against.
+const _INTERP_THRESH_SMALL = 5;
+const _INTERP_THRESH_BIG   = 10;
+
+function _interpLabel(kind, score) {
+    if (score == null) return '—';
+    if (kind === 'tech') {
+        if (score >= 75) return 'טכנית השוק חזק';
+        if (score >= 60) return 'טכנית השוק בריא';
+        if (score >= 45) return 'טכנית השוק מאוזן';
+        if (score >= 30) return 'טכנית השוק חלש';
+        return 'טכנית השוק חלש מאוד';
+    }
+    if (kind === 'flow') {
+        if (score >= 80) return 'זרימת האופציות שורית חזקה';
+        if (score >= 60) return 'זרימת האופציות שורית מתונה';
+        if (score >= 40) return 'זרימת האופציות מאוזנת';
+        if (score >= 20) return 'זרימת האופציות באריש מתונה';
+        return 'זרימת האופציות באריש חזקה';
+    }
+    // breadth
+    if (score >= 75) return 'הרוחב חזק';
+    if (score >= 60) return 'הרוחב בריא';
+    if (score >= 45) return 'הרוחב בינוני';
+    if (score >= 30) return 'הרוחב חלש';
+    return 'הרוחב חלש מאוד';
+}
+
+function _interpTechReason(metrics, yest) {
+    // Pick the dominant driver of today's tech-score change.
+    const spx = metrics.spx || {};
+    const reasons = [];
+    if (spx.chgPct != null && spx.chgPct <= -1.5) {
+        reasons.push(`ירידה חריגה של ${spx.chgPct.toFixed(2)}% ב-SPX`);
+    } else if (spx.chgPct != null && spx.chgPct >= 1.0) {
+        reasons.push(`עלייה של +${spx.chgPct.toFixed(2)}% ב-SPX`);
+    }
+    if (metrics.vix1dPct != null && metrics.vix1dPct >= 25) {
+        reasons.push(`קפיצה של +${metrics.vix1dPct.toFixed(0)}% ב-VIX`);
+    } else if (metrics.vix1dPct != null && metrics.vix1dPct <= -10) {
+        reasons.push(`ירידה של ${metrics.vix1dPct.toFixed(0)}% ב-VIX`);
+    }
+    if (reasons.length === 0) return '';
+    return ' בשל ' + reasons.join(' ו');
+}
+
+function _interpFlowReason(metrics, yest) {
+    const f = metrics.flow && metrics.flow.raw;
+    if (!f) return '';
+    const reasons = [];
+    const callDir = (f.callAskP || 0) + (f.callBidP || 0);
+    const putDir  = (f.putAskP  || 0) + (f.putBidP  || 0);
+    const share = (callDir + putDir) > 0 ? callDir / (callDir + putDir) * 100 : null;
+    if (share != null) {
+        const yestRaw = yest && yest.flowRaw;
+        if (yestRaw) {
+            const yCall = (yestRaw.callAskP || 0) + (yestRaw.callBidP || 0);
+            const yPut  = (yestRaw.putAskP  || 0) + (yestRaw.putBidP  || 0);
+            const yShare = (yCall + yPut) > 0 ? yCall / (yCall + yPut) * 100 : null;
+            if (yShare != null && Math.abs(share - yShare) >= 15) {
+                reasons.push(`callShare זז מ-${yShare.toFixed(0)}% ל-${share.toFixed(0)}%`);
+            }
+        }
+    }
+    if (metrics.flowCoverage && metrics.flowCoverage.midPct >= 70) {
+        reasons.push(`${Math.round(metrics.flowCoverage.midPct)}% מהפרמיה ב-Mid (בלוקים)`);
+    }
+    if (reasons.length === 0) return '';
+    return ' בשל ' + reasons.join(' ו');
+}
+
+function _interpBreadthReason(metrics) {
+    const reasons = [];
+    if (metrics.avgChange != null && metrics.avgChange <= -1.0) {
+        reasons.push(`RSP ${metrics.avgChange.toFixed(2)}% היום`);
+    } else if (metrics.avgChange != null && metrics.avgChange >= 1.0) {
+        reasons.push(`RSP +${metrics.avgChange.toFixed(2)}% היום`);
+    }
+    if (metrics.breadth5dDelta != null && Math.abs(metrics.breadth5dDelta) >= 5) {
+        const sign = metrics.breadth5dDelta >= 0 ? '+' : '';
+        reasons.push(`%MA200 ${sign}${metrics.breadth5dDelta.toFixed(1)}% ב-5 ימים`);
+    }
+    if (reasons.length === 0) return '';
+    return ' בשל ' + reasons.join(' ו');
+}
+
+function _interpBreadthDetail(metrics) {
+    // Always-on breakdown of the 3 most informative breadth inputs.
+    const parts = [];
+    if (metrics.pctMa200 != null) parts.push(`${Math.round(metrics.pctMa200)}% מהמניות מעל MA200`);
+    if (metrics.avgChange != null) {
+        const sign = metrics.avgChange >= 0 ? '+' : '';
+        parts.push(`RSP ${sign}${metrics.avgChange.toFixed(2)}% היום`);
+    }
+    if (metrics.nhMinusNl != null && metrics.newHighs != null && metrics.newLows != null) {
+        if (metrics.newLows > 0) {
+            parts.push(`יחס שיאים/שפלים ${(metrics.newHighs / metrics.newLows).toFixed(2)}`);
+        } else if (metrics.newHighs > 0) {
+            parts.push(`יחס שיאים/שפלים ∞`);
+        }
+    }
+    return parts.length ? ' (' + parts.join(', ') + ')' : '';
+}
+
+function buildScoreInterpretation(metrics) {
+    if (metrics.combined == null) return null;
+    const yest = metrics.yesterdayScores;
+    const parts = [];
+
+    // ─ Tech part ─
+    const t = metrics.techScore;
+    const yt = yest && yest.tech;
+    if (t != null) {
+        const dt = yt != null ? t - yt : null;
+        const absDt = dt != null ? Math.abs(dt) : 0;
+        if (yt != null && absDt >= _INTERP_THRESH_BIG) {
+            const dir = dt < 0 ? 'נחתך' : 'קפץ';
+            const reason = _interpTechReason(metrics, yest);
+            parts.push(`<b>הציון הטכני ${dir} מ-${yt} ל-${t}</b>${reason}`);
+        } else if (yt != null && absDt >= _INTERP_THRESH_SMALL) {
+            parts.push(`${_interpLabel('tech', t)} (<b>${t}</b>, היה ${yt})`);
+        } else if (yt == null) {
+            // No yesterday — single-shot phrasing
+            parts.push(`${_interpLabel('tech', t)} (<b>${t}</b>)`);
+        }
+        // else: |Δ| < 5 → skip this component entirely
+    }
+
+    // ─ Flow part ─
+    const f = metrics.flowScore;
+    const yf = yest && yest.flow;
+    if (f != null) {
+        const dt = yf != null ? f - yf : null;
+        const absDt = dt != null ? Math.abs(dt) : 0;
+        if (yf != null && absDt >= _INTERP_THRESH_BIG) {
+            const dir = dt < 0 ? 'נחתכה' : 'קפצה';
+            const reason = _interpFlowReason(metrics, yest);
+            parts.push(`<b>זרימת האופציות ${dir} מ-${yf} ל-${f}</b>${reason}`);
+        } else if (yf != null && absDt >= _INTERP_THRESH_SMALL) {
+            parts.push(`${_interpLabel('flow', f)} (<b>${f}</b>, היה ${yf})`);
+        } else if (yf == null) {
+            parts.push(`${_interpLabel('flow', f)} (<b>${f}</b>, בהתאם לניתוח היומי)`);
+        }
+    }
+
+    // ─ Breadth part — always carries its breakdown when shown ─
+    const b = metrics.breadthScore;
+    const yb = yest && yest.breadth;
+    if (b != null) {
+        const dt = yb != null ? b - yb : null;
+        const absDt = dt != null ? Math.abs(dt) : 0;
+        const detail = _interpBreadthDetail(metrics);
+        if (yb != null && absDt >= _INTERP_THRESH_BIG) {
+            const dir = dt < 0 ? 'נחתך' : 'עלה';
+            const reason = _interpBreadthReason(metrics);
+            parts.push(`<b>הרוחב ${dir} מ-${yb} ל-${b}</b>${reason}${detail}`);
+        } else if (yb != null && absDt >= _INTERP_THRESH_SMALL) {
+            parts.push(`${_interpLabel('breadth', b)} (<b>${b}</b>, היה ${yb})${detail}`);
+        } else if (yb == null) {
+            parts.push(`${_interpLabel('breadth', b)} (<b>${b}</b>)${detail}`);
+        }
+    }
+
+    if (parts.length === 0) {
+        // All three within ±5 — nothing notable to say.
+        return `<b>${metrics.combined}</b> — ללא שינוי משמעותי מאתמול (טכני ${t}, אופציות ${f}, רוחב ${b}).`;
+    }
+    return `<b>${metrics.combined}</b> — ${parts.join('; ')}.`;
+}
+
 function renderMCC(phase, metrics, chips, phaseDuration) {
     const p = phase.phase;
     // Glyph + Phase label
@@ -2524,6 +2726,20 @@ function renderMCC(phase, metrics, chips, phaseDuration) {
     // Score + bar
     $('mccScoreVal').textContent = metrics.combined != null ? metrics.combined : '—';
     $('mccBarFill').style.width = (metrics.combined || 0) + '%';
+
+    // Adaptive interpretation line — one Hebrew sentence under the score
+    // that explains how it was derived, with day-over-day deltas and
+    // reasons when components moved significantly. See §section-2.
+    const interpEl = $('mccInterpretation');
+    if (interpEl) {
+        const sentence = buildScoreInterpretation(metrics);
+        if (sentence) {
+            interpEl.style.display = '';
+            interpEl.innerHTML = sentence;
+        } else {
+            interpEl.style.display = 'none';
+        }
+    }
 
     // Coverage chip — surface when any composite score was computed from
     // partial data. See README §audit-fix-2.
