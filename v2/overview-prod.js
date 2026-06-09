@@ -4587,22 +4587,31 @@ async function startLiveTicker(metrics) {
 }
 
 // Try the same-origin data/live_ticker.json first. GitHub Actions
-// refreshes it every 5 min during US trading hours, so no proxy/CORS
-// involved at all. Returns null on miss so the caller falls back to
-// the proxy chain.
+// refreshes it every 5 min during US trading hours (13:30-21:00 UTC).
+// Outside trading hours the file is naturally stale — that's correct,
+// markets are closed and prices aren't moving. The dashboard shows the
+// last close until the next session starts.
+//
+// Returns null only when the file is missing/malformed OR genuinely
+// stale during US trading hours (cron failed). In that case the caller
+// falls back to the live proxy chain.
 async function fetchTickerFromRepo() {
     try {
         const r = await fetch('data/live_ticker.json?t=' + Date.now(), { cache: 'no-store' });
         if (!r.ok) return null;
         const data = await r.json();
         if (!data || !Array.isArray(data.tickers)) return null;
-        // Stale guard — if the file is older than 30 min during the
-        // weekday, treat as miss so the live proxy still gets a shot.
         if (data.fetchedAt) {
             const ageMin = (Date.now() - new Date(data.fetchedAt).getTime()) / 60000;
-            const day = new Date().getUTCDay();   // 0=Sun, 6=Sat
-            const isWeekday = day >= 1 && day <= 5;
-            if (isWeekday && ageMin > 30) return null;
+            const now = new Date();
+            const utcHour = now.getUTCHours();
+            const day = now.getUTCDay();   // 0=Sun, 6=Sat
+            // US trading session: weekday 13:30-21:00 UTC. Cron runs
+            // every 5 min in that window — > 30 min stale means the
+            // cron failed and we should try the proxy. Outside the
+            // session, ANY age is fine (markets are closed).
+            const inUsSession = day >= 1 && day <= 5 && utcHour >= 13 && utcHour < 21;
+            if (inUsSession && ageMin > 30) return null;
         }
         return data;
     } catch (_) {
