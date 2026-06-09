@@ -4586,17 +4586,42 @@ async function startLiveTicker(metrics) {
     _tickerTimer = setInterval(fetchLiveIndices, 5 * 60 * 1000);
 }
 
+// Try the same-origin data/live_ticker.json first. GitHub Actions
+// refreshes it every 5 min during US trading hours, so no proxy/CORS
+// involved at all. Returns null on miss so the caller falls back to
+// the proxy chain.
+async function fetchTickerFromRepo() {
+    try {
+        const r = await fetch('data/live_ticker.json?t=' + Date.now(), { cache: 'no-store' });
+        if (!r.ok) return null;
+        const data = await r.json();
+        if (!data || !Array.isArray(data.tickers)) return null;
+        // Stale guard — if the file is older than 30 min during the
+        // weekday, treat as miss so the live proxy still gets a shot.
+        if (data.fetchedAt) {
+            const ageMin = (Date.now() - new Date(data.fetchedAt).getTime()) / 60000;
+            const day = new Date().getUTCDay();   // 0=Sun, 6=Sat
+            const isWeekday = day >= 1 && day <= 5;
+            if (isWeekday && ageMin > 30) return null;
+        }
+        return data;
+    } catch (_) {
+        return null;
+    }
+}
+
 async function fetchLiveIndices() {
-    // Yahoo Finance via the CORS proxy chain. We call per-symbol because
-    // v7/finance/quote returned 401 mid-2025; v8/finance/chart is the
-    // stable free endpoint.
+    // Primary path: same-origin data/live_ticker.json (refreshed by
+    // .github/workflows/update-ticker.yml every 5 min during trading
+    // hours). No CORS, no third-party proxy, 100% reliable.
     //
-    // Each response is cached in localStorage. When ALL proxies fail we
-    // hydrate from cache and mark the ticker as "stale" so the user
-    // knows the data is from the last successful fetch, not live.
-    // See README §audit-fix-8.
+    // Fallback path: the CORS proxy chain (Jina + allorigins) per-symbol
+    // — used only when the repo file is stale or missing.
+    //
+    // Each successful fetch is cached in localStorage. When everything
+    // fails we hydrate from cache and mark the ticker "stale" so the
+    // user knows the data isn't live. See README §audit-fix-8.
     const symbols = { SPY: 'SPY', NDX: 'QQQ', DJI: 'DIA', RUT: 'IWM' };
-    let anyFresh = false, anyStaleFromCache = false;
     const apply = (key, close, prev) => {
         const valEl = $('tk' + key);
         const chgEl = $('tk' + key + 'Chg');
@@ -4609,6 +4634,59 @@ async function fetchLiveIndices() {
         chgEl.style.color = pctChg >= 0 ? 'var(--ov2-pos)' : 'var(--ov2-neg)';
     };
     const cacheKey = sym => `liveTicker_${sym}`;
+    const setStamp = (mode, ageInfo) => {
+        const upd = $('tkUpdated');
+        if (!upd) return;
+        const now = new Date();
+        const hhmm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        if (mode === 'repo') {
+            upd.textContent = `${hhmm}${ageInfo ? ' · ' + ageInfo : ''}`;
+            upd.style.color = '';
+            upd.title = 'מהקובץ data/live_ticker.json (GitHub Actions, כל 5 דק׳)';
+        } else if (mode === 'proxy') {
+            upd.textContent = hhmm + ' · live';
+            upd.style.color = '';
+            upd.title = 'מ-proxy (Yahoo דרך Jina)';
+        } else if (mode === 'cached') {
+            upd.textContent = '⚠ ' + hhmm + ' · cached';
+            upd.style.color = 'var(--ov2-warn)';
+            upd.title = 'נתונים מ-cache מקומי — proxy לא זמין';
+        } else {
+            upd.textContent = '⛔ —';
+            upd.style.color = 'var(--ov2-neg)';
+            upd.title = 'נתונים לא זמינים';
+        }
+    };
+
+    // ── Path 1: same-origin file (best path) ──
+    const repoData = await fetchTickerFromRepo();
+    if (repoData) {
+        const bySym = {};
+        for (const t of repoData.tickers) bySym[t.symbol] = t;
+        for (const [key, sym] of Object.entries(symbols)) {
+            const t = bySym[sym];
+            if (t) apply(key, t.price, t.prev);
+            // Hydrate localStorage cache too so the proxy fallback isn't
+            // the first thing the user sees on a network blip later.
+            if (t) {
+                try {
+                    localStorage.setItem(cacheKey(sym), JSON.stringify({
+                        close: t.price, prev: t.prev, fetchedAt: Date.now(),
+                    }));
+                } catch (_) {}
+            }
+        }
+        let ageInfo = '';
+        if (repoData.fetchedAt) {
+            const ageMin = Math.round((Date.now() - new Date(repoData.fetchedAt).getTime()) / 60000);
+            if (ageMin >= 1) ageInfo = `לפני ${ageMin} דק׳`;
+        }
+        setStamp('repo', ageInfo);
+        return;
+    }
+
+    // ── Path 2: proxy chain per-symbol (fallback) ──
+    let anyFresh = false, anyStaleFromCache = false;
     const fetchOne = async (key, sym) => {
         const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d`;
         try {
@@ -4623,9 +4701,8 @@ async function fetchLiveIndices() {
                     prev:  meta.chartPreviousClose,
                     fetchedAt: Date.now(),
                 }));
-            } catch (_) { /* quota / disabled */ }
+            } catch (_) {}
         } catch (_) {
-            // All proxies failed for this symbol — hydrate from cache
             try {
                 const cached = localStorage.getItem(cacheKey(sym));
                 if (cached) {
@@ -4633,28 +4710,11 @@ async function fetchLiveIndices() {
                     apply(key, parsed.close, parsed.prev);
                     anyStaleFromCache = true;
                 }
-            } catch (_) { /* keep showing whatever was already there */ }
+            } catch (_) {}
         }
     };
     await Promise.all(Object.entries(symbols).map(([k, s]) => fetchOne(k, s)));
-    const upd = $('tkUpdated');
-    if (upd) {
-        const now = new Date();
-        const hhmm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-        if (anyFresh) {
-            upd.textContent = hhmm;
-            upd.style.color = '';
-            upd.title = '';
-        } else if (anyStaleFromCache) {
-            upd.textContent = '⚠ ' + hhmm + ' · cached';
-            upd.style.color = 'var(--ov2-warn)';
-            upd.title = 'נתונים מ-cache מקומי — כל ספקי ה-proxy חזרו שגיאה';
-        } else {
-            upd.textContent = '⛔ —';
-            upd.style.color = 'var(--ov2-neg)';
-            upd.title = 'נתונים לא זמינים — אין cache, אין proxy';
-        }
-    }
+    setStamp(anyFresh ? 'proxy' : anyStaleFromCache ? 'cached' : 'unavailable');
 }
 
 function renderError(e) {
