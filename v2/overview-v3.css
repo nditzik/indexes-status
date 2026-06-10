@@ -67,28 +67,30 @@
     margin-bottom: 12px;
 }
 
-/* ─── Bottom line strip — the headline of the page ─── */
-.v3-bottom-line {
-    display: flex;
-    align-items: center;
-    gap: 18px;
+/* ─── 1. Status section — merged bottom line + combined score ─── */
+.v3-status {
     background: white;
     border-radius: 12px;
     padding: 22px 26px;
-    margin-bottom: 20px;
+    margin-bottom: 14px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     border-right: 5px solid #cbd5e0;
     transition: border-right-color 200ms ease;
 }
-.v3-bottom-line[data-tone="pos"]  { border-right-color: #10b981; }
-.v3-bottom-line[data-tone="warn"] { border-right-color: #f59e0b; }
-.v3-bottom-line[data-tone="neg"]  { border-right-color: #ef4444; }
+.v3-status[data-tone="pos"]  { border-right-color: #10b981; }
+.v3-status[data-tone="warn"] { border-right-color: #f59e0b; }
+.v3-status[data-tone="neg"]  { border-right-color: #ef4444; }
 
-.v3-bottom-line-icon {
+.v3-status-main {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+.v3-status-icon {
     font-size: 36px;
     flex-shrink: 0;
 }
-.v3-bottom-line-body {
+.v3-status-text {
     flex: 1;
     min-width: 0;
 }
@@ -103,6 +105,86 @@
     font-size: 14px;
     color: #4a5568;
     line-height: 1.5;
+}
+.v3-status-score {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+    padding-right: 18px;
+    border-right: 1px solid #edf2f7;
+}
+.v3-status-score-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.v3-status .v3-score-interp {
+    margin-top: 14px;
+}
+@media (max-width: 640px) {
+    .v3-status-main { flex-wrap: wrap; }
+    .v3-status-score { border-right: none; padding-right: 0; }
+}
+
+/* ─── 2. Recommendations section ─── */
+.v3-recs {
+    margin-bottom: 14px;
+}
+.v3-recs-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.v3-recs-list li {
+    font-size: 14px;
+    color: #2d3748;
+    line-height: 1.6;
+    padding: 10px 14px;
+    background: #f7fafc;
+    border-radius: 8px;
+    border-right: 3px solid #cbd5e0;
+}
+.v3-recs-list li.v3-rec-pos  { border-right-color: #10b981; background: #f0fdf4; }
+.v3-recs-list li.v3-rec-warn { border-right-color: #f59e0b; background: #fffbeb; }
+.v3-recs-list li.v3-rec-neg  { border-right-color: #ef4444; background: #fef2f2; }
+
+/* ─── 7. Daily summary section ─── */
+.v3-summary {
+    margin-top: 14px;
+}
+.v3-summary-rationale {
+    font-size: 14px;
+    color: #4a5568;
+    line-height: 1.6;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed #edf2f7;
+}
+.v3-summary-blocks {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.v3-summary-block {
+    font-size: 13px;
+    color: #2d3748;
+    line-height: 1.6;
+}
+.v3-summary-label {
+    font-weight: 700;
+    color: #718096;
+    margin-left: 6px;
+}
+
+/* ─── Hot-stocks note ─── */
+.v3-stocks-note {
+    margin-top: 8px;
+    font-size: 10.5px;
+    color: #a0aec0;
+    line-height: 1.4;
 }
 
 /* ─── 6-card grid ─── */

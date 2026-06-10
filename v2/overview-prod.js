@@ -4808,12 +4808,12 @@ async function init() {
             console.warn('FLOW: no analytics — flowHistory empty or insufficient');
         }
 
-        // V3 layout — populate the 6 cards if the v3 root is present.
+        // V3 layout — populate the 7 sections if the v3 root is present.
         // index-v3.html has both the v3 IDs (above) and the legacy IDs
         // (hidden inside <details>) so the existing renderers fire too.
         if (document.getElementById('v3_root')) {
             try {
-                renderV3Cards(metrics, phaseResult, data);
+                renderV3Cards(metrics, phaseResult, data, hist, duration);
             } catch (v3err) {
                 console.warn('renderV3Cards failed:', v3err);
             }
@@ -4828,21 +4828,28 @@ async function init() {
 }
 
 // ═════════════════════════════════════════════════════════════════════
-// V3 RENDERERS — populate the 6 simplified cards on index-v3.html
-// Reuses metrics + phase already computed by the standard pipeline.
+// V3 RENDERERS — populate the 7 sections on index-v3.html:
+//   1. סטטוס השוק (status: bottom line + score + interpretation)
+//   2. המלצות (recommendations)
+//   3. טכנית  4. אופציות  5. סקטורים  6. מניות חמות
+//   7. סיכום יומי (narrative)
+// Reuses metrics + phase already computed by the standard pipeline —
+// zero new computation, selection + formatting only.
 // ═════════════════════════════════════════════════════════════════════
-function renderV3Cards(metrics, phaseResult, data) {
-    renderV3BottomLine(metrics, phaseResult);
-    renderV3MarketCard(metrics, phaseResult);
+function renderV3Cards(metrics, phaseResult, data, hist, duration) {
+    renderV3Status(metrics, phaseResult);
+    renderV3Recommendations(metrics, phaseResult);
     renderV3TechCard(metrics);
     renderV3OptionsCard(metrics);
     renderV3SectorsCard(metrics);
     renderV3StocksCard(data);
+    renderV3DailySummary(metrics, hist, phaseResult, duration);
     renderV3TrendCard();
 }
 
-function renderV3BottomLine(metrics, phaseResult) {
-    const wrap = document.getElementById('v3_bottomLine');
+// ─── 1. Status — merged bottom-line strip + combined score ──────────
+function renderV3Status(metrics, phaseResult) {
+    const wrap = document.getElementById('v3_status');
     const icon = document.getElementById('v3_blIcon');
     const head = document.getElementById('v3_blHeadline');
     const sub  = document.getElementById('v3_blSub');
@@ -4877,14 +4884,13 @@ function renderV3BottomLine(metrics, phaseResult) {
     icon.textContent = emoji;
     head.textContent = headline;
     sub.textContent = sub_text;
-}
 
-function renderV3MarketCard(metrics, phaseResult) {
+    // Score + phase + adaptive interpretation (right side of the strip)
     const scoreEl = document.getElementById('v3_scoreBig');
     const phaseEl = document.getElementById('v3_phaseLabel');
     const confEl  = document.getElementById('v3_phaseConf');
     const interpEl = document.getElementById('v3_scoreInterp');
-    if (scoreEl) scoreEl.textContent = metrics.combined != null ? metrics.combined : '—';
+    if (scoreEl) scoreEl.textContent = c != null ? c : '—';
     if (phaseEl && phaseResult && phaseResult.phase) {
         phaseEl.textContent = phaseResult.phase.labelHe || phaseResult.phase.labelEn || '—';
     }
@@ -4896,6 +4902,85 @@ function renderV3MarketCard(metrics, phaseResult) {
             ? buildScoreInterpretation(metrics)
             : null;
         interpEl.innerHTML = sentence || '—';
+    }
+}
+
+// ─── 2. Recommendations — "what to do today" action list ────────────
+//
+// Pulls from three existing engines (no new logic):
+//   a. Risk-Off reasons (when active) — defensive items first
+//   b. Synergy panel's q3Items (phase × flow alignment actions)
+//   c. The regime phase's positioning bias as a closing line
+// Tone classes color each item: neg (defensive), warn (caution),
+// pos (constructive).
+function renderV3Recommendations(metrics, phaseResult) {
+    const ul = document.getElementById('v3_recsList');
+    if (!ul) return;
+    const items = [];   // {text, tone}
+
+    // a. Risk-off → defensive recommendations take the top slots
+    if (metrics.riskOff && metrics.riskOff.active) {
+        items.push({ text: '⛔ לא להוסיף חשיפה היום — יום סיכון פעיל', tone: 'neg' });
+        items.push({ text: '☞ להדק stop-loss על פוזיציות קיימות', tone: 'neg' });
+    }
+
+    // b. Synergy q3 items — phase × flow derived actions
+    try {
+        const analysis = analyzeMarketFlow(phaseResult, metrics);
+        const content = buildSynergyContent(
+            phaseResult, metrics, analysis.flowLean, analysis.alignment, analysis.signals);
+        for (const q3 of (content.q3Items || [])) {
+            // q3 items arrive with a leading "☞ " — keep as-is
+            const tone = /הגנה|סיכון|לא ל|זהירות|אזהרה/.test(q3) ? 'warn' : 'pos';
+            items.push({ text: q3, tone });
+        }
+    } catch (err) {
+        console.warn('[v3:recs] synergy unavailable:', err);
+    }
+
+    // c. Phase bias as the closing positioning line
+    if (phaseResult && phaseResult.phase && phaseResult.phase.bias) {
+        items.push({ text: `🧭 הטיית פוזיציה לפי המשטר: ${phaseResult.phase.bias}`, tone: '' });
+    }
+
+    if (items.length === 0) {
+        items.push({ text: 'אין המלצות מיוחדות — להמשיך לפי התוכנית הקיימת', tone: '' });
+    }
+
+    // Dedupe (risk-off items can overlap q3 defensive items) + cap at 6
+    const seen = new Set();
+    const unique = items.filter(i => {
+        const key = i.text.replace(/^[⛔☞🧭]\s*/, '');
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    }).slice(0, 6);
+
+    ul.innerHTML = unique.map(i =>
+        `<li class="${i.tone ? 'v3-rec-' + i.tone : ''}">${i.text}</li>`
+    ).join('');
+}
+
+// ─── 7. Daily summary — the Hebrew story (narrative.js) ─────────────
+function renderV3DailySummary(metrics, hist, phaseResult, duration) {
+    const headEl = document.getElementById('v3_summaryHeadline');
+    if (!headEl || !window.Narrative) return;
+    try {
+        const out = window.Narrative.build(metrics, hist, phaseResult, duration);
+        headEl.textContent = out.headline && out.headline.metaLabel || '—';
+        const set = (id, text) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = text || '—';
+        };
+        set('v3_summaryRationale', out.headline && out.headline.rationale);
+        set('v3_summaryToday', out.today);
+        set('v3_summaryWeek', out.week);
+        set('v3_summaryBackground', out.background);
+        set('v3_summaryWatchFor',
+            (out.watchFor && out.watchFor.length) ? out.watchFor.join(' · ') : 'אין רמות בולטות לעקוב כעת.');
+    } catch (err) {
+        console.warn('[v3:summary] narrative unavailable:', err);
+        headEl.textContent = '—';
     }
 }
 
@@ -5030,24 +5115,53 @@ function renderV3SectorsCard(metrics) {
     }
 }
 
+// ─── 6. Hot stocks — momentum + unusual volume, not just daily % ────
+//
+// "Hot" = structurally strong AND moving today. Momentum score mirrors
+// the email's stock-picker weights:
+//   above MA200 +30 · strong RSI +25 · RVOL>1.2 +20 · up today +15 ·
+//   near 52W high (≥ -10%) +10. Ties broken by daily %change.
+// Weak side = lowest momentum among stocks that are ALSO down today.
 function renderV3StocksCard(data) {
     const topEl = document.getElementById('v3_stocksTop');
     const botEl = document.getElementById('v3_stocksBottom');
     if (!topEl || !botEl || !data || !data.today) return;
+    const num = v => {
+        const n = parseFloat(String(v == null ? '' : v).replace('%', '').replace('+', '').replace(',', ''));
+        return Number.isFinite(n) ? n : null;
+    };
+    const STRONG_RSI = new Set(['Above 70', 'New Above 70', 'Above 50', 'New Above 50']);
     const stocks = data.today
-        .filter(r => r.Symbol && !String(r.Symbol).startsWith('$') && r.Symbol !== 'RSP')
-        .map(r => ({
-            sym: r.Symbol,
-            chg: parseFloat(String(r['%Change'] || '').replace('%', '').replace('+', '')),
-            rsi: r['RSI Rank'] || '',
-        }))
-        .filter(s => Number.isFinite(s.chg) && Math.abs(s.chg) < 50);
-    const top5 = stocks.slice().sort((a, b) => b.chg - a.chg).slice(0, 5);
-    const bot5 = stocks.slice().sort((a, b) => a.chg - b.chg).slice(0, 5);
-    const li = (s, tone) =>
-        `<li><span class="v3-stocks-sym">${s.sym}</span><span class="v3-stocks-chg ${tone}">${s.chg >= 0 ? '+' : ''}${s.chg.toFixed(2)}%</span></li>`;
-    topEl.innerHTML = top5.map(s => li(s, 'v3-pos')).join('');
-    botEl.innerHTML = bot5.map(s => li(s, 'v3-neg')).join('');
+        .filter(r => r.Symbol && !String(r.Symbol).startsWith('$') && String(r.Symbol).trim() !== 'RSP')
+        .map(r => {
+            const latest = num(r.Latest);
+            const ma200 = num(r['200D MA']);
+            const chg = num(r['%Change']);
+            const rvol = num(r['20D RelVol']) || 0;
+            const w52 = num(r['52W %/High']);
+            let momentum = 0;
+            if (latest != null && ma200 && latest > ma200) momentum += 30;
+            if (STRONG_RSI.has(String(r['RSI Rank'] || '').trim())) momentum += 25;
+            if (rvol > 1.2) momentum += 20;
+            if (chg != null && chg > 0) momentum += 15;
+            if (w52 != null && w52 >= -10) momentum += 10;
+            return { sym: String(r.Symbol).trim(), chg, rvol, momentum };
+        })
+        .filter(s => s.chg != null && Math.abs(s.chg) < 50);
+
+    const top5 = stocks.slice()
+        .sort((a, b) => (b.momentum - a.momentum) || (b.chg - a.chg))
+        .slice(0, 5);
+    const bot5 = stocks.slice()
+        .filter(s => s.chg < 0)
+        .sort((a, b) => (a.momentum - b.momentum) || (a.chg - b.chg))
+        .slice(0, 5);
+    const li = (s, tone) => {
+        const rvolBadge = s.rvol > 1.2 ? ` <span class="v3-muted" style="font-size:10px;">×${s.rvol.toFixed(1)}</span>` : '';
+        return `<li><span class="v3-stocks-sym">${s.sym}${rvolBadge}</span><span class="v3-stocks-chg ${tone}">${s.chg >= 0 ? '+' : ''}${s.chg.toFixed(2)}%</span></li>`;
+    };
+    topEl.innerHTML = top5.map(s => li(s, 'v3-pos')).join('') || '<li class="v3-muted">אין מועמדות היום</li>';
+    botEl.innerHTML = bot5.map(s => li(s, 'v3-neg')).join('') || '<li class="v3-muted">אין מניות חלשות בולטות</li>';
 }
 
 function renderV3TrendCard() {

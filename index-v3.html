@@ -11,8 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
-    <!-- Reuse the production stylesheet so existing renderers look right
-         when they fire into the legacy IDs hidden inside "פירוט מתקדם" -->
+    <!-- Production stylesheet — legacy renderers inside "פירוט מתקדם" need it -->
     <link rel="stylesheet" href="v2/overview-prod.css">
     <link rel="stylesheet" href="v2/overview-v3.css">
 </head>
@@ -80,43 +79,48 @@
             <span class="ov2-risk-off-title">יום סיכון — הציון המבני לא משקף את האירוע</span>
         </div>
         <ul class="ov2-risk-off-list" id="ov2_riskOffList"></ul>
-        <div class="ov2-risk-off-note">הציון המשולב נשאר גבוה כי הוא מבוסס על מבנה (מחיר מול ממוצעים, רוחב). זה לא משקר — זה פשוט לא מודד את התנודה היומית. הציון הזה תופס מגמה, לא אירוע.</div>
+        <div class="ov2-risk-off-note">הציון המשולב מבוסס על מבנה (מחיר מול ממוצעים, רוחב) — הוא תופס מגמה, לא אירוע יומי.</div>
     </div>
 
-    <!-- ═══ BOTTOM LINE STRIP ═══ -->
-    <div class="v3-bottom-line" id="v3_bottomLine">
-        <div class="v3-bottom-line-icon" id="v3_blIcon">⚪</div>
-        <div class="v3-bottom-line-body">
-            <div class="v3-bottom-line-headline" id="v3_blHeadline">—</div>
-            <div class="v3-bottom-line-sub" id="v3_blSub">—</div>
+    <!-- ═══ 1. סטטוס השוק — שורה תחתונה + ציון ═══ -->
+    <div class="v3-status" id="v3_status" data-tone="">
+        <div class="v3-status-main">
+            <div class="v3-status-icon" id="v3_blIcon">⚪</div>
+            <div class="v3-status-text">
+                <div class="v3-bottom-line-headline" id="v3_blHeadline">—</div>
+                <div class="v3-bottom-line-sub" id="v3_blSub">—</div>
+            </div>
+            <div class="v3-status-score">
+                <div class="v3-score-big" id="v3_scoreBig">—</div>
+                <div class="v3-status-score-meta">
+                    <div class="v3-score-label" id="v3_phaseLabel">—</div>
+                    <div class="v3-score-confidence" id="v3_phaseConf">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="v3-score-interp" id="v3_scoreInterp">—</div>
+    </div>
+
+    <!-- ═══ 2. המלצות — מה לעשות היום ═══ -->
+    <div class="v3-card v3-recs">
+        <div class="v3-card-head">
+            <span class="v3-card-eyebrow">המלצות</span>
+            <span class="v3-card-title">מה לעשות היום</span>
+        </div>
+        <div class="v3-card-body">
+            <ul class="v3-recs-list" id="v3_recsList">
+                <li>טוען...</li>
+            </ul>
         </div>
     </div>
 
-    <!-- ═══ 6 CARDS GRID ═══ -->
+    <!-- ═══ 3-6. GRID: טכנית · אופציות · סקטורים · מניות חמות ═══ -->
     <div class="v3-grid">
 
-        <!-- 1. שוק -->
-        <div class="v3-card v3-card-market">
-            <div class="v3-card-head">
-                <span class="v3-card-eyebrow">שוק</span>
-                <span class="v3-card-title">מצב נוכחי + ציון משולב</span>
-            </div>
-            <div class="v3-card-body">
-                <div class="v3-score-row">
-                    <div class="v3-score-big" id="v3_scoreBig">—</div>
-                    <div class="v3-score-side">
-                        <div class="v3-score-label" id="v3_phaseLabel">—</div>
-                        <div class="v3-score-confidence" id="v3_phaseConf">—</div>
-                    </div>
-                </div>
-                <div class="v3-score-interp" id="v3_scoreInterp">—</div>
-            </div>
-        </div>
-
-        <!-- 2. טכניים -->
+        <!-- 3. טכנית -->
         <div class="v3-card v3-card-tech">
             <div class="v3-card-head">
-                <span class="v3-card-eyebrow">טכניים</span>
+                <span class="v3-card-eyebrow">טכנית</span>
                 <span class="v3-card-title">SPX · MA · VIX · ימי מכירות</span>
             </div>
             <div class="v3-card-body">
@@ -126,7 +130,7 @@
             </div>
         </div>
 
-        <!-- 3. אופציות -->
+        <!-- 4. אופציות -->
         <div class="v3-card v3-card-options">
             <div class="v3-card-head">
                 <span class="v3-card-eyebrow">אופציות</span>
@@ -146,7 +150,7 @@
             </div>
         </div>
 
-        <!-- 4. סקטורים -->
+        <!-- 5. סקטורים -->
         <div class="v3-card v3-card-sectors">
             <div class="v3-card-head">
                 <span class="v3-card-eyebrow">סקטורים</span>
@@ -160,16 +164,16 @@
             </div>
         </div>
 
-        <!-- 5. מניות חזקות -->
+        <!-- 6. מניות חמות -->
         <div class="v3-card v3-card-stocks">
             <div class="v3-card-head">
-                <span class="v3-card-eyebrow">מניות חזקות</span>
-                <span class="v3-card-title">Top 5 לפי מומנטום + 5 חלשות</span>
+                <span class="v3-card-eyebrow">מניות חמות</span>
+                <span class="v3-card-title">מומנטום + נפח חריג · Top 5 מול 5 חלשות</span>
             </div>
             <div class="v3-card-body">
                 <div class="v3-stocks-cols">
                     <div class="v3-stocks-col">
-                        <div class="v3-stocks-col-head v3-pos">חזקות</div>
+                        <div class="v3-stocks-col-head v3-pos">חמות 🔥</div>
                         <ul class="v3-stocks-list" id="v3_stocksTop"><li>טוען...</li></ul>
                     </div>
                     <div class="v3-stocks-col">
@@ -177,44 +181,52 @@
                         <ul class="v3-stocks-list" id="v3_stocksBottom"><li>טוען...</li></ul>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- 6. מגמה (KNN) -->
-        <div class="v3-card v3-card-trend">
-            <div class="v3-card-head">
-                <span class="v3-card-eyebrow">מגמה היסטורית</span>
-                <span class="v3-card-title">KNN · 10 ימים דומים בעבר</span>
-            </div>
-            <div class="v3-card-body">
-                <div id="v3_trendBody">
-                    <ul class="v3-stat-list" id="v3_trendList">
-                        <li>טוען...</li>
-                    </ul>
-                </div>
+                <div class="v3-stocks-note">חמות = מעל MA200 + RSI חזק + נפח מוגבר — לא רק העלייה היומית</div>
             </div>
         </div>
 
     </div>
 
+    <!-- ═══ 7. סיכום יומי — הסיפור בעברית ═══ -->
+    <div class="v3-card v3-summary">
+        <div class="v3-card-head">
+            <span class="v3-card-eyebrow">סיכום יומי</span>
+            <span class="v3-card-title" id="v3_summaryHeadline">—</span>
+        </div>
+        <div class="v3-card-body">
+            <div class="v3-summary-rationale" id="v3_summaryRationale">—</div>
+            <div class="v3-summary-blocks">
+                <div class="v3-summary-block"><span class="v3-summary-label">היום:</span><span id="v3_summaryToday">—</span></div>
+                <div class="v3-summary-block"><span class="v3-summary-label">השבוע:</span><span id="v3_summaryWeek">—</span></div>
+                <div class="v3-summary-block"><span class="v3-summary-label">הרקע:</span><span id="v3_summaryBackground">—</span></div>
+                <div class="v3-summary-block"><span class="v3-summary-label">לעקוב:</span><span id="v3_summaryWatchFor">—</span></div>
+            </div>
+        </div>
+    </div>
+
     <!-- ═══ ADVANCED DETAILS (collapsed) ═══ -->
-    <!--
-        All the legacy panels live here so the existing renderers in
-        overview-prod.js have their target IDs. The whole block is hidden
-        behind <details> so the page stays focused on the 6 cards above.
-    -->
     <details class="v3-details">
         <summary class="v3-details-summary">
             <span>▶</span>
-            <span>פירוט מתקדם — הצג את כל הפאנלים המקוריים</span>
+            <span>פירוט מתקדם — KNN, גרפים, וכל הפאנלים המקוריים</span>
         </summary>
         <div class="v3-details-body" id="v3_advancedContainer">
-            <!-- Hidden containers for legacy renderers. Overview-prod.js
-                 fills these via element IDs; the user only sees them
-                 when this <details> is open. -->
+
+            <!-- KNN trend mini-card (moved out of the main grid) -->
+            <div class="v3-card v3-card-trend" style="margin-top:16px;">
+                <div class="v3-card-head">
+                    <span class="v3-card-eyebrow">מגמה היסטורית</span>
+                    <span class="v3-card-title">KNN · 10 ימים דומים בעבר</span>
+                </div>
+                <div class="v3-card-body">
+                    <ul class="v3-stat-list" id="v3_trendList">
+                        <li>טוען...</li>
+                    </ul>
+                </div>
+            </div>
 
             <!-- MCC card (legacy) -->
-            <div class="ov2-mcc" id="ov2_mcc">
+            <div class="ov2-mcc" id="ov2_mcc" style="margin-top:16px;">
                 <div class="ov2-mcc-accent" id="ov2_mccPhaseAccent"></div>
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; gap:16px;">
                     <div style="min-width:0;">
@@ -267,27 +279,10 @@
                 </div>
             </div>
 
-            <!-- Narrative panel -->
-            <div class="ov2-narrative" id="ov2_narrative" style="margin-top:16px;">
-                <div class="ov2-narrative-accent" id="ov2_narrativeAccent"></div>
-                <div class="ov2-eyebrow">סיכום יומי</div>
-                <div class="ov2-narrative-meta ov2-muted" id="ov2_narrativeMeta">—</div>
-                <div class="ov2-narrative-rationale" id="ov2_narrativeRationale">—</div>
-                <div class="ov2-narrative-blocks">
-                    <div class="ov2-narrative-block"><span class="ov2-narrative-block-label">היום:</span><span id="ov2_narrativeToday">—</span></div>
-                    <div class="ov2-narrative-block"><span class="ov2-narrative-block-label">השבוע:</span><span id="ov2_narrativeWeek">—</span></div>
-                    <div class="ov2-narrative-block"><span class="ov2-narrative-block-label">הרקע:</span><span id="ov2_narrativeBackground">—</span></div>
-                    <div class="ov2-narrative-block"><span class="ov2-narrative-block-label">לעקוב:</span><span id="ov2_narrativeWatchFor">—</span></div>
-                </div>
-            </div>
-
-            <!-- Flow card (legacy, full detail) — overview-prod.js fills #ov2_flowCard's many sub-IDs -->
+            <!-- Flow card (legacy, full detail) -->
             <div class="ov2-flow-card" id="ov2_flowCard" style="margin-top:16px;"></div>
 
-            <!-- Forward-tracking panel + matured table + KNN echo, all
-                 inside a single placeholder. Overview-prod.js mounts
-                 specific elements by ID; this container just exists to
-                 contain them visually if/when they render. -->
+            <!-- KNN echo + forward tracking + matured table -->
             <div class="ov2-echo" id="ov2_echo" style="margin-top:16px;">
                 <div class="ov2-echo-head">
                     <div class="ov2-eyebrow">תבניות היסטוריות (KNN)</div>
@@ -323,7 +318,7 @@
 
 </div>
 
-<!-- ═══ SCRIPTS (same as legacy index.html, in same order) ═══ -->
+<!-- ═══ SCRIPTS (same as legacy index.html, same order) ═══ -->
 <script src="v2/regime.js"></script>
 <script src="v2/narrative.js"></script>
 <script src="v2/historical.js"></script>
@@ -332,12 +327,6 @@
 <script src="v2/overview-prod.js"></script>
 
 <script>
-// V3 mount trigger — overview-prod.js renders into the legacy IDs
-// inside <details>. The new V3 cards are populated by a small
-// renderV3Cards() function attached to overview-prod.js (see file).
-//
-// We just need to (a) reveal the root once the dashboard is rendered
-// and (b) hide the loading spinner.
 window.addEventListener('load', function () {
     const root = document.getElementById('v3_root');
     if (root) root.style.display = '';
