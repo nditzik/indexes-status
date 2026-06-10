@@ -1361,11 +1361,10 @@ function renderRiskOffBanner(metrics) {
 }
 
 function renderStrip(m, phase) {
-    // Strip label is now derived FROM the combined score, not from the
-    // regime classifier — they were disagreeing in the UI before (score
-    // 75 sitting next to "זהיר" looked broken). The regime phase still
-    // gets its own dedicated display in the MCC card below; the strip
-    // is the executive view and consistency at the top trumps mixing.
+    // Skip cleanly when the strip's anchor element isn't on the page —
+    // index-v3.html drops the strip entirely, so calling textContent on
+    // a missing element would throw and abort the rest of init().
+    if (!$('stateScore')) return;
     const combined = m.combined;
     let scoreLabel, scoreClass;
     if (combined == null) {
@@ -4765,30 +4764,29 @@ async function init() {
         const duration = computeDaysInPhase(hist, data.sectors, phaseResult.phase.id);
         const chips = Regime.generateChips(metrics, 6);
 
-        renderRiskOffBanner(metrics);
-        renderStrip(metrics, phaseResult);
-        renderEqTicker(metrics, hist);
-        renderNarrative(metrics, hist, phaseResult, duration);
-        // Macro Trail: long-history SPX vs EQ500 chart. Async because it
-        // needs the Historical loader to settle; non-blocking — the rest
-        // of the dashboard renders in parallel and the panel populates
-        // when the data arrives.
-        renderMacroTrail(hist);
-        // Historical Echo: KNN pattern matching on top of the same
-        // spliced series. Same loader, same async pattern — populates
-        // when the analysis settles.
-        renderHistoricalEcho(hist);
-        // Flow vs Price: options sentiment timeline alongside SPX
-        // cumulative — short-term (22 days) options-flow analysis.
-        renderFlowVsPrice(metrics, flowAnalytics, hist);
-        renderMCC(phaseResult, metrics, chips, duration);
-        renderFlowCard(metrics, flowAnalytics);
-        renderMarketFlowSynergy(phaseResult, metrics);
-        renderKPIs(metrics);
-        renderSectorSnapshot(metrics, data.sectors);
-        renderDailySummary(phaseResult, metrics, chips, duration, data.sectors, hist, flowAnalytics);
-        renderAlertsRail(chips, metrics);
-        startLiveTicker(metrics);
+        // Each render call is wrapped so a bug in ONE panel doesn't kill
+        // the whole pipeline. Critical for the v3 page where many legacy
+        // DOM elements are missing entirely and renderers that touch
+        // them would otherwise throw and abort the chain (including the
+        // v3 renderers below).
+        const safe = (label, fn) => {
+            try { fn(); } catch (err) { console.warn(`[render:${label}]`, err); }
+        };
+        safe('riskOff',      () => renderRiskOffBanner(metrics));
+        safe('strip',        () => renderStrip(metrics, phaseResult));
+        safe('eqTicker',     () => renderEqTicker(metrics, hist));
+        safe('narrative',    () => renderNarrative(metrics, hist, phaseResult, duration));
+        safe('macroTrail',   () => renderMacroTrail(hist));
+        safe('echo',         () => renderHistoricalEcho(hist));
+        safe('flowVsPrice',  () => renderFlowVsPrice(metrics, flowAnalytics, hist));
+        safe('mcc',          () => renderMCC(phaseResult, metrics, chips, duration));
+        safe('flowCard',     () => renderFlowCard(metrics, flowAnalytics));
+        safe('synergy',      () => renderMarketFlowSynergy(phaseResult, metrics));
+        safe('kpis',         () => renderKPIs(metrics));
+        safe('sectorSnap',   () => renderSectorSnapshot(metrics, data.sectors));
+        safe('dailySummary', () => renderDailySummary(phaseResult, metrics, chips, duration, data.sectors, hist, flowAnalytics));
+        safe('alertsRail',   () => renderAlertsRail(chips, metrics));
+        safe('liveTicker',   () => startLiveTicker(metrics));
 
         // Expose for console inspection
         window.__V2 = {
