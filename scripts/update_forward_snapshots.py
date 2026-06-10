@@ -39,11 +39,30 @@ SNAP_FILE = os.path.join(DATA, 'forward_snapshots.json')
 LOOKBACK = 60
 K = 10
 EXCLUDE_RECENT = 30
-CLUSTER_DEDUP = 20
+# 40 >= the 20d outcome window, so accepted matches have NON-OVERLAPPING
+# forward windows — the K outcomes are quasi-independent episodes.
+# (Was 20, which allowed 19 of 20 outcome days to overlap.)
+CLUSTER_DEDUP = 40
 EARLY_DAYS = 5
 OUTCOME_WINDOW = 20
 BULL_T = 1.0
 BEAR_T = -1.0
+
+# Feature weights for the distance metric. All 9 features are still
+# computed + stored, but two are excluded from similarity because they
+# double-count information already in other dimensions:
+#   idx 2 eqRet5d   — linearly dependent on spread5d + spxRet5d
+#   idx 8 vixVsMa20 — correlated with vixLevel + vix5dDelta (VIX shocks
+#                     were triple-counted, starving crash days of matches)
+# Mirrors FEATURE_WEIGHTS in v2/patterns.js — keep in sync.
+FEATURE_WEIGHTS = [1, 1, 0, 1, 1, 1, 1, 1, 0]
+
+# Reliability guard for early-warning signals: with 8 features tested on
+# ~10 samples, some |d| will always be high by chance. Only signals
+# passing BOTH bars are marked reliable (UI shows the rest as hints).
+SIGNAL_MIN_ABS_D = 0.8
+SIGNAL_MIN_BULL_N = 4
+SIGNAL_MIN_OTHER_N = 3
 
 
 # ─── Stats helpers ───────────────────────────────────────────────────
@@ -343,26 +362,35 @@ def normalize(vec, params):
 
 
 def pair_distance(vec_a_norm, vec_b_norm):
-    """Euclidean distance between two normalized vectors that may have
-    NaN dimensions. Skips any dim missing in EITHER vector. Scales the
-    partial sum back to full-D scale (sklearn nan_euclidean approach)
-    so distances are comparable across pairs with different completeness.
+    """Weighted Euclidean distance between two normalized vectors that
+    may have NaN dimensions. Dims with FEATURE_WEIGHTS 0 are excluded
+    (redundant features); dims missing in EITHER vector are skipped.
+    The partial sum is scaled back to full-weight scale (sklearn
+    nan_euclidean approach) so distances stay comparable across pairs
+    with different completeness.
 
     Returns (distance, dims_used). distance is float('inf') when no
-    shared dim exists, so the candidate is never selected.
+    shared active dim exists, so the candidate is never selected.
     """
     D = len(vec_a_norm)
+    total_w = sum(FEATURE_WEIGHTS[k] if k < len(FEATURE_WEIGHTS) else 1
+                  for k in range(D))
     d2_sum = 0.0
+    used_w = 0.0
     dims_used = 0
     for k in range(D):
+        w = FEATURE_WEIGHTS[k] if k < len(FEATURE_WEIGHTS) else 1
+        if w == 0:
+            continue
         a, b = vec_a_norm[k], vec_b_norm[k]
         if not (math.isfinite(a) and math.isfinite(b)):
             continue
-        d2_sum += (a - b) ** 2
+        d2_sum += w * (a - b) ** 2
+        used_w += w
         dims_used += 1
-    if dims_used == 0:
+    if used_w == 0:
         return float('inf'), 0
-    d2_scaled = d2_sum * (D / dims_used)
+    d2_scaled = d2_sum * (total_w / used_w)
     return math.sqrt(d2_scaled), dims_used
 
 
@@ -555,6 +583,13 @@ def compute_early_warning(matches, spx_levels, eq_levels, vix_levels):
         threshold = (bull_mu + other_mu) / 2
         interpret = 'bull_above' if bull_mu >= other_mu else 'bull_below'
         tips = meta['above'] if interpret == 'bull_above' else meta['below']
+        abs_d = abs(cohens_d) if cohens_d is not None else 0
+        # Reliability guard — see SIGNAL_MIN_* constants. Unreliable
+        # signals are still stored (UI shows them as hints) but never
+        # drive ✓/✗ verdicts in the forward-tracking chips.
+        reliable = (abs_d >= SIGNAL_MIN_ABS_D
+                    and len(bull_v) >= SIGNAL_MIN_BULL_N
+                    and len(other_v) >= SIGNAL_MIN_OTHER_N)
         signals.append({
             'feature': meta['key'],
             'label': meta['label'],
@@ -566,8 +601,9 @@ def compute_early_warning(matches, spx_levels, eq_levels, vix_levels):
             'bullN': len(bull_v),
             'bearN': len(other_v),
             'cohensD': cohens_d,
-            'absD': abs(cohens_d) if cohens_d is not None else 0,
+            'absD': abs_d,
             'threshold': threshold,
+            'reliable': reliable,
         })
     signals.sort(key=lambda s: s['absD'], reverse=True)
     return {

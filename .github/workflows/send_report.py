@@ -249,7 +249,7 @@ def historical_patterns_text():
             f'{n} אנלוגים בעבר → 20 ימים: '
             f'חציון {ms}{median:.2f}%, '
             f'טווח {mns}{mn:.2f}% עד {mxs}{mx:.2f}%, '
-            f'{round(hit*100)}% חיובי. מותנה בהמשך משטר יציב.'
+            f'{round(hit*n)} מתוך {n} חיוביים. מותנה בהמשך משטר יציב.'
         )
     except Exception as e:
         print(f'Historical patterns load error: {e}')
@@ -1493,12 +1493,21 @@ def historical_block_html():
         ap = anchor_date.split('-')
         if len(ap) == 3:
             anchor_date = f'{ap[2]}/{ap[1]}/{ap[0]}'
-    desc_line = (f'{n} ימים דומים מתוך 2553 ימי מסחר ב-10 השנים האחרונות. '
-                 f'נכון ל-{anchor_date}.')
+    # Year spread of matches — an all-pre-2020 set reads very differently
+    # from one that includes the current market structure.
+    match_years = sorted({(m.get('date') or '')[:4] for m in matches if m.get('date')})
+    yr_range = ''
+    if match_years:
+        yr_range = (f' טווח שנים: {match_years[0]}'
+                    + (f'-{match_years[-1]}' if match_years[-1] != match_years[0] else '')
+                    + '.')
+    n20 = out20.get('samples', n)
+    desc_line = (f'{n} ימים דומים מתוך 2553 ימי מסחר ב-10 השנים האחרונות.'
+                 f'{yr_range} נכון ל-{anchor_date}.')
     tendency_line = (f'נטייה היסטורית '
                      f'<span style="color:{tendency_color};font-weight:700;">'
                      f'{"חיובית" if median20 > 0 else "שלילית" if median20 < 0 else "ניטרלית"}</span>: '
-                     f'ב-{round(hit20*100)}% מהמקרים הדומים, השוק '
+                     f'ב-{round(hit20*n20)} מתוך {n20} מקרים דומים, השוק '
                      f'{"עלה" if median20 >= 0 else "ירד"} תוך 20 ימים '
                      f'(חציון {ms}{median20:.2f}%).')
     # 3 horizon cards (5/10/20)
@@ -1510,13 +1519,14 @@ def historical_block_html():
         q25 = o.get('q25', 0)
         q75 = o.get('q75', 0)
         hit = o.get('hitRate', 0)
+        o_n = o.get('samples', 0)
         sign = '+' if med >= 0 else ''
         col = '#10b981' if med > 0 else '#ef4444' if med < 0 else '#64748b'
         return (
             f'<td align="center" style="padding:12px 6px;width:33%;vertical-align:top;text-align:center;background:#f7fafc;border-radius:6px;">'
             f'<div style="font-size:11px;color:#718096;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">{window_days} ימים</div>'
             f'<div style="font-size:22px;font-weight:700;color:{col};line-height:1;font-family:monospace;">{sign}{med:.2f}%</div>'
-            f'<div style="font-size:11px;color:#4a5568;margin-top:4px;">חציון · {round(hit*100)}% חיובי</div>'
+            f'<div style="font-size:11px;color:#4a5568;margin-top:4px;">חציון · {round(hit*o_n)} מתוך {o_n} חיוביים</div>'
             f'<div style="font-size:10px;color:#a0aec0;margin-top:4px;font-family:monospace;">טווח: {q25:.1f}% עד {q75:.1f}%</div>'
             f'</td>'
         )
@@ -1543,7 +1553,7 @@ def historical_block_html():
         f'<b>{("+" if mn20 >= 0 else "")}{mn20:.2f}%</b> ל-'
         f'<b>{("+" if mx20 >= 0 else "")}{mx20:.2f}%</b>. '
         f'חציון <b>{("+" if median20 >= 0 else "")}{median20:.2f}%</b>. '
-        f'<b>{round(hit20*100)}%</b> מהמקרים נסגרו בחיובי.'
+        f'<b>{round(hit20*samples)} מתוך {samples}</b> מקרים נסגרו בחיובי.'
     )
     block2 = (
         f'<b>בתוך 20 הימים (נפילות זמניות)</b><br>'
@@ -1707,7 +1717,8 @@ def matured_patterns_block_html():
             high_px = round(a_lvl * (1 + max20 / 100))
             fc20_prices = (f'<div style="font-size:10px;color:#a0aec0;font-weight:400;margin-top:2px;">'
                            f'{low_px:,} — {high_px:,}</div>')
-        hit_str = f'{round(hit20 * 100)}%' if hit20 is not None else '—'
+        hit_str = (f'{round(hit20 * samples)} מתוך {samples}'
+                   if (hit20 is not None and samples) else '—')
         matches_str = f'{samples}/{samples}' if samples else '—'
 
         rows_html.append(

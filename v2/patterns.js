@@ -220,22 +220,38 @@
         return out;
     }
 
-    // Distance ignoring dimensions missing in either vector. The partial
-    // squared sum is scaled back to full-D scale (sklearn nan_euclidean
-    // approach) so a 4-of-9-dim distance is comparable to a 9-of-9-dim
-    // distance, which prevents partial-data candidates from winning by
-    // having fewer terms to sum.
+    // Feature weights for the distance metric. All 9 features are still
+    // COMPUTED and stored (display, debugging, future re-weighting), but
+    // two are excluded from similarity because they double-count
+    // information already present in other dimensions:
+    //   - eqRet5d (idx 2):    linearly dependent on spread5d + spxRet5d —
+    //                         breadth was counted twice.
+    //   - vixVsMa20 (idx 8):  highly correlated with vixLevel + vix5dDelta —
+    //                         VIX shocks were counted three times, which is
+    //                         why crash days found so few "valid" matches.
+    // Effective dimensionality: 7.
+    const FEATURE_WEIGHTS = [1, 1, 0, 1, 1, 1, 1, 1, 0];
+
+    // Weighted distance ignoring dimensions missing in either vector.
+    // The partial squared sum is scaled back to full-weight scale
+    // (sklearn nan_euclidean approach) so a 5-of-7-dim distance is
+    // comparable to a 7-of-7-dim distance.
     function pairDistance(a, b) {
         const D = a.length;
-        let d2 = 0, used = 0;
+        let totalW = 0;
+        for (let k = 0; k < D; k++) totalW += (FEATURE_WEIGHTS[k] != null ? FEATURE_WEIGHTS[k] : 1);
+        let d2 = 0, usedW = 0, dimsUsed = 0;
         for (let k = 0; k < D; k++) {
+            const w = FEATURE_WEIGHTS[k] != null ? FEATURE_WEIGHTS[k] : 1;
+            if (w === 0) continue;
             const av = a[k], bv = b[k];
             if (!Number.isFinite(av) || !Number.isFinite(bv)) continue;
-            d2 += (av - bv) * (av - bv);
-            used++;
+            d2 += w * (av - bv) * (av - bv);
+            usedW += w;
+            dimsUsed++;
         }
-        if (used === 0) return { distance: Infinity, dimsUsed: 0 };
-        return { distance: Math.sqrt(d2 * (D / used)), dimsUsed: used };
+        if (usedW === 0) return { distance: Infinity, dimsUsed: 0 };
+        return { distance: Math.sqrt(d2 * (totalW / usedW)), dimsUsed };
     }
 
     // ─── KNN: find closest historical days ────────────────────────────
@@ -245,12 +261,15 @@
     //   makes very recent days trivially "similar" to today, which
     //   tells us nothing.
     // - clusterDedup: after picking a match, skip any subsequent match
-    //   within ±20 trading days of it. Keeps the K matches diverse.
+    //   within ±40 trading days of it. 40 ≥ the 20d outcome window, so
+    //   accepted matches have NON-OVERLAPPING forward windows — the K
+    //   outcomes are quasi-independent episodes, not one episode counted
+    //   K times. (Was ±20, which allowed 19 of 20 outcome days to overlap.)
     function findMatches(rows, params, todayVec, opts) {
         opts = opts || {};
-        const K = opts.k || 12;
+        const K = opts.k || 10;   // keep in sync with K in update_forward_snapshots.py
         const excludeRecent = opts.excludeRecent != null ? opts.excludeRecent : 30;
-        const clusterDedup = opts.clusterDedup != null ? opts.clusterDedup : 20;
+        const clusterDedup = opts.clusterDedup != null ? opts.clusterDedup : 40;
 
         const todayNorm = normalize(todayVec, params);
         const lastIdx = rows[rows.length - 1].idx;
@@ -558,6 +577,14 @@
             // source of two display bugs (spread + vol read backwards).
             const interpret = bullMu >= otherMu ? 'bull_above' : 'bull_below';
             const tips = interpret === 'bull_above' ? meta.above : meta.below;
+            // Reliability guard — with 8 features tested on ~10 samples,
+            // SOME feature will always show high |d| by pure chance
+            // (multiple-comparisons problem). A signal is only "reliable"
+            // when the separation is large AND both cohorts have enough
+            // members for the means to be meaningful. Everything else is
+            // displayed as a hint, never as a ✓/✗ verdict.
+            const absD = cohensD != null ? Math.abs(cohensD) : 0;
+            const reliable = absD >= 0.8 && bullVals.length >= 4 && otherVals.length >= 3;
             signals.push({
                 feature: meta.key,
                 label: meta.label,
@@ -569,8 +596,9 @@
                 bullN: bullVals.length,
                 bearN: otherVals.length,
                 cohensD,
-                absD: cohensD != null ? Math.abs(cohensD) : 0,
+                absD,
                 threshold,
+                reliable,
             });
         }
         // Sort by separation strength (largest absolute Cohen's d first)

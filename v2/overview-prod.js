@@ -1954,12 +1954,18 @@ function renderEarlyWarning(analysis, hist) {
     const signalsEl = $('echoEwSignals');
     if (!signalsEl) return;
     signalsEl.innerHTML = '';
-    const top = ew.signals.slice(0, 3);
+    // Reliable signals first (passed |d| + sample-size bars); unreliable
+    // ones can still appear in the top-3 but get a "רמז בלבד" badge and
+    // never count toward the bull/bear vote summary.
+    const ranked = ew.signals.slice().sort((a, b) =>
+        ((b.reliable !== false) - (a.reliable !== false)) || (b.absD - a.absD));
+    const top = ranked.slice(0, 3);
     let bullVotes = 0, bearVotes = 0, totalVotes = 0;
     for (const sig of top) {
         const card = document.createElement('div');
+        const isReliable = sig.reliable !== false;
         const strong = sig.absD >= 0.7;
-        card.className = 'ov2-echo-ew-signal' + (strong ? ' ov2-strong' : '');
+        card.className = 'ov2-echo-ew-signal' + (strong && isReliable ? ' ov2-strong' : '');
 
         const sign = sig.threshold >= 0 ? '+' : '';
         const thStr = `${sign}${sig.threshold.toFixed(2)}%`;
@@ -1975,16 +1981,17 @@ function renderEarlyWarning(analysis, hist) {
         const currentVal = currentValueFor(sig.feature, hist);
         let liveBlock = '';
         if (currentVal != null) {
-            totalVotes++;
+            // Only reliable signals vote — hints don't move the verdict.
+            if (isReliable) totalVotes++;
             const valSign = currentVal >= 0 ? '+' : '';
             const valStr = `${valSign}${currentVal.toFixed(2)}%`;
             let leaning, leaningClass;
             if (sig.interpret === 'bull_above') {
-                if (currentVal >= sig.threshold) { leaning = 'נוטה חיובי'; leaningClass = 'pos'; bullVotes++; }
-                else                              { leaning = 'נוטה אזהרה'; leaningClass = 'neg'; bearVotes++; }
+                if (currentVal >= sig.threshold) { leaning = 'נוטה חיובי'; leaningClass = 'pos'; if (isReliable) bullVotes++; }
+                else                              { leaning = 'נוטה אזהרה'; leaningClass = 'neg'; if (isReliable) bearVotes++; }
             } else {
-                if (currentVal <= sig.threshold) { leaning = 'נוטה חיובי'; leaningClass = 'pos'; bullVotes++; }
-                else                              { leaning = 'נוטה אזהרה'; leaningClass = 'neg'; bearVotes++; }
+                if (currentVal <= sig.threshold) { leaning = 'נוטה חיובי'; leaningClass = 'pos'; if (isReliable) bullVotes++; }
+                else                              { leaning = 'נוטה אזהרה'; leaningClass = 'neg'; if (isReliable) bearVotes++; }
             }
             liveBlock = `
                 <div class="ov2-echo-ew-signal-live">
@@ -1995,14 +2002,16 @@ function renderEarlyWarning(analysis, hist) {
             `;
         }
 
+        const hintBadge = isReliable ? ''
+            : '<span style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; border-radius:4px; padding:1px 6px; font-size:10px; font-weight:700; margin-right:6px;">רמז בלבד — מדגם קטן</span>';
         card.innerHTML = `
-            <div class="ov2-echo-ew-signal-head">${sig.label}</div>
+            <div class="ov2-echo-ew-signal-head">${sig.label}${hintBadge}</div>
             <div class="ov2-echo-ew-signal-rule">${rule}</div>
             ${liveBlock}
             <div class="ov2-echo-ew-signal-stats">
                 חיוביים (n=${sig.bullN}): ${sig.bullMean >= 0 ? '+' : ''}${sig.bullMean.toFixed(2)}% ·
                 אחרים (n=${sig.bearN}): ${sig.bearMean >= 0 ? '+' : ''}${sig.bearMean.toFixed(2)}% ·
-                Cohen d: ${signCD}${sig.cohensD.toFixed(2)} ${strong ? '— מובהקת' : '— בינונית'}
+                Cohen d: ${signCD}${sig.cohensD.toFixed(2)} ${isReliable ? (strong ? '— מובהקת' : '— בינונית') : '— לא מספיק נתונים להסקה'}
             </div>
         `;
         signalsEl.appendChild(card);
@@ -2055,14 +2064,15 @@ function enrichNarrativeWithHistory(analysis) {
     const med = o20.median;
     const hit = o20.hitRate;
     const N = o20.samples;
+    const pos = Math.round(hit * N);
     let text;
     if (med > 1.0 && hit >= 0.6) {
-        text = `${N} ימים דומים בעבר → השוק עלה ב-${(hit*100).toFixed(0)}% מהמקרים תוך 20 ימים, חציון +${med.toFixed(2)}%.`;
+        text = `${N} ימים דומים בעבר → השוק עלה ב-${pos} מתוך ${N} מהמקרים תוך 20 ימים, חציון +${med.toFixed(2)}%.`;
     } else if (med < -1.0 && hit <= 0.4) {
-        text = `${N} ימים דומים בעבר → השוק ירד ב-${((1-hit)*100).toFixed(0)}% מהמקרים תוך 20 ימים, חציון ${med.toFixed(2)}%.`;
+        text = `${N} ימים דומים בעבר → השוק ירד ב-${N - pos} מתוך ${N} מהמקרים תוך 20 ימים, חציון ${med.toFixed(2)}%.`;
     } else {
         const sign = med >= 0 ? '+' : '';
-        text = `${N} ימים דומים בעבר → תוצאה מעורבת: ${(hit*100).toFixed(0)}% חיוביים, חציון ${sign}${med.toFixed(2)}% תוך 20 ימים.`;
+        text = `${N} ימים דומים בעבר → תוצאה מעורבת: ${pos} מתוך ${N} חיוביים, חציון ${sign}${med.toFixed(2)}% תוך 20 ימים.`;
     }
     el.textContent = text;
 }
@@ -2121,9 +2131,16 @@ async function renderHistoricalEcho(hist) {
                     `<span style="color:#b91c1c; font-weight:700;">⛔ רק ${_goodCount}/10 התאמות במרחק ≤ ${_MATCH_GOOD_THRESHOLD}</span> — ` +
                     `המצב היום נדיר היסטורית, המודל לא יכול להציע אינדיקציה היסטורית. נכון ל-${fmtDate(analysis.asOfDate)}.`;
             } else {
+                // Year spread — all-pre-2020 matches read very differently
+                // from a mix that includes the current market structure.
+                const yrs = analysis.matches.map(m => (m.date || '').slice(0, 4)).filter(Boolean);
+                const yrRange = yrs.length
+                    ? ` טווח שנים: ${yrs.reduce((a, b) => a < b ? a : b)}-${yrs.reduce((a, b) => a > b ? a : b)}.`
+                    : '';
                 subEl.textContent =
-                    `${analysis.matches.length} ימים דומים מתוך ${analysis.sampleSize} ימי מסחר ב-10 השנים האחרונות. ` +
-                    `נכון ל-${fmtDate(analysis.asOfDate)}.`;
+                    `${analysis.matches.length} ימים דומים מתוך ${analysis.sampleSize} ימי מסחר ב-10 השנים האחרונות.` +
+                    yrRange +
+                    ` נכון ל-${fmtDate(analysis.asOfDate)}.`;
             }
         }
 
@@ -2138,15 +2155,17 @@ async function renderHistoricalEcho(hist) {
         } else if (verdictEl && o20 && o20.samples) {
             const med = o20.median;
             const hit = o20.hitRate;
+            const vN = o20.samples;
+            const vPos = Math.round(hit * vN);
             let phrase, stateClass;
             if (med > 1.0 && hit >= 0.6) {
-                phrase = `נטייה היסטורית חיובית: ב-${(hit*100).toFixed(0)}% מהמקרים הדומים, השוק עלה תוך 20 ימים (חציון +${med.toFixed(2)}%).`;
+                phrase = `נטייה היסטורית חיובית: ב-${vPos} מתוך ${vN} מקרים דומים, השוק עלה תוך 20 ימים (חציון +${med.toFixed(2)}%).`;
                 stateClass = 'ov2-pos';
             } else if (med < -1.0 && hit <= 0.4) {
-                phrase = `נטייה היסטורית שלילית: ב-${((1-hit)*100).toFixed(0)}% מהמקרים הדומים, השוק ירד תוך 20 ימים (חציון ${med.toFixed(2)}%).`;
+                phrase = `נטייה היסטורית שלילית: ב-${vN - vPos} מתוך ${vN} מקרים דומים, השוק ירד תוך 20 ימים (חציון ${med.toFixed(2)}%).`;
                 stateClass = 'ov2-neg';
             } else {
-                phrase = `תוצאה מעורבת: חציון תשואת 20 ימים ${med >= 0 ? '+' : ''}${med.toFixed(2)}%, ${(hit*100).toFixed(0)}% מהמקרים חיוביים. הטווח רחב — אין נטייה ברורה.`;
+                phrase = `תוצאה מעורבת: חציון תשואת 20 ימים ${med >= 0 ? '+' : ''}${med.toFixed(2)}%, ${vPos} מתוך ${vN} מקרים חיוביים. הטווח רחב — אין נטייה ברורה.`;
                 stateClass = '';
             }
             verdictEl.textContent = phrase;
@@ -2178,7 +2197,7 @@ async function renderHistoricalEcho(hist) {
                     card.innerHTML = `
                         <div class="ov2-echo-horizon-label">${W} ימים</div>
                         <div class="ov2-echo-horizon-median ${medClass}">${sign}${o.median.toFixed(2)}%</div>
-                        <div class="ov2-echo-horizon-meta">חציון · ${(o.hitRate*100).toFixed(0)}% חיובי</div>
+                        <div class="ov2-echo-horizon-meta">חציון · ${Math.round(o.hitRate * o.samples)} מתוך ${o.samples} חיוביים</div>
                         <div class="ov2-echo-horizon-range">טווח: ${o.q25.toFixed(1)}% עד ${o.q75.toFixed(1)}%</div>
                     `;
                 }
@@ -2249,7 +2268,7 @@ async function renderHistoricalEcho(hist) {
                                 בין <strong>${minSign}${o20.min.toFixed(2)}%</strong>
                                 ל-<strong>${maxSign}${o20.max.toFixed(2)}%</strong>.
                                 חציון <strong>${medSign}${o20.median.toFixed(2)}%</strong>.
-                                <strong>${hitPct}%</strong> מהמקרים נסגרו בחיובי.
+                                <strong>${Math.round(o20.hitRate * N)} מתוך ${N}</strong> מקרים נסגרו בחיובי.
                             </div>
                         </div>
                         <div class="ov2-echo-scenario-block">
@@ -5208,6 +5227,15 @@ function renderV3TrendCard() {
             const items = [];
             items.push({ label: 'תאריך זיהוי', val: snap.anchorDate || '—', tone: '' });
             items.push({ label: 'התאמות תקפות', val: `${good}/10 במרחק ≤ ${THRESHOLD}`, tone: good >= MIN_GOOD ? 'v3-pos' : 'v3-neg' });
+            // Year spread of matches — a set drawn entirely from one
+            // old era (e.g. all pre-2020) reads very differently from
+            // a mix that includes recent market structure.
+            const years = matches.map(m => (m.date || '').slice(0, 4)).filter(Boolean);
+            if (years.length) {
+                const yMin = years.reduce((a, b) => a < b ? a : b);
+                const yMax = years.reduce((a, b) => a > b ? a : b);
+                items.push({ label: 'טווח שנות ההתאמות', val: yMin === yMax ? yMin : `${yMin}-${yMax}`, tone: '' });
+            }
             if (good < MIN_GOOD) {
                 items.push({ label: '⛔ סטטוס', val: 'המצב נדיר היסטורית', tone: 'v3-neg' });
                 items.push({ label: 'המלצה', val: 'להישען על הקלפים האחרים', tone: 'v3-warn' });
@@ -5216,8 +5244,8 @@ function renderV3TrendCard() {
                 if (out20.min != null && out20.max != null) {
                     items.push({ label: 'טווח', val: `${out20.min.toFixed(2)}% עד ${out20.max.toFixed(2)}%`, tone: '' });
                 }
-                if (out20.hitRate != null) {
-                    items.push({ label: 'אחוז חיובי', val: `${Math.round(out20.hitRate * 100)}%`, tone: '' });
+                if (out20.hitRate != null && out20.samples) {
+                    items.push({ label: 'מקרים חיוביים', val: `${Math.round(out20.hitRate * out20.samples)} מתוך ${out20.samples}`, tone: '' });
                 }
             }
             ul.innerHTML = items.map(i =>

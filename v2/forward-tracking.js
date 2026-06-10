@@ -239,6 +239,8 @@
         const day20 = formatDate(day20Iso);
         const med = out20.median, mn = out20.min, mx = out20.max;
         const hit = out20.hitRate || 0;
+        const hitN = out20.samples || 0;
+        const hitPos = Math.round(hit * hitN);
         const medClass = med > 0 ? 'ov2-pos' : med < 0 ? 'ov2-neg' : '';
         const medSign = med >= 0 ? '+' : '';
         const minSign = mn >= 0 ? '+' : '';
@@ -266,7 +268,7 @@
                         <span class="ov2-ft-matured-sep">·</span>
                         <span>טווח ${minSign}${mn.toFixed(2)}% עד ${maxSign}${mx.toFixed(2)}%</span>
                         <span class="ov2-ft-matured-sep">·</span>
-                        <span>הצלחה היסטורית <b>${Math.round(hit * 100)}%</b></span>
+                        <span>הצלחה היסטורית <b>${hitPos} מתוך ${hitN}</b></span>
                     </div>
                 </td>
             </tr>
@@ -344,7 +346,13 @@
                 ? `<span class="ov2-ft-day ov2-ft-day-${EARLY_DAYS}">${EARLY_DAYS}/${EARLY_DAYS} ✓</span>`
                 : `<span class="ov2-ft-day ov2-ft-day-${obs.dayIndex}">${obs.dayIndex}/${EARLY_DAYS}</span>`;
 
-            const top = (snap.signals || []).slice(0, 3);
+            // Only signals that passed the reliability guard (|d| ≥ 0.8
+            // AND enough samples in both cohorts) drive ✓/✗ verdicts.
+            // Old snapshots lack the field — treat them as reliable so
+            // the locked-in history keeps rendering as it did.
+            const top = (snap.signals || [])
+                .filter(s => s.reliable !== false)
+                .slice(0, 3);
             let rowBull = 0, rowBear = 0, rowVotes = 0;
             const chips = [];
 
@@ -556,7 +564,10 @@
             const fc20Prices = (anchorLvl && min20 != null && max20 != null)
                 ? `<div class="ov2-ft-range">${fmtPx(anchorLvl * (1 + min20 / 100))} — ${fmtPx(anchorLvl * (1 + max20 / 100))}</div>` : '';
             const fc20Cell = `${fmtPct(fc20)}${fc20Range}${fc20Prices}`;
-            const hitStr = hit20 != null ? `${Math.round(hit20 * 100)}%` : '—';
+            // "X מתוך Y" instead of a bare % — a 70% hit-rate on 10
+            // samples reads like precision it doesn't have.
+            const hitStr = (hit20 != null && samples)
+                ? `${Math.round(hit20 * samples)} מתוך ${samples}` : '—';
             const matchesStr = samples ? `${samples}/${samples}` : '—';
 
             rows.push(`
