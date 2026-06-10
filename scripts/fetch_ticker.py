@@ -36,11 +36,33 @@ def fetch_one(symbol):
         print(f'  {symbol}: fetch failed: {e}', file=sys.stderr)
         return None
     try:
-        meta = data['chart']['result'][0]['meta']
+        result = data['chart']['result'][0]
+        meta = result['meta']
+        # IMPORTANT: meta.chartPreviousClose returns the close BEFORE the
+        # requested range. With range=2d that's the close from 3 trading
+        # days ago, not yesterday — gives wrong %change.
+        # Correct approach: read the timeseries. With range=2d, close[0]
+        # is yesterday's close and close[-1] is today's. Use yesterday's
+        # close as `prev` so today/yesterday %change is real.
+        closes = result.get('indicators', {}).get('quote', [{}])[0].get('close', [])
+        clean = [c for c in closes if c is not None]
+        prev = None
+        # Cases:
+        #   2 valid closes → market closed today, closes = [yesterday, today].
+        #                   `prev` = closes[-2] (yesterday).
+        #   1 valid close  → market still open or data not finalized.
+        #                   The only entry IS yesterday's close. Use it.
+        #   0 valid closes → fall back to chartPreviousClose (less accurate).
+        if len(clean) >= 2:
+            prev = clean[-2]
+        elif len(clean) == 1:
+            prev = clean[0]
+        else:
+            prev = meta.get('chartPreviousClose')
         return {
             'symbol': symbol,
             'price': meta.get('regularMarketPrice'),
-            'prev':  meta.get('chartPreviousClose'),
+            'prev':  prev,
             'time':  meta.get('regularMarketTime'),
             'state': meta.get('marketState'),
         }
