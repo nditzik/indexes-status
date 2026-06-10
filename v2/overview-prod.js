@@ -4858,7 +4858,7 @@ function renderV3Cards(metrics, phaseResult, data, hist, duration) {
     renderV3Recommendations(metrics, phaseResult);
     renderV3TechCard(metrics);
     renderV3OptionsCard(metrics);
-    renderV3SectorsCard(metrics);
+    renderV3SectorsCard(metrics, data && data.sectors);
     renderV3StocksCard(data);
     renderV3DailySummary(metrics, hist, phaseResult, duration);
     renderV3TrendCard();
@@ -5106,10 +5106,15 @@ function renderV3OptionsCard(metrics) {
     ).join('');
 }
 
-function renderV3SectorsCard(metrics) {
+function renderV3SectorsCard(metrics, sectorsMap) {
     const tbody = document.querySelector('#v3_sectorTable tbody');
     const stats = document.getElementById('v3_sectorStats');
     if (!tbody || !metrics.sectors) return;
+    // Sector rows carry a `code` (e.g. "IT"); the Hebrew display names
+    // live in sectors.json's `codes` map — same translation the legacy
+    // heatmap uses.
+    const codes = (sectorsMap && sectorsMap.codes) || {};
+    const nameOf = s => codes[s.code] || s.code || '—';
     const sorted = [...metrics.sectors].sort((a, b) => b.avgChg - a.avgChg);
     tbody.innerHTML = sorted.map(s => {
         const avg = s.avgChg;
@@ -5121,14 +5126,14 @@ function renderV3SectorsCard(metrics) {
         else                   { bg = '#fee2e2'; color = '#991b1b'; }
         const sign = avg >= 0 ? '+' : '';
         return `<tr style="background:${bg};">
-            <td style="color:${color};">${s.name || s.sec}</td>
+            <td style="color:${color};">${nameOf(s)}</td>
             <td style="color:${color};">${sign}${avg.toFixed(2)}%</td>
         </tr>`;
     }).join('');
     if (stats && sorted.length) {
         const leader = sorted[0], laggard = sorted[sorted.length - 1];
         const dispersion = leader.avgChg - laggard.avgChg;
-        stats.innerHTML = `<b>מוביל:</b> ${leader.name} (${leader.avgChg >= 0 ? '+' : ''}${leader.avgChg.toFixed(2)}%) · <b>חלש:</b> ${laggard.name} (${laggard.avgChg.toFixed(2)}%) · פיזור ${dispersion.toFixed(1)}%`;
+        stats.innerHTML = `<b>מוביל:</b> ${nameOf(leader)} (${leader.avgChg >= 0 ? '+' : ''}${leader.avgChg.toFixed(2)}%) · <b>חלש:</b> ${nameOf(laggard)} (${laggard.avgChg.toFixed(2)}%) · פיזור ${dispersion.toFixed(1)}%`;
     }
 }
 
