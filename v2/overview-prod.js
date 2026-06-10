@@ -4603,13 +4603,17 @@ async function fetchTickerFromRepo() {
         if (data.fetchedAt) {
             const ageMin = (Date.now() - new Date(data.fetchedAt).getTime()) / 60000;
             const now = new Date();
-            const utcHour = now.getUTCHours();
+            const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
             const day = now.getUTCDay();   // 0=Sun, 6=Sat
-            // US trading session: weekday 13:30-21:00 UTC. Cron runs
-            // every 5 min in that window — > 30 min stale means the
-            // cron failed and we should try the proxy. Outside the
-            // session, ANY age is fine (markets are closed).
-            const inUsSession = day >= 1 && day <= 5 && utcHour >= 13 && utcHour < 21;
+            // US trading session: weekday 13:30-21:00 UTC. The cron runs
+            // every 5 min in that window, so during it a > 30 min stale
+            // file means the cron failed and we should try the proxy.
+            // 13:40 start = market open +10 min, giving the first cron
+            // run time to land before we declare the file stale.
+            // Outside the session ANY age is fine (markets are closed,
+            // the last close IS the current state).
+            const inUsSession = day >= 1 && day <= 5
+                && utcMinutes >= (13 * 60 + 40) && utcMinutes < (21 * 60);
             if (inUsSession && ageMin > 30) return null;
         }
         return data;
@@ -4699,14 +4703,27 @@ async function fetchLiveIndices() {
         const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d`;
         try {
             const json = await proxyFetchJSON(yahooUrl);
-            const meta = json && json.chart && json.chart.result && json.chart.result[0] && json.chart.result[0].meta;
+            const result = json && json.chart && json.chart.result && json.chart.result[0];
+            const meta = result && result.meta;
             if (!meta) throw new Error('no meta');
-            apply(key, meta.regularMarketPrice, meta.chartPreviousClose);
+            // IMPORTANT: meta.chartPreviousClose is the close BEFORE the
+            // requested range (3 trading days back with range=2d) — gives
+            // a wrong %change. The real "yesterday close" is in the
+            // timeseries: with 2 valid closes it's [-2], with one (today
+            // not finalized) the only entry IS yesterday. Mirrors the
+            // same fix in scripts/fetch_ticker.py.
+            const closes = ((result.indicators || {}).quote || [{}])[0].close || [];
+            const clean = closes.filter(c => c != null && Number.isFinite(c));
+            let prev;
+            if (clean.length >= 2) prev = clean[clean.length - 2];
+            else if (clean.length === 1) prev = clean[0];
+            else prev = meta.chartPreviousClose;
+            apply(key, meta.regularMarketPrice, prev);
             anyFresh = true;
             try {
                 localStorage.setItem(cacheKey(sym), JSON.stringify({
                     close: meta.regularMarketPrice,
-                    prev:  meta.chartPreviousClose,
+                    prev:  prev,
                     fetchedAt: Date.now(),
                 }));
             } catch (_) {}
