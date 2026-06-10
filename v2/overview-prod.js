@@ -4810,12 +4810,289 @@ async function init() {
             console.warn('FLOW: no analytics — flowHistory empty or insufficient');
         }
 
+        // V3 layout — populate the 6 cards if the v3 root is present.
+        // index-v3.html has both the v3 IDs (above) and the legacy IDs
+        // (hidden inside <details>) so the existing renderers fire too.
+        if (document.getElementById('v3_root')) {
+            try {
+                renderV3Cards(metrics, phaseResult, data);
+            } catch (v3err) {
+                console.warn('renderV3Cards failed:', v3err);
+            }
+        }
+
         hideLoading();
     } catch (e) {
         console.error(e);
         hideLoading();
         renderError(e);
     }
+}
+
+// ═════════════════════════════════════════════════════════════════════
+// V3 RENDERERS — populate the 6 simplified cards on index-v3.html
+// Reuses metrics + phase already computed by the standard pipeline.
+// ═════════════════════════════════════════════════════════════════════
+function renderV3Cards(metrics, phaseResult, data) {
+    renderV3BottomLine(metrics, phaseResult);
+    renderV3MarketCard(metrics, phaseResult);
+    renderV3TechCard(metrics);
+    renderV3OptionsCard(metrics);
+    renderV3SectorsCard(metrics);
+    renderV3StocksCard(data);
+    renderV3TrendCard();
+}
+
+function renderV3BottomLine(metrics, phaseResult) {
+    const wrap = document.getElementById('v3_bottomLine');
+    const icon = document.getElementById('v3_blIcon');
+    const head = document.getElementById('v3_blHeadline');
+    const sub  = document.getElementById('v3_blSub');
+    if (!wrap || !icon || !head || !sub) return;
+    let tone = 'warn', emoji = '🟡', headline = '—', sub_text = '';
+    const c = metrics.combined;
+    const riskOff = metrics.riskOff && metrics.riskOff.active;
+    if (riskOff) {
+        tone = 'neg'; emoji = '🔴';
+        headline = 'יום סיכון — לא להוסיף חשיפה';
+        sub_text = metrics.riskOff.reasons.map(r => r.text).join(' · ');
+    } else if (c == null) {
+        headline = 'אין מספיק נתונים';
+    } else if (c >= 70) {
+        tone = 'pos'; emoji = '🟢';
+        headline = 'השוק בריא — אפשר להמשיך בגישת long';
+        sub_text = `ציון משולב ${c}/100 · לעקוב אחרי VIX ורוחב`;
+    } else if (c >= 55) {
+        tone = 'warn'; emoji = '🟡';
+        headline = 'השוק יציב — להמשיך בזהירות';
+        sub_text = `ציון משולב ${c}/100 · מצב מבני סביר, לא בוטח בעלייה רחבה`;
+    } else if (c >= 40) {
+        tone = 'warn'; emoji = '🟡';
+        headline = 'מצב מעורב — להמתין לסיגנל ברור';
+        sub_text = `ציון משולב ${c}/100 · ללא הכרעה בכיוון`;
+    } else {
+        tone = 'neg'; emoji = '🔴';
+        headline = 'מצב חלש — להישאר בהגנה';
+        sub_text = `ציון משולב ${c}/100 · אינדיקטורים מבניים מצטברים שליליים`;
+    }
+    wrap.setAttribute('data-tone', tone);
+    icon.textContent = emoji;
+    head.textContent = headline;
+    sub.textContent = sub_text;
+}
+
+function renderV3MarketCard(metrics, phaseResult) {
+    const scoreEl = document.getElementById('v3_scoreBig');
+    const phaseEl = document.getElementById('v3_phaseLabel');
+    const confEl  = document.getElementById('v3_phaseConf');
+    const interpEl = document.getElementById('v3_scoreInterp');
+    if (scoreEl) scoreEl.textContent = metrics.combined != null ? metrics.combined : '—';
+    if (phaseEl && phaseResult && phaseResult.phase) {
+        phaseEl.textContent = phaseResult.phase.labelHe || phaseResult.phase.labelEn || '—';
+    }
+    if (confEl && phaseResult) {
+        confEl.textContent = `ביטחון בסיווג: ${phaseResult.confidence || 0}%`;
+    }
+    if (interpEl) {
+        const sentence = (typeof buildScoreInterpretation === 'function')
+            ? buildScoreInterpretation(metrics)
+            : null;
+        interpEl.innerHTML = sentence || '—';
+    }
+}
+
+function renderV3TechCard(metrics) {
+    const ul = document.getElementById('v3_techList');
+    if (!ul) return;
+    const spx = metrics.spx || {};
+    const items = [];
+
+    // SPX vs MAs
+    const maStatus = [];
+    if (spx.ma20)  maStatus.push(spx.price > spx.ma20  ? 'MA20 ✓' : 'MA20 ✗');
+    if (spx.ma50)  maStatus.push(spx.price > spx.ma50  ? 'MA50 ✓' : 'MA50 ✗');
+    if (spx.ma200) maStatus.push(spx.price > spx.ma200 ? 'MA200 ✓' : 'MA200 ✗');
+    items.push({ label: 'SPX מול ממוצעים', val: maStatus.join(' · '), tone: '' });
+
+    // 52W high
+    if (spx.high52 != null) {
+        const d = spx.high52;
+        const tone = Math.abs(d) <= 5 ? 'v3-pos' : Math.abs(d) <= 15 ? '' : 'v3-warn';
+        items.push({ label: 'מרחק משיא 52W', val: `${d.toFixed(2)}%`, tone });
+    }
+
+    // VIX level + 1d
+    if (metrics.vix) {
+        const v1d = metrics.vix1dPct;
+        const tone = metrics.vix >= 25 ? 'v3-warn' : '';
+        const v1dStr = v1d != null ? `${v1d >= 0 ? '+' : ''}${v1d.toFixed(1)}%` : '';
+        items.push({ label: 'VIX', val: `${metrics.vix.toFixed(1)} ${v1dStr ? '(' + v1dStr + ')' : ''}`, tone });
+    }
+
+    // Distribution days
+    if (metrics.distributionDays != null) {
+        const dd = metrics.distributionDays;
+        const tone = dd >= 5 ? 'v3-neg' : dd >= 4 ? 'v3-warn' : '';
+        let extra = '';
+        if (metrics.sellDaysRecent3 >= 2) extra = ` (${metrics.sellDaysRecent3} ב-3 ימים אחרונים ⚠)`;
+        items.push({ label: 'ימי מכירות', val: `${dd}/25${extra}`, tone });
+    }
+
+    // SPX daily %change
+    if (spx.chgPct != null) {
+        const c = spx.chgPct;
+        const tone = c > 0 ? 'v3-pos' : c < 0 ? 'v3-neg' : '';
+        items.push({ label: 'שינוי SPX היום', val: `${c >= 0 ? '+' : ''}${c.toFixed(2)}%`, tone });
+    }
+
+    ul.innerHTML = items.map(i =>
+        `<li><span class="v3-stat-label">${i.label}</span><span class="v3-stat-val ${i.tone}">${i.val}</span></li>`
+    ).join('');
+}
+
+function renderV3OptionsCard(metrics) {
+    const scoreEl = document.getElementById('v3_flowScore');
+    const labelEl = document.getElementById('v3_flowLabel');
+    const confEl  = document.getElementById('v3_flowConfidence');
+    const ul = document.getElementById('v3_flowContext');
+    if (!ul) return;
+    const f = metrics.flow;
+    const fScore = metrics.flowScore;
+    if (scoreEl) scoreEl.textContent = fScore != null ? fScore : '—';
+    if (labelEl) {
+        const lab = (typeof classifyByScore === 'function' && f && f.raw)
+            ? classifyByScore(fScore, f.raw)
+            : null;
+        labelEl.textContent = lab ? `${lab.emoji} ${lab.label}` : '—';
+    }
+    if (confEl && metrics.flowCoverage) {
+        const mid = Math.round(metrics.flowCoverage.midPct || 0);
+        if (mid >= 80) confEl.innerHTML = `<span class="v3-neg">⛔ ${mid}% Mid — ביטחון נמוך</span>`;
+        else if (mid >= 70) confEl.innerHTML = `<span class="v3-warn">⚠ ${mid}% Mid — ביטחון מוגבל</span>`;
+        else if (mid >= 50) confEl.innerHTML = `<span class="v3-warn">${mid}% Mid (בלוקים)</span>`;
+        else confEl.textContent = `${mid}% Mid · ביטחון תקין`;
+    }
+
+    const items = [];
+    if (f && f.raw) {
+        const cAsk = f.raw.callAskP || 0;
+        const cBid = f.raw.callBidP || 0;
+        const pAsk = f.raw.putAskP  || 0;
+        const pBid = f.raw.putBidP  || 0;
+        const fmtB = v => `$${(v / 1e9).toFixed(2)}B`;
+        if (pBid >= 1e9) items.push({ label: '📥 כתיבת puts מסיבית', val: fmtB(pBid), tone: 'v3-pos' });
+        if (pAsk >= 1e9) items.push({ label: '🛡 קניית puts אגרסיבית', val: fmtB(pAsk), tone: 'v3-neg' });
+        if (cBid >= 1e9) items.push({ label: '🔻 כתיבת calls אגרסיבית', val: fmtB(cBid), tone: 'v3-neg' });
+        if (cAsk >= 1e9) items.push({ label: '📈 קניית calls מסיבית', val: fmtB(cAsk), tone: 'v3-pos' });
+        // Always show: directional call share
+        if (metrics.flowCoverage && metrics.flowCoverage.directionalP) {
+            const callDir = cAsk + cBid;
+            const putDir  = pAsk + pBid;
+            if (callDir + putDir > 0) {
+                const share = callDir / (callDir + putDir) * 100;
+                items.push({
+                    label: 'חלוקה (Ask+Bid, ללא Mid)',
+                    val: `${share.toFixed(0)}% calls · ${(100 - share).toFixed(0)}% puts`,
+                    tone: '',
+                });
+            }
+        }
+    }
+    if (items.length === 0) {
+        items.push({ label: 'אין סיגנלים חריגים', val: '—', tone: 'v3-muted' });
+    }
+    ul.innerHTML = items.map(i =>
+        `<li><span class="v3-stat-label">${i.label}</span><span class="v3-stat-val ${i.tone}">${i.val}</span></li>`
+    ).join('');
+}
+
+function renderV3SectorsCard(metrics) {
+    const tbody = document.querySelector('#v3_sectorTable tbody');
+    const stats = document.getElementById('v3_sectorStats');
+    if (!tbody || !metrics.sectors) return;
+    const sorted = [...metrics.sectors].sort((a, b) => b.avgChg - a.avgChg);
+    tbody.innerHTML = sorted.map(s => {
+        const avg = s.avgChg;
+        let bg = '#f7fafc', color = '#4a5568';
+        if (avg >= 0.5)        { bg = '#d1fae5'; color = '#065f46'; }
+        else if (avg >= 0.1)   { bg = '#ecfdf5'; color = '#047857'; }
+        else if (avg >= -0.1)  { bg = '#f7fafc'; color = '#4a5568'; }
+        else if (avg >= -0.5)  { bg = '#fef3c7'; color = '#92400e'; }
+        else                   { bg = '#fee2e2'; color = '#991b1b'; }
+        const sign = avg >= 0 ? '+' : '';
+        return `<tr style="background:${bg};">
+            <td style="color:${color};">${s.name || s.sec}</td>
+            <td style="color:${color};">${sign}${avg.toFixed(2)}%</td>
+        </tr>`;
+    }).join('');
+    if (stats && sorted.length) {
+        const leader = sorted[0], laggard = sorted[sorted.length - 1];
+        const dispersion = leader.avgChg - laggard.avgChg;
+        stats.innerHTML = `<b>מוביל:</b> ${leader.name} (${leader.avgChg >= 0 ? '+' : ''}${leader.avgChg.toFixed(2)}%) · <b>חלש:</b> ${laggard.name} (${laggard.avgChg.toFixed(2)}%) · פיזור ${dispersion.toFixed(1)}%`;
+    }
+}
+
+function renderV3StocksCard(data) {
+    const topEl = document.getElementById('v3_stocksTop');
+    const botEl = document.getElementById('v3_stocksBottom');
+    if (!topEl || !botEl || !data || !data.today) return;
+    const stocks = data.today
+        .filter(r => r.Symbol && !String(r.Symbol).startsWith('$') && r.Symbol !== 'RSP')
+        .map(r => ({
+            sym: r.Symbol,
+            chg: parseFloat(String(r['%Change'] || '').replace('%', '').replace('+', '')),
+            rsi: r['RSI Rank'] || '',
+        }))
+        .filter(s => Number.isFinite(s.chg) && Math.abs(s.chg) < 50);
+    const top5 = stocks.slice().sort((a, b) => b.chg - a.chg).slice(0, 5);
+    const bot5 = stocks.slice().sort((a, b) => a.chg - b.chg).slice(0, 5);
+    const li = (s, tone) =>
+        `<li><span class="v3-stocks-sym">${s.sym}</span><span class="v3-stocks-chg ${tone}">${s.chg >= 0 ? '+' : ''}${s.chg.toFixed(2)}%</span></li>`;
+    topEl.innerHTML = top5.map(s => li(s, 'v3-pos')).join('');
+    botEl.innerHTML = bot5.map(s => li(s, 'v3-neg')).join('');
+}
+
+function renderV3TrendCard() {
+    // Reads forward_snapshots.json directly — keeps the dependency
+    // chain shallow. Surfaces the latest snapshot's match-quality and
+    // 20d outcome IF the matches are trustworthy.
+    const ul = document.getElementById('v3_trendList');
+    if (!ul) return;
+    fetch('data/forward_snapshots.json?t=' + Date.now(), { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+            if (!d || !d.snapshots || !d.snapshots.length) {
+                ul.innerHTML = '<li><span class="v3-stat-label">אין נתוני snapshots</span></li>';
+                return;
+            }
+            const snap = d.snapshots[d.snapshots.length - 1];
+            const THRESHOLD = 1.0;
+            const MIN_GOOD = 7;
+            const matches = snap.matches || [];
+            const good = matches.filter(m => m.distance != null && m.distance <= THRESHOLD).length;
+            const out20 = (snap.outcomes && snap.outcomes['20']) || {};
+            const items = [];
+            items.push({ label: 'תאריך זיהוי', val: snap.anchorDate || '—', tone: '' });
+            items.push({ label: 'התאמות תקפות', val: `${good}/10 במרחק ≤ ${THRESHOLD}`, tone: good >= MIN_GOOD ? 'v3-pos' : 'v3-neg' });
+            if (good < MIN_GOOD) {
+                items.push({ label: '⛔ סטטוס', val: 'המצב נדיר היסטורית', tone: 'v3-neg' });
+                items.push({ label: 'המלצה', val: 'להישען על הקלפים האחרים', tone: 'v3-warn' });
+            } else if (out20.median != null) {
+                items.push({ label: 'חציון 20 ימים', val: `${out20.median >= 0 ? '+' : ''}${out20.median.toFixed(2)}%`, tone: out20.median > 0 ? 'v3-pos' : 'v3-neg' });
+                if (out20.min != null && out20.max != null) {
+                    items.push({ label: 'טווח', val: `${out20.min.toFixed(2)}% עד ${out20.max.toFixed(2)}%`, tone: '' });
+                }
+                if (out20.hitRate != null) {
+                    items.push({ label: 'אחוז חיובי', val: `${Math.round(out20.hitRate * 100)}%`, tone: '' });
+                }
+            }
+            ul.innerHTML = items.map(i =>
+                `<li><span class="v3-stat-label">${i.label}</span><span class="v3-stat-val ${i.tone}">${i.val}</span></li>`
+            ).join('');
+        })
+        .catch(() => {
+            ul.innerHTML = '<li><span class="v3-stat-label">שגיאה בטעינת snapshots</span></li>';
+        });
 }
 
 document.addEventListener('DOMContentLoaded', init);

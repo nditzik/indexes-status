@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S&P 500 · v3</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"
+            integrity="sha384-FcQlsUOd0TJjROrBxhJdUhXTUgNJQxTMcxZe6nHbaEfFL1zjQ+bq/uRoBQxb0KMo"
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+    <!-- Reuse the production stylesheet so existing renderers look right
+         when they fire into the legacy IDs hidden inside "פירוט מתקדם" -->
+    <link rel="stylesheet" href="v2/overview-prod.css">
+    <link rel="stylesheet" href="v2/overview-v3.css">
+</head>
+<body class="overview-prod-root v3-body">
+
+<div id="ov2_loading" class="ov2-loading">
+    <div class="ov2-loading-dot"></div>
+    <div class="ov2-loading-dot"></div>
+    <div class="ov2-loading-dot"></div>
+</div>
+
+<div class="v3-root" id="v3_root" style="display:none;">
+
+    <!-- ═══ HEADER ═══ -->
+    <header class="v3-header">
+        <div class="v3-header-inner">
+            <div class="v3-header-brand">
+                <span class="v3-header-glyph">📊</span>
+                <span class="v3-header-title">S&amp;P 500</span>
+            </div>
+            <div class="v3-header-meta">
+                <span id="v3_dateLabel">—</span>
+                <a class="v3-header-link" href="index.html">גרסה ישנה ←</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- ═══ LIVE TICKER ═══ -->
+    <div class="ov2-ticker v3-ticker">
+        <div class="ov2-ticker-label">
+            <span class="ov2-ticker-pulse"></span>
+            שווקים חיים
+        </div>
+        <div class="ov2-ticker-items">
+            <div class="ov2-ticker-item" data-tooltip="SPY · ה-ETF של S&P 500">
+                <span class="ov2-ticker-name">SPY · S&amp;P 500</span>
+                <span class="ov2-ticker-val" id="ov2_tkSPY">—</span>
+                <span class="ov2-ticker-chg" id="ov2_tkSPYChg">—</span>
+            </div>
+            <div class="ov2-ticker-item" data-tooltip="QQQ · ה-ETF של ה-NASDAQ 100">
+                <span class="ov2-ticker-name">QQQ · NASDAQ</span>
+                <span class="ov2-ticker-val" id="ov2_tkNDX">—</span>
+                <span class="ov2-ticker-chg" id="ov2_tkNDXChg">—</span>
+            </div>
+            <div class="ov2-ticker-item" data-tooltip="DIA · ה-ETF של ה-Dow Jones">
+                <span class="ov2-ticker-name">DIA · DOW</span>
+                <span class="ov2-ticker-val" id="ov2_tkDJI">—</span>
+                <span class="ov2-ticker-chg" id="ov2_tkDJIChg">—</span>
+            </div>
+            <div class="ov2-ticker-item" data-tooltip="IWM · ה-ETF של ה-Russell 2000">
+                <span class="ov2-ticker-name">IWM · Russell 2000</span>
+                <span class="ov2-ticker-val" id="ov2_tkRUT">—</span>
+                <span class="ov2-ticker-chg" id="ov2_tkRUTChg">—</span>
+            </div>
+        </div>
+        <div class="ov2-ticker-time">
+            עודכן <span id="ov2_tkUpdated">—</span>
+        </div>
+    </div>
+
+    <!-- ═══ RISK-OFF BANNER (hidden by default) ═══ -->
+    <div class="ov2-risk-off" id="ov2_riskOff" style="display:none;">
+        <div class="ov2-risk-off-head">
+            <span class="ov2-risk-off-icon">🚨</span>
+            <span class="ov2-risk-off-title">יום סיכון — הציון המבני לא משקף את האירוע</span>
+        </div>
+        <ul class="ov2-risk-off-list" id="ov2_riskOffList"></ul>
+        <div class="ov2-risk-off-note">הציון המשולב נשאר גבוה כי הוא מבוסס על מבנה (מחיר מול ממוצעים, רוחב). זה לא משקר — זה פשוט לא מודד את התנודה היומית. הציון הזה תופס מגמה, לא אירוע.</div>
+    </div>
+
+    <!-- ═══ BOTTOM LINE STRIP ═══ -->
+    <div class="v3-bottom-line" id="v3_bottomLine">
+        <div class="v3-bottom-line-icon" id="v3_blIcon">⚪</div>
+        <div class="v3-bottom-line-body">
+            <div class="v3-bottom-line-headline" id="v3_blHeadline">—</div>
+            <div class="v3-bottom-line-sub" id="v3_blSub">—</div>
+        </div>
+    </div>
+
+    <!-- ═══ 6 CARDS GRID ═══ -->
+    <div class="v3-grid">
+
+        <!-- 1. שוק -->
+        <div class="v3-card v3-card-market">
+            <div class="v3-card-head">
+                <span class="v3-card-eyebrow">שוק</span>
+                <span class="v3-card-title">מצב נוכחי + ציון משולב</span>
+            </div>
+            <div class="v3-card-body">
+                <div class="v3-score-row">
+                    <div class="v3-score-big" id="v3_scoreBig">—</div>
+                    <div class="v3-score-side">
+                        <div class="v3-score-label" id="v3_phaseLabel">—</div>
+                        <div class="v3-score-confidence" id="v3_phaseConf">—</div>
+                    </div>
+                </div>
+                <div class="v3-score-interp" id="v3_scoreInterp">—</div>
+            </div>
+        </div>
+
+        <!-- 2. טכניים -->
+        <div class="v3-card v3-card-tech">
+            <div class="v3-card-head">
+                <span class="v3-card-eyebrow">טכניים</span>
+                <span class="v3-card-title">SPX · MA · VIX · ימי מכירות</span>
+            </div>
+            <div class="v3-card-body">
+                <ul class="v3-stat-list" id="v3_techList">
+                    <li>טוען...</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 3. אופציות -->
+        <div class="v3-card v3-card-options">
+            <div class="v3-card-head">
+                <span class="v3-card-eyebrow">אופציות</span>
+                <span class="v3-card-title">זרימה מוסדית + ביטחון</span>
+            </div>
+            <div class="v3-card-body">
+                <div class="v3-score-row">
+                    <div class="v3-score-big v3-score-flow" id="v3_flowScore">—</div>
+                    <div class="v3-score-side">
+                        <div class="v3-score-label" id="v3_flowLabel">—</div>
+                        <div class="v3-score-confidence" id="v3_flowConfidence">—</div>
+                    </div>
+                </div>
+                <ul class="v3-stat-list" id="v3_flowContext">
+                    <li>טוען...</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 4. סקטורים -->
+        <div class="v3-card v3-card-sectors">
+            <div class="v3-card-head">
+                <span class="v3-card-eyebrow">סקטורים</span>
+                <span class="v3-card-title">מפת חום · 11 סקטורי S&amp;P</span>
+            </div>
+            <div class="v3-card-body">
+                <table class="v3-sector-table" id="v3_sectorTable">
+                    <tbody><tr><td>טוען...</td></tr></tbody>
+                </table>
+                <div class="v3-sector-stats" id="v3_sectorStats"></div>
+            </div>
+        </div>
+
+        <!-- 5. מניות חזקות -->
+        <div class="v3-card v3-card-stocks">
+            <div class="v3-card-head">
+                <span class="v3-card-eyebrow">מניות חזקות</span>
+                <span class="v3-card-title">Top 5 לפי מומנטום + 5 חלשות</span>
+            </div>
+            <div class="v3-card-body">
+                <div class="v3-stocks-cols">
+                    <div class="v3-stocks-col">
+                        <div class="v3-stocks-col-head v3-pos">חזקות</div>
+                        <ul class="v3-stocks-list" id="v3_stocksTop"><li>טוען...</li></ul>
+                    </div>
+                    <div class="v3-stocks-col">
+                        <div class="v3-stocks-col-head v3-neg">חלשות</div>
+                        <ul class="v3-stocks-list" id="v3_stocksBottom"><li>טוען...</li></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. מגמה (KNN) -->
+        <div class="v3-card v3-card-trend">
+            <div class="v3-card-head">
+                <span class="v3-card-eyebrow">מגמה היסטורית</span>
+                <span class="v3-card-title">KNN · 10 ימים דומים בעבר</span>
+            </div>
+            <div class="v3-card-body">
+                <div id="v3_trendBody">
+                    <ul class="v3-stat-list" id="v3_trendList">
+                        <li>טוען...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ═══ ADVANCED DETAILS (collapsed) ═══ -->
+    <!--
+        All the legacy panels live here so the existing renderers in
+        overview-prod.js have their target IDs. The whole block is hidden
+        behind <details> so the page stays focused on the 6 cards above.
+    -->
+    <details class="v3-details">
+        <summary class="v3-details-summary">
+            <span>▶</span>
+            <span>פירוט מתקדם — הצג את כל הפאנלים המקוריים</span>
+        </summary>
+        <div class="v3-details-body" id="v3_advancedContainer">
+            <!-- Hidden containers for legacy renderers. Overview-prod.js
+                 fills these via element IDs; the user only sees them
+                 when this <details> is open. -->
+
+            <!-- MCC card (legacy) -->
+            <div class="ov2-mcc" id="ov2_mcc">
+                <div class="ov2-mcc-accent" id="ov2_mccPhaseAccent"></div>
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; gap:16px;">
+                    <div style="min-width:0;">
+                        <div class="ov2-eyebrow">מרכז בקרת שוק · משטר נוכחי</div>
+                        <div class="ov2-mcc-phase-row">
+                            <span class="ov2-mcc-glyph" id="ov2_mccGlyph">—</span>
+                            <span class="ov2-mcc-phase-label-he" id="ov2_mccPhaseLabelHe">—</span>
+                            <span class="ov2-mcc-phase-label" id="ov2_mccPhaseLabel">—</span>
+                        </div>
+                        <div class="ov2-mcc-duration-row">
+                            <span class="ov2-mcc-duration" id="ov2_mccDuration">—</span>
+                            <span class="ov2-mcc-entered" id="ov2_mccEntered">—</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="ov2-mcc-narrative" id="ov2_mccNarrative">—</div>
+                <div class="ov2-mcc-grid">
+                    <div class="ov2-mcc-block-state">
+                        <div style="display:flex; align-items:flex-start; gap:12px;">
+                            <div><div class="ov2-mcc-meta-label">רמת סיכון</div><div class="ov2-mcc-meta-value" id="ov2_mccRisk">—</div></div>
+                            <div style="flex:1;"><div class="ov2-mcc-meta-label">הטיית פוזיציה</div><div class="ov2-mcc-meta-value" id="ov2_mccBias">—</div></div>
+                        </div>
+                    </div>
+                    <div class="ov2-mcc-block-score">
+                        <div class="ov2-mcc-score-top">
+                            <span class="ov2-mcc-score-val" id="ov2_mccScoreVal">—</span>
+                            <span class="ov2-mcc-score-max">/100</span>
+                            <span style="margin-right:auto; font-size:11px; color:var(--ov2-text-2); font-weight:600;">ציון משולב</span>
+                        </div>
+                        <div class="ov2-mcc-bar"><div class="ov2-mcc-bar-fill" id="ov2_mccBarFill" style="width:0%"></div></div>
+                        <div class="ov2-mcc-interpretation" id="ov2_mccInterpretation" style="display:none;"></div>
+                        <div class="ov2-coverage-chip" id="ov2_coverageChip" style="display:none;"></div>
+                    </div>
+                    <div class="ov2-mcc-block-meta">
+                        <div class="ov2-mcc-score-top">
+                            <span class="ov2-mcc-score-max">%</span>
+                            <span class="ov2-mcc-score-val" id="ov2_mccConfVal">—</span>
+                            <span style="margin-right:auto; font-size:11px; color:var(--ov2-text-2); font-weight:600;">רמת ביטחון בשלב</span>
+                        </div>
+                        <div class="ov2-mcc-bar"><div class="ov2-mcc-bar-fill" id="ov2_mccConfBar" style="width:0%"></div></div>
+                    </div>
+                </div>
+                <div class="ov2-mcc-drivers">
+                    <div class="ov2-driver"><span class="ov2-driver-lbl">NH/NL</span><span class="ov2-driver-val" id="ov2_drvNhnl">—</span></div>
+                    <div class="ov2-driver"><span class="ov2-driver-lbl">% מעל MA200</span><span class="ov2-driver-val" id="ov2_drvMa200">—</span></div>
+                    <div class="ov2-driver"><span class="ov2-driver-lbl">VIX</span><span class="ov2-driver-val" id="ov2_drvVix">—</span></div>
+                    <div class="ov2-driver"><span class="ov2-driver-lbl">ימי הפצה</span><span class="ov2-driver-val" id="ov2_drvDist">—</span></div>
+                    <div class="ov2-driver"><span class="ov2-driver-lbl">רוחב</span><span class="ov2-driver-val" id="ov2_drvBreadth">—</span></div>
+                    <div class="ov2-driver"><span class="ov2-driver-lbl">Combined</span><span class="ov2-driver-val" id="ov2_drvCombined">—</span></div>
+                </div>
+            </div>
+
+            <!-- Narrative panel -->
+            <div class="ov2-narrative" id="ov2_narrative" style="margin-top:16px;">
+                <div class="ov2-narrative-accent" id="ov2_narrativeAccent"></div>
+                <div class="ov2-eyebrow">סיכום יומי</div>
+                <div class="ov2-narrative-meta ov2-muted" id="ov2_narrativeMeta">—</div>
+                <div class="ov2-narrative-rationale" id="ov2_narrativeRationale">—</div>
+                <div class="ov2-narrative-blocks">
+                    <div class="ov2-narrative-block"><span class="ov2-narrative-block-label">היום:</span><span id="ov2_narrativeToday">—</span></div>
+                    <div class="ov2-narrative-block"><span class="ov2-narrative-block-label">השבוע:</span><span id="ov2_narrativeWeek">—</span></div>
+                    <div class="ov2-narrative-block"><span class="ov2-narrative-block-label">הרקע:</span><span id="ov2_narrativeBackground">—</span></div>
+                    <div class="ov2-narrative-block"><span class="ov2-narrative-block-label">לעקוב:</span><span id="ov2_narrativeWatchFor">—</span></div>
+                </div>
+            </div>
+
+            <!-- Flow card (legacy, full detail) — overview-prod.js fills #ov2_flowCard's many sub-IDs -->
+            <div class="ov2-flow-card" id="ov2_flowCard" style="margin-top:16px;"></div>
+
+            <!-- Forward-tracking panel + matured table + KNN echo, all
+                 inside a single placeholder. Overview-prod.js mounts
+                 specific elements by ID; this container just exists to
+                 contain them visually if/when they render. -->
+            <div class="ov2-echo" id="ov2_echo" style="margin-top:16px;">
+                <div class="ov2-echo-head">
+                    <div class="ov2-eyebrow">תבניות היסטוריות (KNN)</div>
+                    <div class="ov2-echo-sub" id="ov2_echoSub">—</div>
+                </div>
+                <div class="ov2-echo-verdict" id="ov2_echoVerdict">—</div>
+                <div class="ov2-echo-horizons" id="ov2_echoHorizons"></div>
+                <div class="ov2-echo-scenario" id="ov2_echoScenario"></div>
+                <div class="ov2-echo-ew" id="ov2_echoEarlyWarning">
+                    <div class="ov2-echo-ew-head">
+                        <div class="ov2-echo-ew-title">תבניות פעילות</div>
+                        <div class="ov2-echo-ew-sub" id="ov2_echoEwSub">—</div>
+                    </div>
+                    <div class="ov2-echo-ew-signals" id="ov2_echoEwSignals"></div>
+                    <div class="ov2-echo-ew-verdict" id="ov2_echoEwVerdict"></div>
+                </div>
+                <div class="ov2-ft-matured-table-wrap" id="ov2_maturedTableWrap" style="margin-top:18px;">
+                    <div class="ov2-echo-ew-head">
+                        <div class="ov2-echo-ew-title">תבניות שעברו 5 ימי בחינה — בדיקת התאמה + אינדיקציה היסטורית ל-Day 20</div>
+                        <div class="ov2-echo-ew-sub" id="ov2_maturedTableSub">—</div>
+                    </div>
+                    <div id="ov2_maturedTable"></div>
+                </div>
+                <div class="ov2-echo-matches">
+                    <div class="ov2-echo-matches-label">ימים דומים בעבר:</div>
+                    <div class="ov2-echo-matches-list" id="ov2_echoMatches">—</div>
+                </div>
+                <canvas id="ov2_echoPathsChart"></canvas>
+            </div>
+
+        </div>
+    </details>
+
+</div>
+
+<!-- ═══ SCRIPTS (same as legacy index.html, in same order) ═══ -->
+<script src="v2/regime.js"></script>
+<script src="v2/narrative.js"></script>
+<script src="v2/historical.js"></script>
+<script src="v2/patterns.js"></script>
+<script src="v2/forward-tracking.js"></script>
+<script src="v2/overview-prod.js"></script>
+
+<script>
+// V3 mount trigger — overview-prod.js renders into the legacy IDs
+// inside <details>. The new V3 cards are populated by a small
+// renderV3Cards() function attached to overview-prod.js (see file).
+//
+// We just need to (a) reveal the root once the dashboard is rendered
+// and (b) hide the loading spinner.
+window.addEventListener('load', function () {
+    const root = document.getElementById('v3_root');
+    if (root) root.style.display = '';
+    const dl = document.getElementById('v3_dateLabel');
+    if (dl) {
+        const d = new Date();
+        dl.textContent = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    }
+});
+</script>
+
+</body>
+</html>
