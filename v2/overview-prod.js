@@ -1428,6 +1428,13 @@ function renderRiskOffBanner(metrics) {
         titleEl.textContent = `יום מסוכן בשוק${d ? ' — נכון לסגירת ' + d : ''}`;
     }
     list.innerHTML = ro.reasons.map(r => `<li>${r.text}</li>`).join('');
+    // Footer names the combined score explicitly — "הציון הכללי" alone
+    // was ambiguous (user asked "which score?").
+    const noteEl = $('riskOffNote');
+    if (noteEl && metrics.combined != null) {
+        noteEl.textContent =
+            `למה הציון המשולב (${metrics.combined}) כמעט לא זז? כי הוא מודד את התמונה הגדולה (המגמה) — הבאנר הזה מתריע על האירוע של היום.`;
+    }
     // The actual selling days, verifiable at a glance
     const daysEl = $('riskOffDays');
     if (daysEl) {

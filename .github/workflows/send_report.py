@@ -2081,7 +2081,7 @@ def risk_off_block_html():
   {days_html}
   <div style="font-size:13px;color:#fef2f2;margin-bottom:8px;text-align:right;"><b>המשמעות:</b> לא מוסיפים קניות עד שהשוק נרגע.</div>
   <div style="font-size:11px;color:#fecaca;line-height:1.6;padding-top:8px;border-top:1px solid rgba(254,226,226,0.18);text-align:right;direction:rtl;">
-    למה הציון הכללי כמעט לא זז? כי הוא מודד את התמונה הגדולה (המגמה) — הבאנר הזה מתריע על האירוע של היום.
+    למה הציון המשולב ({c_score if c_score is not None else '—'}) כמעט לא זז? כי הוא מודד את התמונה הגדולה (המגמה) — הבאנר הזה מתריע על האירוע של היום.
   </div>
 </div>
 """
