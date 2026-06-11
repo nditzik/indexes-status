@@ -1454,11 +1454,10 @@ function renderRiskOffBanner(metrics) {
 }
 
 // Live reconciliation — called by fetchLiveIndices with SPY's live
-// %change. The banner is built from the last CLOSE; when the live
-// session contradicts it (a strong bounce) we soften the banner to
-// amber and say so, and when the decline continues we say that too.
-// Keeps the banner honest against the live ticker two lines above it.
-function updateRiskOffLive(spyPct) {
+// %change. The banner BOX stays neutral (user preference); only this
+// strip carries traffic colors, with the quote's date+time so the
+// reader knows exactly how fresh "right now" is.
+function updateRiskOffLive(spyPct, dataTs) {
     const wrap = $('riskOff');
     const liveEl = $('riskOffLive');
     if (!wrap || !liveEl || wrap.style.display === 'none') return;
@@ -1467,15 +1466,19 @@ function updateRiskOffLive(spyPct) {
     // in the "quiet zone" made it look like the feature vanished.
     liveEl.style.display = '';
     const pctStr = `${spyPct >= 0 ? '+' : ''}${spyPct.toFixed(1)}%`;
+    // Timestamp of the live quote (ticker fetchedAt; falls back to now)
+    const ts = (dataTs instanceof Date && !isNaN(dataTs)) ? dataTs : new Date();
+    const p2 = n => String(n).padStart(2, '0');
+    const tsStr = `${p2(ts.getDate())}/${p2(ts.getMonth() + 1)}/${ts.getFullYear()} ${p2(ts.getHours())}:${p2(ts.getMinutes())}`;
+    liveEl.classList.remove('ov2-live-pos', 'ov2-live-neg');
     if (spyPct >= 1) {
-        wrap.classList.add('ov2-risk-off-soft');
-        liveEl.textContent = `עדכון חי: המסחר נכון לעכשיו חיובי (${pctStr}) — ייתכן שהלחץ נרגע. הבאנר יתעדכן עם נתוני הסגירה.`;
+        liveEl.classList.add('ov2-live-pos');
+        liveEl.textContent = `המסחר נכון לעכשיו (${tsStr}): חיובי ${pctStr} — ייתכן שהלחץ נרגע. הבאנר יתעדכן עם נתוני הסגירה.`;
     } else if (spyPct <= -0.3) {
-        wrap.classList.remove('ov2-risk-off-soft');
-        liveEl.textContent = `עדכון חי: הירידה נמשכת נכון לעכשיו (${pctStr}).`;
+        liveEl.classList.add('ov2-live-neg');
+        liveEl.textContent = `המסחר נכון לעכשיו (${tsStr}): הירידה נמשכת ${pctStr}.`;
     } else {
-        wrap.classList.remove('ov2-risk-off-soft');
-        liveEl.textContent = `עדכון חי: המסחר נכון לעכשיו יציב (${pctStr}) — אין שינוי מהותי בינתיים.`;
+        liveEl.textContent = `המסחר נכון לעכשיו (${tsStr}): יציב ${pctStr} — אין שינוי מהותי בינתיים.`;
     }
 }
 
@@ -4820,10 +4823,14 @@ async function fetchLiveIndices() {
     if (repoData) {
         const bySym = {};
         for (const t of repoData.tickers) bySym[t.symbol] = t;
-        // Risk-off banner reconciliation against the live session
+        // Risk-off banner reconciliation against the live session.
+        // Timestamp priority: the quote's own market time (epoch sec),
+        // then the file's fetchedAt.
         const spyT = bySym['SPY'];
         if (spyT && spyT.price && spyT.prev) {
-            try { updateRiskOffLive((spyT.price / spyT.prev - 1) * 100); } catch (_) {}
+            const ts = spyT.time ? new Date(spyT.time * 1000)
+                     : (repoData.fetchedAt ? new Date(repoData.fetchedAt) : null);
+            try { updateRiskOffLive((spyT.price / spyT.prev - 1) * 100, ts); } catch (_) {}
         }
         for (const [key, sym] of Object.entries(symbols)) {
             const t = bySym[sym];
@@ -4871,7 +4878,8 @@ async function fetchLiveIndices() {
             else prev = meta.chartPreviousClose;
             apply(key, meta.regularMarketPrice, prev);
             if (key === 'SPY' && meta.regularMarketPrice && prev) {
-                try { updateRiskOffLive((meta.regularMarketPrice / prev - 1) * 100); } catch (_) {}
+                const ts = meta.regularMarketTime ? new Date(meta.regularMarketTime * 1000) : null;
+                try { updateRiskOffLive((meta.regularMarketPrice / prev - 1) * 100, ts); } catch (_) {}
             }
             anyFresh = true;
             try {

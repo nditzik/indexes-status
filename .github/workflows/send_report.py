@@ -2052,7 +2052,7 @@ def risk_off_block_html():
     if not risk_off_reasons:
         return ''
     items = ''.join(
-        f'<li style="padding:4px 0;font-size:13px;color:#fee2e2;line-height:1.5;text-align:right;">• {r}</li>'
+        f'<li style="padding:4px 0;font-size:13px;color:#e2e8f0;line-height:1.5;text-align:right;">• {r}</li>'
         for r in risk_off_reasons
     )
     # Data date — the banner reflects the close this email reports on
@@ -2069,18 +2069,18 @@ def risk_off_block_html():
             f'{d.split("-")[2]}/{d.split("-")[1]}' + (f' ({c:.2f}%)' if c is not None else '')
             for d, c in risk_off_selling_days
         )
-        days_html = (f'<div style="font-size:12px;color:#fecaca;font-family:monospace;'
+        days_html = (f'<div style="font-size:12px;color:#cbd5e0;font-family:monospace;'
                      f'margin-bottom:8px;text-align:right;direction:rtl;">ימי המכירה: {chips}</div>')
     return f"""
-<div dir="rtl" style="background:linear-gradient(135deg,#7f1d1d,#991b1b);color:#fef2f2;border-radius:10px;padding:18px 22px;margin-bottom:12px;direction:rtl;text-align:right;border:1px solid rgba(254,226,226,0.15);">
+<div dir="rtl" style="background:linear-gradient(135deg,#1e293b,#334155);color:#f1f5f9;border-radius:10px;padding:18px 22px;margin-bottom:12px;direction:rtl;text-align:right;border:1px solid rgba(241,245,249,0.12);">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;text-align:right;direction:rtl;">
     <span style="font-size:22px;">🚨</span>
     <span style="font-size:15px;font-weight:800;">יום מסוכן בשוק{data_date_str}</span>
   </div>
   <ul dir="rtl" style="margin:0 0 10px;padding:0;list-style:none;text-align:right;direction:rtl;">{items}</ul>
   {days_html}
-  <div style="font-size:13px;color:#fef2f2;margin-bottom:8px;text-align:right;"><b>המשמעות:</b> לא מוסיפים קניות עד שהשוק נרגע.</div>
-  <div style="font-size:11px;color:#fecaca;line-height:1.6;padding-top:8px;border-top:1px solid rgba(254,226,226,0.18);text-align:right;direction:rtl;">
+  <div style="font-size:13px;color:#f1f5f9;margin-bottom:8px;text-align:right;"><b>המשמעות:</b> לא מוסיפים קניות עד שהשוק נרגע.</div>
+  <div style="font-size:11px;color:#94a3b8;line-height:1.6;padding-top:8px;border-top:1px solid rgba(241,245,249,0.15);text-align:right;direction:rtl;">
     למה הציון המשולב ({c_score if c_score is not None else '—'}) כמעט לא זז? כי הוא מודד את התמונה הגדולה (המגמה) — הבאנר הזה מתריע על האירוע של היום.
   </div>
 </div>

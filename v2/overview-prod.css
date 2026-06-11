@@ -782,15 +782,19 @@
     font-weight: 400;
 }
 
-/* ─── Risk-Off banner ─── */
+/* ─── Risk-Off banner ───
+   Neutral slate box (user preference): the warning CONTENT is what
+   alarms, not a screaming background. Only the live-session strip
+   carries traffic colors (green/red), since it's the only part that
+   reflects what's happening right now. */
 .overview-prod-root .ov2-risk-off {
-    background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
-    color: #fef2f2;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    color: #f1f5f9;
     border-radius: 10px;
     padding: 18px 22px;
     margin-bottom: 16px;
-    box-shadow: 0 2px 8px rgba(127, 29, 29, 0.25);
-    border: 1px solid rgba(254, 226, 226, 0.15);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25);
+    border: 1px solid rgba(241, 245, 249, 0.12);
 }
 .overview-prod-root .ov2-risk-off-head {
     display: flex;
@@ -815,7 +819,7 @@
     font-size: 13px;
     padding: 4px 0;
     line-height: 1.5;
-    color: #fee2e2;
+    color: #e2e8f0;
 }
 .overview-prod-root .ov2-risk-off-list li::before {
     content: "• ";
@@ -825,15 +829,15 @@
 }
 .overview-prod-root .ov2-risk-off-note {
     font-size: 11px;
-    color: #fecaca;
+    color: #94a3b8;
     line-height: 1.6;
     padding-top: 8px;
-    border-top: 1px solid rgba(254, 226, 226, 0.18);
+    border-top: 1px solid rgba(241, 245, 249, 0.15);
     font-weight: 400;
 }
 .overview-prod-root .ov2-risk-off-days {
     font-size: 12px;
-    color: #fecaca;
+    color: #cbd5e0;
     font-family: var(--ov2-font-mono);
     margin-bottom: 8px;
     line-height: 1.6;
@@ -841,24 +845,27 @@
 }
 .overview-prod-root .ov2-risk-off-action {
     font-size: 13px;
-    color: #fef2f2;
+    color: #f1f5f9;
     margin-bottom: 8px;
 }
+/* Live strip — the only colored element. Neutral by default,
+   green when the live session is up ≥1%, red when down ≤-0.3%. */
 .overview-prod-root .ov2-risk-off-live {
     font-size: 12.5px;
     font-weight: 700;
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.10);
     border-radius: 6px;
     padding: 8px 12px;
     margin-bottom: 8px;
     line-height: 1.5;
 }
-/* Softened state — live session is up ≥1%, contradicting the
-   close-based warning. Green per user preference: the live market
-   is recovering, so the banner reads "easing" rather than "danger". */
-.overview-prod-root .ov2-risk-off-soft {
-    background: linear-gradient(135deg, #065f46 0%, #047857 100%) !important;
-    box-shadow: 0 2px 8px rgba(6, 95, 70, 0.25) !important;
+.overview-prod-root .ov2-risk-off-live.ov2-live-pos {
+    background: linear-gradient(135deg, #065f46, #047857);
+    color: #ecfdf5;
+}
+.overview-prod-root .ov2-risk-off-live.ov2-live-neg {
+    background: linear-gradient(135deg, #991b1b, #b91c1c);
+    color: #fef2f2;
 }
 .overview-prod-root .ov2-ft-outlier-flag {
     display: inline-block;
