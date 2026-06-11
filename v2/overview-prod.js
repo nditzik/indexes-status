@@ -4707,7 +4707,13 @@ async function fetchLiveIndices() {
     // Each successful fetch is cached in localStorage. When everything
     // fails we hydrate from cache and mark the ticker "stale" so the
     // user knows the data isn't live. See README §audit-fix-8.
-    const symbols = { SPY: 'SPY', NDX: 'QQQ', DJI: 'DIA', RUT: 'IWM' };
+    const symbols = {
+        SPY: 'SPY', NDX: 'QQQ', DJI: 'DIA', RUT: 'IWM',
+        // Macro trio — fear index, 10Y treasury yield, dollar index
+        VIX: '^VIX', TNX: '^TNX', DXY: 'DX-Y.NYB',
+    };
+    // Per-tile formatting: TNX is a yield (suffix %), VIX/DXY plain 2dp.
+    const TILE_SUFFIX = { TNX: '%' };
     const apply = (key, close, prev) => {
         const valEl = $('tk' + key);
         const chgEl = $('tk' + key + 'Chg');
@@ -4715,7 +4721,8 @@ async function fetchLiveIndices() {
         const c = parseFloat(close), p = parseFloat(prev);
         if (!Number.isFinite(c) || !Number.isFinite(p) || p === 0) return;
         const pctChg = (c - p) / p * 100;
-        valEl.textContent = c.toLocaleString('en-US', { maximumFractionDigits: 2 });
+        valEl.textContent = c.toLocaleString('en-US', { maximumFractionDigits: 2 })
+            + (TILE_SUFFIX[key] || '');
         chgEl.textContent = (pctChg >= 0 ? '+' : '') + pctChg.toFixed(2) + '%';
         chgEl.style.color = pctChg >= 0 ? 'var(--ov2-pos)' : 'var(--ov2-neg)';
     };
@@ -4774,7 +4781,8 @@ async function fetchLiveIndices() {
     // ── Path 2: proxy chain per-symbol (fallback) ──
     let anyFresh = false, anyStaleFromCache = false;
     const fetchOne = async (key, sym) => {
-        const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d`;
+        // encodeURIComponent — ^VIX / ^TNX carry a caret, DX-Y.NYB a dot
+        const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=2d`;
         try {
             const json = await proxyFetchJSON(yahooUrl);
             const result = json && json.chart && json.chart.result && json.chart.result[0];

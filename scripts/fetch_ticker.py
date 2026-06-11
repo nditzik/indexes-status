@@ -15,14 +15,17 @@ Keeps the git history sane.
 import json, os, sys, urllib.request, urllib.error
 from datetime import datetime, timezone
 
-SYMBOLS = ['SPY', 'QQQ', 'DIA', 'IWM']
+# Indices (ETFs) + the macro trio: fear index, 10Y treasury yield,
+# dollar index. Yahoo symbols with ^ get URL-quoted in fetch_one.
+SYMBOLS = ['SPY', 'QQQ', 'DIA', 'IWM', '^VIX', '^TNX', 'DX-Y.NYB']
 ENDPOINT = 'https://query1.finance.yahoo.com/v8/finance/chart/{sym}?interval=1d&range=2d'
 OUTPUT   = 'data/live_ticker.json'
 SKIP_THRESHOLD_PCT = 0.05  # don't bother committing for sub-0.05% wiggles
 
 
 def fetch_one(symbol):
-    url = ENDPOINT.format(sym=symbol)
+    from urllib.parse import quote
+    url = ENDPOINT.format(sym=quote(symbol, safe=''))
     req = urllib.request.Request(url, headers={
         'User-Agent': 'Mozilla/5.0 (compatible; indexes-status-ticker/1.0)',
         'Accept': 'application/json',
