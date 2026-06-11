@@ -43,6 +43,17 @@
     font-weight: 700;
 }
 .v3-header-glyph { font-size: 22px; }
+/* The logo PNG is 3:2 with lots of transparent padding around the
+   arrow — render it tall and pull the margins in so the arrow reads
+   at a sensible size without inflating the header height. */
+.v3-header-logo {
+    height: 84px;
+    margin: -26px -14px;
+    filter: drop-shadow(0 0 6px rgba(163, 230, 53, 0.35));
+}
+@media (max-width: 640px) {
+    .v3-header-logo { height: 60px; margin: -18px -10px; }
+}
 .v3-header-meta {
     display: flex;
     align-items: center;
