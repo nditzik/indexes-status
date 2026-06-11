@@ -877,6 +877,24 @@
     font-style: italic;
     font-weight: 400;
 }
+.overview-prod-root .ov2-ft-track-within {
+    color: var(--ov2-pos);
+    font-weight: 700;
+    font-size: 11px;
+    white-space: nowrap;
+}
+.overview-prod-root .ov2-ft-track-break {
+    color: var(--ov2-neg);
+    font-weight: 700;
+    font-size: 11px;
+    white-space: nowrap;
+}
+.overview-prod-root .ov2-ft-track-surprise {
+    color: #2563eb;
+    font-weight: 700;
+    font-size: 11px;
+    white-space: nowrap;
+}
 .overview-prod-root .ov2-echo-insufficient {
     display: block;
     background: #fef2f2;

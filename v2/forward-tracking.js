@@ -513,11 +513,13 @@
         );
         const lastIdx = hist.length - 1;
         const rows = [];
-        const matchedFc20 = [];
         const allFc20 = [];
         const skippedDates = [];   // insufficient matches — listed once below
-        let matchedCount = 0;
         let totalRows = 0;
+        // 5d interim tracking counters (range containment, not direction)
+        let within5 = 0, break5 = 0, surprise5 = 0;
+        // Day-20 final verdict counters
+        let judged20 = 0, inRange20 = 0;
         for (const snap of sorted) {
             const aIdx = findHistIdx(hist, snap.anchorDate);
             if (aIdx < 0) continue;
@@ -539,6 +541,8 @@
             const out5  = (snap.outcomes && snap.outcomes['5'])  || {};
             const out20 = (snap.outcomes && snap.outcomes['20']) || {};
             const fc5   = out5.median;
+            const min5  = out5.min;
+            const max5  = out5.max;
             const fc20  = out20.median;
             const hit20 = out20.hitRate;
             const min20 = out20.min;
@@ -558,28 +562,31 @@
             const colorOf = (v) => v == null ? '' : v > 0 ? 'ov2-pos' : v < 0 ? 'ov2-neg' : '';
             const target20Iso = addTradingDays(snap.anchorDate, 20);
 
-            // Match decision — same sign as forecast?
-            // (KNN is statistical, so direction match is the honest test.)
-            let matchCell;
-            let matched = false;
-            if (actual5 != null && fc5 != null) {
-                if ((actual5 >= 0) === (fc5 >= 0)) {
-                    matchCell = '<span class="ov2-ft-status-matured">✓ יש התאמה</span>';
-                    matched = true;
+            // ── 5d INTERIM tracking — range containment, NOT direction ──
+            // The model's real claim is the 20-day distribution; dips
+            // inside the window are expected (the scenario block says so
+            // explicitly). So the honest interim question is: "is the
+            // 5-day path within what the historical analogs actually
+            // did?" Below the analogs' min = genuine pattern break.
+            let trackCell;
+            if (actual5 != null && min5 != null && max5 != null) {
+                if (actual5 < min5) {
+                    trackCell = `<span class="ov2-ft-track-break">🔴 חריגה מהתבנית</span><div class="ov2-ft-range">מתחת למינימום ההיסטורי (${fmtPct(min5)})</div>`;
+                    break5++;
+                } else if (actual5 > max5) {
+                    trackCell = `<span class="ov2-ft-track-surprise">🔵 הפתעה חיובית</span><div class="ov2-ft-range">מעל למקסימום ההיסטורי (${fmtPct(max5)})</div>`;
+                    surprise5++;
                 } else {
-                    matchCell = '<span class="ov2-ft-status-warn">✗ אין התאמה</span>';
+                    trackCell = `<span class="ov2-ft-track-within">🟢 בתוך התרחיש</span><div class="ov2-ft-range">טווח האנלוגים: ${fmtPct(min5)} עד ${fmtPct(max5)}</div>`;
+                    within5++;
                 }
             } else {
-                matchCell = '<span class="ov2-ft-status-pending">—</span>';
+                trackCell = '<span class="ov2-ft-status-pending">—</span>';
             }
 
-            // Dead-zone gate: hit rate between 40% and 60% means the
-            // historical analogs split roughly evenly — a coin flip.
-            // The row stays (5d accountability) but the 20d indication
-            // is replaced with an honest "no statistical edge" so a
-            // direction-less number doesn't masquerade as a signal.
-            // Dead-zone rows are excluded from the indication medians
-            // in the summary row.
+            // Dead-zone gate: hit rate 40-60% = analogs split evenly =
+            // no statistical edge. Indication muted; excluded from the
+            // summary medians.
             const deadZone = hit20 != null && hit20 >= 0.4 && hit20 <= 0.6;
 
             let fc20Cell, hitStr;
@@ -590,33 +597,58 @@
             } else {
                 const fc20Range = (min20 != null && max20 != null)
                     ? `<div class="ov2-ft-range">${fmtPct(min20)} עד ${fmtPct(max20)}</div>` : '';
-                // Price range = anchor SPX price * (1 + min/100) … (1 + max/100)
                 const fc20Prices = (anchorLvl && min20 != null && max20 != null)
                     ? `<div class="ov2-ft-range">${fmtPx(anchorLvl * (1 + min20 / 100))} — ${fmtPx(anchorLvl * (1 + max20 / 100))}</div>` : '';
                 fc20Cell = `${fmtPct(fc20)}${fc20Range}${fc20Prices}`;
-                // "X מתוך Y" instead of a bare % — a 70% hit-rate on 10
-                // samples reads like precision it doesn't have.
                 hitStr = (hit20 != null && samples)
                     ? `${Math.round(hit20 * samples)} מתוך ${samples}` : '—';
             }
             const matchesStr = samples ? `${samples}/${samples}` : '—';
+
+            // ── Day-20 FINAL verdict — the model's real test ──
+            // Once 20 trading days have passed, compare the actual SPX
+            // return against the indicated distribution. THIS is the
+            // accountability column; the 5d one is only interim.
+            let verdict20Cell;
+            if (fwd >= 20) {
+                const lvl20 = spxLevelOn(hist, aIdx + 20);
+                if (anchorLvl && lvl20) {
+                    const actual20 = (lvl20 / anchorLvl - 1) * 100;
+                    const a20Str = `<span class="${colorOf(actual20)}">${fmtPct(actual20)}</span>`;
+                    if (!deadZone && min20 != null && max20 != null) {
+                        const inR = actual20 >= min20 && actual20 <= max20;
+                        const gap = fc20 != null ? actual20 - fc20 : null;
+                        judged20++;
+                        if (inR) inRange20++;
+                        verdict20Cell = `${a20Str}<div class="ov2-ft-range">${inR ? '✓ בתוך הטווח החזוי' : '✗ מחוץ לטווח החזוי'}${gap != null ? ` · פער מהחציון ${gap >= 0 ? '+' : ''}${gap.toFixed(2)}%` : ''}</div>`;
+                    } else {
+                        // Dead-zone rows: show the actual, no verdict —
+                        // the model made no directional claim to judge.
+                        verdict20Cell = `${a20Str}<div class="ov2-ft-range ov2-ft-noedge">לא נטען יתרון — אין פסיקה</div>`;
+                    }
+                } else {
+                    verdict20Cell = '<span class="ov2-ft-status-pending">אין מחיר</span>';
+                }
+            } else {
+                const remaining = 20 - fwd;
+                verdict20Cell = `<span class="ov2-ft-status-inflight">ממתין · עוד ${remaining} ימי מסחר</span>`;
+            }
 
             rows.push(`
                 <tr>
                     <td class="ov2-ft-td-anchor">${formatDate(snap.anchorDate)}</td>
                     <td class="${colorOf(actual5)}">${fmtPct(actual5)}</td>
                     <td class="${colorOf(fc5)}">${fmtPct(fc5)}</td>
-                    <td>${matchCell}</td>
+                    <td>${trackCell}</td>
                     <td class="ov2-ft-td-anchor">${formatDate(target20Iso)}</td>
                     <td class="${deadZone ? '' : colorOf(fc20)}">${fc20Cell}</td>
+                    <td>${verdict20Cell}</td>
                     <td>${hitStr}</td>
                     <td>${matchesStr}</td>
                 </tr>`);
             totalRows++;
-            if (matched) matchedCount++;
             if (fc20 != null && !deadZone) {
                 allFc20.push(fc20);
-                if (matched) matchedFc20.push(fc20);
             }
         }
 
@@ -631,13 +663,20 @@
             const fmt = (v) => v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
             const cls = (v) => v == null ? '' : v > 0 ? 'ov2-pos' : v < 0 ? 'ov2-neg' : '';
             const allMed = med(allFc20);
-            const matchedMed = matchedFc20.length ? med(matchedFc20) : null;
+            const tracked5 = within5 + break5 + surprise5;
+            const track5Txt = tracked5
+                ? `🟢 ${within5} בתוך התרחיש${break5 ? ` · 🔴 ${break5} חריגות` : ''}${surprise5 ? ` · 🔵 ${surprise5} הפתעות` : ''}`
+                : '—';
+            const verdict20Txt = judged20
+                ? `${inRange20} מתוך ${judged20} בתוך הטווח החזוי`
+                : 'אף תבנית טרם הגיעה ליום 20';
             summaryRow = `
                 <tr class="ov2-ft-summary-row">
                     <td colspan="3"><b>סיכום (${totalRows} שורות)</b></td>
-                    <td><b>${matchedCount}/${totalRows} עם התאמה</b></td>
-                    <td><b>חציון אינדיקציה 20d</b></td>
-                    <td class="${cls(allMed)}"><b>הכל: ${fmt(allMed)}</b>${matchedFc20.length ? `<br><span class="ov2-ft-range">מתואמים: ${fmt(matchedMed)}</span>` : ''}</td>
+                    <td><b>${track5Txt}</b></td>
+                    <td><b>חציון אינדיקציה</b></td>
+                    <td class="${cls(allMed)}"><b>${fmt(allMed)}</b></td>
+                    <td><b>${verdict20Txt}</b></td>
                     <td colspan="2"></td>
                 </tr>`;
         }
@@ -647,13 +686,14 @@
         if (skippedDates.length) {
             skippedRow = `
                 <tr class="ov2-ft-skipped-row">
-                    <td colspan="8">🚫 ${skippedDates.length} תבניות הוסרו — לא נמצאו מספיק ימים דומים: ${skippedDates.join(', ')}</td>
+                    <td colspan="9">🚫 ${skippedDates.length} תבניות הוסרו — לא נמצאו מספיק ימים דומים: ${skippedDates.join(', ')}</td>
                 </tr>`;
         }
 
         if (sub) {
+            const tracked5 = within5 + break5 + surprise5;
             sub.textContent = totalRows > 0
-                ? `${totalRows} תבניות שעברו 5 ימי מסחר · מתוכן ${matchedCount} עם התאמת כיוון`
+                ? `${totalRows} תבניות שעברו 5 ימי בחינה · מעקב 5 ימים: ${within5} בתוך התרחיש, ${break5} חריגות · יום 20: ${judged20 ? `${inRange20}/${judged20} בטווח` : 'ממתין'}`
                   + (skippedDates.length ? ` · ${skippedDates.length} הוסרו (אין מספיק ימים דומים)` : '')
                 : 'אין עדיין תבניות שהשלימו 5 ימי מסחר';
         }
@@ -668,9 +708,10 @@
                         <th class="ov2-ft-th-anchor">תאריך תפיסה</th>
                         <th>בפועל 5d</th>
                         <th>אינדיקציה 5d</th>
-                        <th>התאמה?</th>
+                        <th>מעקב 5d</th>
                         <th class="ov2-ft-th-anchor">תאריך יעד 20d</th>
                         <th>אינדיקציה 20d</th>
+                        <th>בפועל 20d · פסיקה</th>
                         <th>סיכוי 20d</th>
                         <th>התאמות</th>
                     </tr>
