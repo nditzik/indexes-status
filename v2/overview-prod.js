@@ -5239,6 +5239,11 @@ function renderV3TrendCard() {
             if (good < MIN_GOOD) {
                 items.push({ label: '⛔ סטטוס', val: 'המצב נדיר היסטורית', tone: 'v3-neg' });
                 items.push({ label: 'המלצה', val: 'להישען על הקלפים האחרים', tone: 'v3-warn' });
+            } else if (out20.hitRate != null && out20.hitRate >= 0.4 && out20.hitRate <= 0.6) {
+                // Dead-zone: analogs split ~evenly — say "no edge" rather
+                // than presenting a direction-less median as a signal.
+                const dzN = out20.samples || 0;
+                items.push({ label: 'אינדיקציה 20 ימים', val: `אין יתרון סטטיסטי (${Math.round(out20.hitRate * dzN)} מתוך ${dzN})`, tone: 'v3-muted' });
             } else if (out20.median != null) {
                 items.push({ label: 'חציון 20 ימים', val: `${out20.median >= 0 ? '+' : ''}${out20.median.toFixed(2)}%`, tone: out20.median > 0 ? 'v3-pos' : 'v3-neg' });
                 if (out20.min != null && out20.max != null) {

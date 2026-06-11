@@ -241,6 +241,21 @@
         const hit = out20.hitRate || 0;
         const hitN = out20.samples || 0;
         const hitPos = Math.round(hit * hitN);
+        // Dead-zone: analogs split ~evenly → no edge, say so instead of
+        // presenting a direction-less median as a signal.
+        if (hit >= 0.4 && hit <= 0.6) {
+            return `
+            <tr class="ov2-ft-matured-row">
+                <td colspan="4">
+                    <div class="ov2-ft-matured ov2-ft-matured-mixed">
+                        <span class="ov2-ft-matured-icon">🎯</span>
+                        <span><b>תבנית ${formatDate(snap.anchorDate)} השלימה 5 ימי מסחר</b></span>
+                        <span class="ov2-ft-matured-sep">·</span>
+                        <span>ליום ה-20 (סביב <b>${day20}</b>): <span class="ov2-ft-noedge">אין יתרון סטטיסטי (${hitPos} מתוך ${hitN} חיוביים)</span></span>
+                    </div>
+                </td>
+            </tr>`;
+        }
         const medClass = med > 0 ? 'ov2-pos' : med < 0 ? 'ov2-neg' : '';
         const medSign = med >= 0 ? '+' : '';
         const minSign = mn >= 0 ? '+' : '';
@@ -304,28 +319,32 @@
         const sorted = snapshots.slice().sort((a, b) =>
             (a.anchorDate < b.anchorDate ? 1 : a.anchorDate > b.anchorDate ? -1 : 0)
         );
+        // Snapshots without enough good matches are dropped entirely —
+        // their signal thresholds were derived from a cohort of days
+        // that aren't actually similar, so the ✓/✗ chips would be noise.
+        // They're disclosed in the sub-line instead of rendered as rows.
         const inFlight = [];
+        const hiddenDates = [];
         for (const s of sorted) {
             const idx = findHistIdx(hist, s.anchorDate);
             if (idx < 0) continue;
             const fwd = (hist.length - 1) - idx;
             if (fwd > EARLY_DAYS) break;
+            if (classifyMatchQuality(s).tier === 'insufficient') {
+                hiddenDates.push(formatDate(s.anchorDate));
+                continue;
+            }
             inFlight.push({ snap: s, fwd });
         }
 
-        if (inFlight.length === 0) {
+        if (inFlight.length === 0 && hiddenDates.length === 0) {
             panel.style.display = 'none';
             return;
         }
 
-        // Match-quality check — when the latest snapshot has insufficient
-        // good matches, surface this prominently. Replaces the older
-        // "outlier" flag with a stronger statement: the model can't help.
-        const latestSnap = sorted[0];
-        const latestQuality = latestSnap ? classifyMatchQuality(latestSnap) : null;
         let qualityWarn = '';
-        if (latestQuality && latestQuality.tier === 'insufficient') {
-            qualityWarn = ` <span class="ov2-ft-quality-flag ov2-ft-quality-insufficient">⛔ ${latestQuality.label}. המודל לא יכול לעזור — תלוי באינדיקטורים אחרים</span>`;
+        if (hiddenDates.length) {
+            qualityWarn = ` <span class="ov2-ft-quality-flag ov2-ft-quality-insufficient">⛔ ${hiddenDates.length} תבניות הוסתרו (${hiddenDates.join(', ')}) — לא נמצאו מספיק ימים דומים. להישען על האינדיקטורים האחרים</span>`;
         }
         if (subEl) {
             subEl.innerHTML =
@@ -421,7 +440,9 @@
         }
 
         if (signalsEl) {
-            signalsEl.innerHTML = `
+            signalsEl.innerHTML = inFlight.length === 0
+                ? '<div class="ov2-ft-status-pending" style="padding:10px 0;">אין תבניות פעילות עם מספיק ימים דומים כרגע.</div>'
+                : `
                 <table class="ov2-ft-table">
                     <thead>
                         <tr>
@@ -436,7 +457,10 @@
         }
 
         if (verdictEl) {
-            if (totalVotes === 0) {
+            if (inFlight.length === 0) {
+                verdictEl.textContent = '';
+                verdictEl.className = 'ov2-echo-ew-verdict';
+            } else if (totalVotes === 0) {
                 verdictEl.textContent = `${inFlight.length} תבניות פעילות — ממתינים לנתוני 5 ימי מסחר אחרי כל מקור.`;
                 verdictEl.className = 'ov2-echo-ew-verdict';
             } else if (bullVotes === totalVotes) {
@@ -491,6 +515,7 @@
         const rows = [];
         const matchedFc20 = [];
         const allFc20 = [];
+        const skippedDates = [];   // insufficient matches — listed once below
         let matchedCount = 0;
         let totalRows = 0;
         for (const snap of sorted) {
@@ -501,6 +526,15 @@
             if (fwd < EARLY_DAYS) continue;
 
             const quality = classifyMatchQuality(snap);
+
+            // Insufficient-quality snapshots are NOT shown as rows — a
+            // full red row that only says "nothing to say" is noise.
+            // They're disclosed once in a thin summary line below the
+            // table, so the user can still see why a date is missing.
+            if (quality.tier === 'insufficient') {
+                skippedDates.push(formatDate(snap.anchorDate));
+                continue;
+            }
 
             const out5  = (snap.outcomes && snap.outcomes['5'])  || {};
             const out20 = (snap.outcomes && snap.outcomes['20']) || {};
@@ -524,26 +558,6 @@
             const colorOf = (v) => v == null ? '' : v > 0 ? 'ov2-pos' : v < 0 ? 'ov2-neg' : '';
             const target20Iso = addTradingDays(snap.anchorDate, 20);
 
-            // Insufficient-quality snapshots: blank out forecast columns
-            // and tell the truth ("no similar days found"). The forecast
-            // numbers were derived from a polluted sample of 10 KNN
-            // neighbors that aren't really similar — showing them would
-            // be misleading.
-            if (quality.tier === 'insufficient') {
-                const aSign = actual5 != null ? (actual5 >= 0 ? '+' : '') : '';
-                const actStr = actual5 != null ? `${aSign}${actual5.toFixed(2)}%` : '—';
-                rows.push(`
-                    <tr class="ov2-ft-insufficient-row">
-                        <td class="ov2-ft-td-anchor">${formatDate(snap.anchorDate)}</td>
-                        <td class="${colorOf(actual5)}">${actStr}</td>
-                        <td class="ov2-ft-status-pending">—</td>
-                        <td><span class="ov2-ft-status-pending">—</span></td>
-                        <td colspan="4"><span class="ov2-ft-insufficient-msg">⚠ ${quality.label} — לא מציגים אינדיקציה</span></td>
-                    </tr>`);
-                totalRows++;
-                continue;
-            }
-
             // Match decision — same sign as forecast?
             // (KNN is statistical, so direction match is the honest test.)
             let matchCell;
@@ -558,16 +572,33 @@
             } else {
                 matchCell = '<span class="ov2-ft-status-pending">—</span>';
             }
-            const fc20Range = (min20 != null && max20 != null)
-                ? `<div class="ov2-ft-range">${fmtPct(min20)} עד ${fmtPct(max20)}</div>` : '';
-            // Price range = anchor SPX price * (1 + min/100) … (1 + max/100)
-            const fc20Prices = (anchorLvl && min20 != null && max20 != null)
-                ? `<div class="ov2-ft-range">${fmtPx(anchorLvl * (1 + min20 / 100))} — ${fmtPx(anchorLvl * (1 + max20 / 100))}</div>` : '';
-            const fc20Cell = `${fmtPct(fc20)}${fc20Range}${fc20Prices}`;
-            // "X מתוך Y" instead of a bare % — a 70% hit-rate on 10
-            // samples reads like precision it doesn't have.
-            const hitStr = (hit20 != null && samples)
-                ? `${Math.round(hit20 * samples)} מתוך ${samples}` : '—';
+
+            // Dead-zone gate: hit rate between 40% and 60% means the
+            // historical analogs split roughly evenly — a coin flip.
+            // The row stays (5d accountability) but the 20d indication
+            // is replaced with an honest "no statistical edge" so a
+            // direction-less number doesn't masquerade as a signal.
+            // Dead-zone rows are excluded from the indication medians
+            // in the summary row.
+            const deadZone = hit20 != null && hit20 >= 0.4 && hit20 <= 0.6;
+
+            let fc20Cell, hitStr;
+            if (deadZone) {
+                fc20Cell = '<span class="ov2-ft-noedge">אין יתרון סטטיסטי</span>';
+                hitStr = (samples)
+                    ? `<span class="ov2-ft-noedge">${Math.round(hit20 * samples)} מתוך ${samples}</span>` : '—';
+            } else {
+                const fc20Range = (min20 != null && max20 != null)
+                    ? `<div class="ov2-ft-range">${fmtPct(min20)} עד ${fmtPct(max20)}</div>` : '';
+                // Price range = anchor SPX price * (1 + min/100) … (1 + max/100)
+                const fc20Prices = (anchorLvl && min20 != null && max20 != null)
+                    ? `<div class="ov2-ft-range">${fmtPx(anchorLvl * (1 + min20 / 100))} — ${fmtPx(anchorLvl * (1 + max20 / 100))}</div>` : '';
+                fc20Cell = `${fmtPct(fc20)}${fc20Range}${fc20Prices}`;
+                // "X מתוך Y" instead of a bare % — a 70% hit-rate on 10
+                // samples reads like precision it doesn't have.
+                hitStr = (hit20 != null && samples)
+                    ? `${Math.round(hit20 * samples)} מתוך ${samples}` : '—';
+            }
             const matchesStr = samples ? `${samples}/${samples}` : '—';
 
             rows.push(`
@@ -577,15 +608,15 @@
                     <td class="${colorOf(fc5)}">${fmtPct(fc5)}</td>
                     <td>${matchCell}</td>
                     <td class="ov2-ft-td-anchor">${formatDate(target20Iso)}</td>
-                    <td class="${colorOf(fc20)}">${fc20Cell}</td>
+                    <td class="${deadZone ? '' : colorOf(fc20)}">${fc20Cell}</td>
                     <td>${hitStr}</td>
                     <td>${matchesStr}</td>
                 </tr>`);
             totalRows++;
-            if (fc20 != null) {
+            if (matched) matchedCount++;
+            if (fc20 != null && !deadZone) {
                 allFc20.push(fc20);
                 if (matched) matchedFc20.push(fc20);
-                if (matched) matchedCount++;
             }
         }
 
@@ -611,12 +642,22 @@
                 </tr>`;
         }
 
+        // Skipped (insufficient-match) snapshots — disclosed once, thin.
+        let skippedRow = '';
+        if (skippedDates.length) {
+            skippedRow = `
+                <tr class="ov2-ft-skipped-row">
+                    <td colspan="8">🚫 ${skippedDates.length} תבניות הוסרו — לא נמצאו מספיק ימים דומים: ${skippedDates.join(', ')}</td>
+                </tr>`;
+        }
+
         if (sub) {
             sub.textContent = totalRows > 0
                 ? `${totalRows} תבניות שעברו 5 ימי מסחר · מתוכן ${matchedCount} עם התאמת כיוון`
+                  + (skippedDates.length ? ` · ${skippedDates.length} הוסרו (אין מספיק ימים דומים)` : '')
                 : 'אין עדיין תבניות שהשלימו 5 ימי מסחר';
         }
-        if (totalRows === 0) {
+        if (totalRows === 0 && skippedDates.length === 0) {
             wrap.style.display = 'none';
             return;
         }
@@ -634,7 +675,7 @@
                         <th>התאמות</th>
                     </tr>
                 </thead>
-                <tbody>${rows.join('')}${summaryRow}</tbody>
+                <tbody>${rows.join('')}${summaryRow}${skippedRow}</tbody>
             </table>`;
         wrap.style.display = '';
     }

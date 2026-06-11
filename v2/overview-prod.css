@@ -865,6 +865,18 @@
     font-size: 11px;
     font-style: italic;
 }
+.overview-prod-root .ov2-ft-skipped-row td {
+    color: var(--ov2-text-3);
+    font-size: 11px;
+    font-style: italic;
+    border-top: 1px dashed var(--ov2-border);
+    padding: 8px 10px;
+}
+.overview-prod-root .ov2-ft-noedge {
+    color: var(--ov2-text-3);
+    font-style: italic;
+    font-weight: 400;
+}
 .overview-prod-root .ov2-echo-insufficient {
     display: block;
     background: #fef2f2;

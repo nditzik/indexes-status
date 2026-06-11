@@ -1676,9 +1676,9 @@ def matured_patterns_block_html():
     rows_html = []
     all_fc20 = []
     matched_fc20 = []
+    skipped_dates = []   # insufficient matches — listed once below
     matched_count = 0
     total_rows = 0
-    insufficient_count = 0
     for snap in sorted_snaps:
         anchor = snap.get('anchorDate', '')
         a_idx = find_hist_idx(anchor)
@@ -1688,9 +1688,15 @@ def matured_patterns_block_html():
         # Only show rows where 5 trading days have already passed
         if fwd < EARLY:
             continue
-        total_rows += 1
 
         quality = classify_match_quality(snap)
+
+        # Insufficient-quality snapshots are NOT shown as rows — they're
+        # disclosed once in a thin summary line below the table.
+        if quality['tier'] == 'insufficient':
+            skipped_dates.append(fmt_iso_short(anchor))
+            continue
+        total_rows += 1
 
         out5  = (snap.get('outcomes') or {}).get('5')  or {}
         out20 = (snap.get('outcomes') or {}).get('20') or {}
@@ -1715,22 +1721,6 @@ def matured_patterns_block_html():
             if v is None: return '#64748b'
             return '#10b981' if v > 0 else ('#ef4444' if v < 0 else '#64748b')
 
-        # Insufficient match quality — blank out the forecast columns
-        # so we don't pretend the model has a useful prediction.
-        if quality['tier'] == 'insufficient':
-            insufficient_count += 1
-            actual_str = fmt_pct(actual5)
-            rows_html.append(
-                f'<tr style="background:#fef2f2;color:#7f1d1d;">'
-                f'<td align="right" style="padding:8px 10px;font-weight:700;font-size:12px;text-align:right;white-space:nowrap;">{fmt_iso_short(anchor)}</td>'
-                f'<td align="right" style="padding:8px 10px;color:{col(actual5)};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">{actual_str}</td>'
-                f'<td align="right" style="padding:8px 10px;color:#a0aec0;font-size:12px;text-align:right;">—</td>'
-                f'<td align="right" style="padding:8px 10px;font-size:11px;text-align:right;color:#a0aec0;">—</td>'
-                f'<td colspan="4" align="right" style="padding:8px 10px;font-style:italic;color:#991b1b;font-weight:700;font-size:11px;text-align:right;">⛔ רק {quality["goodCount"]}/10 התאמות במרחק ≤ {MATCH_GOOD_THRESHOLD:.1f} — לא מציגים אינדיקציה</td>'
-                f'</tr>'
-            )
-            continue
-
         # Match — same sign as forecast?
         matched = False
         if actual5 is not None and fc5 is not None:
@@ -1742,18 +1732,34 @@ def matured_patterns_block_html():
             match_html = '<span style="color:#a0aec0;font-style:italic;">—</span>'
 
         target20_iso = add_trading_days(anchor, 20) if anchor else ''
-        fc20_range = (f'<div style="font-size:10px;color:#a0aec0;font-weight:400;margin-top:2px;">'
-                      f'{fmt_pct(min20)} עד {fmt_pct(max20)}</div>'
-                      if (min20 is not None and max20 is not None) else '')
-        # Absolute SPX price range = anchor close * (1 + min/100) … (1 + max/100)
-        fc20_prices = ''
-        if a_lvl and (min20 is not None) and (max20 is not None):
-            low_px  = round(a_lvl * (1 + min20 / 100))
-            high_px = round(a_lvl * (1 + max20 / 100))
-            fc20_prices = (f'<div style="font-size:10px;color:#a0aec0;font-weight:400;margin-top:2px;">'
-                           f'{low_px:,} — {high_px:,}</div>')
-        hit_str = (f'{round(hit20 * samples)} מתוך {samples}'
-                   if (hit20 is not None and samples) else '—')
+
+        # Dead-zone gate (mirror of forward-tracking.js): hit rate
+        # between 40% and 60% = analogs split evenly = coin flip. The
+        # row stays for 5d accountability, but the 20d indication is
+        # replaced with an honest "no statistical edge". Excluded from
+        # the summary medians.
+        dead_zone = hit20 is not None and 0.4 <= hit20 <= 0.6
+
+        if dead_zone:
+            fc20_cell = '<span style="color:#a0aec0;font-style:italic;font-weight:400;">אין יתרון סטטיסטי</span>'
+            hit_str = (f'<span style="color:#a0aec0;">{round(hit20 * samples)} מתוך {samples}</span>'
+                       if samples else '—')
+            fc20_color = '#a0aec0'
+        else:
+            fc20_range = (f'<div style="font-size:10px;color:#a0aec0;font-weight:400;margin-top:2px;">'
+                          f'{fmt_pct(min20)} עד {fmt_pct(max20)}</div>'
+                          if (min20 is not None and max20 is not None) else '')
+            # Absolute SPX price range = anchor close * (1 + min/100) … (1 + max/100)
+            fc20_prices = ''
+            if a_lvl and (min20 is not None) and (max20 is not None):
+                low_px  = round(a_lvl * (1 + min20 / 100))
+                high_px = round(a_lvl * (1 + max20 / 100))
+                fc20_prices = (f'<div style="font-size:10px;color:#a0aec0;font-weight:400;margin-top:2px;">'
+                               f'{low_px:,} — {high_px:,}</div>')
+            fc20_cell = f'{fmt_pct(fc20)}{fc20_range}{fc20_prices}'
+            hit_str = (f'{round(hit20 * samples)} מתוך {samples}'
+                       if (hit20 is not None and samples) else '—')
+            fc20_color = col(fc20)
         matches_str = f'{samples}/{samples}' if samples else '—'
 
         rows_html.append(
@@ -1763,18 +1769,19 @@ def matured_patterns_block_html():
             f'<td align="right" style="padding:8px 10px;color:{col(fc5)};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">{fmt_pct(fc5)}</td>'
             f'<td align="right" style="padding:8px 10px;font-size:11px;text-align:right;">{match_html}</td>'
             f'<td align="right" style="padding:8px 10px;color:#4a5568;font-size:12px;text-align:right;white-space:nowrap;">{fmt_iso_short(target20_iso)}</td>'
-            f'<td align="right" style="padding:8px 10px;color:{col(fc20)};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">{fmt_pct(fc20)}{fc20_range}{fc20_prices}</td>'
+            f'<td align="right" style="padding:8px 10px;color:{fc20_color};font-weight:700;font-family:monospace;font-size:12px;text-align:right;">{fc20_cell}</td>'
             f'<td align="right" style="padding:8px 10px;color:#4a5568;font-size:12px;text-align:right;">{hit_str}</td>'
             f'<td align="right" style="padding:8px 10px;color:#4a5568;font-size:11px;text-align:right;">{matches_str}</td>'
             f'</tr>'
         )
-        if fc20 is not None:
+        if matched:
+            matched_count += 1
+        if fc20 is not None and not dead_zone:
             all_fc20.append(fc20)
             if matched:
                 matched_fc20.append(fc20)
-                matched_count += 1
 
-    if total_rows == 0:
+    if total_rows == 0 and not skipped_dates:
         return ''
 
     # Summary row
@@ -1803,6 +1810,16 @@ def matured_patterns_block_html():
             f'</tr>'
         )
 
+    # Skipped (insufficient-match) snapshots — disclosed once, thin.
+    skipped_html = ''
+    if skipped_dates:
+        skipped_html = (
+            f'<tr>'
+            f'<td colspan="8" align="right" style="padding:8px 10px;font-size:11px;color:#a0aec0;font-style:italic;text-align:right;border-top:1px dashed #e2e8f0;">'
+            f'🚫 {len(skipped_dates)} תבניות הוסרו — לא נמצאו מספיק ימים דומים: {", ".join(skipped_dates)}'
+            f'</td></tr>'
+        )
+
     return f"""
 <div dir="rtl" style="{CARD}padding:20px 22px;text-align:right;">
   <div style="font-size:11px;color:#718096;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:6px;text-align:right;">תבניות שעברו 5 ימי בחינה — התאמה + צפי ל-Day 20</div>
@@ -1820,7 +1837,7 @@ def matured_patterns_block_html():
         <th align="right" style="padding:8px 10px;font-size:11px;color:#4a5568;font-weight:700;text-align:right;">התאמות</th>
       </tr>
     </thead>
-    <tbody>{''.join(rows_html)}{summary_html}</tbody>
+    <tbody>{''.join(rows_html)}{summary_html}{skipped_html}</tbody>
   </table>
   <div style="font-size:10px;color:#a0aec0;margin-top:10px;line-height:1.5;text-align:right;">
     "התאמה" = כיוון בפועל ב-5 הימים זהה לכיוון אינדיקציה 5d (KNN). "אינדיקציה 20d" = חציון התוצאה של 10 הימים ההיסטוריים הדומים, 20 ימי מסחר אחרי הזיהוי. "סיכוי" = אחוז המקרים שנסגרו בחיובי ביום ה-20.
