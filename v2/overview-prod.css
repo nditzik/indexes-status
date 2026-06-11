@@ -853,10 +853,12 @@
     margin-bottom: 8px;
     line-height: 1.5;
 }
-/* Softened state — live session contradicts the close-based warning */
+/* Softened state — live session is up ≥1%, contradicting the
+   close-based warning. Green per user preference: the live market
+   is recovering, so the banner reads "easing" rather than "danger". */
 .overview-prod-root .ov2-risk-off-soft {
-    background: linear-gradient(135deg, #92400e 0%, #b45309 100%) !important;
-    box-shadow: 0 2px 8px rgba(146, 64, 14, 0.25) !important;
+    background: linear-gradient(135deg, #065f46 0%, #047857 100%) !important;
+    box-shadow: 0 2px 8px rgba(6, 95, 70, 0.25) !important;
 }
 .overview-prod-root .ov2-ft-outlier-flag {
     display: inline-block;

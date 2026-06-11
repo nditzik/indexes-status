@@ -1469,13 +1469,13 @@ function updateRiskOffLive(spyPct) {
     const pctStr = `${spyPct >= 0 ? '+' : ''}${spyPct.toFixed(1)}%`;
     if (spyPct >= 1) {
         wrap.classList.add('ov2-risk-off-soft');
-        liveEl.textContent = `עדכון חי: המסחר היום חיובי (${pctStr}) — ייתכן שהלחץ נרגע. הבאנר יתעדכן עם נתוני הסגירה.`;
+        liveEl.textContent = `עדכון חי: המסחר נכון לעכשיו חיובי (${pctStr}) — ייתכן שהלחץ נרגע. הבאנר יתעדכן עם נתוני הסגירה.`;
     } else if (spyPct <= -0.3) {
         wrap.classList.remove('ov2-risk-off-soft');
-        liveEl.textContent = `עדכון חי: הירידה נמשכת גם היום (${pctStr}).`;
+        liveEl.textContent = `עדכון חי: הירידה נמשכת נכון לעכשיו (${pctStr}).`;
     } else {
         wrap.classList.remove('ov2-risk-off-soft');
-        liveEl.textContent = `עדכון חי: המסחר היום יציב (${pctStr}) — אין שינוי מהותי בינתיים.`;
+        liveEl.textContent = `עדכון חי: המסחר נכון לעכשיו יציב (${pctStr}) — אין שינוי מהותי בינתיים.`;
     }
 }
 
