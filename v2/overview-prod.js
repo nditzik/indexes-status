@@ -1284,11 +1284,19 @@ function computeMetrics(data) {
         riskOff: (function () {
             const reasons = [];
             const spxChg = todayM.macro.spx ? todayM.macro.spx.chgPct : null;
-            if (spxChg != null && spxChg <= -1.5) reasons.push({ type: 'spx_crash', value: spxChg, text: `SPX ${spxChg.toFixed(2)}% — מהלך כבד ביום אחד` });
-            if (vix1dPct != null && vix1dPct >= 25) reasons.push({ type: 'vix_spike', value: vix1dPct, text: `VIX +${vix1dPct.toFixed(1)}% — קפיצה חדה בפחד` });
-            if (distributionDays >= 4) reasons.push({ type: 'dist_count', value: distributionDays, text: `${distributionDays} ימי מכירות ב-25 ימים — קרוב לסף האזהרה` });
-            if (sellDaysRecent3 >= 2) reasons.push({ type: 'dist_cluster', value: sellDaysRecent3, text: `${sellDaysRecent3} ימי מכירות בתוך 3 ימי מסחר — קיבוץ הדוק` });
-            return { active: reasons.length > 0, reasons };
+            if (spxChg != null && spxChg <= -1.5) reasons.push({ type: 'spx_crash', value: spxChg, text: `המדד ירד ${Math.abs(spxChg).toFixed(2)}% ביום אחד — ירידה חדה` });
+            if (vix1dPct != null && vix1dPct >= 25) reasons.push({ type: 'vix_spike', value: vix1dPct, text: `מדד הפחד קפץ ${vix1dPct.toFixed(0)}% ביום אחד` });
+            if (distributionDays >= 4) reasons.push({ type: 'dist_count', value: distributionDays, text: `${distributionDays} ימי מכירה רחבה בחודש האחרון (הסף: 4) — לחץ מוסדי מצטבר` });
+            if (sellDaysRecent3 >= 2) reasons.push({ type: 'dist_cluster', value: sellDaysRecent3, text: `${sellDaysRecent3} ימי מכירה בתוך 3 ימי המסחר האחרונים — קיבוץ הדוק` });
+            // The actual selling days (date + SPX move) — shown as a
+            // chip line inside the banner so the count is verifiable.
+            const sellingDays = last25.filter(isSellingDay).map(h => ({
+                date: h.date,
+                chg: h.m && h.m.macro && h.m.macro.spx && h.m.macro.spx.chgPct != null
+                     ? h.m.macro.spx.chgPct
+                     : (h.m ? h.m.avgChange : null),
+            }));
+            return { active: reasons.length > 0, reasons, sellingDays };
         })(),
 
         // Flow — backwards-compat top-level (raw values)
@@ -1411,8 +1419,55 @@ function renderRiskOffBanner(metrics) {
         wrap.style.display = 'none';
         return;
     }
+    // Title carries the data date — the banner reflects the LAST CLOSE,
+    // and on a recovering morning that distinction matters (see the
+    // live-reconciliation line below).
+    const titleEl = $('riskOffTitle');
+    if (titleEl) {
+        const d = metrics.dataDate ? fmtDate(metrics.dataDate) : '';
+        titleEl.textContent = `יום מסוכן בשוק${d ? ' — נכון לסגירת ' + d : ''}`;
+    }
     list.innerHTML = ro.reasons.map(r => `<li>${r.text}</li>`).join('');
+    // The actual selling days, verifiable at a glance
+    const daysEl = $('riskOffDays');
+    if (daysEl) {
+        if (ro.sellingDays && ro.sellingDays.length) {
+            const chips = ro.sellingDays.map(s => {
+                const dd = fmtDate(s.date);
+                const c = s.chg != null ? ` (${s.chg.toFixed(2)}%)` : '';
+                return `${dd}${c}`;
+            }).join(' · ');
+            daysEl.style.display = '';
+            daysEl.textContent = `ימי המכירה: ${chips}`;
+        } else {
+            daysEl.style.display = 'none';
+        }
+    }
     wrap.style.display = '';
+}
+
+// Live reconciliation — called by fetchLiveIndices with SPY's live
+// %change. The banner is built from the last CLOSE; when the live
+// session contradicts it (a strong bounce) we soften the banner to
+// amber and say so, and when the decline continues we say that too.
+// Keeps the banner honest against the live ticker two lines above it.
+function updateRiskOffLive(spyPct) {
+    const wrap = $('riskOff');
+    const liveEl = $('riskOffLive');
+    if (!wrap || !liveEl || wrap.style.display === 'none') return;
+    if (spyPct == null || !Number.isFinite(spyPct)) return;
+    if (spyPct >= 1) {
+        wrap.classList.add('ov2-risk-off-soft');
+        liveEl.style.display = '';
+        liveEl.textContent = `עדכון חי: המסחר היום חיובי (+${spyPct.toFixed(1)}%) — ייתכן שהלחץ נרגע. הבאנר יתעדכן עם נתוני הסגירה.`;
+    } else if (spyPct <= -0.3) {
+        wrap.classList.remove('ov2-risk-off-soft');
+        liveEl.style.display = '';
+        liveEl.textContent = `עדכון חי: הירידה נמשכת גם היום (${spyPct.toFixed(1)}%).`;
+    } else {
+        wrap.classList.remove('ov2-risk-off-soft');
+        liveEl.style.display = 'none';
+    }
 }
 
 function renderStrip(m, phase) {
@@ -4756,6 +4811,11 @@ async function fetchLiveIndices() {
     if (repoData) {
         const bySym = {};
         for (const t of repoData.tickers) bySym[t.symbol] = t;
+        // Risk-off banner reconciliation against the live session
+        const spyT = bySym['SPY'];
+        if (spyT && spyT.price && spyT.prev) {
+            try { updateRiskOffLive((spyT.price / spyT.prev - 1) * 100); } catch (_) {}
+        }
         for (const [key, sym] of Object.entries(symbols)) {
             const t = bySym[sym];
             if (t) apply(key, t.price, t.prev);
@@ -4801,6 +4861,9 @@ async function fetchLiveIndices() {
             else if (clean.length === 1) prev = clean[0];
             else prev = meta.chartPreviousClose;
             apply(key, meta.regularMarketPrice, prev);
+            if (key === 'SPY' && meta.regularMarketPrice && prev) {
+                try { updateRiskOffLive((meta.regularMarketPrice / prev - 1) * 100); } catch (_) {}
+            }
             anyFresh = true;
             try {
                 localStorage.setItem(cacheKey(sym), JSON.stringify({

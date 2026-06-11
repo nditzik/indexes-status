@@ -360,16 +360,23 @@ def detect_risk_off():
     reasons = []
     spx_chg = spx['chgPct'] if spx else None
     if spx_chg is not None and spx_chg <= -1.5:
-        reasons.append(f'SPX {spx_chg:+.2f}% — מהלך כבד ביום אחד')
+        reasons.append(f'המדד ירד {abs(spx_chg):.2f}% ביום אחד — ירידה חדה')
     if vix_chg_pct is not None and vix_chg_pct >= 25:
-        reasons.append(f'VIX +{vix_chg_pct:.1f}% — קפיצה חדה בפחד')
+        reasons.append(f'מדד הפחד קפץ {vix_chg_pct:.0f}% ביום אחד')
     if dist_days >= 4:
-        reasons.append(f'{dist_days} ימי מכירות ב-25 ימים — קרוב לסף האזהרה')
+        reasons.append(f'{dist_days} ימי מכירה רחבה בחודש האחרון (הסף: 4) — לחץ מוסדי מצטבר')
     if sell_days_3 >= 2:
-        reasons.append(f'{sell_days_3} ימי מכירות בתוך 3 ימי מסחר — קיבוץ הדוק')
+        reasons.append(f'{sell_days_3} ימי מכירה בתוך 3 ימי המסחר האחרונים — קיבוץ הדוק')
     return reasons
 
 risk_off_reasons = detect_risk_off()
+
+# The actual selling days (date + SPX move) — listed inside the email
+# banner so the count is verifiable at a glance.
+risk_off_selling_days = [
+    (d['date'], d.get('spx_chg_pct'))
+    for d in last25_rich if is_selling_day(d)
+]
 
 # ═══════════════════════════════════════════════════
 #  Score 1 · Market (MCC)
@@ -2048,15 +2055,33 @@ def risk_off_block_html():
         f'<li style="padding:4px 0;font-size:13px;color:#fee2e2;line-height:1.5;text-align:right;">• {r}</li>'
         for r in risk_off_reasons
     )
+    # Data date — the banner reflects the close this email reports on
+    data_date_str = ''
+    if history_rich:
+        iso = history_rich[-1].get('date', '')
+        p = iso.split('-')
+        if len(p) == 3:
+            data_date_str = f' — נכון לסגירת {p[2]}/{p[1]}'
+    # The actual selling days
+    days_html = ''
+    if risk_off_selling_days:
+        chips = ' · '.join(
+            f'{d.split("-")[2]}/{d.split("-")[1]}' + (f' ({c:.2f}%)' if c is not None else '')
+            for d, c in risk_off_selling_days
+        )
+        days_html = (f'<div style="font-size:12px;color:#fecaca;font-family:monospace;'
+                     f'margin-bottom:8px;text-align:right;direction:rtl;">ימי המכירה: {chips}</div>')
     return f"""
 <div dir="rtl" style="background:linear-gradient(135deg,#7f1d1d,#991b1b);color:#fef2f2;border-radius:10px;padding:18px 22px;margin-bottom:12px;direction:rtl;text-align:right;border:1px solid rgba(254,226,226,0.15);">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;text-align:right;direction:rtl;">
     <span style="font-size:22px;">🚨</span>
-    <span style="font-size:15px;font-weight:800;">יום סיכון — הציון המבני לא משקף את האירוע</span>
+    <span style="font-size:15px;font-weight:800;">יום מסוכן בשוק{data_date_str}</span>
   </div>
   <ul dir="rtl" style="margin:0 0 10px;padding:0;list-style:none;text-align:right;direction:rtl;">{items}</ul>
+  {days_html}
+  <div style="font-size:13px;color:#fef2f2;margin-bottom:8px;text-align:right;"><b>המשמעות:</b> לא מוסיפים קניות עד שהשוק נרגע.</div>
   <div style="font-size:11px;color:#fecaca;line-height:1.6;padding-top:8px;border-top:1px solid rgba(254,226,226,0.18);text-align:right;direction:rtl;">
-    הציון המשולב נשאר גבוה כי הוא מבוסס על מבנה (מחיר מול ממוצעים, רוחב). זה לא משקר — זה פשוט לא מודד את התנודה היומית. הציון הזה תופס מגמה, לא אירוע.
+    למה הציון הכללי כמעט לא זז? כי הוא מודד את התמונה הגדולה (המגמה) — הבאנר הזה מתריע על האירוע של היום.
   </div>
 </div>
 """
