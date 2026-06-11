@@ -172,7 +172,9 @@
         'spreadEarly':   'פער',
         'earlyDrawdown': 'drawdown',
         'earlyHigh':     'שיא חדש',
-        'maxDailyMag':   'vol יומית',
+        // "תנועה" not "vol" — vol reads like trading volume, but this
+        // feature is the max single-day PRICE move magnitude (volatility).
+        'maxDailyMag':   'תנועה יומית מקס׳',
         'vixEarlyPct':   'VIX Δ',
         'vixEarlyMax':   'VIX max',
     };
