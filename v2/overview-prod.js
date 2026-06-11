@@ -148,7 +148,13 @@ function normRow(r) {
         ma200: num(r['200D MA']),
         rsiRank: String(r['RSI Rank'] || '').trim(),
         w52:   num(r['52W %/High']),
-        rvol:  num(r['20D RelVol'])
+        rvol:  num(r['20D RelVol']),
+        // Extended Barchart view (added 2026-06-11). Older history files
+        // lack these columns — num() returns null and downstream metrics
+        // simply skip them, so the old format keeps parsing cleanly.
+        volume:   num(r['Volume']),
+        rsiNum:   num(r['14D Rel Str']),
+        wtdAlpha: num(r['Wtd Alpha']),
     };
 }
 
@@ -312,7 +318,10 @@ function extractDayMetrics(rows, sectorsMap) {
                 ma50:   num(r['50D MA']),
                 ma150:  num(r['150D MA']),
                 ma200:  num(r['200D MA']),
-                high52: num(r['52W %/High'])
+                high52: num(r['52W %/High']),
+                // Numeric 14D RSI of the index itself — available since
+                // the extended Barchart view (2026-06-11). null before.
+                rsi:    num(r['14D Rel Str']),
             };
         }
         else if (s === 'RSP') {
@@ -353,6 +362,37 @@ function extractDayMetrics(rows, sectorsMap) {
     const rsiThrust = stocks.filter(s =>
         s.rsiRank === 'New Above 30' || s.rsiRank === 'New Above 50'
     ).length;
+
+    // ── Extended-view metrics (Volume / numeric RSI / Wtd Alpha) ──
+    // All null-safe: history files before 2026-06-11 lack these columns,
+    // so the metrics come out null and the UI rows simply hide.
+    //
+    // Up/Down volume — total volume in advancing vs declining stocks.
+    // The classic institutional-pressure read: a 9:1 down-volume day is
+    // real panic; a 9:1 up-volume day after a correction is a thrust.
+    let upVol = 0, downVol = 0, volCounted = 0;
+    for (const s of stocks) {
+        if (s.volume == null || s.chg == null) continue;
+        if (s.chg > 0) upVol += s.volume;
+        else if (s.chg < 0) downVol += s.volume;
+        volCounted++;
+    }
+    const udVolRatio = (volCounted >= 100 && downVol > 0)
+        ? upVol / downVol
+        : null;
+
+    // Numeric RSI distribution — precise oversold/overbought counts and
+    // the cross-sectional median (the categorical RSI Rank only gives
+    // coarse buckets).
+    const rsiVals = stocks.map(s => s.rsiNum).filter(v => v != null && Number.isFinite(v));
+    let medianRsi = null, oversoldNum = null, overboughtNum = null;
+    if (rsiVals.length >= 100) {
+        const sortedRsi = rsiVals.slice().sort((a, b) => a - b);
+        const mid = Math.floor(sortedRsi.length / 2);
+        medianRsi = sortedRsi.length % 2 ? sortedRsi[mid] : (sortedRsi[mid - 1] + sortedRsi[mid]) / 2;
+        oversoldNum = rsiVals.filter(v => v < 30).length;
+        overboughtNum = rsiVals.filter(v => v > 70).length;
+    }
 
     // Exclude split-related anomalies: a stock that splits 10-for-1 shows
     // up with %Change ≈ -90% in the watchlist (Barchart reports raw price
@@ -397,19 +437,23 @@ function extractDayMetrics(rows, sectorsMap) {
     for (const s of stocks) {
         const sec = sectorTickers[s.sym];
         if (!sec) continue;
-        if (!bySector[sec]) bySector[sec] = { total: 0, above200: 0, chgs: [], rvols: [] };
+        if (!bySector[sec]) bySector[sec] = { total: 0, above200: 0, chgs: [], rvols: [], alphas: [] };
         const b = bySector[sec];
         b.total++;
         if (s.ma200 && s.latest > s.ma200) b.above200++;
         if (s.chg !== null) b.chgs.push(s.chg);
         if (s.rvol !== null) b.rvols.push(s.rvol);
+        if (s.wtdAlpha != null) b.alphas.push(s.wtdAlpha);
     }
     const sectors = Object.entries(bySector).map(([code, d]) => ({
         code,
         total:    d.total,
         pct200:   d.total ? (d.above200 / d.total * 100) : 0,
         avgChg:   d.chgs.length ? d.chgs.reduce((a,b) => a+b, 0) / d.chgs.length : 0,
-        avgRvol:  d.rvols.length ? d.rvols.reduce((a,b) => a+b, 0) / d.rvols.length : 0
+        avgRvol:  d.rvols.length ? d.rvols.reduce((a,b) => a+b, 0) / d.rvols.length : 0,
+        // Long-term relative-strength tilt — average Wtd Alpha of the
+        // sector's constituents. null when the column isn't available.
+        avgAlpha: d.alphas.length ? d.alphas.reduce((a,b) => a+b, 0) / d.alphas.length : null,
     }));
 
     return {
@@ -420,7 +464,10 @@ function extractDayMetrics(rows, sectorsMap) {
         avgChange, advancing, declining,
         pctMa200, pctMa50, pctMa20, pctGolden,
         healthScore,
-        sectors
+        sectors,
+        // Extended-view metrics (null on pre-2026-06-11 history)
+        udVolRatio, upVol, downVol,
+        medianRsi, oversoldNum, overboughtNum,
     };
 }
 
@@ -1202,6 +1249,14 @@ function computeMetrics(data) {
         rsiThrust: todayM.rsiThrust,
         advancing: todayM.advancing,
         declining: todayM.declining,
+
+        // Extended-view metrics (null on pre-2026-06-11 data)
+        udVolRatio: todayM.udVolRatio,
+        upVol: todayM.upVol,
+        downVol: todayM.downVol,
+        medianRsi: todayM.medianRsi,
+        oversoldNum: todayM.oversoldNum,
+        overboughtNum: todayM.overboughtNum,
 
         // Macro
         vix: todayM.macro.vix || 0,
@@ -4874,6 +4929,7 @@ async function init() {
 // ═════════════════════════════════════════════════════════════════════
 function renderV3Cards(metrics, phaseResult, data, hist, duration) {
     renderV3Status(metrics, phaseResult);
+    renderV3QuickStrip(metrics);
     renderV3Recommendations(metrics, phaseResult);
     renderV3TechCard(metrics);
     renderV3OptionsCard(metrics);
@@ -5064,9 +5120,52 @@ function renderV3TechCard(metrics) {
         items.push({ label: 'שינוי SPX היום', val: `${c >= 0 ? '+' : ''}${c.toFixed(2)}%`, tone });
     }
 
+    // ── Extended-view rows (hidden when the columns aren't in the CSV) ──
+    // SPX numeric RSI — the classic momentum oscillator on the index itself.
+    if (spx.rsi != null) {
+        const tone = spx.rsi < 30 ? 'v3-warn' : spx.rsi > 70 ? 'v3-warn' : '';
+        const zone = spx.rsi < 30 ? ' (oversold)' : spx.rsi > 70 ? ' (overbought)' : '';
+        items.push({ label: 'RSI של SPX (14 ימים)', val: `${spx.rsi.toFixed(1)}${zone}`, tone });
+    }
+    // Up/Down volume — institutional pressure read. 3:1+ either way is
+    // a meaningful day; 9:1 is panic / thrust territory.
+    if (metrics.udVolRatio != null) {
+        const r = metrics.udVolRatio;
+        let tone = '', note = '';
+        if (r >= 3)       { tone = 'v3-pos'; note = r >= 9 ? ' — יום דחף!' : ' — קונים שולטים'; }
+        else if (r <= 1/3) { tone = 'v3-neg'; note = r <= 1/9 ? ' — יום פאניקה!' : ' — מוכרים שולטים'; }
+        const valStr = r >= 1
+            ? `${r.toFixed(1)} : 1 לעולות${note}`
+            : `1 : ${(1 / r).toFixed(1)} ליורדות${note}`;
+        items.push({ label: 'נפח עולות מול יורדות', val: valStr, tone });
+    }
+    // Cross-sectional RSI — median + precise oversold/overbought counts.
+    if (metrics.medianRsi != null) {
+        items.push({
+            label: 'RSI חציוני (504 מניות)',
+            val: `${metrics.medianRsi.toFixed(0)} · ${metrics.oversoldNum} oversold · ${metrics.overboughtNum} overbought`,
+            tone: '',
+        });
+    }
+
     ul.innerHTML = items.map(i =>
         `<li><span class="v3-stat-label">${i.label}</span><span class="v3-stat-val ${i.tone}">${i.val}</span></li>`
     ).join('');
+}
+
+// ─── Quick numbers strip on the main tab ────────────────────────────
+function renderV3QuickStrip(metrics) {
+    const toneOf = v => v == null ? '' : v >= 70 ? 'v3-pos' : v >= 40 ? 'v3-warn' : 'v3-neg';
+    const set = (id, val, tone) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = val;
+        el.className = 'v3-quick-val ' + (tone || '');
+    };
+    set('v3_qsTech', metrics.techScore != null ? metrics.techScore : '—', toneOf(metrics.techScore));
+    set('v3_qsFlow', metrics.flowScore != null ? metrics.flowScore : '—', toneOf(metrics.flowScore));
+    set('v3_qsBreadth', metrics.breadthScore != null ? metrics.breadthScore : '—', toneOf(metrics.breadthScore));
+    // KNN cell filled async by renderV3TrendCard's fetch (see below)
 }
 
 function renderV3OptionsCard(metrics) {
@@ -5135,6 +5234,7 @@ function renderV3SectorsCard(metrics, sectorsMap) {
     const codes = (sectorsMap && sectorsMap.codes) || {};
     const nameOf = s => codes[s.code] || s.code || '—';
     const sorted = [...metrics.sectors].sort((a, b) => b.avgChg - a.avgChg);
+    const hasAlpha = sorted.some(s => s.avgAlpha != null);
     tbody.innerHTML = sorted.map(s => {
         const avg = s.avgChg;
         let bg = '#f7fafc', color = '#4a5568';
@@ -5144,9 +5244,20 @@ function renderV3SectorsCard(metrics, sectorsMap) {
         else if (avg >= -0.5)  { bg = '#fef3c7'; color = '#92400e'; }
         else                   { bg = '#fee2e2'; color = '#991b1b'; }
         const sign = avg >= 0 ? '+' : '';
+        // Long-term leadership tilt (avg Wtd Alpha) as a third column —
+        // a sector can be red today but still own the year (and vice
+        // versa). Muted color so it doesn't compete with the daily move.
+        let alphaCell = '';
+        if (hasAlpha) {
+            const a = s.avgAlpha;
+            const aTxt = a == null ? '—' : `${a >= 0 ? '+' : ''}${a.toFixed(0)}α`;
+            const aColor = a == null ? '#a0aec0' : a >= 0 ? '#047857' : '#991b1b';
+            alphaCell = `<td style="color:${aColor};font-size:11px;opacity:0.85;" title="ממוצע Wtd Alpha — מנהיגות שנתית מול המדד">${aTxt}</td>`;
+        }
         return `<tr style="background:${bg};">
             <td style="color:${color};">${nameOf(s)}</td>
             <td style="color:${color};">${sign}${avg.toFixed(2)}%</td>
+            ${alphaCell}
         </tr>`;
     }).join('');
     if (stats && sorted.length) {
@@ -5180,13 +5291,17 @@ function renderV3StocksCard(data) {
             const chg = num(r['%Change']);
             const rvol = num(r['20D RelVol']) || 0;
             const w52 = num(r['52W %/High']);
+            const alpha = num(r['Wtd Alpha']);
             let momentum = 0;
             if (latest != null && ma200 && latest > ma200) momentum += 30;
             if (STRONG_RSI.has(String(r['RSI Rank'] || '').trim())) momentum += 25;
             if (rvol > 1.2) momentum += 20;
             if (chg != null && chg > 0) momentum += 15;
             if (w52 != null && w52 >= -10) momentum += 10;
-            return { sym: String(r.Symbol).trim(), chg, rvol, momentum };
+            // Long-term leadership (extended view) — a stock beating the
+            // index over the year is a real leader, not a one-day pop.
+            if (alpha != null && alpha >= 20) momentum += 10;
+            return { sym: String(r.Symbol).trim(), chg, rvol, alpha, momentum };
         })
         .filter(s => s.chg != null && Math.abs(s.chg) < 50);
 
@@ -5199,7 +5314,9 @@ function renderV3StocksCard(data) {
         .slice(0, 5);
     const li = (s, tone) => {
         const rvolBadge = s.rvol > 1.2 ? ` <span class="v3-muted" style="font-size:10px;">×${s.rvol.toFixed(1)}</span>` : '';
-        return `<li><span class="v3-stocks-sym">${s.sym}${rvolBadge}</span><span class="v3-stocks-chg ${tone}">${s.chg >= 0 ? '+' : ''}${s.chg.toFixed(2)}%</span></li>`;
+        const alphaBadge = (s.alpha != null && Math.abs(s.alpha) >= 20)
+            ? ` <span class="v3-muted" style="font-size:10px;">${s.alpha >= 0 ? '+' : ''}${Math.round(s.alpha)}α</span>` : '';
+        return `<li><span class="v3-stocks-sym">${s.sym}${rvolBadge}${alphaBadge}</span><span class="v3-stocks-chg ${tone}">${s.chg >= 0 ? '+' : ''}${s.chg.toFixed(2)}%</span></li>`;
     };
     topEl.innerHTML = top5.map(s => li(s, 'v3-pos')).join('') || '<li class="v3-muted">אין מועמדות היום</li>';
     botEl.innerHTML = bot5.map(s => li(s, 'v3-neg')).join('') || '<li class="v3-muted">אין מניות חלשות בולטות</li>';
@@ -5224,6 +5341,22 @@ function renderV3TrendCard() {
             const matches = snap.matches || [];
             const good = matches.filter(m => m.distance != null && m.distance <= THRESHOLD).length;
             const out20 = (snap.outcomes && snap.outcomes['20']) || {};
+            // Quick-strip KNN cell on the main tab
+            const qs = document.getElementById('v3_qsKnn');
+            if (qs) {
+                const out20q = (snap.outcomes && snap.outcomes['20']) || {};
+                if (good < MIN_GOOD) {
+                    qs.textContent = 'אין התאמות';
+                    qs.className = 'v3-quick-val v3-muted';
+                } else if (out20q.hitRate != null && out20q.hitRate >= 0.4 && out20q.hitRate <= 0.6) {
+                    qs.textContent = 'אין יתרון';
+                    qs.className = 'v3-quick-val v3-muted';
+                } else if (out20q.median != null) {
+                    qs.textContent = `${out20q.median >= 0 ? '+' : ''}${out20q.median.toFixed(1)}%`;
+                    qs.className = 'v3-quick-val ' + (out20q.median > 0 ? 'v3-pos' : 'v3-neg');
+                }
+            }
+
             const items = [];
             items.push({ label: 'תאריך זיהוי', val: snap.anchorDate || '—', tone: '' });
             items.push({ label: 'התאמות תקפות', val: `${good}/10 במרחק ≤ ${THRESHOLD}`, tone: good >= MIN_GOOD ? 'v3-pos' : 'v3-neg' });

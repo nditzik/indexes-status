@@ -426,6 +426,91 @@
     border-top: 1px solid #edf2f7;
 }
 
+/* ─── Tab navigation ─── */
+.v3-tabs {
+    display: flex;
+    gap: 4px;
+    background: white;
+    border-radius: 10px;
+    padding: 6px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    overflow-x: auto;
+}
+.v3-tab-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: #718096;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 150ms ease;
+}
+.v3-tab-btn:hover {
+    background: #f7fafc;
+    color: #2d3748;
+}
+.v3-tab-btn.v3-tab-active {
+    background: #1a365d;
+    color: white;
+}
+.v3-tab-panel {
+    display: none;
+}
+.v3-tab-panel-active {
+    display: block;
+}
+
+/* ─── Quick numbers strip (main tab) ─── */
+.v3-quick-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+}
+@media (max-width: 640px) {
+    .v3-quick-strip { grid-template-columns: repeat(2, 1fr); }
+}
+.v3-quick-item {
+    background: white;
+    border: 1px solid #edf2f7;
+    border-radius: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: all 150ms ease;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+.v3-quick-item:hover {
+    border-color: #cbd5e0;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+}
+.v3-quick-label {
+    font-size: 11px;
+    color: #718096;
+    font-weight: 600;
+}
+.v3-quick-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 800;
+    color: #1a202c;
+}
+.v3-quick-val.v3-pos { color: #10b981; }
+.v3-quick-val.v3-neg { color: #ef4444; }
+.v3-quick-val.v3-warn { color: #f59e0b; }
+.v3-quick-val.v3-muted { color: #a0aec0; font-size: 13px; }
+
 /* ─── Loading spinner (reuse) ─── */
 .ov2-loading {
     display: flex;
