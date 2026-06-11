@@ -123,14 +123,51 @@
     function buildHeadline(metrics, hist, phase) {
         const regimeStateClass = phase && phase.phase ? phase.phase.stateClass : 'muted';
 
+        // ── Risk-Off override — highest priority ──
+        // On a risk event day (SPX ≤ -1.5%, VIX spike, distribution
+        // cluster) the headline must never read bullish, no matter what
+        // the structural matrix below says. This was the source of the
+        // "ראלי חזק on a -1.6% day" bug: the spread-based recentScore
+        // turns POSITIVE on crash days (SPX falls faster than EQ500),
+        // which the matrix misread as "breadth strengthening".
+        if (metrics.riskOff && metrics.riskOff.active) {
+            const reasons = (metrics.riskOff.reasons || []).map(r => r.text).join(' · ');
+            if (regimeStateClass === 'pos') {
+                return {
+                    metaLabel: 'יום סיכון בתוך מגמה חיובית',
+                    stateClass: 'warn',
+                    rationale: reasons + ' — המבנה ארוך-הטווח עדיין חיובי, אבל היום עצמו מסוכן',
+                };
+            }
+            return {
+                metaLabel: 'יום סיכון',
+                stateClass: 'neg',
+                rationale: reasons,
+            };
+        }
+
         // Recent positivity score: blend of equal-vs-cap spread (5d)
         // and the change in % of stocks above MA200 (5d). Tuned so
         // ~+0.5 to +1.5 is the "yes, recent improvement" band.
         const spread5d = cumulativeSpread(hist, 5) || 0;
         const breadthDelta = metrics.breadth5dDelta || 0;
         const recentScore = spread5d * 0.5 + breadthDelta * 0.05;
-        const recentPos = recentScore > 0.5;
-        const recentNeg = recentScore < -0.5;
+
+        // SPX 5-day direction gate — a positive spread on a falling
+        // market is breadth RESILIENCE, not breadth IMPROVEMENT.
+        // recentPos additionally requires the index itself to be up
+        // over the window; a 5d drop ≤ -2% forces recentNeg outright.
+        let spx5d = 0, spxCounted = 0;
+        for (const h of hist.slice(-5)) {
+            const c = h.m && h.m.macro && h.m.macro.spx
+                      && h.m.macro.spx.chgPct != null ? h.m.macro.spx.chgPct : null;
+            if (c == null) continue;
+            spx5d += c;
+            spxCounted++;
+        }
+        if (spxCounted === 0) spx5d = 0;
+        const recentPos = recentScore > 0.5 && spx5d > 0;
+        const recentNeg = recentScore < -0.5 || spx5d <= -2;
 
         let metaLabel, stateClass, rationale;
 
@@ -147,11 +184,17 @@
             } else if (recentNeg) {
                 metaLabel = 'חולשה מתהווה';
                 stateClass = 'warn';
-                const spread5d = cumulativeSpread(hist, 5);
-                const spreadTxt = spread5d != null
-                    ? `הרוחב נחלש (${spread5d.toFixed(1)}% השבוע)`
-                    : 'הרוחב נחלש';
-                rationale = `המגמה הטכנית עדיין חיובית אבל ${spreadTxt}`;
+                // Name the actual driver: price drop vs breadth erosion.
+                const sp5 = cumulativeSpread(hist, 5);
+                let weakTxt;
+                if (spx5d <= -2) {
+                    weakTxt = `SPX ירד ${Math.abs(spx5d).toFixed(1)}% בחמשת הימים האחרונים`;
+                } else if (sp5 != null && sp5 < 0) {
+                    weakTxt = `הרוחב נחלש (${sp5.toFixed(1)}% השבוע)`;
+                } else {
+                    weakTxt = 'חולשה בשבוע האחרון';
+                }
+                rationale = `המגמה הטכנית עדיין חיובית אבל ${weakTxt}`;
             } else {
                 metaLabel = 'מגמה יציבה';
                 stateClass = 'pos';

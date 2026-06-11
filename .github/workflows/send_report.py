@@ -732,14 +732,42 @@ def regime_driver_phrase(metrics):
 # ─── 5 narrative builders ─────────────────────────────────────────
 def build_headline(metrics, history_rich_arg, phase_id):
     """Returns (meta_label, rationale) per the headline matrix in
-       v2/narrative.js lines 142-201."""
+       v2/narrative.js buildHeadline — keep the two in sync."""
     regime_class = 'pos' if phase_id in ('confirmed_uptrend','uptrend_pressure','thrust') else (
                     'neg' if phase_id in ('correction','capitulation','distribution') else 'warn')
+
+    # ── Risk-Off override — highest priority (mirror of narrative.js) ──
+    # On a risk event day the headline must never read bullish. This was
+    # the "ראלי חזק on a -1.6% day" bug: the spread-based recent_score
+    # turns POSITIVE on crash days (SPX falls faster than EQ500), which
+    # the matrix misread as breadth strengthening.
+    if risk_off_reasons:
+        reasons_txt = ' · '.join(risk_off_reasons)
+        if regime_class == 'pos':
+            return ('יום סיכון בתוך מגמה חיובית',
+                    reasons_txt + ' — המבנה ארוך-הטווח עדיין חיובי, אבל היום עצמו מסוכן')
+        return ('יום סיכון', reasons_txt)
+
     s5 = cumulative_spread(history_rich_arg, 5) or 0
     bd = metrics.get('breadth5dDelta') or 0
     recent_score = s5 * 0.5 + bd * 0.05
-    recent_pos = recent_score > 0.5
-    recent_neg = recent_score < -0.5
+
+    # SPX 5-day direction gate — positive spread on a falling market is
+    # breadth RESILIENCE, not IMPROVEMENT. recent_pos requires the index
+    # itself up over the window; a 5d drop <= -2% forces recent_neg.
+    spx5d = 0.0
+    counted = 0
+    for d in history_rich_arg[-5:]:
+        c = d.get('spx_chg_pct')
+        if c is None:
+            continue
+        spx5d += c
+        counted += 1
+    if counted == 0:
+        spx5d = 0.0
+    recent_pos = recent_score > 0.5 and spx5d > 0
+    recent_neg = recent_score < -0.5 or spx5d <= -2
+
     if regime_class == 'pos':
         if recent_pos:
             return ('ראלי חזק',
@@ -747,9 +775,14 @@ def build_headline(metrics, history_rich_arg, phase_id):
                     f'({recent_driver_phrase(metrics, history_rich_arg)})')
         if recent_neg:
             sp = cumulative_spread(history_rich_arg, 5)
-            spread_txt = f'הרוחב נחלש ({sp:.1f}% השבוע)' if sp is not None else 'הרוחב נחלש'
+            if spx5d <= -2:
+                weak_txt = f'SPX ירד {abs(spx5d):.1f}% בחמשת הימים האחרונים'
+            elif sp is not None and sp < 0:
+                weak_txt = f'הרוחב נחלש ({sp:.1f}% השבוע)'
+            else:
+                weak_txt = 'חולשה בשבוע האחרון'
             return ('חולשה מתהווה',
-                    f'המגמה הטכנית עדיין חיובית אבל {spread_txt}')
+                    f'המגמה הטכנית עדיין חיובית אבל {weak_txt}')
         return ('מגמה יציבה',
                 'המגמה הטכנית חיובית, אין סטייה משמעותית השבוע')
     if regime_class == 'neg':
@@ -1405,6 +1438,8 @@ HEADLINE_COLORS = {
     'מצב מעורב':          '#f59e0b',
     'אזהרה מסלימה':      '#ef4444',
     'מגמה תחת לחץ':       '#ef4444',
+    'יום סיכון בתוך מגמה חיובית': '#f59e0b',
+    'יום סיכון':          '#ef4444',
 }
 headline_color = HEADLINE_COLORS.get(meta_label_now, accent)
 historical_summary_str = historical_patterns_str or ''
