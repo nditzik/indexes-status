@@ -1,54 +1,54 @@
 {
-  "fetchedAt": "2026-06-12T18:20:20Z",
+  "fetchedAt": "2026-06-12T20:30:52Z",
   "source": "yahoo-v8-chart",
   "tickers": [
     {
       "symbol": "SPY",
-      "price": 740.613,
+      "price": 741.75,
       "prev": 737.760009765625,
-      "time": 1781288416,
+      "time": 1781294400,
       "state": null
     },
     {
       "symbol": "QQQ",
-      "price": 720.62,
+      "price": 721.34,
       "prev": 717.1199951171875,
-      "time": 1781288417,
+      "time": 1781294401,
       "state": null
     },
     {
       "symbol": "DIA",
       "price": 513.06,
       "prev": 509.3599853515625,
-      "time": 1781288379,
+      "time": 1781294400,
       "state": null
     },
     {
       "symbol": "IWM",
-      "price": 293.34,
+      "price": 292.95,
       "prev": 290.4100036621094,
-      "time": 1781288419,
+      "time": 1781294400,
       "state": null
     },
     {
       "symbol": "^VIX",
-      "price": 18.26,
+      "price": 17.68,
       "prev": 19.440000534057617,
-      "time": 1781287516,
+      "time": 1781295301,
       "state": null
     },
     {
       "symbol": "^TNX",
-      "price": 4.4830003,
+      "price": 4.487,
       "prev": 4.4629998207092285,
-      "time": 1781287514,
+      "time": 1781290794,
       "state": null
     },
     {
       "symbol": "DX-Y.NYB",
-      "price": 99.761,
+      "price": 99.784,
       "prev": 99.86000061035156,
-      "time": 1781287818,
+      "time": 1781295650,
       "state": null
     }
   ]
