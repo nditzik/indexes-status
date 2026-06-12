@@ -371,6 +371,14 @@ def detect_risk_off():
 
 risk_off_reasons = detect_risk_off()
 
+# Acute = same-day event (crash / VIX spike). Background-only warnings
+# (accumulated selling days) must not flip the headline to "יום סיכון"
+# on a green close — mirror of metrics.riskOff.acute in the dashboard.
+risk_off_acute = (
+    (spx and spx['chgPct'] is not None and spx['chgPct'] <= -1.5)
+    or (vix_chg_pct is not None and vix_chg_pct >= 25)
+)
+
 # The actual selling days (date + SPX move) — listed inside the email
 # banner so the count is verifiable at a glance.
 risk_off_selling_days = [
@@ -744,11 +752,10 @@ def build_headline(metrics, history_rich_arg, phase_id):
                     'neg' if phase_id in ('correction','capitulation','distribution') else 'warn')
 
     # ── Risk-Off override — highest priority (mirror of narrative.js) ──
-    # On a risk event day the headline must never read bullish. This was
-    # the "ראלי חזק on a -1.6% day" bug: the spread-based recent_score
-    # turns POSITIVE on crash days (SPX falls faster than EQ500), which
-    # the matrix misread as breadth strengthening.
-    if risk_off_reasons:
+    # On a risk event day the headline must never read bullish ("ראלי
+    # חזק on a -1.6% day" bug). Gated on ACUTE only: background-only
+    # warnings must not relabel a green close as "יום סיכון".
+    if risk_off_reasons and risk_off_acute:
         reasons_txt = ' · '.join(risk_off_reasons)
         if regime_class == 'pos':
             return ('יום סיכון בתוך מגמה חיובית',
@@ -2051,9 +2058,21 @@ s6_html = f"""
 def risk_off_block_html():
     if not risk_off_reasons:
         return ''
-    items = ''.join(
+    # Acute = a same-day event (crash / VIX spike). Accumulation-only is
+    # a BACKGROUND warning — a green close must not be called a danger
+    # day (mirror of renderRiskOffBanner in overview-prod.js).
+    spx_chg = spx['chgPct'] if spx else None
+    acute = ((spx_chg is not None and spx_chg <= -1.5)
+             or (vix_chg_pct is not None and vix_chg_pct >= 25))
+    items_list = list(risk_off_reasons)
+    context_html = ''
+    if not acute and spx_chg is not None and spx_chg > 0:
+        context_html = (f'<li style="padding:4px 0;font-size:13px;color:#6ee7b7;font-weight:600;'
+                        f'line-height:1.5;text-align:right;">• יום המסחר האחרון דווקא נסגר חיובי '
+                        f'(+{spx_chg:.2f}%) — האזהרה מתייחסת להצטברות של החודש האחרון, לא ליום עצמו</li>')
+    items = context_html + ''.join(
         f'<li style="padding:4px 0;font-size:13px;color:#e2e8f0;line-height:1.5;text-align:right;">• {r}</li>'
-        for r in risk_off_reasons
+        for r in items_list
     )
     # Data date — the banner reflects the close this email reports on
     data_date_str = ''
@@ -2061,7 +2080,12 @@ def risk_off_block_html():
         iso = history_rich[-1].get('date', '')
         p = iso.split('-')
         if len(p) == 3:
-            data_date_str = f' — נכון לסגירת {p[2]}/{p[1]}'
+            data_date_str = f'{p[2]}/{p[1]}'
+    icon = '🚨' if acute else '⚠️'
+    title = (f'יום מסוכן בשוק — נכון לסגירת {data_date_str}' if acute
+             else f'אזהרת רקע — לחץ מכירות מצטבר (נכון לסגירת {data_date_str})')
+    action = ('לא מוסיפים קניות עד שהשוק נרגע.' if acute
+              else 'אפשר לפעול, אבל בזהירות ובמנות קטנות — האזהרה תרד כשימי המכירה ייצאו מחלון 25 הימים.')
     # The actual selling days
     days_html = ''
     if risk_off_selling_days:
@@ -2074,12 +2098,12 @@ def risk_off_block_html():
     return f"""
 <div dir="rtl" style="background:linear-gradient(135deg,#1e293b,#334155);color:#f1f5f9;border-radius:10px;padding:18px 22px;margin-bottom:12px;direction:rtl;text-align:right;border:1px solid rgba(241,245,249,0.12);">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;text-align:right;direction:rtl;">
-    <span style="font-size:22px;">🚨</span>
-    <span style="font-size:15px;font-weight:800;">יום מסוכן בשוק{data_date_str}</span>
+    <span style="font-size:22px;">{icon}</span>
+    <span style="font-size:15px;font-weight:800;">{title}</span>
   </div>
   <ul dir="rtl" style="margin:0 0 10px;padding:0;list-style:none;text-align:right;direction:rtl;">{items}</ul>
   {days_html}
-  <div style="font-size:13px;color:#f1f5f9;margin-bottom:8px;text-align:right;"><b>המשמעות:</b> לא מוסיפים קניות עד שהשוק נרגע.</div>
+  <div style="font-size:13px;color:#f1f5f9;margin-bottom:8px;text-align:right;"><b>המשמעות:</b> {action}</div>
   <div style="font-size:11px;color:#94a3b8;line-height:1.6;padding-top:8px;border-top:1px solid rgba(241,245,249,0.15);text-align:right;direction:rtl;">
     למה הציון המשולב ({c_score if c_score is not None else '—'}) כמעט לא זז? כי הוא מודד את התמונה הגדולה (המגמה) — הבאנר הזה מתריע על האירוע של היום.
   </div>

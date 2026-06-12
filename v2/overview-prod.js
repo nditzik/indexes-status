@@ -1288,6 +1288,10 @@ function computeMetrics(data) {
             if (vix1dPct != null && vix1dPct >= 25) reasons.push({ type: 'vix_spike', value: vix1dPct, text: `מדד הפחד קפץ ${vix1dPct.toFixed(0)}% ביום אחד` });
             if (distributionDays >= 4) reasons.push({ type: 'dist_count', value: distributionDays, text: `${distributionDays} ימי מכירה רחבה בחודש האחרון (הסף: 4) — לחץ מוסדי מצטבר` });
             if (sellDaysRecent3 >= 2) reasons.push({ type: 'dist_cluster', value: sellDaysRecent3, text: `${sellDaysRecent3} ימי מכירה בתוך 3 ימי המסחר האחרונים — קיבוץ הדוק` });
+            // Acute = a same-day event (crash / fear spike). Without one,
+            // the banner is only a BACKGROUND warning (accumulated selling
+            // days) — and must not call a strong green close "יום מסוכן".
+            const acute = reasons.some(r => r.type === 'spx_crash' || r.type === 'vix_spike');
             // The actual selling days (date + SPX move) — shown as a
             // chip line inside the banner so the count is verifiable.
             const sellingDays = last25.filter(isSellingDay).map(h => ({
@@ -1296,7 +1300,7 @@ function computeMetrics(data) {
                      ? h.m.macro.spx.chgPct
                      : (h.m ? h.m.avgChange : null),
             }));
-            return { active: reasons.length > 0, reasons, sellingDays };
+            return { active: reasons.length > 0, reasons, sellingDays, acute, lastDayChg: spxChg };
         })(),
 
         // Flow — backwards-compat top-level (raw values)
@@ -1419,15 +1423,31 @@ function renderRiskOffBanner(metrics) {
         wrap.style.display = 'none';
         return;
     }
-    // Title carries the data date — the banner reflects the LAST CLOSE,
-    // and on a recovering morning that distinction matters (see the
-    // live-reconciliation line below).
+    // Title adapts to WHAT fired: a same-day event (crash / VIX spike)
+    // reads "יום מסוכן בשוק"; accumulation-only reads as a background
+    // warning — a +1.7% green close must not be labeled a danger day.
+    const d = metrics.dataDate ? fmtDate(metrics.dataDate) : '';
     const titleEl = $('riskOffTitle');
     if (titleEl) {
-        const d = metrics.dataDate ? fmtDate(metrics.dataDate) : '';
-        titleEl.textContent = `יום מסוכן בשוק${d ? ' — נכון לסגירת ' + d : ''}`;
+        titleEl.textContent = ro.acute
+            ? `יום מסוכן בשוק${d ? ' — נכון לסגירת ' + d : ''}`
+            : `אזהרת רקע — לחץ מכירות מצטבר${d ? ' (נכון לסגירת ' + d + ')' : ''}`;
     }
-    list.innerHTML = ro.reasons.map(r => `<li>${r.text}</li>`).join('');
+    const iconEl = $('riskOffIcon');
+    if (iconEl) iconEl.textContent = ro.acute ? '🚨' : '⚠️';
+    // Background-only + a green close → say so explicitly, first thing.
+    let contextLi = '';
+    if (!ro.acute && ro.lastDayChg != null && ro.lastDayChg > 0) {
+        contextLi = `<li class="ov2-risk-off-context">יום המסחר האחרון דווקא נסגר חיובי (+${ro.lastDayChg.toFixed(2)}%) — האזהרה מתייחסת להצטברות של החודש האחרון, לא ליום עצמו</li>`;
+    }
+    list.innerHTML = contextLi + ro.reasons.map(r => `<li>${r.text}</li>`).join('');
+    // Action matches the severity
+    const actionEl = $('riskOffAction');
+    if (actionEl) {
+        actionEl.innerHTML = ro.acute
+            ? '<b>המשמעות:</b> לא מוסיפים קניות עד שהשוק נרגע. פירוט בהמלצות למטה.'
+            : '<b>המשמעות:</b> אפשר לפעול, אבל בזהירות ובמנות קטנות — האזהרה תרד כשימי המכירה ייצאו מחלון 25 הימים.';
+    }
     // Footer names the combined score explicitly — "הציון הכללי" alone
     // was ambiguous (user asked "which score?").
     const noteEl = $('riskOffNote');

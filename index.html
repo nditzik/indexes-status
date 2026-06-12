@@ -20,7 +20,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
     <!-- Overview V2 Production styles · scoped to .overview-prod-root -->
-    <link rel="stylesheet" href="v2/overview-prod.css?v=20260611c">
+    <link rel="stylesheet" href="v2/overview-prod.css?v=20260611d">
     <style>
         /* ─── Design tokens (Palantir Core + Tesla Polish) ─── */
         :root {
@@ -1847,12 +1847,12 @@
                     <!-- ═══ RISK-OFF BANNER — surfaces when structural scores under-react ═══ -->
                     <div class="ov2-risk-off" id="ov2_riskOff" style="display:none;">
                         <div class="ov2-risk-off-head">
-                            <span class="ov2-risk-off-icon">🚨</span>
+                            <span class="ov2-risk-off-icon" id="ov2_riskOffIcon">🚨</span>
                             <span class="ov2-risk-off-title" id="ov2_riskOffTitle">יום מסוכן בשוק</span>
                         </div>
                         <ul class="ov2-risk-off-list" id="ov2_riskOffList"></ul>
                         <div class="ov2-risk-off-days" id="ov2_riskOffDays" style="display:none;"></div>
-                        <div class="ov2-risk-off-action"><b>המשמעות:</b> לא מוסיפים קניות עד שהשוק נרגע.</div>
+                        <div class="ov2-risk-off-action" id="ov2_riskOffAction"><b>המשמעות:</b> לא מוסיפים קניות עד שהשוק נרגע.</div>
                         <div class="ov2-risk-off-live" id="ov2_riskOffLive" style="display:none;"></div>
                         <div class="ov2-risk-off-note" id="ov2_riskOffNote">למה הציון הכללי כמעט לא זז? כי הוא מודד את התמונה הגדולה (המגמה) — הבאנר הזה מתריע על האירוע של היום.</div>
                     </div>
@@ -6636,17 +6636,17 @@ async function generateDailySummary() {
 
 <!-- ═══ OVERVIEW V2 PRODUCTION · Regime Engine v1.5 ═══ -->
 <!-- regime.js: phase classifier + chip rules (pure logic) -->
-<script src="v2/regime.js?v=20260611c"></script>
+<script src="v2/regime.js?v=20260611d"></script>
 <!-- narrative.js: deterministic daily summary text builder -->
-<script src="v2/narrative.js?v=20260611c"></script>
+<script src="v2/narrative.js?v=20260611d"></script>
 <!-- historical.js: SPX + RSP daily series since 2016, spliced with daily CSV -->
-<script src="v2/historical.js?v=20260611c"></script>
+<script src="v2/historical.js?v=20260611d"></script>
 <!-- patterns.js: KNN pattern matching — "what came next in similar past days" -->
-<script src="v2/patterns.js?v=20260611c"></script>
+<script src="v2/patterns.js?v=20260611d"></script>
 <!-- forward-tracking.js: live "Day N/5" cards against locked-in snapshots -->
-<script src="v2/forward-tracking.js?v=20260611c"></script>
+<script src="v2/forward-tracking.js?v=20260611d"></script>
 <!-- overview-prod.js: data loader + flow analytics + render -->
-<script src="v2/overview-prod.js?v=20260611c"></script>
+<script src="v2/overview-prod.js?v=20260611d"></script>
 <!-- Force-hide legacy overview elements (defensive — existing JS may try to show them) -->
 <script>
 (function() {

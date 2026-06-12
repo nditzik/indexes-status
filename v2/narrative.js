@@ -124,13 +124,13 @@
         const regimeStateClass = phase && phase.phase ? phase.phase.stateClass : 'muted';
 
         // ── Risk-Off override — highest priority ──
-        // On a risk event day (SPX ≤ -1.5%, VIX spike, distribution
-        // cluster) the headline must never read bullish, no matter what
-        // the structural matrix below says. This was the source of the
-        // "ראלי חזק on a -1.6% day" bug: the spread-based recentScore
-        // turns POSITIVE on crash days (SPX falls faster than EQ500),
-        // which the matrix misread as "breadth strengthening".
-        if (metrics.riskOff && metrics.riskOff.active) {
+        // On a risk event day (SPX ≤ -1.5%, VIX spike) the headline must
+        // never read bullish, no matter what the structural matrix below
+        // says ("ראלי חזק on a -1.6% day" bug). Gated on ACUTE only: a
+        // background warning (accumulated selling days) must not relabel
+        // a +1.7% green close as "יום סיכון" — the accumulation already
+        // shows in the banner and the watch-for line.
+        if (metrics.riskOff && metrics.riskOff.active && metrics.riskOff.acute) {
             const reasons = (metrics.riskOff.reasons || []).map(r => r.text).join(' · ');
             if (regimeStateClass === 'pos') {
                 return {
