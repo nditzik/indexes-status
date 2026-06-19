@@ -4926,19 +4926,23 @@ async function fetchLiveIndices() {
             const result = json && json.chart && json.chart.result && json.chart.result[0];
             const meta = result && result.meta;
             if (!meta) throw new Error('no meta');
-            // IMPORTANT: meta.chartPreviousClose is the close BEFORE the
-            // requested range (3 trading days back with range=2d) — gives
-            // a wrong %change. The real "yesterday close" is in the
-            // timeseries: with 2 valid closes it's [-2], with one (today
-            // not finalized) the only entry IS yesterday. Mirrors the
-            // same fix in scripts/fetch_ticker.py.
+            // Yahoo's daily 'close' series includes today's in-progress
+            // bar (close == live price). For dense series (SPY) the last
+            // returned bar is usually yesterday; for sparse cash-index
+            // series (^TNX, ^VIX) the only bar can BE today's, making
+            // prev == price → a bogus 0.00%. So drop a trailing bar that
+            // matches the live price, then take the last remaining close;
+            // if none remain, chartPreviousClose IS the prior close for
+            // those indices. Mirrors scripts/fetch_ticker.py exactly.
+            const price = meta.regularMarketPrice;
             const closes = ((result.indicators || {}).quote || [{}])[0].close || [];
-            const clean = closes.filter(c => c != null && Number.isFinite(c));
-            let prev;
-            if (clean.length >= 2) prev = clean[clean.length - 2];
-            else if (clean.length === 1) prev = clean[0];
-            else prev = meta.chartPreviousClose;
-            apply(key, meta.regularMarketPrice, prev);
+            let clean = closes.filter(c => c != null && Number.isFinite(c));
+            if (price != null && clean.length
+                    && Math.abs(clean[clean.length - 1] - price) < Math.abs(price) * 2e-4) {
+                clean = clean.slice(0, -1);
+            }
+            const prev = clean.length ? clean[clean.length - 1] : meta.chartPreviousClose;
+            apply(key, price, prev);
             if (key === 'SPY' && meta.regularMarketPrice && prev) {
                 const ts = meta.regularMarketTime ? new Date(meta.regularMarketTime * 1000) : null;
                 try { updateRiskOffLive((meta.regularMarketPrice / prev - 1) * 100, ts); } catch (_) {}

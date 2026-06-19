@@ -47,24 +47,29 @@ def fetch_one(symbol):
         # Correct approach: read the timeseries. With range=2d, close[0]
         # is yesterday's close and close[-1] is today's. Use yesterday's
         # close as `prev` so today/yesterday %change is real.
+        price = meta.get('regularMarketPrice')
         closes = result.get('indicators', {}).get('quote', [{}])[0].get('close', [])
         clean = [c for c in closes if c is not None]
-        prev = None
-        # Cases:
-        #   2 valid closes → market closed today, closes = [yesterday, today].
-        #                   `prev` = closes[-2] (yesterday).
-        #   1 valid close  → market still open or data not finalized.
-        #                   The only entry IS yesterday's close. Use it.
-        #   0 valid closes → fall back to chartPreviousClose (less accurate).
-        if len(clean) >= 2:
-            prev = clean[-2]
-        elif len(clean) == 1:
-            prev = clean[0]
+        # Yahoo's daily 'close' series includes TODAY's in-progress bar,
+        # whose close == the live price. For dense series (SPY) the last
+        # bar returned with range=2d is usually YESTERDAY (today's bar is
+        # still null) so clean[-1] is the prior close we want. But for
+        # sparse cash-index series (^TNX, ^VIX) the ONLY bar returned can
+        # BE today's, which makes prev == price → a bogus 0.00% change.
+        # So: drop a trailing bar that matches the live price, then take
+        # the last remaining close. If nothing remains, the series was
+        # too sparse — fall back to chartPreviousClose, which for these
+        # indices IS the real prior close. (Verified across SPY / ^VIX /
+        # ^TNX / DX-Y.NYB on 2026-06-19.)
+        if price is not None and clean and abs(clean[-1] - price) < abs(price) * 2e-4:
+            clean = clean[:-1]
+        if clean:
+            prev = clean[-1]
         else:
             prev = meta.get('chartPreviousClose')
         return {
             'symbol': symbol,
-            'price': meta.get('regularMarketPrice'),
+            'price': price,
             'prev':  prev,
             'time':  meta.get('regularMarketTime'),
             'state': meta.get('marketState'),
