@@ -1054,6 +1054,48 @@ function computeMetrics(data) {
     const hist = history.map(h => ({ date: h.date, m: extractDayMetrics(h.rows, sectorsMap) }))
                         .filter(h => h.m);
     const todayIdx = hist.length - 1;          // history includes today as last (if data.txt == latest CSV)
+
+    // ── Cash-index daily-change correction ──
+    // Barchart's pre-computed %Change for the cash-index rows ($SPX,
+    // $TNX) intermittently arrives as 0.00% when the export predates the
+    // official index settle — the PRICE is correct, only the % cell is a
+    // stale zero (ETFs settle immediately, cash indices lag). So when the
+    // field is missing or ~0, derive the change from price-vs-previous-
+    // close. Verified-good days (Barchart already populated the field)
+    // are left untouched. Identical logic lives in send_report.py so the
+    // email stays in parity.
+    const INDEX_CHG_EPS = 0.005;
+    const fixSpxChg = (cur, prevPrice) => {
+        if (!cur || cur.price == null || prevPrice == null || prevPrice <= 0) return;
+        if (cur.chgPct == null || !Number.isFinite(cur.chgPct) || Math.abs(cur.chgPct) < INDEX_CHG_EPS) {
+            cur.chgPct = (cur.price / prevPrice - 1) * 100;
+        }
+    };
+    const fixTnxChg = (m, pm) => {
+        if (!m || !pm || !m.macro || !pm.macro) return;
+        if (m.macro.tnx != null && pm.macro.tnx != null && pm.macro.tnx > 0
+            && (m.macro.tnxChgPct == null || !Number.isFinite(m.macro.tnxChgPct)
+                || Math.abs(m.macro.tnxChgPct) < INDEX_CHG_EPS)) {
+            m.macro.tnxChgPct = (m.macro.tnx / pm.macro.tnx - 1) * 100;
+        }
+    };
+    for (let i = 1; i < hist.length; i++) {
+        const m = hist[i].m, pm = hist[i - 1].m;
+        if (m && m.macro && pm && pm.macro) {
+            fixSpxChg(m.macro.spx, pm.macro.spx ? pm.macro.spx.price : null);
+            fixTnxChg(m, pm);
+        }
+    }
+    // todayM is parsed separately from hist; correct it from the prior
+    // history day (hist[last] == today, so its predecessor is [last-1]).
+    if (hist.length >= 2 && todayM.macro) {
+        const prevM = hist[hist.length - 2].m;
+        if (prevM && prevM.macro) {
+            fixSpxChg(todayM.macro.spx, prevM.macro.spx ? prevM.macro.spx.price : null);
+            fixTnxChg(todayM, prevM);
+        }
+    }
+
     const ago5 = hist[Math.max(0, todayIdx - 5)];
     const breadth5dDelta = ago5 ? (todayM.pctMa200 - ago5.m.pctMa200) : 0;
     const vix5dDelta = ago5 && ago5.m.macro.vix != null && todayM.macro.vix != null

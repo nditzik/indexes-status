@@ -328,6 +328,32 @@ def parse_history_day(hf):
     }
 
 history_rich = [d for d in (parse_history_day(hf) for hf in hist_files[-365:]) if d]
+
+# ── Cash-index daily-change correction (mirror of overview-prod.js) ──
+# Barchart's $SPX %Change cell intermittently arrives as 0.00% when the
+# export predates the official index settle, while the price is correct.
+# Derive the daily change from price-vs-previous-close whenever the field
+# is missing or ~0; verified-good days keep Barchart's exact value. This
+# keeps the email, the dashboard, and the narrative all showing the real
+# move instead of a stale zero.
+_INDEX_CHG_EPS = 0.005
+for _i in range(1, len(history_rich)):
+    _cur, _prev = history_rich[_i], history_rich[_i - 1]
+    _c, _p = _cur.get('spx_chg_pct'), _prev.get('spx_price')
+    if (_cur.get('spx_price') is not None and _p not in (None, 0)
+            and (_c is None or abs(_c) < _INDEX_CHG_EPS)):
+        _cur['spx_chg_pct'] = (_cur['spx_price'] / _p - 1) * 100
+# Top-level `spx` mirrors data.txt = latest day; fix from the prior day.
+if spx and spx.get('chgPct') is not None and len(history_rich) >= 2:
+    if abs(spx['chgPct']) < _INDEX_CHG_EPS:
+        _pp = history_rich[-2].get('spx_price')
+        if spx.get('price') is not None and _pp not in (None, 0):
+            spx['chgPct'] = (spx['price'] / _pp - 1) * 100
+elif spx and spx.get('chgPct') is None and len(history_rich) >= 2:
+    _pp = history_rich[-2].get('spx_price')
+    if spx.get('price') is not None and _pp not in (None, 0):
+        spx['chgPct'] = (spx['price'] / _pp - 1) * 100
+
 # Back-compat shim — older code expected `history` (list of avg values)
 # and `last25` / `last5` (lists of avg values). Preserve the names.
 history = [d['avg_change'] for d in history_rich]

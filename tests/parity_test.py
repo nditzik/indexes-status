@@ -227,6 +227,23 @@ def js_outputs():
         }
     vix_chg = num(vix_row.get('%Change')) if vix_row else None
 
+    # Cash-index daily-change correction (mirror of overview-prod.js
+    # computeMetrics + send_report.py): data.txt's $SPX %Change cell
+    # intermittently arrives as 0.00% when the export predates the index
+    # settle. Derive it from price vs the previous trading day's close so
+    # the port matches the real dashboard/email.
+    if spx and spx.get('price') is not None:
+        c = spx.get('chgPct')
+        if c is None or abs(c) < 0.005:
+            wl = sorted(glob.glob(os.path.join(ROOT, 'data', 'watchlist-sp-500-intraday-*.csv')),
+                        key=lambda p: _iso_key(p, _WATCHLIST_RE))
+            if len(wl) >= 2:
+                prev_rows = load_csv(wl[-2])
+                prev_spx = next((r for r in prev_rows if (r.get('Symbol') or '').strip() == '$SPX'), None)
+                pp = num(prev_spx.get('Latest')) if prev_spx else None
+                if pp:
+                    spx['chgPct'] = (spx['price'] / pp - 1) * 100
+
     # Breadth inputs
     stocks = [r for r in rows
               if r.get('Symbol') and not r['Symbol'].strip().startswith('$')
