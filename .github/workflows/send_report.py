@@ -2112,6 +2112,10 @@ def risk_off_block_html():
              else f'אזהרת רקע — לחץ מכירות מצטבר (נכון לסגירת {data_date_str})')
     action = ('לא מוסיפים קניות עד שהשוק נרגע.' if acute
               else 'אפשר לפעול, אבל בזהירות ובמנות קטנות — האזהרה תרד כשימי המכירה ייצאו מחלון 25 הימים.')
+    _sc = c_score if c_score is not None else '—'
+    footer = (f'למה הציון המשולב ({_sc}) כמעט לא זז? כי הוא מודד את התמונה הגדולה (המגמה) — הבאנר מתריע על האירוע של היום.'
+              if acute else
+              f'הציון המשולב ({_sc}) משקף את המגמה הרחבה, שעדיין יציבה. האזהרה הזו אינה על היום — היא על לחץ מכירות שהצטבר לאורך החודש.')
     # The actual selling days
     days_html = ''
     if risk_off_selling_days:
@@ -2131,7 +2135,7 @@ def risk_off_block_html():
   {days_html}
   <div style="font-size:13px;color:#f1f5f9;margin-bottom:8px;text-align:right;"><b>המשמעות:</b> {action}</div>
   <div style="font-size:11px;color:#94a3b8;line-height:1.6;padding-top:8px;border-top:1px solid rgba(241,245,249,0.15);text-align:right;direction:rtl;">
-    למה הציון המשולב ({c_score if c_score is not None else '—'}) כמעט לא זז? כי הוא מודד את התמונה הגדולה (המגמה) — הבאנר הזה מתריע על האירוע של היום.
+    {footer}
   </div>
 </div>
 """

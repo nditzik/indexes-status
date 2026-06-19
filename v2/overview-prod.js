@@ -1490,12 +1490,16 @@ function renderRiskOffBanner(metrics) {
             ? '<b>המשמעות:</b> לא מוסיפים קניות עד שהשוק נרגע. פירוט בהמלצות למטה.'
             : '<b>המשמעות:</b> אפשר לפעול, אבל בזהירות ובמנות קטנות — האזהרה תרד כשימי המכירה ייצאו מחלון 25 הימים.';
     }
-    // Footer names the combined score explicitly — "הציון הכללי" alone
-    // was ambiguous (user asked "which score?").
+    // Footer adapts to the banner type. Acute = a same-day event, so the
+    // "why didn't the score move?" framing fits. Background = no event
+    // today; the framing must point at the month-long accumulation, not
+    // "today's event" (the line the user flagged as not fitting).
     const noteEl = $('riskOffNote');
-    if (noteEl && metrics.combined != null) {
-        noteEl.textContent =
-            `למה הציון המשולב (${metrics.combined}) כמעט לא זז? כי הוא מודד את התמונה הגדולה (המגמה) — הבאנר הזה מתריע על האירוע של היום.`;
+    if (noteEl) {
+        const sc = metrics.combined != null ? ` (${metrics.combined})` : '';
+        noteEl.textContent = ro.acute
+            ? `למה הציון המשולב${sc} כמעט לא זז? כי הוא מודד את התמונה הגדולה (המגמה) — הבאנר מתריע על האירוע של היום.`
+            : `הציון המשולב${sc} משקף את המגמה הרחבה, שעדיין יציבה. האזהרה הזו אינה על היום — היא על לחץ מכירות שהצטבר לאורך החודש.`;
     }
     // The actual selling days, verifiable at a glance
     const daysEl = $('riskOffDays');
