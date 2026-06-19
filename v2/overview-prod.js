@@ -5106,11 +5106,26 @@ function renderV3Status(metrics, phaseResult) {
     if (!wrap || !icon || !head || !sub) return;
     let tone = 'warn', emoji = '🟡', headline = '—', sub_text = '';
     const c = metrics.combined;
-    const riskOff = metrics.riskOff && metrics.riskOff.active;
-    if (riskOff) {
+    const ro = metrics.riskOff;
+    const acute = ro && ro.active && ro.acute;
+    const background = ro && ro.active && !ro.acute;
+    if (acute) {
+        // Same-day risk event — full red alarm.
         tone = 'neg'; emoji = '🔴';
         headline = 'יום סיכון — לא להוסיף חשיפה';
-        sub_text = metrics.riskOff.reasons.map(r => r.text).join(' · ');
+        sub_text = ro.reasons.map(r => r.text).join(' · ');
+    } else if (background) {
+        // Accumulation only (no same-day event). Must NOT read "יום
+        // סיכון / לא להוסיף חשיפה" on a green day — frame it as a
+        // standing caution, severity by the combined score.
+        if (c != null && c >= 55) {
+            tone = 'warn'; emoji = '🟡';
+            headline = 'השוק יציב — אך עם לחץ מכירות מצטבר, בזהירות';
+        } else {
+            tone = 'neg'; emoji = '🔴';
+            headline = 'חולשה מצטברת — להישאר בהגנה';
+        }
+        sub_text = ro.reasons.map(r => r.text).join(' · ');
     } else if (c == null) {
         headline = 'אין מספיק נתונים';
     } else if (c >= 70) {
@@ -5168,10 +5183,15 @@ function renderV3Recommendations(metrics, phaseResult) {
     if (!ul) return;
     const items = [];   // {text, tone}
 
-    // a. Risk-off → defensive recommendations take the top slots
-    if (metrics.riskOff && metrics.riskOff.active) {
+    // a. Risk-off → defensive recommendations take the top slots.
+    // Acute (same-day event) = hard stop. Background (accumulation only)
+    // = a softer caution, not "no exposure today" on a green day.
+    const ro = metrics.riskOff;
+    if (ro && ro.active && ro.acute) {
         items.push({ text: '⛔ לא להוסיף חשיפה היום — יום סיכון פעיל', tone: 'neg' });
         items.push({ text: '☞ להדק stop-loss על פוזיציות קיימות', tone: 'neg' });
+    } else if (ro && ro.active) {
+        items.push({ text: '⚠️ לחץ מכירות מצטבר בחודש האחרון — להוסיף חשיפה בזהירות ובמנות קטנות', tone: 'warn' });
     }
 
     // b. Synergy q3 items — phase × flow derived actions
