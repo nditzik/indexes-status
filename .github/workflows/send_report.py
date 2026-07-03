@@ -2321,39 +2321,19 @@ def _load_recipients():
         "(JSON array or comma-separated) or create data/email_subscribers.json."
     )
 
-recipients, subject_prefix = _load_recipients()
-
-payload = json.dumps({
-    "sender": {"name": "S&P Dashboard", "email": "nditzik@gmail.com"},
-    "to": recipients,
-    "subject": f"{subject_prefix}S&P 500 {date_label}",
-    "htmlContent": html
-}).encode()
-
-req = urllib.request.Request(
-    'https://api.brevo.com/v3/smtp/email',
-    data=payload,
-    headers={
-        'api-key': api_key,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-    }
-)
-try:
-    with urllib.request.urlopen(req) as resp:
-        print('Email sent:', resp.read().decode())
-except urllib.error.HTTPError as e:
-    print(f'HTTP Error {e.code}: {e.reason}')
-    print('Response body:', e.read().decode())
-    raise
-
-# ── Append today's scores to the append-only history (real CI only) ──
-# Guard: write only on a real send (api_key present AND not a TEST run),
-# so parity_test's import and any dry-run never pollute the file.
-# Idempotent — a date already recorded is skipped. Never rewrites past
-# rows; a formula change bumps FORMULA_VERSION instead. See phase-2.4.
+# Formula version stamp for the append-only history. Bump on any scoring
+# change (never rewrite past rows). Module-level so build_daily_state can
+# import it. See phase-2.4 / phase-3.0.
 FORMULA_VERSION = 'v1'
-if api_key and not os.environ.get('TEST_RECIPIENTS', '').strip():
+
+
+def _append_scores_history():
+    """Append today's scores to the append-only history (real CI only).
+    Guard: write only on a real send (api_key present AND not a TEST run),
+    so parity_test's import and any dry-run never pollute the file.
+    Idempotent — a date already recorded is skipped."""
+    if not (api_key and not os.environ.get('TEST_RECIPIENTS', '').strip()):
+        return
     try:
         _hist_path = 'data/scores_history.json'
         try:
@@ -2378,3 +2358,37 @@ if api_key and not os.environ.get('TEST_RECIPIENTS', '').strip():
             print(f'scores_history: {_rec_date} already present — skip')
     except Exception as _e:
         print(f'scores_history append failed: {_e}')
+
+
+def main():
+    """Send the daily email + record scores. All side effects live here so
+    the module can be IMPORTED (parity_test, build_daily_state) to read the
+    computed top-level values without sending anything. See phase-3.0."""
+    recipients, subject_prefix = _load_recipients()
+    payload = json.dumps({
+        "sender": {"name": "S&P Dashboard", "email": "nditzik@gmail.com"},
+        "to": recipients,
+        "subject": f"{subject_prefix}S&P 500 {date_label}",
+        "htmlContent": html
+    }).encode()
+    req = urllib.request.Request(
+        'https://api.brevo.com/v3/smtp/email',
+        data=payload,
+        headers={
+            'api-key': api_key,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    )
+    try:
+        with urllib.request.urlopen(req) as resp:
+            print('Email sent:', resp.read().decode())
+    except urllib.error.HTTPError as e:
+        print(f'HTTP Error {e.code}: {e.reason}')
+        print('Response body:', e.read().decode())
+        raise
+    _append_scores_history()
+
+
+if __name__ == '__main__':
+    main()
