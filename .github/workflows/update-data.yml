@@ -57,6 +57,12 @@ jobs:
           git diff --staged --quiet || git commit -m "Auto-update data.txt + index.json + forward_snapshots.json"
           git push
 
+      # Score parity gate — dashboard (JS port) must match the email's
+      # Python scoring within ±1. A failure here stops the workflow BEFORE
+      # the email goes out, so a formula drift never ships a wrong report.
+      - name: Parity check (scores must match between dashboard & email)
+        run: python3 tests/parity_test.py
+
       - name: Send email — daily market report
         env:
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
