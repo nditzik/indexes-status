@@ -477,6 +477,39 @@
     display: block;
 }
 
+/* ─── Status lights (verdict pipeline) ─── */
+.v3-lights {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+.v3-light {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #cbd5e0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    padding: 4px 12px 4px 10px;
+    cursor: default;
+}
+.v3-light-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #64748b;
+    flex: 0 0 auto;
+}
+.v3-light-pos .v3-light-dot { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.6); }
+.v3-light-warn .v3-light-dot { background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.6); }
+.v3-light-neg .v3-light-dot { background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.6); }
+.v3-light-na .v3-light-dot { background: #475569; }
+.v3-light-na { color: #64748b; }
+
 /* ─── Quick numbers strip (main tab) ─── */
 .v3-quick-strip {
     display: grid;

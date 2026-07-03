@@ -5086,9 +5086,15 @@ async function init() {
 // zero new computation, selection + formatting only.
 // ═════════════════════════════════════════════════════════════════════
 function renderV3Cards(metrics, phaseResult, data, hist, duration) {
-    renderV3Status(metrics, phaseResult);
+    // Single verdict pipeline owns the main-screen bottom line: headline,
+    // subline, tone, status-lights, and the Action list. Everything else
+    // it needs (recommendations, score bands) is recycled, not recomputed.
+    if (window.Verdict) {
+        try { window.Verdict.render(window.Verdict.build(metrics, phaseResult)); }
+        catch (e) { console.warn('[v3:verdict]', e); }
+    }
+    renderV3Status(metrics, phaseResult);   // score panel only now
     renderV3QuickStrip(metrics);
-    renderV3Recommendations(metrics, phaseResult);
     renderV3TechCard(metrics);
     renderV3OptionsCard(metrics);
     renderV3SectorsCard(metrics, data && data.sectors);
@@ -5097,59 +5103,12 @@ function renderV3Cards(metrics, phaseResult, data, hist, duration) {
     renderV3TrendCard();
 }
 
-// ─── 1. Status — merged bottom-line strip + combined score ──────────
+// ─── 1. Status score panel — combined score + phase + interpretation ──
+// The headline / subline / tone / status-lights on the LEFT of this strip
+// are now owned by the single verdict pipeline (v2/verdict.js →
+// Verdict.render). This function only fills the SCORE side, so there's
+// exactly one source of the bottom line. See phase-1.2.
 function renderV3Status(metrics, phaseResult) {
-    const wrap = document.getElementById('v3_status');
-    const icon = document.getElementById('v3_blIcon');
-    const head = document.getElementById('v3_blHeadline');
-    const sub  = document.getElementById('v3_blSub');
-    if (!wrap || !icon || !head || !sub) return;
-    let tone = 'warn', emoji = '🟡', headline = '—', sub_text = '';
-    const c = metrics.combined;
-    const ro = metrics.riskOff;
-    const acute = ro && ro.active && ro.acute;
-    const background = ro && ro.active && !ro.acute;
-    if (acute) {
-        // Same-day risk event — full red alarm.
-        tone = 'neg'; emoji = '🔴';
-        headline = 'יום סיכון — לא להוסיף חשיפה';
-        sub_text = ro.reasons.map(r => r.text).join(' · ');
-    } else if (background) {
-        // Accumulation only (no same-day event). Must NOT read "יום
-        // סיכון / לא להוסיף חשיפה" on a green day — frame it as a
-        // standing caution, severity by the combined score.
-        if (c != null && c >= 55) {
-            tone = 'warn'; emoji = '🟡';
-            headline = 'השוק יציב — אך עם לחץ מכירות מצטבר, בזהירות';
-        } else {
-            tone = 'neg'; emoji = '🔴';
-            headline = 'חולשה מצטברת — להישאר בהגנה';
-        }
-        sub_text = ro.reasons.map(r => r.text).join(' · ');
-    } else if (c == null) {
-        headline = 'אין מספיק נתונים';
-    } else if (c >= 70) {
-        tone = 'pos'; emoji = '🟢';
-        headline = 'השוק בריא — אפשר להמשיך בגישת long';
-        sub_text = `ציון משולב ${c}/100 · לעקוב אחרי VIX ורוחב`;
-    } else if (c >= 55) {
-        tone = 'warn'; emoji = '🟡';
-        headline = 'השוק יציב — להמשיך בזהירות';
-        sub_text = `ציון משולב ${c}/100 · מצב מבני סביר, לא בוטח בעלייה רחבה`;
-    } else if (c >= 40) {
-        tone = 'warn'; emoji = '🟡';
-        headline = 'מצב מעורב — להמתין לסיגנל ברור';
-        sub_text = `ציון משולב ${c}/100 · ללא הכרעה בכיוון`;
-    } else {
-        tone = 'neg'; emoji = '🔴';
-        headline = 'מצב חלש — להישאר בהגנה';
-        sub_text = `ציון משולב ${c}/100 · אינדיקטורים מבניים מצטברים שליליים`;
-    }
-    wrap.setAttribute('data-tone', tone);
-    icon.textContent = emoji;
-    head.textContent = headline;
-    sub.textContent = sub_text;
-
     // Score + phase + adaptive interpretation (right side of the strip)
     const scoreEl = document.getElementById('v3_scoreBig');
     const phaseEl = document.getElementById('v3_phaseLabel');
@@ -5178,9 +5137,10 @@ function renderV3Status(metrics, phaseResult) {
 //   c. The regime phase's positioning bias as a closing line
 // Tone classes color each item: neg (defensive), warn (caution),
 // pos (constructive).
-function renderV3Recommendations(metrics, phaseResult) {
-    const ul = document.getElementById('v3_recsList');
-    if (!ul) return;
+// Pure: builds the deduped, capped recommendation list. Consumed by the
+// verdict pipeline (v2/verdict.js) for the main-screen Action list and
+// available to any drill-down that wants the full set. No DOM writes.
+function computeRecommendations(metrics, phaseResult) {
     const items = [];   // {text, tone}
 
     // a. Risk-off → defensive recommendations take the top slots.
@@ -5219,16 +5179,12 @@ function renderV3Recommendations(metrics, phaseResult) {
 
     // Dedupe (risk-off items can overlap q3 defensive items) + cap at 6
     const seen = new Set();
-    const unique = items.filter(i => {
-        const key = i.text.replace(/^[⛔☞🧭]\s*/, '');
+    return items.filter(i => {
+        const key = i.text.replace(/^[⛔☞🧭⚠️]\s*/, '');
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
     }).slice(0, 6);
-
-    ul.innerHTML = unique.map(i =>
-        `<li class="${i.tone ? 'v3-rec-' + i.tone : ''}">${i.text}</li>`
-    ).join('');
 }
 
 // ─── 7. Daily summary — the Hebrew story (narrative.js) ─────────────

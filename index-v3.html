@@ -13,8 +13,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
     <!-- Production stylesheet — legacy renderers fire into legacy IDs inside the tabs -->
-    <link rel="stylesheet" href="v2/overview-prod.css?v=20260619d">
-    <link rel="stylesheet" href="v2/overview-v3.css?v=20260619d">
+    <link rel="stylesheet" href="v2/overview-prod.css?v=20260703a">
+    <link rel="stylesheet" href="v2/overview-v3.css?v=20260703a">
 </head>
 <body class="overview-prod-root v3-body">
 
@@ -129,6 +129,8 @@
                     </div>
                 </div>
             </div>
+            <!-- 4 status lights (verdict pipeline) -->
+            <div class="v3-lights" id="v3_lights"></div>
             <div class="v3-score-interp" id="v3_scoreInterp">—</div>
         </div>
 
@@ -162,23 +164,6 @@
                 <ul class="v3-recs-list" id="v3_recsList">
                     <li>טוען...</li>
                 </ul>
-            </div>
-        </div>
-
-        <!-- 7. סיכום יומי -->
-        <div class="v3-card v3-summary">
-            <div class="v3-card-head">
-                <span class="v3-card-eyebrow">סיכום יומי</span>
-                <span class="v3-card-title" id="v3_summaryHeadline">—</span>
-            </div>
-            <div class="v3-card-body">
-                <div class="v3-summary-rationale" id="v3_summaryRationale">—</div>
-                <div class="v3-summary-blocks">
-                    <div class="v3-summary-block"><span class="v3-summary-label">היום:</span><span id="v3_summaryToday">—</span></div>
-                    <div class="v3-summary-block"><span class="v3-summary-label">השבוע:</span><span id="v3_summaryWeek">—</span></div>
-                    <div class="v3-summary-block"><span class="v3-summary-label">הרקע:</span><span id="v3_summaryBackground">—</span></div>
-                    <div class="v3-summary-block"><span class="v3-summary-label">לעקוב:</span><span id="v3_summaryWatchFor">—</span></div>
-                </div>
             </div>
         </div>
 
@@ -483,6 +468,23 @@
     <!-- ════════════════ TAB 5: מגמה (KNN) ════════════════ -->
     <section class="v3-tab-panel" id="v3_tab_knn">
 
+        <!-- סיכום יומי (relocated from the main tab — phase-1.2) -->
+        <div class="v3-card v3-summary">
+            <div class="v3-card-head">
+                <span class="v3-card-eyebrow">סיכום יומי</span>
+                <span class="v3-card-title" id="v3_summaryHeadline">—</span>
+            </div>
+            <div class="v3-card-body">
+                <div class="v3-summary-rationale" id="v3_summaryRationale">—</div>
+                <div class="v3-summary-blocks">
+                    <div class="v3-summary-block"><span class="v3-summary-label">היום:</span><span id="v3_summaryToday">—</span></div>
+                    <div class="v3-summary-block"><span class="v3-summary-label">השבוע:</span><span id="v3_summaryWeek">—</span></div>
+                    <div class="v3-summary-block"><span class="v3-summary-label">הרקע:</span><span id="v3_summaryBackground">—</span></div>
+                    <div class="v3-summary-block"><span class="v3-summary-label">לעקוב:</span><span id="v3_summaryWatchFor">—</span></div>
+                </div>
+            </div>
+        </div>
+
         <div class="v3-card v3-card-trend">
             <div class="v3-card-head">
                 <span class="v3-card-eyebrow">מגמה היסטורית</span>
@@ -530,12 +532,13 @@
 </div>
 
 <!-- ═══ SCRIPTS (same order as legacy index.html) ═══ -->
-<script src="v2/regime.js?v=20260619d"></script>
-<script src="v2/narrative.js?v=20260619d"></script>
-<script src="v2/historical.js?v=20260619d"></script>
-<script src="v2/patterns.js?v=20260619d"></script>
-<script src="v2/forward-tracking.js?v=20260619d"></script>
-<script src="v2/overview-prod.js?v=20260619d"></script>
+<script src="v2/regime.js?v=20260703a"></script>
+<script src="v2/narrative.js?v=20260703a"></script>
+<script src="v2/historical.js?v=20260703a"></script>
+<script src="v2/patterns.js?v=20260703a"></script>
+<script src="v2/forward-tracking.js?v=20260703a"></script>
+<script src="v2/overview-prod.js?v=20260703a"></script>
+<script src="v2/verdict.js?v=20260703a"></script>
 
 <script>
 // ─── Tab switching ───
