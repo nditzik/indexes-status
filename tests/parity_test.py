@@ -281,32 +281,34 @@ def js_outputs():
 
 
 # ─── Assertion ───────────────────────────────────────────────────────
+# Single-source era (phase-3.0): the Python computation in send_report /
+# build_daily_state IS the source of truth. The JS port below now models
+# only the browser's FALLBACK scoring (used when daily_state.json is
+# missing/stale), so a divergence after a Python-only formula change
+# (phase 3.1+) is EXPECTED — it's informational, never a build failure.
+# The real gate is the emitter check: build_daily_state must map exactly
+# what send_report computed.
 def main():
     print(f'Repo root: {ROOT}')
     js  = js_outputs()
     em  = email_outputs()
     print()
-    print(f'{"score":>10} {"dashboard":>12} {"email":>12} {"delta":>8}  status')
-    print('-' * 60)
-    failed = False
+    print('[informational] Python source vs JS fallback port')
+    print('(a delta here after a phase-3.1+ formula change is expected —')
+    print(' the browser trusts daily_state.json, not this JS fallback)')
+    print(f'{"score":>10} {"source":>12} {"js-fallback":>12} {"delta":>8}')
+    print('-' * 56)
     for key in ('t_score', 'b_score', 'f_score', 'c_score'):
-        v_js = js.get(key)
-        v_em = em.get(key)
+        v_js, v_em = js.get(key), em.get(key)
         if v_js is None or v_em is None:
-            status = '— missing'
-            print(f'{key:>10} {str(v_js):>12} {str(v_em):>12} {"":>8}  {status}')
+            print(f'{key:>10} {str(v_em):>12} {str(v_js):>12} {"":>8}')
             continue
-        delta = abs(v_js - v_em)
-        ok = delta <= 1   # rounding tolerance
-        status = 'OK' if ok else 'FAIL'
-        print(f'{key:>10} {v_js:>12} {v_em:>12} {delta:>+8.0f}  {status}')
-        if not ok:
-            failed = True
+        print(f'{key:>10} {v_em:>12} {v_js:>12} {abs(v_js - v_em):>+8.0f}')
     print()
 
-    # daily_state.json emitter (phase-3.0) must map the same scores.
-    # Regenerated in-process (not the possibly-stale file) so this catches
-    # a wiring bug in build_daily_state, not a data-age mismatch.
+    # ── The real gate: daily_state.json emitter must map send_report's
+    # scores exactly (catches a wiring bug in build_daily_state). ──
+    failed = False
     try:
         import importlib
         sys.path.insert(0, os.path.join(ROOT, 'scripts'))
@@ -318,18 +320,17 @@ def main():
               'f_score': ds_scores.get('flow'), 'c_score': ds_scores.get('combined')}
         for key in ('t_score', 'b_score', 'f_score', 'c_score'):
             if ds.get(key) != em.get(key):
-                print(f'daily_state {key}: {ds.get(key)} != email {em.get(key)} — EMITTER DRIFT')
+                print(f'daily_state {key}: {ds.get(key)} != source {em.get(key)} — EMITTER DRIFT')
                 failed = True
-        if not failed:
-            print('daily_state.json emitter matches the email scores. [OK]')
     except Exception as e:
-        print(f'daily_state emitter check skipped: {e}')
+        print(f'EMITTER CHECK FAILED to run: {e}')
+        failed = True
 
     print()
     if failed:
-        print('PARITY FAILED — dashboard and email disagree. Sync the formulas.')
+        print('EMITTER PARITY FAILED — build_daily_state does not match send_report.')
         sys.exit(1)
-    print('PARITY OK — dashboard and email match within ±1.')
+    print('EMITTER PARITY OK — daily_state.json matches the single Python source.')
 
 
 if __name__ == '__main__':

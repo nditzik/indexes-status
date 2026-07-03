@@ -1191,9 +1191,13 @@ function computeMetrics(data) {
         else break;
     }
 
-    // Scores — also capture coverage / missing-input breakdown so the UI
-    // can warn when a composite score was computed from partial data.
-    // See README §audit-fix-2.
+    // Scores — FALLBACK path (phase-3.0 stage 2/3). data/daily_state.json,
+    // built by the single Python source, is authoritative and overlays
+    // these in init() when present. This JS computation only survives as a
+    // resilience fallback for when daily_state is missing/stale, so after
+    // a Python-only formula change (phase 3.1+) it may lag the source —
+    // that's expected and covered by the informational parity note.
+    // Still captures coverage/missing-input breakdown for the warnings.
     const techFull = scoreTechFull(todayM.macro.spx, vix1dPct);
     const techScore = techFull ? techFull.value : null;
     const breadthFull = scoreBreadthFull(todayM);
