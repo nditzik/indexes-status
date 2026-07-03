@@ -84,3 +84,13 @@ jobs:
           # See README §audit-fix-7.
           EMAIL_SUBSCRIBERS: ${{ secrets.EMAIL_SUBSCRIBERS }}
         run: python3 .github/workflows/send_report.py
+
+      # send_report.py appends the day's scores to data/scores_history.json
+      # (append-only) on a real send. Commit that record. Separate commit
+      # because the email is the last step and the file is written there.
+      - name: Commit scores history (append-only)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/scores_history.json
+          git diff --staged --quiet || { git commit -m "scores_history: append daily record"; git push; }

@@ -2346,3 +2346,35 @@ except urllib.error.HTTPError as e:
     print(f'HTTP Error {e.code}: {e.reason}')
     print('Response body:', e.read().decode())
     raise
+
+# ── Append today's scores to the append-only history (real CI only) ──
+# Guard: write only on a real send (api_key present AND not a TEST run),
+# so parity_test's import and any dry-run never pollute the file.
+# Idempotent — a date already recorded is skipped. Never rewrites past
+# rows; a formula change bumps FORMULA_VERSION instead. See phase-2.4.
+FORMULA_VERSION = 'v1'
+if api_key and not os.environ.get('TEST_RECIPIENTS', '').strip():
+    try:
+        _hist_path = 'data/scores_history.json'
+        try:
+            with open(_hist_path, encoding='utf-8') as _f:
+                _sh = json.load(_f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            _sh = []
+        _rec_date = history_rich[-1]['date'] if history_rich else None
+        if _rec_date and not any(r.get('date') == _rec_date for r in _sh):
+            _sh.append({
+                'date': _rec_date,
+                'tech': t_score, 'breadth': b_score, 'flow': f_score,
+                'combined': c_score, 'phase': phase_id_now,
+                'confidence': None, 'coverage': None,   # filled once single-source (phase 3.0)
+                'formulaVersion': FORMULA_VERSION,
+            })
+            _sh.sort(key=lambda r: r.get('date', ''))
+            with open(_hist_path, 'w', encoding='utf-8') as _f:
+                json.dump(_sh, _f, ensure_ascii=False, indent=2)
+            print(f'scores_history: appended {_rec_date}')
+        else:
+            print(f'scores_history: {_rec_date} already present — skip')
+    except Exception as _e:
+        print(f'scores_history append failed: {_e}')
