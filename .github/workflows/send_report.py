@@ -2142,11 +2142,28 @@ def risk_off_block_html():
 
 s_risk_off_html = risk_off_block_html()
 
-# ─── Verdict banner — Python mirror of v2/verdict.js buildVerdict ──────
-# The single "bottom line" that the dashboard main screen shows. Same
-# score-band branching (acute / background / bands + phase) so the email
-# leads with the identical verdict. Keep in sync with verdict.js.
-def build_verdict_banner():
+# ─── Verdict — Python mirror of v2/verdict.js buildVerdict ────────────
+# Single source for BOTH the email banner and data/daily_state.json.
+def _score_light(s):
+    if s is None:
+        return 'na'
+    return 'pos' if s >= 60 else 'warn' if s >= 40 else 'neg'
+
+
+def _vol_light():
+    if not vix:
+        return 'na'
+    if vix >= 25 or (vix_chg_pct is not None and vix_chg_pct >= 25):
+        return 'neg'
+    if vix >= 20 or (vix_chg_pct is not None and vix_chg_pct >= 10):
+        return 'warn'
+    return 'pos'
+
+
+def build_verdict_state():
+    """Structured verdict: {headline, subline, tone, emoji, lights}. Same
+    score-band branching as the dashboard (acute / background / bands +
+    phase). Rotation light is 'na' until phase 3.2."""
     c = c_score
     acute = bool(risk_off_acute)
     background = bool(risk_off_reasons) and not acute
@@ -2182,6 +2199,20 @@ def build_verdict_banner():
         subline = f'ציון משולב {c}/100 · אינדיקטורים מבניים מצטברים שליליים'
     if phase_label_now and phase_label_now != 'לא ידוע' and phase_label_now not in subline:
         subline = (subline + ' · ' if subline else '') + phase_label_now
+    return {
+        'headline': headline, 'subline': subline, 'tone': tone, 'emoji': emoji,
+        'lights': {
+            'trend': _score_light(t_score),
+            'breadth': _score_light(b_score),
+            'volatility': _vol_light(),
+            'rotation': 'na',
+        },
+    }
+
+
+def build_verdict_banner():
+    v = build_verdict_state()
+    headline, subline, tone, emoji = v['headline'], v['subline'], v['tone'], v['emoji']
     color = {'pos': '#10b981', 'warn': '#f59e0b', 'neg': '#ef4444'}[tone]
     return f"""
 <div dir="rtl" style="{CARD}padding:16px 20px;margin-bottom:12px;border-right:4px solid {color};text-align:right;direction:rtl;">

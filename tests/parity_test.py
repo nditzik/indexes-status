@@ -303,6 +303,29 @@ def main():
         if not ok:
             failed = True
     print()
+
+    # daily_state.json emitter (phase-3.0) must map the same scores.
+    # Regenerated in-process (not the possibly-stale file) so this catches
+    # a wiring bug in build_daily_state, not a data-age mismatch.
+    try:
+        import importlib
+        sys.path.insert(0, os.path.join(ROOT, 'scripts'))
+        if 'build_daily_state' in sys.modules:
+            del sys.modules['build_daily_state']
+        bds = importlib.import_module('build_daily_state')
+        ds_scores = bds.build_state().get('scores', {})
+        ds = {'t_score': ds_scores.get('tech'), 'b_score': ds_scores.get('breadth'),
+              'f_score': ds_scores.get('flow'), 'c_score': ds_scores.get('combined')}
+        for key in ('t_score', 'b_score', 'f_score', 'c_score'):
+            if ds.get(key) != em.get(key):
+                print(f'daily_state {key}: {ds.get(key)} != email {em.get(key)} — EMITTER DRIFT')
+                failed = True
+        if not failed:
+            print('daily_state.json emitter matches the email scores. [OK]')
+    except Exception as e:
+        print(f'daily_state emitter check skipped: {e}')
+
+    print()
     if failed:
         print('PARITY FAILED — dashboard and email disagree. Sync the formulas.')
         sys.exit(1)
