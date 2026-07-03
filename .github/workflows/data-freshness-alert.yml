@@ -1,0 +1,22 @@
+name: Data freshness alert
+
+# Watchdog: the morning after each US trading day, check that the
+# watchlist CSV actually arrived. If not, email the owner (only).
+# 03:30 UTC ≈ 06:30 Israel (summer; 05:30 in winter — cron is fixed UTC).
+# Tue–Sat: Tue checks Mon's file … Sat checks Fri's file. Sun/Mon have no
+# fresh trading-day file to expect.
+on:
+  schedule:
+    - cron: '30 3 * * 2-6'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check data freshness (alert owner if a day is missing)
+        env:
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+        run: python3 scripts/check_data_freshness.py
