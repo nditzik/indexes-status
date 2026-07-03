@@ -4997,7 +4997,24 @@ function hideLoading() { $('loading').style.display = 'none'; }
 async function init() {
     try {
         const data = await loadData();
+        const dailyState = await fetchJSON(`${DATA_BASE}/daily_state.json`).catch(() => null);
         const { todayM, hist, metrics, flowAnalytics } = computeMetrics(data);
+
+        // ── Single source of truth (phase-3.0 stage 2) ──
+        // Trust the Python-computed scored brain (data/daily_state.json)
+        // when it's present AND for the same trading day as the data we
+        // loaded. Otherwise fall back to the live JS computation above —
+        // zero regression if the file is missing or stale. This is what
+        // lets phase 3.1-3.3 formula changes live in Python only and still
+        // reach the dashboard without a JS edit.
+        if (dailyState && dailyState.scores && dailyState.date === metrics.dataDate) {
+            const s = dailyState.scores;
+            if (s.tech != null)     metrics.techScore = s.tech;
+            if (s.breadth != null)  metrics.breadthScore = s.breadth;
+            if (s.flow != null)     metrics.flowScore = s.flow;
+            if (s.combined != null) metrics.combined = s.combined;
+            metrics._verdict = dailyState.verdict || null;   // pre-computed headline/lights
+        }
 
         const phaseResult = Regime.classifyPhase({
             combined: metrics.combined != null ? metrics.combined : 50,
@@ -5087,11 +5104,20 @@ async function init() {
 // ═════════════════════════════════════════════════════════════════════
 function renderV3Cards(metrics, phaseResult, data, hist, duration) {
     // Single verdict pipeline owns the main-screen bottom line: headline,
-    // subline, tone, status-lights, and the Action list. Everything else
-    // it needs (recommendations, score bands) is recycled, not recomputed.
+    // subline, tone, status-lights, and the Action list. When the Python
+    // single-source verdict is present (metrics._verdict from
+    // daily_state.json) we render IT directly — only the Action list is
+    // still assembled in JS. Otherwise Verdict.build computes live.
     if (window.Verdict) {
-        try { window.Verdict.render(window.Verdict.build(metrics, phaseResult)); }
-        catch (e) { console.warn('[v3:verdict]', e); }
+        try {
+            const v = metrics._verdict
+                ? Object.assign({}, metrics._verdict, {
+                      actions: (typeof computeRecommendations === 'function')
+                          ? computeRecommendations(metrics, phaseResult).slice(0, 4) : [],
+                  })
+                : window.Verdict.build(metrics, phaseResult);
+            window.Verdict.render(v);
+        } catch (e) { console.warn('[v3:verdict]', e); }
     }
     renderV3Status(metrics, phaseResult);   // score panel only now
     renderV3QuickStrip(metrics);
