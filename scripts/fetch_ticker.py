@@ -15,9 +15,10 @@ Keeps the git history sane.
 import json, os, sys, urllib.request, urllib.error
 from datetime import datetime, timezone
 
-# Indices (ETFs) + the macro trio: fear index, 10Y treasury yield,
-# dollar index. Yahoo symbols with ^ get URL-quoted in fetch_one.
-SYMBOLS = ['SPY', 'QQQ', 'DIA', 'IWM', '^VIX', '^TNX', 'DX-Y.NYB']
+# Indices (ETFs) + the macro trio (fear index, 10Y treasury yield, dollar
+# index) + VIX3M for the term-structure ratio. Yahoo symbols with ^ get
+# URL-quoted in fetch_one.
+SYMBOLS = ['SPY', 'QQQ', 'DIA', 'IWM', '^VIX', '^VIX3M', '^TNX', 'DX-Y.NYB']
 ENDPOINT = 'https://query1.finance.yahoo.com/v8/finance/chart/{sym}?interval=1d&range=2d'
 OUTPUT   = 'data/live_ticker.json'
 SKIP_THRESHOLD_PCT = 0.05  # don't bother committing for sub-0.05% wiggles
@@ -114,9 +115,16 @@ def main():
     if not tickers:
         print('All symbols failed — leaving existing file untouched', file=sys.stderr)
         sys.exit(1)
+    # VIX term-structure ratio = VIX(30d) / VIX3M(90d). < 1 = contango
+    # (calm), >= 1 = backwardation (acute near-term fear). Consumed by the
+    # volatility light in phase 3; stored here regardless.
+    _by = {t['symbol']: t.get('price') for t in tickers}
+    vix, vix3m = _by.get('^VIX'), _by.get('^VIX3M')
+    vix_term_ratio = round(vix / vix3m, 4) if (vix and vix3m) else None
     new_data = {
         'fetchedAt': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
         'source': 'yahoo-v8-chart',
+        'vixTermRatio': vix_term_ratio,
         'tickers': tickers,
     }
     old_data = load_existing()
