@@ -2,8 +2,12 @@ name: Update data.txt and index.json
 
 on:
   push:
+    # Broadened from the canonical name only → any data CSV, so a
+    # "nearly-right" export (e.g. watchlist-sandp-500-…) still fires the
+    # workflow and gets normalized. Bot pushes (GITHUB_TOKEN) don't
+    # re-trigger, so the rename commit can't loop.
     paths:
-      - 'data/watchlist-sp-500-intraday-*.csv'
+      - 'data/*.csv'
   workflow_dispatch:
 
 jobs:
@@ -13,6 +17,12 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+
+      # Rename any non-canonical incoming CSV to the exact name the
+      # pipeline expects (watchlist / spx-options-flow / uoa-stocks).
+      # Never deletes, never overwrites — see scripts/normalize_incoming.py.
+      - name: Normalize incoming filenames
+        run: python3 scripts/normalize_incoming.py
 
       - name: Update data.txt and index.json
         run: |
@@ -53,8 +63,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/data.txt data/index.json data/forward_snapshots.json
-          git diff --staged --quiet || git commit -m "Auto-update data.txt + index.json + forward_snapshots.json"
+          # -A so any filename normalization (git mv) is committed too,
+          # alongside the regenerated data.txt / index / snapshots.
+          git add -A data/
+          git diff --staged --quiet || git commit -m "Auto-update data.txt + index.json + forward_snapshots.json (+ normalized filenames)"
           git push
 
       # Score parity gate — dashboard (JS port) must match the email's
