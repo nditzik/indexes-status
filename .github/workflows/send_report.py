@@ -2142,6 +2142,59 @@ def risk_off_block_html():
 
 s_risk_off_html = risk_off_block_html()
 
+# ─── Verdict banner — Python mirror of v2/verdict.js buildVerdict ──────
+# The single "bottom line" that the dashboard main screen shows. Same
+# score-band branching (acute / background / bands + phase) so the email
+# leads with the identical verdict. Keep in sync with verdict.js.
+def build_verdict_banner():
+    c = c_score
+    acute = bool(risk_off_acute)
+    background = bool(risk_off_reasons) and not acute
+    reasons_txt = ' · '.join(risk_off_reasons)
+    if acute:
+        tone, emoji = 'neg', '🔴'
+        headline, subline = 'יום סיכון — לא להוסיף חשיפה', reasons_txt
+    elif background:
+        if c is not None and c >= 55:
+            tone, emoji = 'warn', '🟡'
+            headline = 'השוק יציב — אך עם לחץ מכירות מצטבר, בזהירות'
+        else:
+            tone, emoji = 'neg', '🔴'
+            headline = 'חולשה מצטברת — להישאר בהגנה'
+        subline = reasons_txt
+    elif c is None:
+        tone, emoji, headline, subline = 'warn', '🟡', 'אין מספיק נתונים', ''
+    elif c >= 70:
+        tone, emoji = 'pos', '🟢'
+        headline = 'השוק בריא — אפשר להמשיך בגישת long'
+        subline = f'ציון משולב {c}/100 · לעקוב אחרי VIX ורוחב'
+    elif c >= 55:
+        tone, emoji = 'warn', '🟡'
+        headline = 'השוק יציב — להמשיך בזהירות'
+        subline = f'ציון משולב {c}/100 · מצב מבני סביר, לא בוטח בעלייה רחבה'
+    elif c >= 40:
+        tone, emoji = 'warn', '🟡'
+        headline = 'מצב מעורב — להמתין לסיגנל ברור'
+        subline = f'ציון משולב {c}/100 · ללא הכרעה בכיוון'
+    else:
+        tone, emoji = 'neg', '🔴'
+        headline = 'מצב חלש — להישאר בהגנה'
+        subline = f'ציון משולב {c}/100 · אינדיקטורים מבניים מצטברים שליליים'
+    if phase_label_now and phase_label_now != 'לא ידוע' and phase_label_now not in subline:
+        subline = (subline + ' · ' if subline else '') + phase_label_now
+    color = {'pos': '#10b981', 'warn': '#f59e0b', 'neg': '#ef4444'}[tone]
+    return f"""
+<div dir="rtl" style="{CARD}padding:16px 20px;margin-bottom:12px;border-right:4px solid {color};text-align:right;direction:rtl;">
+  <div style="display:flex;align-items:center;gap:10px;text-align:right;direction:rtl;">
+    <span style="font-size:20px;">{emoji}</span>
+    <span style="font-size:17px;font-weight:800;color:{color};line-height:1.25;">{headline}</span>
+  </div>
+  <div style="font-size:12px;color:#718096;margin-top:6px;text-align:right;">{subline}</div>
+</div>
+"""
+
+s_verdict_html = build_verdict_banner()
+
 def knn_outlier_flag_html():
     try:
         with open('data/forward_snapshots.json', 'r', encoding='utf-8') as f:
@@ -2208,6 +2261,7 @@ html = f"""<!DOCTYPE html>
   </div>
 
   {s_risk_off_html}
+  {s_verdict_html}
   {s_state_html}
   {s_summary_html}
   {s_hist_html}
