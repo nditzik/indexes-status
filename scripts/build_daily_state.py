@@ -39,6 +39,7 @@ def build_state():
             'sellingDays': [{'date': d, 'chg': round(c, 2) if c is not None else None}
                             for d, c in sr.risk_off_selling_days],
         },
+        'flowWeight': getattr(sr, 'flow_weight', None),   # phase 3.1
         'verdict': verdict,   # {headline, subline, tone, emoji, lights}
         'narrative': {
             'headline': sr.meta_label_now,

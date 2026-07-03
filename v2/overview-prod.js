@@ -5018,6 +5018,7 @@ async function init() {
             if (s.flow != null)     metrics.flowScore = s.flow;
             if (s.combined != null) metrics.combined = s.combined;
             metrics._verdict = dailyState.verdict || null;   // pre-computed headline/lights
+            metrics._flowWeight = dailyState.flowWeight || null;   // phase 3.1
         }
 
         const phaseResult = Regime.classifyPhase({
@@ -5356,6 +5357,19 @@ function renderV3OptionsCard(metrics) {
     }
 
     const items = [];
+    // Phase 3.1 — effective Flow weight in the combined score (from the
+    // single-source daily_state). Low weight = most premium was Mid, so
+    // Flow was trusted less. Default 35% when no dynamic value is present.
+    if (metrics._flowWeight && metrics._flowWeight.effective != null) {
+        const wPct = Math.round(metrics._flowWeight.effective * 100);
+        const midPct = metrics._flowWeight.midShare != null
+            ? Math.round(metrics._flowWeight.midShare * 100) : null;
+        items.push({
+            label: 'משקל Flow בציון היום',
+            val: midPct != null ? `${wPct}% · ${midPct}% מהפרמיה ב-Mid` : `${wPct}%`,
+            tone: wPct < 20 ? 'v3-warn' : '',
+        });
+    }
     if (f && f.raw) {
         const cAsk = f.raw.callAskP || 0;
         const cBid = f.raw.callBidP || 0;

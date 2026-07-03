@@ -594,6 +594,9 @@ if flow_files:
                 'callAskPmDir': round(callAskPmDir, 1),
                 'putAskPmDir':  round(putAskPmDir, 1),
                 'midPct': round(midPct, 1),
+                # Directional share = Ask+Bid premium / total (Mid excluded).
+                # Drives the dynamic Flow weight in combined() — phase 3.1.
+                'directionalShare': round((callDirP + putDirP) / total_p, 4) if total_p else None,
                 'confidence_tier': confidence_tier,
                 'confidence_note': confidence_note,
                 'pc_tr': pc_tr, 'pc_p': pc_p, 'net_p': net_p,
@@ -620,7 +623,15 @@ f_score = flow['score'] if flow else None
 #  not part of Combined any more.
 # ═══════════════════════════════════════════════════
 def combined():
-    w = {'t': 0.40, 'f': 0.35, 'b': 0.25}
+    # Phase 3.1 — dynamic Flow weight. When most premium sits in Mid
+    # (dealers/blocks, non-directional) the Flow score is less trustworthy,
+    # so scale its weight by the directional share. The freed weight flows
+    # proportionally to Tech + Breadth automatically via the num/den
+    # re-normalization (they keep their absolute 0.40 / 0.25 weights, so a
+    # smaller den lifts their relative influence in the 0.40:0.25 ratio).
+    ds = flow.get('directionalShare') if flow else None
+    w_f = 0.35 * ds if ds is not None else 0.35
+    w = {'t': 0.40, 'f': w_f, 'b': 0.25}
     num_, den = 0.0, 0.0
     if t_score is not None: num_ += w['t']*t_score; den += w['t']
     if f_score is not None: num_ += w['f']*f_score; den += w['f']
@@ -629,6 +640,15 @@ def combined():
     return clamp(round(num_/den))
 
 c_score = combined()
+
+# Effective Flow weight — surfaced in daily_state so the dashboard's flow
+# card can show "משקל Flow היום: X% (Y% מהפרמיה ב-Mid)".
+_ds = flow.get('directionalShare') if flow else None
+flow_weight = {
+    'effective': round(0.35 * _ds, 4) if _ds is not None else 0.35,
+    'directionalShare': _ds,
+    'midShare': round(flow['midPct'] / 100, 4) if flow else None,
+}
 
 # ═══════════════════════════════════════════════════
 #  Classification — state / risk / bias
@@ -2355,7 +2375,7 @@ def _load_recipients():
 # Formula version stamp for the append-only history. Bump on any scoring
 # change (never rewrite past rows). Module-level so build_daily_state can
 # import it. See phase-2.4 / phase-3.0.
-FORMULA_VERSION = 'v1'
+FORMULA_VERSION = 'v2'   # v2: dynamic Flow weight by directional share (phase 3.1)
 
 
 def _append_scores_history():
