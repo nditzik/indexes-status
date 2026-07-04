@@ -65,6 +65,11 @@ jobs:
       - name: Build daily_state.json (single source of truth)
         run: python3 scripts/build_daily_state.py
 
+      # Condense the daily UOA export (if present) into uoa_daily.json for
+      # the dashboard Action Zone badges. No-op when no uoa-stocks file.
+      - name: Build uoa_daily.json (unusual options activity)
+        run: python3 scripts/build_uoa_daily.py
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"

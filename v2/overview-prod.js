@@ -5002,7 +5002,9 @@ async function init() {
     try {
         const data = await loadData();
         const dailyState = await fetchJSON(`${DATA_BASE}/daily_state.json`).catch(() => null);
+        const uoaDaily = await fetchJSON(`${DATA_BASE}/uoa_daily.json`).catch(() => null);   // phase 3.5
         const { todayM, hist, metrics, flowAnalytics } = computeMetrics(data);
+        metrics._uoa = uoaDaily || null;
 
         // ── Single source of truth (phase-3.0 stage 2) ──
         // Trust the Python-computed scored brain (data/daily_state.json)
@@ -5709,16 +5711,25 @@ function renderV3ActionZone(metrics, data) {
         el.innerHTML = '<div class="v3-stocks-note">אין מועמדות בולטות מהסקטורים המובילים היום.</div>';
         return;
     }
+    const uoaMap = metrics._uoa || {};
     const rows = top.map(s => {
         const secName = codes[s.sector] || s.sector;
         const badges = [];
         if (s.rvol > 1.2) badges.push(`×${s.rvol.toFixed(1)}`);
         if (s.alpha != null && Math.abs(s.alpha) >= 20) badges.push(`${s.alpha >= 0 ? '+' : ''}${Math.round(s.alpha)}α`);
-        // UOA badge slot (phase 3.5): metrics._uoa && metrics._uoa[s.sym] → כיוון
+        // Phase 3.5 — UOA badge: unusual options activity direction + Vol/OI
+        let uoaBadge = '';
+        const u = uoaMap[s.sym];
+        if (u) {
+            const cls = u.dir === 'Call' ? 'v3-pos' : 'v3-neg';
+            const arrow = u.dir === 'Call' ? '📈' : '📉';
+            uoaBadge = `<span class="v3-action-uoa ${cls}" title="פעילות אופציות חריגה — ${u.dir} · Vol/OI מקס׳ ${u.volOiMax}">UOA ${arrow} ×${u.volOiMax}</span>`;
+        }
         return `<div class="v3-action-row">
             <span class="v3-action-sym">${s.sym}</span>
             <span class="v3-action-sector">${secName}</span>
             <span class="v3-action-meta">${badges.join(' · ')}</span>
+            ${uoaBadge}
             <span class="v3-action-chg ${s.chg >= 0 ? 'v3-pos' : 'v3-neg'}">${s.chg >= 0 ? '+' : ''}${s.chg.toFixed(2)}%</span>
         </div>`;
     }).join('');

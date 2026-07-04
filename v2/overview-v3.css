@@ -163,6 +163,15 @@
 .v3-action-chg { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; }
 .v3-action-chg.v3-pos { color: #10b981; }
 .v3-action-chg.v3-neg { color: #ef4444; }
+.v3-action-uoa {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.v3-action-uoa.v3-pos { color: #065f46; background: #d1fae5; }
+.v3-action-uoa.v3-neg { color: #991b1b; background: #fee2e2; }
 
 /* Phase 4b — Evidence Zone (4 cards + sparklines) */
 .v3-evidence {
