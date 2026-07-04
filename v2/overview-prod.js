@@ -5198,11 +5198,19 @@ function renderV3Cards(metrics, phaseResult, data, hist, duration) {
 // exactly one source of the bottom line. See phase-1.2.
 function renderV3Status(metrics, phaseResult) {
     // Score + phase + adaptive interpretation (right side of the strip)
+    const c = metrics.combined;
     const scoreEl = document.getElementById('v3_scoreBig');
     const phaseEl = document.getElementById('v3_phaseLabel');
     const confEl  = document.getElementById('v3_phaseConf');
     const interpEl = document.getElementById('v3_scoreInterp');
-    if (scoreEl) scoreEl.textContent = c != null ? c : '—';
+    if (scoreEl) {
+        scoreEl.textContent = c != null ? c : '—';
+        // Phase 4a — colour the big Regime score by the verdict tone
+        // (from daily_state when present, else derived from the score).
+        const tone = (metrics._verdict && metrics._verdict.tone)
+            || (c == null ? '' : c >= 70 ? 'pos' : c >= 40 ? 'warn' : 'neg');
+        scoreEl.className = 'v3-score-big' + (tone ? ' v3-score-' + tone : '');
+    }
     if (phaseEl && phaseResult && phaseResult.phase) {
         phaseEl.textContent = phaseResult.phase.labelHe || phaseResult.phase.labelEn || '—';
     }

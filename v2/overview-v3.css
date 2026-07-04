@@ -261,6 +261,10 @@
 .v3-score-big.v3-score-flow {
     font-size: 40px;
 }
+/* Phase 4a — big Regime score coloured by verdict tone */
+.v3-score-big.v3-score-pos  { color: #10b981; }
+.v3-score-big.v3-score-warn { color: #f59e0b; }
+.v3-score-big.v3-score-neg  { color: #ef4444; }
 .v3-score-side {
     display: flex;
     flex-direction: column;
@@ -484,31 +488,32 @@
     gap: 8px;
     margin-top: 12px;
 }
+/* Phase 4a — status lights as clear circles on the white status card */
 .v3-light {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     font-size: 12px;
     font-weight: 600;
-    color: #cbd5e0;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #475569;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
     border-radius: 999px;
-    padding: 4px 12px 4px 10px;
+    padding: 5px 13px 5px 10px;
     cursor: default;
 }
 .v3-light-dot {
-    width: 9px;
-    height: 9px;
+    width: 11px;
+    height: 11px;
     border-radius: 50%;
-    background: #64748b;
+    background: #94a3b8;
     flex: 0 0 auto;
 }
-.v3-light-pos .v3-light-dot { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.6); }
-.v3-light-warn .v3-light-dot { background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.6); }
-.v3-light-neg .v3-light-dot { background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.6); }
-.v3-light-na .v3-light-dot { background: #475569; }
-.v3-light-na { color: #64748b; }
+.v3-light-pos  .v3-light-dot { background: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.16); }
+.v3-light-warn .v3-light-dot { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16); }
+.v3-light-neg  .v3-light-dot { background: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.16); }
+.v3-light-na   .v3-light-dot { background: #cbd5e0; }
+.v3-light-na { color: #94a3b8; }
 
 /* ─── Quick numbers strip (main tab) ─── */
 .v3-quick-strip {
