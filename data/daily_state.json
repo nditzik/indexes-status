@@ -180,6 +180,14 @@
     "directionalShare": 0.315,
     "midShare": 0.685
   },
+  "flow": {
+    "midPct": 68.5,
+    "directionLabel": "מאוזן",
+    "directionReason": "פרמיית Puts דומיננטית (P/C 0.64)",
+    "smoothed": 46,
+    "streak": 1,
+    "compareLine": "היום התקפי יותר מהממוצע החודשי"
+  },
   "vixTermRatio": 0.8304,
   "evidence": {
     "spxPrice": 7483.24,
@@ -198,19 +206,39 @@
       "COM"
     ],
     "sectorRs": {
-      "UTL": {
-        "rs5": -0.55,
-        "rs20": 7.45,
-        "leading": false
-      },
       "FIN": {
         "rs5": 4.32,
         "rs20": 9.96,
         "leading": true
       },
+      "IT": {
+        "rs5": -2.72,
+        "rs20": -7.05,
+        "leading": false
+      },
+      "CD": {
+        "rs5": -0.54,
+        "rs20": 4.99,
+        "leading": false
+      },
+      "UTL": {
+        "rs5": -0.55,
+        "rs20": 7.45,
+        "leading": false
+      },
+      "ENE": {
+        "rs5": -5.83,
+        "rs20": -11.29,
+        "leading": false
+      },
       "IND": {
         "rs5": -1.09,
         "rs20": 3.76,
+        "leading": false
+      },
+      "RE": {
+        "rs5": -0.81,
+        "rs20": 4.32,
         "leading": false
       },
       "MAT": {
@@ -223,30 +251,10 @@
         "rs20": 0.32,
         "leading": true
       },
-      "IT": {
-        "rs5": -2.72,
-        "rs20": -7.05,
-        "leading": false
-      },
       "HC": {
         "rs5": 3.25,
         "rs20": 11.38,
         "leading": true
-      },
-      "ENE": {
-        "rs5": -5.83,
-        "rs20": -11.29,
-        "leading": false
-      },
-      "RE": {
-        "rs5": -0.81,
-        "rs20": 4.32,
-        "leading": false
-      },
-      "CD": {
-        "rs5": -0.54,
-        "rs20": 4.99,
-        "leading": false
       },
       "CS": {
         "rs5": 0.35,

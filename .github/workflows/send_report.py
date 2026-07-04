@@ -745,6 +745,129 @@ if flow_files:
 
 f_score = flow['score'] if flow else None
 
+
+# ═══════════════════════════════════════════════════
+#  Flow — daily direction label, monthly-smoothed read, and the
+#  daily-vs-monthly comparison. DISPLAY ONLY: the official Flow score
+#  (f_score, feeds Combined) is untouched, so FORMULA_VERSION is NOT
+#  bumped. The options tab previously showed the SAME directional score
+#  twice (top card + bottom panel); the bottom panel now shows a
+#  direction label + one comparison sentence instead of a duplicate
+#  number.
+# ═══════════════════════════════════════════════════
+def _flow_score_from_file(path):
+    """The directional Flow score for one historical flow CSV — the
+    exact scoreFromMetrics formula used for today (line ~694), so the
+    trailing scores are on the same scale as f_score. Returns None when
+    the file has no directional premium."""
+    try:
+        rows = load_csv(path)
+    except Exception:
+        return None
+    callAskP = callBidP = callMidP = 0.0
+    putAskP = putBidP = putMidP = 0.0
+    call_tr = put_tr = 0
+    for r in rows:
+        t = (r.get('Type', '') or '').strip().lower()
+        side = (r.get('Side', '') or '').strip().lower()
+        pr = num(r.get('Premium')) or 0
+        if t == 'call':
+            call_tr += 1
+            if side == 'ask':   callAskP += pr
+            elif side == 'bid': callBidP += pr
+            else:               callMidP += pr
+        elif t == 'put':
+            put_tr += 1
+            if side == 'ask':   putAskP += pr
+            elif side == 'bid': putBidP += pr
+            else:               putMidP += pr
+    call_p = callAskP + callBidP + callMidP
+    put_p  = putAskP + putBidP + putMidP
+    callDirP = callAskP + callBidP
+    putDirP  = putAskP + putBidP
+    if (call_tr + put_tr) > 0 and (callDirP + putDirP) > 0:
+        callShare    = callDirP / (callDirP + putDirP) * 100
+        callAskPmDir = callAskP / call_p * 100 if call_p > 0 else 50
+        putAskPmDir  = putAskP  / put_p  * 100 if put_p  > 0 else 50
+        return clamp(round(50 + (callShare - 50)
+                           + (callAskPmDir - 50) * 0.5
+                           - (putAskPmDir - 50) * 0.5))
+    return None
+
+
+# Trailing daily scores (oldest→newest, today last) over ~22 sessions.
+_recent_flow_scores = [s for s in
+                       (_flow_score_from_file(p) for p in flow_files[-22:])
+                       if s is not None]
+# Monthly-smoothed read = simple average of the trailing daily scores.
+flow_smoothed = (round(sum(_recent_flow_scores) / len(_recent_flow_scores))
+                 if _recent_flow_scores else None)
+
+
+def _flow_streak(scores, smoothed, min_gap=5):
+    """Consecutive recent sessions (incl. today) whose daily read sits on
+    today's side of the monthly-smoothed read by a meaningful margin."""
+    if not scores or smoothed is None:
+        return 0
+    diff = scores[-1] - smoothed
+    if abs(diff) < min_gap:
+        return 0
+    sign = 1 if diff > 0 else -1
+    n = 0
+    for s in reversed(scores):
+        d = s - smoothed
+        if abs(d) >= min_gap and (1 if d > 0 else -1) == sign:
+            n += 1
+        else:
+            break
+    return n
+
+
+flow_streak = _flow_streak(_recent_flow_scores, flow_smoothed)
+
+
+def build_flow_direction(score, fl):
+    """Daily direction label (≥55 offensive / 45-54 balanced / <55
+    defensive) + a short reason from the directional P/C premium."""
+    if score is None:
+        return {'label': 'לא ידוע', 'reason': ''}
+    if score >= 55:
+        label = 'התקפי'
+    elif score >= 45:
+        label = 'מאוזן'
+    else:
+        label = 'הגנתי'
+    pc = fl.get('pc_p') if fl else None
+    if pc is not None:
+        if pc > 0.40:
+            reason = f'פרמיית Puts דומיננטית (P/C {pc:.2f})'
+        elif pc < 0.30:
+            reason = f'פרמיית Calls דומיננטית (P/C {pc:.2f})'
+        else:
+            reason = f'איזון בין Calls ל-Puts (P/C {pc:.2f})'
+    else:
+        reason = ''
+    return {'label': label, 'reason': reason}
+
+
+def build_flow_compare(score, smoothed, streak):
+    """One-sentence read of today vs the monthly-smoothed flow."""
+    if score is None or smoothed is None:
+        return ''
+    diff = score - smoothed
+    if abs(diff) < 5:
+        return 'היום עקבי עם המגמה החודשית'
+    base = ('היום הגנתי יותר מהממוצע החודשי' if diff < 0
+            else 'היום התקפי יותר מהממוצע החודשי')
+    if streak >= 2:
+        return f'{base} — יום {streak} ברצף'
+    return base
+
+
+flow_direction = build_flow_direction(f_score, flow)
+flow_compare_line = build_flow_compare(f_score, flow_smoothed, flow_streak)
+
+
 # ═══════════════════════════════════════════════════
 #  Combined signal — mirror of dashboard combineScores
 #  Weights: 40% Tech + 35% Flow + 25% Breadth (auto re-normalize)

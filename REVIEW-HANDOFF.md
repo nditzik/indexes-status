@@ -69,6 +69,19 @@ frozen. Daily email: `.github/workflows/send_report.py`.
     dashboard via `daily_state.json` with **no JS edit**.
 - **3.1** Dynamic Flow weight: `wFlow = 0.35 × directionalShare`; freed weight
   re-normalizes to Tech + Breadth. Shown in the flow card.
+- **3.1a Options-tab de-duplication.** The tab showed the SAME directional Flow
+  score twice — the top card (official, feeds Combined) and the bottom "לאן הכסף
+  הגדול נע" panel both rendered `scoreFromMetrics(today)`. Now **one number**: the
+  bottom panel shows a **daily DIRECTION label** (`≥55 התקפי / 45-54 מאוזן / <45
+  הגנתי`) + a reason (directional P/C premium) + **one daily-vs-monthly sentence**
+  (today's read vs the 22-session smoothed average; "עקבי" or "יותר הגנתי/התקפי —
+  יום N ברצף", streak counted in Python). New Python helpers
+  `build_flow_direction` / `build_flow_compare` / `_flow_score_from_file` (scores
+  historical flow CSVs on the identical formula); shipped via
+  `daily_state.flow.{directionLabel, directionReason, smoothed, streak,
+  compareLine, midPct}`. **Canonical Mid%:** one premium-based field
+  (`daily_state.flow.midPct`) rendered everywhere (was 68% card vs 69% line).
+  No `FORMULA_VERSION` bump — the scoring is unchanged; this is display only.
 - **3.2** **Rotation light** + **VIX term structure** folded into the volatility
   light. `send_report` reads `live_ticker.json` for the ratio.
   - **Rotation v2 (review fix 2):** the light is now **true sectoral rotation** —

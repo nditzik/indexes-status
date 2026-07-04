@@ -2807,8 +2807,9 @@ function _interpFlowReason(metrics, yest) {
             }
         }
     }
-    if (metrics.flowCoverage && metrics.flowCoverage.midPct >= 70) {
-        reasons.push(`${Math.round(metrics.flowCoverage.midPct)}% מהפרמיה ב-Mid (בלוקים)`);
+    const _midC = canonicalMidPct(metrics);
+    if (_midC != null && _midC >= 70) {
+        reasons.push(`${Math.round(_midC)}% מהפרמיה ב-Mid (בלוקים)`);
     }
     if (reasons.length === 0) return '';
     return ' בשל ' + reasons.join(' ו');
@@ -3305,6 +3306,31 @@ function renderAlertsRail(chips, metrics) {
 // FLOW CARD — surfaces SPX options flow as a first-class section
 // Extended 2026-05-22: Call/Put breakdown + Ask/Bid direction + formula
 // ═════════════════════════════════════════════════════════════════════
+// Canonical Mid share — premium-based, from the single Python source
+// (daily_state.flow.midPct). Falls back to the live JS computation only
+// when daily_state is absent/stale. Rendered identically everywhere so
+// the card and the line never disagree (was 68% vs 69%).
+function canonicalMidPct(metrics) {
+    if (metrics._flow && metrics._flow.midPct != null) return metrics._flow.midPct;
+    if (metrics.flowCoverage && metrics.flowCoverage.midPct != null) return metrics.flowCoverage.midPct;
+    return null;
+}
+// Daily direction label + reason + the daily-vs-monthly sentence, from
+// the Python single source. Fallback derives the label from the live
+// score (≥55 offensive / 45-54 balanced / <45 defensive).
+function flowDirDisplay(metrics) {
+    const d = metrics._flow;
+    if (d && d.directionLabel) {
+        return { label: d.directionLabel, reason: d.directionReason || '', compare: d.compareLine || '' };
+    }
+    const s = metrics.flowScore != null ? metrics.flowScore
+            : (metrics.flow ? metrics.flow.score : null);
+    const label = s == null ? '—' : s >= 55 ? 'התקפי' : s >= 45 ? 'מאוזן' : 'הגנתי';
+    return { label, reason: '', compare: '' };
+}
+function flowDirTone(label) {
+    return label === 'התקפי' ? 'ov2-pos' : label === 'הגנתי' ? 'ov2-neg' : 'ov2-warn';
+}
 function renderFlowCard(metrics, flowAnalytics) {
     const wrap = $('flowCard');
     if (!wrap) return;
@@ -3319,22 +3345,29 @@ function renderFlowCard(metrics, flowAnalytics) {
     // Historical context (used at end of card)
     const allDays = (flowAnalytics && flowAnalytics.days) || [];
 
-    // Status text — deterministic, based on score
-    let status, statusClass;
-    if (score == null)        { status = '—';                                  statusClass = ''; }
-    else if (score >= 70)     { status = 'Risk-On · כסף תוקפני לעליות';        statusClass = 'ov2-pos'; }
-    else if (score >= 55)     { status = 'נייטרלי-חיובי';                       statusClass = 'ov2-pos'; }
-    else if (score >= 45)     { status = 'מאוזן · ללא כיוון ברור';              statusClass = 'ov2-warn'; }
-    else if (score >= 30)     { status = 'הגנתי · כסף קונה protection';        statusClass = 'ov2-warn'; }
-    else                       { status = 'הגנה אגרסיבית · חששות';             statusClass = 'ov2-neg'; }
+    // (The old score-derived status line was removed — the bottom panel
+    // now shows the daily direction label instead of a duplicate score.)
 
     // Top score block — main number is the directional score, with a
     // small footer showing the absolute (overall premium) read for
     // context when Mid dominates. The mid-warning surfaces only when
     // Mid is >=70% (the "block-heavy day" regime).
-    $('flowScoreVal').textContent = score != null ? score : '—';
-    $('flowStatus').textContent = status;
-    $('flowStatus').className = 'ov2-flow-status ' + statusClass;
+    // Bottom panel is NOT a second score — it's the daily DIRECTION. Show
+    // a label + reason + one daily-vs-monthly sentence instead of a
+    // number that duplicated the official Flow score in the top card.
+    const dir = flowDirDisplay(metrics);
+    const dirValEl = $('flowDirVal');
+    if (dirValEl) {
+        dirValEl.textContent = dir.label;
+        dirValEl.className = 'ov2-flow-dir-val ' + flowDirTone(dir.label);
+    }
+    const dirReasonEl = $('flowDirReason');
+    if (dirReasonEl) dirReasonEl.textContent = dir.reason || '';
+    const cmpEl = $('flowCompare');
+    if (cmpEl) {
+        cmpEl.textContent = dir.compare || '';
+        cmpEl.style.display = dir.compare ? '' : 'none';
+    }
     const sideEl = $('flowScoreSide');
     if (sideEl) {
         // Build a 3-layer context: Mid warning (existing), absolute score
@@ -3350,16 +3383,18 @@ function renderFlowCard(metrics, flowAnalytics) {
         // be flagged. > 80% means almost everything was blocks and
         // the score is borderline meaningless.
         const lines = [];
-        if (f.midPct != null) {
-            if (f.midPct >= 80) {
-                lines.push(`<span style="color:#991b1b; font-weight:800;">⛔ ${f.midPct.toFixed(0)}% Mid — ביטחון נמוך בציון</span>`);
-            } else if (f.midPct >= 70) {
-                lines.push(`<span style="color:#b45309; font-weight:700;">⚠ ${f.midPct.toFixed(0)}% Mid — ביטחון מוגבל</span>`);
-            } else if (f.midPct >= 50) {
-                lines.push(`<span style="color:#92400e;">⚠ ${f.midPct.toFixed(0)}% Mid (בלוקים/דילרים)</span>`);
+        const midC = canonicalMidPct(metrics);
+        if (midC != null) {
+            const midR = Math.round(midC);
+            if (midR >= 80) {
+                lines.push(`<span style="color:#991b1b; font-weight:800;">⛔ ${midR}% Mid — ביטחון נמוך בציון</span>`);
+            } else if (midR >= 70) {
+                lines.push(`<span style="color:#b45309; font-weight:700;">⚠ ${midR}% Mid — ביטחון מוגבל</span>`);
+            } else if (midR >= 50) {
+                lines.push(`<span style="color:#92400e;">⚠ ${midR}% Mid (בלוקים/דילרים)</span>`);
             }
         }
-        if (f.scoreAbsolute != null && (f.midPct >= 70 || Math.abs(f.scoreAbsolute - score) >= 10)) {
+        if (f.scoreAbsolute != null && ((midC != null && midC >= 70) || Math.abs(f.scoreAbsolute - score) >= 10)) {
             lines.push(`<span style="color:var(--ov2-text-3);">absolute: <b>${f.scoreAbsolute}</b></span>`);
         }
         // Institutional positioning context — looks for large notional
@@ -3765,8 +3800,9 @@ function renderFlowCard(metrics, flowAnalytics) {
         const contribB = B != null ? (B - 50) * 0.5 : 0;
         const contribC = C != null ? -(C - 50) * 0.5 : 0;
         const fmtContrib = v => (v >= 0 ? '+' : '') + v.toFixed(1);
-        const midNote = f.midPct >= 70
-            ? `<div style="margin-top:6px;font-size:11px;color:#b45309;background:rgba(245,158,11,0.10);padding:6px 10px;border-radius:4px;border-right:3px solid #f59e0b;">⚠ <b>${f.midPct.toFixed(0)}% מהפרמיה ב-Mid</b> — דילרים/בלוקים דומיננטיים, רק ${(100-f.midPct).toFixed(0)}% directional. הציון המתוקן (${f.score}) משקף את ה-directional בלבד; הציון "אבסולוטי" הישן (${f.scoreAbsolute}) היה ${f.scoreAbsolute - f.score >= 0 ? 'גבוה יותר ב-' + (f.scoreAbsolute - f.score) + ' נקודות' : 'נמוך יותר ב-' + (f.score - f.scoreAbsolute) + ' נקודות'} כי הוא כלל את ה-Mid.</div>`
+        const _midNoteC = canonicalMidPct(metrics);
+        const midNote = (_midNoteC != null && _midNoteC >= 70)
+            ? `<div style="margin-top:6px;font-size:11px;color:#b45309;background:rgba(245,158,11,0.10);padding:6px 10px;border-radius:4px;border-right:3px solid #f59e0b;">⚠ <b>${Math.round(_midNoteC)}% מהפרמיה ב-Mid</b> — דילרים/בלוקים דומיננטיים, רק ${Math.round(100 - _midNoteC)}% directional. הציון המתוקן (${f.score}) משקף את ה-directional בלבד; הציון "אבסולוטי" הישן (${f.scoreAbsolute}) היה ${f.scoreAbsolute - f.score >= 0 ? 'גבוה יותר ב-' + (f.scoreAbsolute - f.score) + ' נקודות' : 'נמוך יותר ב-' + (f.score - f.scoreAbsolute) + ' נקודות'} כי הוא כלל את ה-Mid.</div>`
             : '';
         flowFormula.innerHTML = `
             ציון Flow מתחיל מ-50 ומתעדכן לפי שלושה רכיבי flow גולמיים של היום (ללא baseline היסטורי):<br>
@@ -5032,6 +5068,7 @@ async function init() {
             metrics._evidence = dailyState.evidence || null;      // phase 4b
             metrics._rotation = dailyState.rotation || null;      // review fix 2 (Rotation v2)
             metrics._pressure = dailyState.riskOff || null;       // pressure card redesign
+            metrics._flow = dailyState.flow || null;              // options-tab: direction label + canonical midPct
         }
 
         const phaseResult = Regime.classifyPhase({
@@ -5553,8 +5590,9 @@ function renderV3OptionsCard(metrics) {
             : null;
         labelEl.textContent = lab ? `${lab.emoji} ${lab.label}` : '—';
     }
-    if (confEl && metrics.flowCoverage) {
-        const mid = Math.round(metrics.flowCoverage.midPct || 0);
+    const midCanon = canonicalMidPct(metrics);
+    if (confEl && midCanon != null) {
+        const mid = Math.round(midCanon);
         if (mid >= 80) confEl.innerHTML = `<span class="v3-neg">⛔ ${mid}% Mid — ביטחון נמוך</span>`;
         else if (mid >= 70) confEl.innerHTML = `<span class="v3-warn">⚠ ${mid}% Mid — ביטחון מוגבל</span>`;
         else if (mid >= 50) confEl.innerHTML = `<span class="v3-warn">${mid}% Mid (בלוקים)</span>`;
@@ -5567,8 +5605,8 @@ function renderV3OptionsCard(metrics) {
     // Flow was trusted less. Default 35% when no dynamic value is present.
     if (metrics._flowWeight && metrics._flowWeight.effective != null) {
         const wPct = Math.round(metrics._flowWeight.effective * 100);
-        const midPct = metrics._flowWeight.midShare != null
-            ? Math.round(metrics._flowWeight.midShare * 100) : null;
+        // Canonical Mid share (premium) — same field as everywhere else.
+        const midPct = midCanon != null ? Math.round(midCanon) : null;
         items.push({
             label: 'משקל Flow בציון היום',
             val: midPct != null ? `${wPct}% · ${midPct}% מהפרמיה ב-Mid` : `${wPct}%`,

@@ -2014,6 +2014,39 @@
 .overview-prod-root .ov2-flow-status.ov2-pos { color: var(--ov2-pos-bright); }
 .overview-prod-root .ov2-flow-status.ov2-neg { color: var(--ov2-neg-bright); }
 .overview-prod-root .ov2-flow-status.ov2-warn { color: var(--ov2-warn-bright); }
+/* Daily DIRECTION label (bottom panel) — replaces the duplicate score.
+   The one numeric Flow score lives in the top card of the tab. */
+.overview-prod-root .ov2-flow-dir-eyebrow {
+    font-size: 10px;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+.overview-prod-root .ov2-flow-dir-val {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-top: 4px;
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-flow-dir-val.ov2-pos { color: var(--ov2-pos-bright); }
+.overview-prod-root .ov2-flow-dir-val.ov2-neg { color: var(--ov2-neg-bright); }
+.overview-prod-root .ov2-flow-dir-val.ov2-warn { color: var(--ov2-warn-bright); }
+.overview-prod-root .ov2-flow-dir-reason {
+    font-size: 11.5px;
+    color: var(--ov2-text-2);
+    line-height: 1.4;
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-flow-compare {
+    font-size: 11.5px;
+    color: var(--ov2-text-3);
+    line-height: 1.4;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--ov2-border);
+}
 .overview-prod-root .ov2-flow-metric {
     display: flex;
     flex-direction: column;

@@ -13,8 +13,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
     <!-- Production stylesheet — legacy renderers fire into legacy IDs inside the tabs -->
-    <link rel="stylesheet" href="v2/overview-prod.css?v=20260704j">
-    <link rel="stylesheet" href="v2/overview-v3.css?v=20260704j">
+    <link rel="stylesheet" href="v2/overview-prod.css?v=20260704k">
+    <link rel="stylesheet" href="v2/overview-v3.css?v=20260704k">
 </head>
 <body class="overview-prod-root v3-body">
 
@@ -315,10 +315,11 @@
             </div>
 
             <div class="ov2-flow-grid">
-                <div class="ov2-flow-score-block" data-tooltip="ציון 0-100 שמסכם את כיוון זרימת הכסף הישיר (Ask+Bid). גבוה = כסף קונה calls אגרסיבי, נמוך = כסף קונה puts אגרסיבי. Mid מוחרג מהחישוב — דילרים/בלוקים אינם כיווניים.">
-                    <div class="ov2-flow-score-val" id="ov2_flowScoreVal">—</div>
-                    <div class="ov2-flow-score-label">ציון Flow · directional</div>
-                    <div class="ov2-flow-status" id="ov2_flowStatus">—</div>
+                <div class="ov2-flow-score-block" data-tooltip="קריאה כיוונית של היום — לאיזה צד נטתה זרימת הכסף הישיר (Ask+Bid, ללא Mid). זו אינה ציון נפרד: הציון המספרי הרשמי מופיע בכרטיס העליון של הטאב.">
+                    <div class="ov2-flow-dir-eyebrow">כיוון היום</div>
+                    <div class="ov2-flow-dir-val" id="ov2_flowDirVal">—</div>
+                    <div class="ov2-flow-dir-reason" id="ov2_flowDirReason">—</div>
+                    <div class="ov2-flow-compare" id="ov2_flowCompare">—</div>
                     <div class="ov2-flow-score-side" id="ov2_flowScoreSide" style="display:none;"></div>
                 </div>
                 <div class="ov2-flow-metric" data-tooltip="P/C Premium = יחס פרמיית puts ל-calls. ב-SPX הממוצע הוא 0.34. ערכים גבוהים = יותר ביקוש להגנה.">
@@ -569,13 +570,13 @@
 </div>
 
 <!-- ═══ SCRIPTS (same order as legacy index.html) ═══ -->
-<script src="v2/regime.js?v=20260704j"></script>
-<script src="v2/narrative.js?v=20260704j"></script>
-<script src="v2/historical.js?v=20260704j"></script>
-<script src="v2/patterns.js?v=20260704j"></script>
-<script src="v2/forward-tracking.js?v=20260704j"></script>
-<script src="v2/overview-prod.js?v=20260704j"></script>
-<script src="v2/verdict.js?v=20260704j"></script>
+<script src="v2/regime.js?v=20260704k"></script>
+<script src="v2/narrative.js?v=20260704k"></script>
+<script src="v2/historical.js?v=20260704k"></script>
+<script src="v2/patterns.js?v=20260704k"></script>
+<script src="v2/forward-tracking.js?v=20260704k"></script>
+<script src="v2/overview-prod.js?v=20260704k"></script>
+<script src="v2/verdict.js?v=20260704k"></script>
 
 <script>
 // ─── Tab switching ───

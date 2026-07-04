@@ -51,6 +51,19 @@ def build_state():
             'sellDaysMap': sr.sell_days_map(),
         },
         'flowWeight': getattr(sr, 'flow_weight', None),   # phase 3.1
+        # Flow display fields (options-tab redesign). The numeric score
+        # stays in scores.flow — this is the ONE flow number. The bottom
+        # panel renders a direction label + a daily-vs-monthly sentence
+        # instead of duplicating the score. midPct is the canonical,
+        # premium-based Mid share rendered everywhere.
+        'flow': ({
+            'midPct': sr.flow.get('midPct'),
+            'directionLabel': sr.flow_direction['label'],
+            'directionReason': sr.flow_direction['reason'],
+            'smoothed': sr.flow_smoothed,
+            'streak': sr.flow_streak,
+            'compareLine': sr.flow_compare_line,
+        } if sr.flow else None),
         'vixTermRatio': getattr(sr, 'vix_term_ratio', None),   # phase 3.2 / 4b
         'evidence': {   # phase 4b — numbers for the Evidence cards
             'spxPrice': sr.spx.get('price') if sr.spx else None,
