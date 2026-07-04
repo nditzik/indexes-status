@@ -41,6 +41,14 @@ def build_state():
             'reasons': list(sr.risk_off_reasons),
             'sellingDays': [{'date': d, 'chg': round(c, 2) if c is not None else None}
                             for d, c in sr.risk_off_selling_days],
+            # Redesigned pressure card — three fixed lines + the 25-dot map.
+            # All text built in Python; the dashboard/email only render it.
+            'tone': 'red' if sr.risk_off_acute else 'neutral',
+            'stateLine': sr.build_pressure_state_line(sr.c_score, sr.risk_off_acute),
+            'evidenceLine': sr.build_pressure_evidence_line(sr.dist_days, sr.sell_days_10),
+            'actionLine': sr.build_pressure_action(
+                sr.c_score, sr.dist_days, sr.sell_days_3, sr.risk_off_acute),
+            'sellDaysMap': sr.sell_days_map(),
         },
         'flowWeight': getattr(sr, 'flow_weight', None),   # phase 3.1
         'vixTermRatio': getattr(sr, 'vix_term_ratio', None),   # phase 3.2 / 4b

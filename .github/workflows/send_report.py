@@ -451,6 +451,96 @@ risk_off_selling_days = [
     for d in last25_rich if is_selling_day(d)
 ]
 
+
+# ═══════════════════════════════════════════════════
+#  Selling-pressure card (redesign) — three fixed lines, built in
+#  Python so the dashboard and the email render ONE state. No scoring
+#  formula changes here: this is presentation of existing signals
+#  (combined score, distribution days, 3-day cluster, acute event), so
+#  FORMULA_VERSION is intentionally NOT bumped.
+# ═══════════════════════════════════════════════════
+def _acute_reason():
+    """Same-day trigger text for an acute (risk) day, or '' if none."""
+    spx_chg = spx['chgPct'] if spx else None
+    if spx_chg is not None and spx_chg <= -1.5:
+        return f'המדד ירד {abs(spx_chg):.2f}% ביום אחד'
+    if vix_chg_pct is not None and vix_chg_pct >= 25:
+        return f'מדד הפחד קפץ {vix_chg_pct:.0f}% ביום אחד'
+    return ''
+
+
+def build_pressure_state_line(combined, acute):
+    """Line 1 — state: icon-less one-sentence context. The score band
+    (≥70 strong / 55-69 stable / <55 weak) frames the accumulated
+    pressure against the broad trend."""
+    if acute:
+        ar = _acute_reason()
+        return 'יום סיכון בשוק' + (f' — {ar}' if ar else '')
+    if combined is None:
+        band = 'לא ידוע'
+    elif combined >= 70:
+        band = 'חזק'
+    elif combined >= 55:
+        band = 'יציב'
+    else:
+        band = 'חלש'
+    suffix = f' ({combined})' if combined is not None else ''
+    return f'לחץ מכירות מוסדי מצטבר — על רקע שוק {band}{suffix}'
+
+
+def build_pressure_evidence_line(distribution_days, sell_days_2w):
+    """Line 2 — evidence (text only; the dashboard adds the 25-dot bar).
+    'שבועיים' = the last 10 trading sessions."""
+    return (f'{distribution_days} ימי מכירה ב-25 הימים · '
+            f'{sell_days_2w} מהם בשבועיים האחרונים')
+
+
+def build_pressure_action(combined, distribution_days, sell_days_recent_3, acute):
+    """Line 3 — action, from the state matrix (priority order). Every
+    line carries its own EXIT condition — when the warning lifts."""
+    if acute:
+        ar = _acute_reason()
+        return ('לא קונים היום' + (f' — {ar}' if ar else '')
+                + ' · חזרה לפעילות רק אחרי יום מסחר יציב')
+    if sell_days_recent_3 is not None and sell_days_recent_3 >= 2:
+        return ('עצירת קניות זמנית — גל מכירות בעיצומו · '
+                'חזרה לשגרה אחרי 3 ימים נקיים')
+    if combined is None:
+        return 'להמתין — אין מספיק נתונים להכרעה'
+    if combined >= 70:
+        return ('להחזיק קיימות · כניסות חדשות במנות קטנות בלבד · '
+                'בלי מינוף עד שהלחץ יירד מתחת ל-4 ימים')
+    if combined >= 55:
+        return ('לא להוסיף חשיפה חדשה · להדק סטופים על החלשות בתיק · '
+                'המתנה לירידת הלחץ מתחת ל-4 ימים')
+    return 'הגנה — לקצץ חשיפה בהדרגה · עדיפות למזומן עד שינוי משטר'
+
+
+def sell_days_map(n=25):
+    """The last n sessions as {date, chgPct, isSell} — chronological.
+    Powers the 25-dot visual bar; the full date list lives only in the
+    dot tooltips now, not in the card text."""
+    out = []
+    for d in history_rich[-n:]:
+        chg = d.get('spx_chg_pct')
+        out.append({
+            'date': d.get('date'),
+            'chgPct': round(chg, 2) if chg is not None else None,
+            'isSell': is_selling_day(d),
+        })
+    return out
+
+
+def fmt_market_chg(v):
+    """Honest formatting for the index's daily change. Barchart sometimes
+    leaves $SPX %Change blank or derives a hairline zero — never render
+    that as a green '+0.00%'."""
+    if v is None:
+        return 'טרם התעדכן'
+    if abs(v) < 0.005:
+        return 'ללא שינוי'
+    return f'{v:+.2f}%'
+
 # ═══════════════════════════════════════════════════
 #  Score 1 · Market (MCC)
 # ═══════════════════════════════════════════════════
@@ -2156,59 +2246,27 @@ s6_html = f"""
 def risk_off_block_html():
     if not risk_off_reasons:
         return ''
-    # Acute = a same-day event (crash / VIX spike). Accumulation-only is
-    # a BACKGROUND warning — a green close must not be called a danger
-    # day (mirror of renderRiskOffBanner in overview-prod.js).
-    spx_chg = spx['chgPct'] if spx else None
-    acute = ((spx_chg is not None and spx_chg <= -1.5)
-             or (vix_chg_pct is not None and vix_chg_pct >= 25))
-    items_list = list(risk_off_reasons)
-    context_html = ''
-    if not acute and spx_chg is not None and spx_chg > 0:
-        context_html = (f'<li style="padding:4px 0;font-size:13px;color:#6ee7b7;font-weight:600;'
-                        f'line-height:1.5;text-align:right;">• יום המסחר האחרון דווקא נסגר חיובי '
-                        f'(+{spx_chg:.2f}%) — האזהרה מתייחסת להצטברות של החודש האחרון, לא ליום עצמו</li>')
-    items = context_html + ''.join(
-        f'<li style="padding:4px 0;font-size:13px;color:#e2e8f0;line-height:1.5;text-align:right;">• {r}</li>'
-        for r in items_list
-    )
-    # Data date — the banner reflects the close this email reports on
-    data_date_str = ''
-    if history_rich:
-        iso = history_rich[-1].get('date', '')
-        p = iso.split('-')
-        if len(p) == 3:
-            data_date_str = f'{p[2]}/{p[1]}'
+    # Redesigned pressure card — the SAME three fixed lines as the
+    # dashboard (state / evidence / action), built from the shared
+    # build_pressure_* helpers. No date list, no live line, no footer,
+    # no green-close bullet. The email has no dot bar — text only.
+    acute = bool(risk_off_acute)
+    state_line = build_pressure_state_line(c_score, acute)
+    evidence_line = build_pressure_evidence_line(dist_days, sell_days_10)
+    action_line = build_pressure_action(c_score, dist_days, sell_days_3, acute)
     icon = '🚨' if acute else '⚠️'
-    title = (f'יום מסוכן בשוק — נכון לסגירת {data_date_str}' if acute
-             else f'אזהרת רקע — לחץ מכירות מצטבר (נכון לסגירת {data_date_str})')
-    action = ('לא מוסיפים קניות עד שהשוק נרגע.' if acute
-              else 'אפשר לפעול, אבל בזהירות ובמנות קטנות — האזהרה תרד כשימי המכירה ייצאו מחלון 25 הימים.')
-    _sc = c_score if c_score is not None else '—'
-    footer = (f'למה הציון המשולב ({_sc}) כמעט לא זז? כי הוא מודד את התמונה הגדולה (המגמה) — הבאנר מתריע על האירוע של היום.'
-              if acute else
-              f'הציון המשולב ({_sc}) משקף את המגמה הרחבה, שעדיין יציבה. האזהרה הזו אינה על היום — היא על לחץ מכירות שהצטבר לאורך החודש.')
-    # The actual selling days
-    days_html = ''
-    if risk_off_selling_days:
-        chips = ' · '.join(
-            f'{d.split("-")[2]}/{d.split("-")[1]}' + (f' ({c:.2f}%)' if c is not None else '')
-            for d, c in risk_off_selling_days
-        )
-        days_html = (f'<div style="font-size:12px;color:#cbd5e0;font-family:monospace;'
-                     f'margin-bottom:8px;text-align:right;direction:rtl;">ימי המכירה: {chips}</div>')
+    # Acute → the whole card goes red; background stays slate.
+    bg = ('linear-gradient(135deg,#7f1d1d,#991b1b)' if acute
+          else 'linear-gradient(135deg,#1e293b,#334155)')
+    border = 'rgba(248,113,113,0.45)' if acute else 'rgba(241,245,249,0.12)'
     return f"""
-<div dir="rtl" style="background:linear-gradient(135deg,#1e293b,#334155);color:#f1f5f9;border-radius:10px;padding:18px 22px;margin-bottom:12px;direction:rtl;text-align:right;border:1px solid rgba(241,245,249,0.12);">
+<div dir="rtl" style="background:{bg};color:#f1f5f9;border-radius:10px;padding:18px 22px;margin-bottom:12px;direction:rtl;text-align:right;border:1px solid {border};">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;text-align:right;direction:rtl;">
     <span style="font-size:22px;">{icon}</span>
-    <span style="font-size:15px;font-weight:800;">{title}</span>
+    <span style="font-size:15px;font-weight:800;">{state_line}</span>
   </div>
-  <ul dir="rtl" style="margin:0 0 10px;padding:0;list-style:none;text-align:right;direction:rtl;">{items}</ul>
-  {days_html}
-  <div style="font-size:13px;color:#f1f5f9;margin-bottom:8px;text-align:right;"><b>המשמעות:</b> {action}</div>
-  <div style="font-size:11px;color:#94a3b8;line-height:1.6;padding-top:8px;border-top:1px solid rgba(241,245,249,0.15);text-align:right;direction:rtl;">
-    {footer}
-  </div>
+  <div style="font-size:13px;color:#e2e8f0;line-height:1.6;margin-bottom:10px;text-align:right;direction:rtl;">{evidence_line}</div>
+  <div style="font-size:13px;color:#f1f5f9;line-height:1.6;text-align:right;direction:rtl;padding-top:8px;border-top:1px solid rgba(241,245,249,0.15);"><b>המשמעות:</b> {action_line}</div>
 </div>
 """
 

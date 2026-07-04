@@ -13,8 +13,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
     <!-- Production stylesheet — legacy renderers fire into legacy IDs inside the tabs -->
-    <link rel="stylesheet" href="v2/overview-prod.css?v=20260704i">
-    <link rel="stylesheet" href="v2/overview-v3.css?v=20260704i">
+    <link rel="stylesheet" href="v2/overview-prod.css?v=20260704j">
+    <link rel="stylesheet" href="v2/overview-v3.css?v=20260704j">
 </head>
 <body class="overview-prod-root v3-body">
 
@@ -89,16 +89,16 @@
     </div>
 
     <!-- ═══ RISK-OFF BANNER (always visible when active) ═══ -->
+    <!-- Selling-pressure card — three fixed lines (state / evidence+dots /
+         action), all text from data/daily_state.json (Python single source). -->
     <div class="ov2-risk-off" id="ov2_riskOff" style="display:none;">
         <div class="ov2-risk-off-head">
-            <span class="ov2-risk-off-icon" id="ov2_riskOffIcon">🚨</span>
-            <span class="ov2-risk-off-title" id="ov2_riskOffTitle">יום מסוכן בשוק</span>
+            <span class="ov2-risk-off-icon" id="ov2_riskOffIcon">⚠️</span>
+            <span class="ov2-risk-off-title" id="ov2_riskOffTitle"></span>
         </div>
-        <ul class="ov2-risk-off-list" id="ov2_riskOffList"></ul>
-        <div class="ov2-risk-off-days" id="ov2_riskOffDays" style="display:none;"></div>
-        <div class="ov2-risk-off-action" id="ov2_riskOffAction"><b>המשמעות:</b> לא מוסיפים קניות עד שהשוק נרגע. פירוט בהמלצות למטה.</div>
-        <div class="ov2-risk-off-live" id="ov2_riskOffLive" style="display:none;"></div>
-        <div class="ov2-risk-off-note" id="ov2_riskOffNote">למה הציון הכללי כמעט לא זז? כי הוא מודד את התמונה הגדולה (המגמה) — הבאנר הזה מתריע על האירוע של היום.</div>
+        <div class="ov2-risk-off-evidence" id="ov2_riskOffEvidence"></div>
+        <div class="ov2-risk-off-dots" id="ov2_riskOffDots" title="25 ימי המסחר האחרונים · אדום = יום מכירה"></div>
+        <div class="ov2-risk-off-action" id="ov2_riskOffAction"></div>
     </div>
 
     <!-- ═══ TAB NAV ═══ -->
@@ -569,13 +569,13 @@
 </div>
 
 <!-- ═══ SCRIPTS (same order as legacy index.html) ═══ -->
-<script src="v2/regime.js?v=20260704i"></script>
-<script src="v2/narrative.js?v=20260704i"></script>
-<script src="v2/historical.js?v=20260704i"></script>
-<script src="v2/patterns.js?v=20260704i"></script>
-<script src="v2/forward-tracking.js?v=20260704i"></script>
-<script src="v2/overview-prod.js?v=20260704i"></script>
-<script src="v2/verdict.js?v=20260704i"></script>
+<script src="v2/regime.js?v=20260704j"></script>
+<script src="v2/narrative.js?v=20260704j"></script>
+<script src="v2/historical.js?v=20260704j"></script>
+<script src="v2/patterns.js?v=20260704j"></script>
+<script src="v2/forward-tracking.js?v=20260704j"></script>
+<script src="v2/overview-prod.js?v=20260704j"></script>
+<script src="v2/verdict.js?v=20260704j"></script>
 
 <script>
 // ─── Tab switching ───

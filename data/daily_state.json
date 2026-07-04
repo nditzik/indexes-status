@@ -42,6 +42,137 @@
         "date": "2026-06-23",
         "chg": -1.44
       }
+    ],
+    "tone": "neutral",
+    "stateLine": "לחץ מכירות מוסדי מצטבר — על רקע שוק חזק (80)",
+    "evidenceLine": "6 ימי מכירה ב-25 הימים · 1 מהם בשבועיים האחרונים",
+    "actionLine": "להחזיק קיימות · כניסות חדשות במנות קטנות בלבד · בלי מינוף עד שהלחץ יירד מתחת ל-4 ימים",
+    "sellDaysMap": [
+      {
+        "date": "2026-05-28",
+        "chgPct": 0.58,
+        "isSell": false
+      },
+      {
+        "date": "2026-05-29",
+        "chgPct": 0.22,
+        "isSell": false
+      },
+      {
+        "date": "2026-06-01",
+        "chgPct": 0.26,
+        "isSell": false
+      },
+      {
+        "date": "2026-06-02",
+        "chgPct": 0.13,
+        "isSell": false
+      },
+      {
+        "date": "2026-06-03",
+        "chgPct": -0.74,
+        "isSell": true
+      },
+      {
+        "date": "2026-06-04",
+        "chgPct": 0.41,
+        "isSell": false
+      },
+      {
+        "date": "2026-06-05",
+        "chgPct": -2.64,
+        "isSell": true
+      },
+      {
+        "date": "2026-06-08",
+        "chgPct": 0.3,
+        "isSell": false
+      },
+      {
+        "date": "2026-06-09",
+        "chgPct": -0.26,
+        "isSell": false
+      },
+      {
+        "date": "2026-06-10",
+        "chgPct": -1.62,
+        "isSell": true
+      },
+      {
+        "date": "2026-06-11",
+        "chgPct": 1.75,
+        "isSell": false
+      },
+      {
+        "date": "2026-06-12",
+        "chgPct": 0.5,
+        "isSell": false
+      },
+      {
+        "date": "2026-06-15",
+        "chgPct": 1.65,
+        "isSell": false
+      },
+      {
+        "date": "2026-06-16",
+        "chgPct": -0.57,
+        "isSell": true
+      },
+      {
+        "date": "2026-06-17",
+        "chgPct": -1.21,
+        "isSell": true
+      },
+      {
+        "date": "2026-06-18",
+        "chgPct": 1.08,
+        "isSell": false
+      },
+      {
+        "date": "2026-06-22",
+        "chgPct": -0.37,
+        "isSell": false
+      },
+      {
+        "date": "2026-06-23",
+        "chgPct": -1.44,
+        "isSell": true
+      },
+      {
+        "date": "2026-06-24",
+        "chgPct": -0.1,
+        "isSell": false
+      },
+      {
+        "date": "2026-06-25",
+        "chgPct": -0.01,
+        "isSell": false
+      },
+      {
+        "date": "2026-06-26",
+        "chgPct": -0.05,
+        "isSell": false
+      },
+      {
+        "date": "2026-06-29",
+        "chgPct": 1.18,
+        "isSell": false
+      },
+      {
+        "date": "2026-06-30",
+        "chgPct": 0.79,
+        "isSell": false
+      },
+      {
+        "date": "2026-07-01",
+        "chgPct": -0.22,
+        "isSell": false
+      },
+      {
+        "date": "2026-07-02",
+        "chgPct": 0.0,
+        "isSell": false
+      }
     ]
   },
   "flowWeight": {
@@ -67,6 +198,11 @@
       "COM"
     ],
     "sectorRs": {
+      "UTL": {
+        "rs5": -0.55,
+        "rs20": 7.45,
+        "leading": false
+      },
       "FIN": {
         "rs5": 4.32,
         "rs20": 9.96,
@@ -77,20 +213,30 @@
         "rs20": 3.76,
         "leading": false
       },
-      "IT": {
-        "rs5": -2.72,
-        "rs20": -7.05,
-        "leading": false
-      },
       "MAT": {
         "rs5": -2.2,
         "rs20": 0.13,
         "leading": false
       },
-      "CS": {
-        "rs5": 0.35,
-        "rs20": 6.03,
+      "COM": {
+        "rs5": 3.81,
+        "rs20": 0.32,
         "leading": true
+      },
+      "IT": {
+        "rs5": -2.72,
+        "rs20": -7.05,
+        "leading": false
+      },
+      "HC": {
+        "rs5": 3.25,
+        "rs20": 11.38,
+        "leading": true
+      },
+      "ENE": {
+        "rs5": -5.83,
+        "rs20": -11.29,
+        "leading": false
       },
       "RE": {
         "rs5": -0.81,
@@ -102,25 +248,10 @@
         "rs20": 4.99,
         "leading": false
       },
-      "HC": {
-        "rs5": 3.25,
-        "rs20": 11.38,
+      "CS": {
+        "rs5": 0.35,
+        "rs20": 6.03,
         "leading": true
-      },
-      "COM": {
-        "rs5": 3.81,
-        "rs20": 0.32,
-        "leading": true
-      },
-      "ENE": {
-        "rs5": -5.83,
-        "rs20": -11.29,
-        "leading": false
-      },
-      "UTL": {
-        "rs5": -0.55,
-        "rs20": 7.45,
-        "leading": false
       }
     },
     "cyclicalLeading": 1,

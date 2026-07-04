@@ -90,6 +90,21 @@ frozen. Daily email: `.github/workflows/send_report.py`.
 ### Phase 4 — main screen: Verdict / Evidence / Action
 - **4a** Regime score colored by tone; status **lights as circles**; fixed two
   latent bugs (undefined `c` blocking the score panel; lights invisible on white).
+- **4a.1 Selling-pressure card redesign.** The old risk-off banner was an evidence
+  pile (raw date list, mixed timeframes, generic advice). Now **exactly three
+  fixed lines**, all built in Python (`build_pressure_state_line` /
+  `_evidence_line` / `build_pressure_action` — a priority state-matrix, each
+  action carries its own **exit condition**) and shipped via
+  `daily_state.riskOff.{stateLine, evidenceLine, actionLine, tone, sellDaysMap}`.
+  Line 2 adds a **25-dot bar** (LTR-in-RTL, gray/red, drop% in the dot tooltip);
+  the full date list lives only there. Removed: the date text list, the live
+  "23:00" strip (belongs to the top ticker), the grey footer, the green-close
+  bullet. Acute day → the whole card goes red. **Same 3 lines in the email**
+  (no dot bar). No `FORMULA_VERSION` bump — presentation of existing signals.
+  - **Bug fixed alongside:** a null / Barchart derived-zero daily change no
+    longer renders as a green `+0.00%`. Rule everywhere the index's daily change
+    shows: `null → "טרם התעדכן"`, `|x|<0.005 → "ללא שינוי"` (neutral), else signed
+    (`fmt_market_chg` in Python; inline in the EOD tile + banner in JS).
 - **4b** **Evidence Zone** — 4 cards (Trend/Breadth/Volatility/Rotation), each with
   2–3 numbers **+ a decision threshold beside every number** and a Chart.js
   sparkline (from loaded history).

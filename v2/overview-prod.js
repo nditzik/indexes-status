@@ -1460,67 +1460,67 @@ function sectorHmClass(chg) {
     return 'ov2-hm-bg-strong-pos';
 }
 
+// Selling-pressure card (redesign) — exactly three fixed lines, all
+// text built in Python (daily_state.riskOff); the JS only renders them
+// and draws the 25-dot evidence bar. Falls back to the live-JS riskOff
+// (reasons list) only if daily_state is missing/stale.
 function renderRiskOffBanner(metrics) {
     const wrap = $('riskOff');
-    const list = $('riskOffList');
-    if (!wrap || !list) return;
+    if (!wrap) return;
     const ro = metrics.riskOff;
-    if (!ro || !ro.active) {
-        wrap.style.display = 'none';
-        return;
-    }
-    // Title adapts to WHAT fired: a same-day event (crash / VIX spike)
-    // reads "יום מסוכן בשוק"; accumulation-only reads as a background
-    // warning — a +1.7% green close must not be labeled a danger day.
-    const d = metrics.dataDate ? fmtDate(metrics.dataDate) : '';
-    const titleEl = $('riskOffTitle');
-    if (titleEl) {
-        titleEl.textContent = ro.acute
-            ? `יום מסוכן בשוק${d ? ' — נכון לסגירת ' + d : ''}`
-            : `אזהרת רקע — לחץ מכירות מצטבר${d ? ' (נכון לסגירת ' + d + ')' : ''}`;
-    }
+    const p = metrics._pressure;   // Python-built card, when present
+    const active = (p && p.active) || (ro && ro.active);
+    if (!active) { wrap.style.display = 'none'; return; }
+    const acute = !!((p && p.acute) || (ro && ro.acute));
+
+    // Whole card goes red on an acute (risk) day; slate otherwise.
+    wrap.classList.toggle('ov2-risk-off--acute', acute);
     const iconEl = $('riskOffIcon');
-    if (iconEl) iconEl.textContent = ro.acute ? '🚨' : '⚠️';
-    // Background-only + a green close → say so explicitly, first thing.
-    let contextLi = '';
-    if (!ro.acute && ro.lastDayChg != null && ro.lastDayChg > 0) {
-        contextLi = `<li class="ov2-risk-off-context">יום המסחר האחרון דווקא נסגר חיובי (+${ro.lastDayChg.toFixed(2)}%) — האזהרה מתייחסת להצטברות של החודש האחרון, לא ליום עצמו</li>`;
+    if (iconEl) iconEl.textContent = acute ? '🚨' : '⚠️';
+
+    // Line 1 — state. From Python; fallback to the first live reason.
+    const stateEl = $('riskOffTitle');
+    if (stateEl) {
+        stateEl.textContent = (p && p.stateLine)
+            || (acute ? 'יום סיכון בשוק' : 'לחץ מכירות מוסדי מצטבר');
     }
-    list.innerHTML = contextLi + ro.reasons.map(r => `<li>${r.text}</li>`).join('');
-    // Action matches the severity
+    // Line 2 — evidence sentence + the 25-dot bar.
+    const evEl = $('riskOffEvidence');
+    if (evEl) {
+        evEl.textContent = (p && p.evidenceLine)
+            || (ro && ro.reasons && ro.reasons[0] ? ro.reasons[0].text : '');
+    }
+    renderPressureDots(metrics);
+    // Line 3 — action (includes its own exit condition).
     const actionEl = $('riskOffAction');
     if (actionEl) {
-        actionEl.innerHTML = ro.acute
-            ? '<b>המשמעות:</b> לא מוסיפים קניות עד שהשוק נרגע. פירוט בהמלצות למטה.'
-            : '<b>המשמעות:</b> אפשר לפעול, אבל בזהירות ובמנות קטנות — האזהרה תרד כשימי המכירה ייצאו מחלון 25 הימים.';
-    }
-    // Footer adapts to the banner type. Acute = a same-day event, so the
-    // "why didn't the score move?" framing fits. Background = no event
-    // today; the framing must point at the month-long accumulation, not
-    // "today's event" (the line the user flagged as not fitting).
-    const noteEl = $('riskOffNote');
-    if (noteEl) {
-        const sc = metrics.combined != null ? ` (${metrics.combined})` : '';
-        noteEl.textContent = ro.acute
-            ? `למה הציון המשולב${sc} כמעט לא זז? כי הוא מודד את התמונה הגדולה (המגמה) — הבאנר מתריע על האירוע של היום.`
-            : `הציון המשולב${sc} משקף את המגמה הרחבה, שעדיין יציבה. האזהרה הזו אינה על היום — היא על לחץ מכירות שהצטבר לאורך החודש.`;
-    }
-    // The actual selling days, verifiable at a glance
-    const daysEl = $('riskOffDays');
-    if (daysEl) {
-        if (ro.sellingDays && ro.sellingDays.length) {
-            const chips = ro.sellingDays.map(s => {
-                const dd = fmtDate(s.date);
-                const c = s.chg != null ? ` (${s.chg.toFixed(2)}%)` : '';
-                return `${dd}${c}`;
-            }).join(' · ');
-            daysEl.style.display = '';
-            daysEl.textContent = `ימי המכירה: ${chips}`;
-        } else {
-            daysEl.style.display = 'none';
-        }
+        const txt = (p && p.actionLine)
+            || (acute ? 'לא קונים היום — חזרה לפעילות רק אחרי יום מסחר יציב'
+                      : 'לא להוסיף חשיפה חדשה · המתנה לירידת הלחץ');
+        actionEl.innerHTML = `<b>המשמעות:</b> ${txt}`;
     }
     wrap.style.display = '';
+}
+
+// The 25-dot evidence bar: chronological LEFT→RIGHT (LTR) inside the RTL
+// card. Gray = normal session, red = selling day. A tooltip on the red
+// dots carries the date + drop% — the full date list lives only here.
+function renderPressureDots(metrics) {
+    const bar = $('riskOffDots');
+    if (!bar) return;
+    const map = metrics._pressure && metrics._pressure.sellDaysMap;
+    if (!Array.isArray(map) || !map.length) { bar.style.display = 'none'; return; }
+    bar.style.display = '';
+    bar.innerHTML = map.map(d => {
+        const sell = !!d.isSell;
+        const cls = sell ? 'ov2-pdot ov2-pdot--sell' : 'ov2-pdot';
+        if (sell) {
+            const dd = d.date ? fmtDate(d.date) : '';
+            const chg = (d.chgPct != null) ? ` ${d.chgPct.toFixed(2)}%` : '';
+            return `<span class="${cls}" title="${dd}${chg}"></span>`;
+        }
+        return `<span class="${cls}"></span>`;
+    }).join('');
 }
 
 // Live reconciliation — called by fetchLiveIndices with SPY's live
@@ -2650,15 +2650,22 @@ function renderEqTicker(metrics, hist) {
         if (valEl && Number.isFinite(level)) {
             valEl.textContent = level.toFixed(2);
         }
-        if (chgEl && Number.isFinite(dailyChgPct)) {
-            const arrow = dailyChgPct > 0 ? '▲' : dailyChgPct < 0 ? '▼' : '─';
-            const sign  = dailyChgPct > 0 ? '+' : '';
-            chgEl.textContent = `${arrow} ${sign}${dailyChgPct.toFixed(2)}%`;
-            chgEl.style.color = dailyChgPct > 0
-                ? 'var(--ov2-pos)'
-                : dailyChgPct < 0 ? 'var(--ov2-neg)' : 'var(--ov2-text-3)';
-        } else if (chgEl) {
-            chgEl.textContent = '—';
+        if (chgEl) {
+            // Honest daily-change: never render a null or a Barchart
+            // derived-zero as a green "+0.00%". null → "טרם התעדכן";
+            // |x|<0.005 → "ללא שינוי" (neutral); else signed + colored.
+            if (!Number.isFinite(dailyChgPct)) {
+                chgEl.textContent = 'טרם התעדכן';
+                chgEl.style.color = 'var(--ov2-text-3)';
+            } else if (Math.abs(dailyChgPct) < 0.005) {
+                chgEl.textContent = 'ללא שינוי';
+                chgEl.style.color = 'var(--ov2-text-3)';
+            } else {
+                const arrow = dailyChgPct > 0 ? '▲' : '▼';
+                const sign  = dailyChgPct > 0 ? '+' : '';
+                chgEl.textContent = `${arrow} ${sign}${dailyChgPct.toFixed(2)}%`;
+                chgEl.style.color = dailyChgPct > 0 ? 'var(--ov2-pos)' : 'var(--ov2-neg)';
+            }
         }
         // Date sub-line now shows the BASELINE date (first day of the
         // CSV history, when the level was set to 100) — labelled
@@ -5024,6 +5031,7 @@ async function init() {
             metrics._vixTermRatio = dailyState.vixTermRatio;       // phase 4b
             metrics._evidence = dailyState.evidence || null;      // phase 4b
             metrics._rotation = dailyState.rotation || null;      // review fix 2 (Rotation v2)
+            metrics._pressure = dailyState.riskOff || null;       // pressure card redesign
         }
 
         const phaseResult = Regime.classifyPhase({
