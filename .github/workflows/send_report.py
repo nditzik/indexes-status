@@ -655,8 +655,17 @@ b_score = breadth_score()
 #    callShare    = callDir$ / (callDir$ + putDir$)
 #    callDir$     = callAskP + callBidP            (Mid excluded — block/dealer)
 #    putDir$      = putAskP  + putBidP
-#    callAskPmDir = callAskP / (callAskP + callBidP + callMidP) * 100
-#    putAskPmDir  = putAskP  / (putAskP  + putBidP  + putMidP)  * 100
+#    callAskPmDir = callAskP / (callAskP + callBidP) * 100   # directional only
+#    putAskPmDir  = putAskP  / (putAskP  + putBidP)  * 100   # directional only
+#
+#  FORMULA v4 (2026-07-04): the Ask-aggression denominators now EXCLUDE
+#  Mid, matching overview-prod.js. Previously Python divided by total
+#  call/put premium (Mid included), which on high-Mid days (e.g. 68.5%
+#  Mid on 07-02) diluted the aggressive-buying signal to near-zero and
+#  produced a falsely-balanced score (54 vs the correct 40). Mid is
+#  dealer/block flow — non-directional — so it must not be in a measure
+#  of directional aggression. This aligns the official score with the JS
+#  dashboard panels.
 # ═══════════════════════════════════════════════════
 flow_files = sorted_by_date(glob.glob('data/spx-options-flow-*.csv'), _FLOW_DATE_RE)
 flow = None
@@ -689,8 +698,9 @@ if flow_files:
 
         if total_tr > 0 and (callDirP + putDirP) > 0:
             callShare    = callDirP / (callDirP + putDirP) * 100
-            callAskPmDir = callAskP / call_p * 100 if call_p > 0 else 50
-            putAskPmDir  = putAskP  / put_p  * 100 if put_p  > 0 else 50
+            # v4: directional-only denominators (Mid excluded) — see header.
+            callAskPmDir = callAskP / callDirP * 100 if callDirP > 0 else 50
+            putAskPmDir  = putAskP  / putDirP  * 100 if putDirP  > 0 else 50
             score = 50 + (callShare - 50) * 1.0 + (callAskPmDir - 50) * 0.5 - (putAskPmDir - 50) * 0.5
             score = clamp(round(score))
 
@@ -781,14 +791,13 @@ def _flow_score_from_file(path):
             if side == 'ask':   putAskP += pr
             elif side == 'bid': putBidP += pr
             else:               putMidP += pr
-    call_p = callAskP + callBidP + callMidP
-    put_p  = putAskP + putBidP + putMidP
     callDirP = callAskP + callBidP
     putDirP  = putAskP + putBidP
     if (call_tr + put_tr) > 0 and (callDirP + putDirP) > 0:
         callShare    = callDirP / (callDirP + putDirP) * 100
-        callAskPmDir = callAskP / call_p * 100 if call_p > 0 else 50
-        putAskPmDir  = putAskP  / put_p  * 100 if put_p  > 0 else 50
+        # v4: directional-only denominators (Mid excluded).
+        callAskPmDir = callAskP / callDirP * 100 if callDirP > 0 else 50
+        putAskPmDir  = putAskP  / putDirP  * 100 if putDirP  > 0 else 50
         return clamp(round(50 + (callShare - 50)
                            + (callAskPmDir - 50) * 0.5
                            - (putAskPmDir - 50) * 0.5))
@@ -2751,7 +2760,11 @@ def _load_recipients():
 #   v1 — base weighted composite (0.40 Tech + 0.35 Flow + 0.25 Breadth)
 #   v2 — dynamic Flow weight by directional share (phase 3.1)
 #   v3 — contradiction penalty: Trend↔Breadth opposite extremes → −10 (phase 3.3)
-FORMULA_VERSION = 'v3'
+#   v4 — Flow Ask-aggression denominators exclude Mid (directional only),
+#        matching overview-prod.js. Fixes high-Mid days where the old
+#        Mid-included denominator diluted the signal (07-02: 54 → 40).
+#        Changes the Flow score and therefore Combined.
+FORMULA_VERSION = 'v4'
 
 
 def _append_scores_history():

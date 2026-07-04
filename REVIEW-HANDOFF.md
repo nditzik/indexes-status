@@ -14,7 +14,7 @@ frozen. Daily email: `.github/workflows/send_report.py`.
 | # | Finding (from the review) | Fix shipped | Phase | Key commits |
 |---|---|---|---|---|
 | 1 | Too many competing "bottom line" engines | Single **verdict pipeline** (`v2/verdict.js`) on the main screen; all others moved to drill-down tabs | 1.2 | `64dea6c`, `149ee53` |
-| 2 | Fixed Flow weight on low-quality data | **Dynamic Flow weight** by directional share + **contradiction penalty** | 3.1, 3.3 | `c009879`, `b6f5f7f` |
+| 2 | Fixed Flow weight on low-quality data | **Dynamic Flow weight** by directional share + **contradiction penalty**; **v4** Flow Ask-aggression denominators exclude Mid (align Python↔JS; fixed 54→40 on high-Mid 07-02) | 3.1, 3.3 | `c009879`, `b6f5f7f` |
 | 3 | No score history / no forward tracking | Append-only **`scores_history.json`** + **`score_forward.json`** + distribution table | 2.4, 3.4 | `ecb1ec6`, `a050c82` |
 | 4 | Fragile filenames (silent data loss) | **Filename normalization** on ingest + **missing-day email alert** | 2.1, 2.2 | `10d7a79`, `f9bfa86` |
 | 5 | Monolith + dual JS/Python implementation | **Single source of truth** — Python emits `daily_state.json`, browser renders it | 3.0 | `2c543b2`, `de8e803`, `8ded118`, `9a0bcf2` |
