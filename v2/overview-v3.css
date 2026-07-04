@@ -142,6 +142,28 @@
 .v3-recs {
     margin-bottom: 14px;
 }
+/* Phase 4c — Action Zone (leading-sector movers) */
+.v3-action-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 4px;
+    border-bottom: 1px solid #f1f5f9;
+}
+.v3-action-row:last-of-type { border-bottom: none; }
+.v3-action-sym {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    font-size: 14px;
+    color: #1a202c;
+    min-width: 58px;
+}
+.v3-action-sector { font-size: 12px; color: #4a5568; font-weight: 600; }
+.v3-action-meta { font-size: 11px; color: #a0aec0; margin-right: auto; }
+.v3-action-chg { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; }
+.v3-action-chg.v3-pos { color: #10b981; }
+.v3-action-chg.v3-neg { color: #ef4444; }
+
 /* Phase 4b — Evidence Zone (4 cards + sparklines) */
 .v3-evidence {
     display: grid;

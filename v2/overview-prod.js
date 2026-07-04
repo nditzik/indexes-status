@@ -5289,6 +5289,7 @@ function renderV3Cards(metrics, phaseResult, data, hist, duration) {
     }
     renderV3Status(metrics, phaseResult);   // score panel only now
     renderV3Evidence(metrics, hist);        // phase 4b — 4 cards + sparklines
+    renderV3ActionZone(metrics, data);      // phase 4c — leading-sector movers
     renderV3TechCard(metrics);
     renderV3OptionsCard(metrics);
     renderV3SectorsCard(metrics, data && data.sectors);
@@ -5670,6 +5671,60 @@ function renderV3StocksCard(data) {
     };
     topEl.innerHTML = top5.map(s => li(s, 'v3-pos')).join('') || '<li class="v3-muted">אין מועמדות היום</li>';
     botEl.innerHTML = bot5.map(s => li(s, 'v3-neg')).join('') || '<li class="v3-muted">אין מניות חלשות בולטות</li>';
+}
+
+// ─── Action Zone — top movers from the LEADING sectors (phase 4c) ───
+// Reuses the hot-stock momentum score, but restricts to stocks whose
+// sector is among today's top-3 by average change — so the main screen
+// surfaces where leadership actually is. UOA badge is a placeholder
+// until phase 3.5 wires data/uoa_daily.json.
+function renderV3ActionZone(metrics, data) {
+    const el = document.getElementById('v3_actionList');
+    if (!el || !data || !data.today) return;
+    const sm = data.sectors || {};
+    const tickers = sm.tickers || {};
+    const codes = sm.codes || {};
+    const leading = new Set((metrics.sectors || []).slice()
+        .sort((a, b) => b.avgChg - a.avgChg).slice(0, 3).map(s => s.code));
+    const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(/[%+,]/g, '')); return Number.isFinite(n) ? n : null; };
+    const STRONG_RSI = new Set(['Above 70', 'New Above 70', 'Above 50', 'New Above 50']);
+    const stocks = data.today
+        .filter(r => r.Symbol && !String(r.Symbol).startsWith('$') && String(r.Symbol).trim() !== 'RSP')
+        .map(r => {
+            const sym = String(r.Symbol).trim();
+            const latest = num(r.Latest), ma200 = num(r['200D MA']), chg = num(r['%Change']);
+            const rvol = num(r['20D RelVol']) || 0, w52 = num(r['52W %/High']), alpha = num(r['Wtd Alpha']);
+            let m = 0;
+            if (latest != null && ma200 && latest > ma200) m += 30;
+            if (STRONG_RSI.has(String(r['RSI Rank'] || '').trim())) m += 25;
+            if (rvol > 1.2) m += 20;
+            if (chg != null && chg > 0) m += 15;
+            if (w52 != null && w52 >= -10) m += 10;
+            if (alpha != null && alpha >= 20) m += 10;
+            return { sym, chg, rvol, alpha, momentum: m, sector: tickers[sym] };
+        })
+        .filter(s => s.chg != null && Math.abs(s.chg) < 50 && s.sector && leading.has(s.sector));
+    const top = stocks.sort((a, b) => (b.momentum - a.momentum) || (b.chg - a.chg)).slice(0, 5);
+    if (!top.length) {
+        el.innerHTML = '<div class="v3-stocks-note">אין מועמדות בולטות מהסקטורים המובילים היום.</div>';
+        return;
+    }
+    const rows = top.map(s => {
+        const secName = codes[s.sector] || s.sector;
+        const badges = [];
+        if (s.rvol > 1.2) badges.push(`×${s.rvol.toFixed(1)}`);
+        if (s.alpha != null && Math.abs(s.alpha) >= 20) badges.push(`${s.alpha >= 0 ? '+' : ''}${Math.round(s.alpha)}α`);
+        // UOA badge slot (phase 3.5): metrics._uoa && metrics._uoa[s.sym] → כיוון
+        return `<div class="v3-action-row">
+            <span class="v3-action-sym">${s.sym}</span>
+            <span class="v3-action-sector">${secName}</span>
+            <span class="v3-action-meta">${badges.join(' · ')}</span>
+            <span class="v3-action-chg ${s.chg >= 0 ? 'v3-pos' : 'v3-neg'}">${s.chg >= 0 ? '+' : ''}${s.chg.toFixed(2)}%</span>
+        </div>`;
+    }).join('');
+    const leadNames = [...leading].map(c => codes[c] || c).join(' · ');
+    el.innerHTML = rows +
+        `<div class="v3-stocks-note">מהסקטורים המובילים היום: ${leadNames}. מומנטום = מעל MA200 + RSI חזק + נפח חריג + מנהיגות שנתית.</div>`;
 }
 
 function renderV3TrendCard() {
