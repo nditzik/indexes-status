@@ -280,6 +280,26 @@ historical_patterns_str = historical_patterns_text()
 # ═══════════════════════════════════════════════════
 hist_files = sorted_by_date(glob.glob('data/watchlist-sp-500-intraday-*.csv'), _WATCHLIST_DATE_RE)
 
+# ── Sectoral rotation (review fix 2 / Rotation v2) ───────────────────
+# Ticker → sector-code map, loaded once. Lets parse_history_day roll up
+# a per-sector average daily %change for every historical session, which
+# feeds real relative-strength-vs-$SPX (compute_sector_rs below). The old
+# rotation light used the EQ500-vs-SPX spread — that is a second *breadth*
+# measure, not rotation. This is true sector leadership.
+def _load_sector_map():
+    try:
+        sm = json.load(open('data/sectors.json', encoding='utf-8'))
+        return sm.get('tickers') or {}
+    except Exception:
+        return {}
+SECTOR_MAP = _load_sector_map()
+
+# Cyclical (risk-on) vs defensive (risk-off) sector codes. Rotation is
+# "healthy" (green) when cyclicals lead, "risk-off" (red) when the money
+# hides in defensives. Codes per data/sectors.json.
+CYCLICAL_SECTORS  = {'IT', 'FIN', 'CD', 'ENE', 'IND'}
+DEFENSIVE_SECTORS = {'UTL', 'CS', 'HC'}
+
 def parse_history_day(hf):
     """Parse one CSV → dict with the fields the narrative needs.
     Returns None if the file is unparseable or contains no stock rows."""
@@ -292,6 +312,7 @@ def parse_history_day(hf):
     stock_chgs = []
     total_stocks = 0
     above_ma200 = 0
+    sector_chgs = {}   # sector-code → [daily %change] (rotation v2)
     for r in rows:
         sym = (r.get('Symbol') or '').strip()
         if not sym: continue
@@ -308,6 +329,9 @@ def parse_history_day(hf):
         # Exclude split anomalies (see overview-prod.js note on RSP parity)
         if chg is not None and chg != 0 and abs(chg) < 50:
             stock_chgs.append(chg)
+            sec = SECTOR_MAP.get(sym)
+            if sec:
+                sector_chgs.setdefault(sec, []).append(chg)
         ma200 = num(r.get('200D MA'))
         total_stocks += 1
         if ma200 and latest > ma200:
@@ -339,6 +363,7 @@ def parse_history_day(hf):
         'spx_price':   num(spx_row.get('Latest'))  if spx_row else None,
         'spx_ma200':   num(spx_row.get('200D MA')) if spx_row else None,
         'pct_ma200':   above_ma200 / total_stocks * 100 if total_stocks else 0,
+        'sector_chg':  {s: sum(v) / len(v) for s, v in sector_chgs.items()},
     }
 
 history_rich = [d for d in (parse_history_day(hf) for hf in hist_files[-365:]) if d]
@@ -2213,29 +2238,119 @@ def _vol_light():
     return worst
 
 
-def compute_rotation_light():
-    """Breadth-of-leadership light (phase 3.2), from the 20-session
-    EQ500-minus-SPX spread. Equal-weight lagging the cap-weight index =
-    leadership narrowing to a few mega-caps (narrow rally) → warn/neg.
-    Equal-weight in line or ahead = broad participation → pos."""
+def compute_eq_spx_spread():
+    """20-session EQ500-minus-SPX spread (percentage points). This is a
+    *breadth* measure — equal-weight lagging cap-weight = leadership
+    narrowing to mega-caps. Moved out of the rotation light into the
+    Breadth evidence card (review fix 2). Returns None if too little
+    history."""
     h = history_rich
     if len(h) < 21:
-        return 'na'
+        return None
     spx_now, spx_20 = h[-1].get('spx_price'), h[-21].get('spx_price')
     if not spx_now or not spx_20:
-        return 'na'
+        return None
     spx_ret = (spx_now / spx_20 - 1) * 100
     eq = 1.0
     for d in h[-20:]:
         ac = d.get('avg_change')
         if ac is not None:
             eq *= (1 + ac / 100)
-    spread = (eq - 1) * 100 - spx_ret   # EQ500 minus SPX, 20 sessions
-    if spread <= -3:
-        return 'neg'    # cap-weight far ahead = narrow leadership
-    if spread <= -1:
-        return 'warn'
-    return 'pos'        # equal-weight in line or leading = broad
+    return round((eq - 1) * 100 - spx_ret, 2)   # EQ500 minus SPX, 20 sess
+
+
+def _spx_return(n):
+    """$SPX % return over the last n sessions (price[-1] / price[-1-n])."""
+    h = history_rich
+    if len(h) < n + 1:
+        return None
+    a, b = h[-1].get('spx_price'), h[-1 - n].get('spx_price')
+    return (a / b - 1) * 100 if (a and b) else None
+
+
+def _sector_return(code, n):
+    """Sector cumulative % return over the last n sessions, compounding
+    the per-day sector average change. Aligned with _spx_return: the n
+    daily changes in h[-n:] carry price from h[-1-n]'s close to h[-1]'s."""
+    h = history_rich
+    if len(h) < n + 1:
+        return None
+    r, seen = 1.0, 0
+    for d in h[-n:]:
+        sc = (d.get('sector_chg') or {}).get(code)
+        if sc is not None:
+            r *= (1 + sc / 100)
+            seen += 1
+    return (r - 1) * 100 if seen else None
+
+
+def compute_sector_rs():
+    """Per-sector relative strength vs $SPX on the 5- and 20-session
+    windows (review fix 2 / Rotation v2). RS = sector return − SPX return.
+    A sector is 'Leading' when RS > 0 on BOTH windows — real, persistent
+    outperformance, not a one-day pop. Returns {code: {rs5, rs20,
+    leading}} for every sector present in the history."""
+    s5, s20 = _spx_return(5), _spx_return(20)
+    codes = set()
+    for d in history_rich:
+        codes.update((d.get('sector_chg') or {}).keys())
+    out = {}
+    for code in codes:
+        r5, r20 = _sector_return(code, 5), _sector_return(code, 20)
+        rs5 = round(r5 - s5, 2) if (r5 is not None and s5 is not None) else None
+        rs20 = round(r20 - s20, 2) if (r20 is not None and s20 is not None) else None
+        out[code] = {
+            'rs5': rs5,
+            'rs20': rs20,
+            'leading': bool(rs5 is not None and rs5 > 0 and
+                            rs20 is not None and rs20 > 0),
+        }
+    return out
+
+
+def leading_sectors(sector_rs=None):
+    """Codes of Leading sectors (RS>0 on both windows), strongest first
+    by 20-session RS."""
+    rs = sector_rs if sector_rs is not None else compute_sector_rs()
+    lead = [(c, d) for c, d in rs.items() if d.get('leading')]
+    lead.sort(key=lambda cd: (cd[1].get('rs20') or 0), reverse=True)
+    return [c for c, _ in lead]
+
+
+def compute_rotation_series(n=20):
+    """Cumulative cyclical-minus-defensive daily-change spread over the
+    last n sessions (review fix 2). Rising = cyclicals pulling ahead of
+    defensives (risk-on rotation); falling = money rotating to safety.
+    Gives the Rotation evidence card a real time series to sparkline."""
+    h = history_rich[-n:]
+    out, cum = [], 0.0
+    for d in h:
+        sc = d.get('sector_chg') or {}
+        cyc = [sc[c] for c in CYCLICAL_SECTORS if c in sc]
+        dfn = [sc[c] for c in DEFENSIVE_SECTORS if c in sc]
+        if cyc and dfn:
+            cum += sum(cyc) / len(cyc) - sum(dfn) / len(dfn)
+        out.append(round(cum, 3))
+    return out
+
+
+def compute_rotation_light(sector_rs=None):
+    """TRUE sectoral-rotation light (review fix 2). Green when risk-on
+    leadership is broad (≥3 cyclical sectors Leading), red when the money
+    rotates into defensives (defensives lead and cyclicals do not),
+    yellow otherwise. Replaces the old EQ-vs-SPX spread, which was a
+    second breadth measure — that now lives in the Breadth card."""
+    rs = sector_rs if sector_rs is not None else compute_sector_rs()
+    lead = [c for c, d in rs.items() if d.get('leading')]
+    if not lead and len(history_rich) < 21:
+        return 'na'
+    cyc = sum(1 for c in lead if c in CYCLICAL_SECTORS)
+    dfn = sum(1 for c in lead if c in DEFENSIVE_SECTORS)
+    if cyc >= 3:
+        return 'pos'        # broad risk-on leadership → healthy rotation
+    if dfn >= 2 and cyc <= 1:
+        return 'neg'        # money hiding in defensives → risk-off rotation
+    return 'warn'
 
 
 def build_verdict_state():

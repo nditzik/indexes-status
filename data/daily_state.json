@@ -56,7 +56,97 @@
     "pctMa200": 64.7,
     "vix": 16.15,
     "nhCount": 132,
-    "nlCount": 90
+    "nlCount": 90,
+    "eqSpx20": 3.09
+  },
+  "rotation": {
+    "leadingSectors": [
+      "HC",
+      "FIN",
+      "CS",
+      "COM"
+    ],
+    "sectorRs": {
+      "FIN": {
+        "rs5": 4.32,
+        "rs20": 9.96,
+        "leading": true
+      },
+      "IND": {
+        "rs5": -1.09,
+        "rs20": 3.76,
+        "leading": false
+      },
+      "IT": {
+        "rs5": -2.72,
+        "rs20": -7.05,
+        "leading": false
+      },
+      "MAT": {
+        "rs5": -2.2,
+        "rs20": 0.13,
+        "leading": false
+      },
+      "CS": {
+        "rs5": 0.35,
+        "rs20": 6.03,
+        "leading": true
+      },
+      "RE": {
+        "rs5": -0.81,
+        "rs20": 4.32,
+        "leading": false
+      },
+      "CD": {
+        "rs5": -0.54,
+        "rs20": 4.99,
+        "leading": false
+      },
+      "HC": {
+        "rs5": 3.25,
+        "rs20": 11.38,
+        "leading": true
+      },
+      "COM": {
+        "rs5": 3.81,
+        "rs20": 0.32,
+        "leading": true
+      },
+      "ENE": {
+        "rs5": -5.83,
+        "rs20": -11.29,
+        "leading": false
+      },
+      "UTL": {
+        "rs5": -0.55,
+        "rs20": 7.45,
+        "leading": false
+      }
+    },
+    "cyclicalLeading": 1,
+    "defensiveLeading": 2,
+    "series": [
+      -0.547,
+      -3.767,
+      -2.794,
+      -3.459,
+      -5.062,
+      -3.646,
+      -3.593,
+      -3.047,
+      -3.407,
+      -2.988,
+      -2.724,
+      -2.29,
+      -4.634,
+      -5.641,
+      -5.973,
+      -7.653,
+      -6.949,
+      -5.295,
+      -6.066,
+      -8.19
+    ]
   },
   "verdict": {
     "headline": "השוק יציב — אך עם לחץ מכירות מצטבר, בזהירות",
@@ -67,7 +157,7 @@
       "trend": "pos",
       "breadth": "pos",
       "volatility": "pos",
-      "rotation": "pos"
+      "rotation": "neg"
     }
   },
   "narrative": {

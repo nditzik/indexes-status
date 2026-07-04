@@ -18,7 +18,7 @@ frozen. Daily email: `.github/workflows/send_report.py`.
 | 3 | No score history / no forward tracking | Append-only **`scores_history.json`** + **`score_forward.json`** + distribution table | 2.4, 3.4 | `ecb1ec6`, `a050c82` |
 | 4 | Fragile filenames (silent data loss) | **Filename normalization** on ingest + **missing-day email alert** | 2.1, 2.2 | `10d7a79`, `f9bfa86` |
 | 5 | Monolith + dual JS/Python implementation | **Single source of truth** — Python emits `daily_state.json`, browser renders it | 3.0 | `2c543b2`, `de8e803`, `8ded118`, `9a0bcf2` |
-| 6 | Missing VIX3M & Rotation signal | **VIX3M + term-structure** in the volatility light; **Rotation light** (EQ‑vs‑SPX) | 2.3, 3.2 | `8032696`, `00820b5` |
+| 6 | Missing VIX3M & Rotation signal | **VIX3M + term-structure** in the volatility light; **Rotation light** — now TRUE sectoral relative-strength vs $SPX (review fix 2; the EQ‑vs‑SPX spread it replaced was a second breadth measure, moved to the Breadth card) | 2.3, 3.2 | `8032696`, `00820b5` |
 | 7 | Operational reliability (cache-bust) | Manual `?v=` cache-busting on every JS/CSS change (Chart.js local copy deferred) | 1/4 | (throughout) |
 | 8 | Dead / legacy code | **Froze** `index.html`; **deleted** dead files + `prototypes/`, `handoff/` | 1.1 | `e61d255` |
 | + | **New data: UOA (single-stock unusual options)** | Ingest → `uoa_daily.json` + per-stock **Action Zone badge** | 2.5, 3.5 | `7f663ae` |
@@ -69,9 +69,19 @@ frozen. Daily email: `.github/workflows/send_report.py`.
     dashboard via `daily_state.json` with **no JS edit**.
 - **3.1** Dynamic Flow weight: `wFlow = 0.35 × directionalShare`; freed weight
   re-normalizes to Tech + Breadth. Shown in the flow card.
-- **3.2** **Rotation light** (20-session EQ500‑minus‑SPX spread) + **VIX term
-  structure** folded into the volatility light. `send_report` reads
-  `live_ticker.json` for the ratio.
+- **3.2** **Rotation light** + **VIX term structure** folded into the volatility
+  light. `send_report` reads `live_ticker.json` for the ratio.
+  - **Rotation v2 (review fix 2):** the light is now **true sectoral rotation** —
+    per-sector relative strength vs `$SPX` on the 5- and 20-session windows
+    (`compute_sector_rs`); a sector is **Leading** when RS > 0 on *both*. Green
+    when ≥3 **cyclical** sectors (IT/FIN/CD/ENE/IND) lead, red when **defensives**
+    (UTL/CS/HC) lead and cyclicals do not, yellow otherwise. The old
+    EQ500‑minus‑SPX 20d spread was really a second *breadth* measure — it moved
+    into the **Breadth** evidence card (`evidence.eqSpx20`). The **Action Zone**
+    and **UOA confirmation** card now pick from the persistent Leading set
+    (`daily_state.rotation.leadingSectors`) instead of "top-3 by today's move".
+    All computed in Python → `daily_state.json` (`rotation.{leadingSectors,
+    sectorRs, cyclicalLeading, defensiveLeading, series}`); JS only renders.
 - **3.3** **Contradiction penalty:** Trend green + Breadth red (or vice-versa) →
   −10 on the combined score + "עלייה צרה — הציון נחתך" in the verdict.
 - **3.4** `scripts/build_score_forward.py` → `data/score_forward.json` (actual 5d/20d
@@ -83,7 +93,8 @@ frozen. Daily email: `.github/workflows/send_report.py`.
 - **4b** **Evidence Zone** — 4 cards (Trend/Breadth/Volatility/Rotation), each with
   2–3 numbers **+ a decision threshold beside every number** and a Chart.js
   sparkline (from loaded history).
-- **4c** **Action Zone** — up to 5 movers from today's **top-3 sectors**, with
+- **4c** **Action Zone** — up to 5 movers from the **persistent Leading sectors**
+  (review fix 2: RS>0 vs $SPX on 5d+20d, from `daily_state.rotation`), with
   momentum + sector + UOA badge.
 - **4.2** Email leads with the same verdict → lights → dashboard link.
 

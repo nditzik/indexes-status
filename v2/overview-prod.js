@@ -5023,6 +5023,7 @@ async function init() {
             metrics._flowWeight = dailyState.flowWeight || null;   // phase 3.1
             metrics._vixTermRatio = dailyState.vixTermRatio;       // phase 4b
             metrics._evidence = dailyState.evidence || null;      // phase 4b
+            metrics._rotation = dailyState.rotation || null;      // review fix 2 (Rotation v2)
         }
 
         const phaseResult = Regime.classifyPhase({
@@ -5245,6 +5246,15 @@ function renderV3Evidence(metrics, hist) {
     if (ev.nhCount != null && ev.nlCount != null) {
         html += num('שיאים / שפלים', `${ev.nhCount} / ${ev.nlCount}`, 'שיאים > שפלים = חיובי', ev.nhCount > ev.nlCount ? 'v3-pos' : 'v3-neg');
     }
+    // Review fix 2 — the EQ500-vs-SPX 20d spread is a breadth measure
+    // (equal-weight vs cap-weight participation), so it lives here now,
+    // not in the Rotation card. From daily_state (single source), with a
+    // fallback to the JS-computed series.
+    const eqSpx = (ev.eqSpx20 != null) ? ev.eqSpx20
+        : (spread.length ? spread[spread.length - 1] : null);
+    if (eqSpx != null) {
+        html += num('פער EQ-SPX (20 ימים)', `${eqSpx >= 0 ? '+' : ''}${eqSpx.toFixed(1)}%`, '>0 השתתפות רחבה · <-1% צר', eqSpx >= 0 ? 'v3-pos' : eqSpx > -1 ? 'v3-warn' : 'v3-neg');
+    }
     put('v3_evBreadth', html);
     _drawSpark('v3_evSparkBreadth', brd, _lightColor(lights.breadth));
 
@@ -5261,15 +5271,26 @@ function renderV3Evidence(metrics, hist) {
     put('v3_evVol', html);
     _drawSpark('v3_evSparkVol', vixS, _lightColor(lights.volatility));
 
-    // Rotation
+    // Rotation — review fix 2: TRUE sectoral rotation (cyclical vs
+    // defensive leadership) from daily_state, not the old EQ-SPX spread.
     setDot('v3_evDotRot', lights.rotation);
-    if (spread.length) {
-        const s = spread[spread.length - 1];
-        put('v3_evRot', num('פער EQ-SPX (20 ימים)', `${s >= 0 ? '+' : ''}${s.toFixed(1)}%`, '>0 רחב · <-1% צר', s >= 0 ? 'v3-pos' : s > -1 ? 'v3-warn' : 'v3-neg'));
+    const rot = metrics._rotation;
+    if (rot && Array.isArray(rot.leadingSectors)) {
+        const cd = (data && data.sectors && data.sectors.codes) || {};
+        const cyc = rot.cyclicalLeading || 0, def = rot.defensiveLeading || 0;
+        let rHtml = num('סקטורים מחזוריים מובילים', String(cyc), '3+ = רוטציה בריאה',
+            cyc >= 3 ? 'v3-pos' : (def >= 2 && cyc <= 1) ? 'v3-neg' : 'v3-warn');
+        rHtml += num('סקטורים דפנסיביים מובילים', String(def), 'הובלה דפנסיבית = סיכון-off',
+            def >= 2 && cyc <= 1 ? 'v3-neg' : 'v3-warn');
+        const names = (rot.leadingSectors || []).map(c => cd[c] || c).join(' · ') || '—';
+        rHtml += `<div class="v3-ev-num"><span class="v3-ev-num-label">מובילים</span>`
+            + `<span class="v3-ev-num-thr" style="text-align:right">${names}</span></div>`;
+        put('v3_evRot', rHtml);
     } else {
         put('v3_evRot', '<div class="v3-ev-num"><span class="v3-ev-num-thr">אין מספיק היסטוריה</span></div>');
     }
-    _drawSpark('v3_evSparkRot', spread, _lightColor(lights.rotation));
+    const rotSeries = (rot && Array.isArray(rot.series)) ? rot.series : [];
+    _drawSpark('v3_evSparkRot', rotSeries, _lightColor(lights.rotation));
 }
 
 function renderV3Cards(metrics, phaseResult, data, hist, duration) {
@@ -5698,14 +5719,26 @@ function renderV3StocksCard(data) {
 // sector is among today's top-3 by average change — so the main screen
 // surfaces where leadership actually is. UOA badge is a placeholder
 // until phase 3.5 wires data/uoa_daily.json.
+//
+// Leading sectors — review fix 2 (Rotation v2): prefer the persistent
+// Leading set from data/daily_state.json (RS>0 vs $SPX on BOTH 5d & 20d),
+// so the Action Zone tracks real, durable leadership instead of "whoever
+// popped today". Falls back to top-3-by-today's-move if daily_state is
+// missing/stale (matches the scores fallback in init()).
+function v3LeadingSet(metrics) {
+    const lead = metrics._rotation && metrics._rotation.leadingSectors;
+    if (Array.isArray(lead) && lead.length) return new Set(lead);
+    return new Set((metrics.sectors || []).slice()
+        .sort((a, b) => b.avgChg - a.avgChg).slice(0, 3).map(s => s.code));
+}
 function renderV3ActionZone(metrics, data) {
     const el = document.getElementById('v3_actionList');
     if (!el || !data || !data.today) return;
     const sm = data.sectors || {};
     const tickers = sm.tickers || {};
     const codes = sm.codes || {};
-    const leading = new Set((metrics.sectors || []).slice()
-        .sort((a, b) => b.avgChg - a.avgChg).slice(0, 3).map(s => s.code));
+    const leading = v3LeadingSet(metrics);
+    const persistent = !!(metrics._rotation && (metrics._rotation.leadingSectors || []).length);
     const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(/[%+,]/g, '')); return Number.isFinite(n) ? n : null; };
     const STRONG_RSI = new Set(['Above 70', 'New Above 70', 'Above 50', 'New Above 50']);
     const stocks = data.today
@@ -5726,7 +5759,7 @@ function renderV3ActionZone(metrics, data) {
         .filter(s => s.chg != null && Math.abs(s.chg) < 50 && s.sector && leading.has(s.sector));
     const top = stocks.sort((a, b) => (b.momentum - a.momentum) || (b.chg - a.chg)).slice(0, 5);
     if (!top.length) {
-        el.innerHTML = '<div class="v3-stocks-note">אין מועמדות בולטות מהסקטורים המובילים היום.</div>';
+        el.innerHTML = '<div class="v3-stocks-note">אין מועמדות בולטות מהסקטורים המובילים.</div>';
         return;
     }
     const uoaMap = (metrics._uoa && metrics._uoa.symbols) || {};
@@ -5752,8 +5785,11 @@ function renderV3ActionZone(metrics, data) {
         </div>`;
     }).join('');
     const leadNames = [...leading].map(c => codes[c] || c).join(' · ');
+    const leadLabel = persistent
+        ? `סקטורים מובילים (עוצמה יחסית מול S&P על 5 ו-20 ימים): ${leadNames}`
+        : `מהסקטורים המובילים היום: ${leadNames}`;
     el.innerHTML = rows +
-        `<div class="v3-stocks-note">מהסקטורים המובילים היום: ${leadNames}. מומנטום = מעל MA200 + RSI חזק + נפח חריג + מנהיגות שנתית.</div>`;
+        `<div class="v3-stocks-note">${leadLabel}. מומנטום = מעל MA200 + RSI חזק + נפח חריג + מנהיגות שנתית.</div>`;
 }
 
 // ─── UOA confirmation / divergence (phase 2.5b) ─────────────────────
@@ -5768,8 +5804,7 @@ function renderV3UoaConfirmation(metrics, data) {
     if (!Object.keys(uoa).length) { el.style.display = 'none'; return; }
     el.style.display = '';
     const sm = data.sectors || {}, tk = sm.tickers || {}, cd = sm.codes || {};
-    const leading = new Set((metrics.sectors || []).slice()
-        .sort((a, b) => b.avgChg - a.avgChg).slice(0, 3).map(s => s.code));
+    const leading = v3LeadingSet(metrics);   // review fix 2 — persistent RS leaders
     const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(/[%+,]/g, '')); return Number.isFinite(n) ? n : null; };
     const strength = {};
     for (const r of (data.today || [])) {
@@ -5802,7 +5837,7 @@ function renderV3UoaConfirmation(metrics, data) {
             <div class="v3-uoa-head v3-neg">⚠️ סתירה — Puts על מניה חזקה בסקטור מוביל (${diverge.length})</div>
             ${diverge.slice(0, 8).map(r => row(r, 'v3-neg')).join('') || '<div class="v3-stocks-note">אין סתירות — הכסף החכם מאשר את החוזק</div>'}
         </div>
-        <div class="v3-stocks-note">רק מניות מעל MA200 בסקטורים המובילים היום. סתירה = Puts חריגים על מניה חזקה — הכסף הגדול מהמר נגד.</div>`;
+        <div class="v3-stocks-note">רק מניות מעל MA200 בסקטורים המובילים (עוצמה יחסית מתמשכת מול S&P). סתירה = Puts חריגים על מניה חזקה — הכסף הגדול מהמר נגד.</div>`;
 }
 
 function renderV3TrendCard() {

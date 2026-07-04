@@ -19,6 +19,9 @@ import send_report as sr   # importing computes everything; sends nothing
 def build_state():
     date = sr.history_rich[-1]['date'] if sr.history_rich else None
     verdict = sr.build_verdict_state()
+    # Rotation v2 (review fix 2): real sector relative-strength vs $SPX.
+    sector_rs = sr.compute_sector_rs()
+    leading = sr.leading_sectors(sector_rs)
     return {
         'date': date,
         'formulaVersion': sr.FORMULA_VERSION,
@@ -48,6 +51,18 @@ def build_state():
             'vix': sr.vix,
             'nhCount': getattr(sr, 'nh', None),
             'nlCount': getattr(sr, 'nl', None),
+            'eqSpx20': sr.compute_eq_spx_spread(),   # review fix 2 → Breadth card
+        },
+        # Rotation v2 (review fix 2): the dashboard's Action Zone + UOA
+        # confirmation card pick from persistent Leading sectors instead
+        # of "top-3 by today's move", and the Rotation evidence card shows
+        # cyclical-vs-defensive leadership. JS renders these; no JS logic.
+        'rotation': {
+            'leadingSectors': leading,
+            'sectorRs': sector_rs,
+            'cyclicalLeading': sum(1 for c in leading if c in sr.CYCLICAL_SECTORS),
+            'defensiveLeading': sum(1 for c in leading if c in sr.DEFENSIVE_SECTORS),
+            'series': sr.compute_rotation_series(),   # cyclical−defensive momentum sparkline
         },
         'verdict': verdict,   # {headline, subline, tone, emoji, lights}
         'narrative': {
