@@ -636,6 +636,12 @@ f_score = flow['score'] if flow else None
 #  m_score (market health) is kept as a separate narrative input,
 #  not part of Combined any more.
 # ═══════════════════════════════════════════════════
+def _score_light(s):
+    if s is None:
+        return 'na'
+    return 'pos' if s >= 60 else 'warn' if s >= 40 else 'neg'
+
+
 def combined():
     # Phase 3.1 — dynamic Flow weight. When most premium sits in Mid
     # (dealers/blocks, non-directional) the Flow score is less trustworthy,
@@ -650,10 +656,17 @@ def combined():
     if t_score is not None: num_ += w['t']*t_score; den += w['t']
     if f_score is not None: num_ += w['f']*f_score; den += w['f']
     if b_score is not None: num_ += w['b']*b_score; den += w['b']
-    if den == 0: return None
-    return clamp(round(num_/den))
+    if den == 0:
+        return None, 0
+    raw = num_ / den
+    # Phase 3.3 — contradiction penalty. Trend green while Breadth red
+    # (or vice versa) = a narrow rally the blended score alone hides.
+    # Dock a flat 10 points and flag it in the verdict.
+    penalty = 10 if {_score_light(t_score), _score_light(b_score)} == {'pos', 'neg'} else 0
+    return clamp(round(raw - penalty)), penalty
 
-c_score = combined()
+
+c_score, contradiction_penalty = combined()
 
 # Effective Flow weight — surfaced in daily_state so the dashboard's flow
 # card can show "משקל Flow היום: X% (Y% מהפרמיה ב-Mid)".
@@ -2178,12 +2191,8 @@ s_risk_off_html = risk_off_block_html()
 
 # ─── Verdict — Python mirror of v2/verdict.js buildVerdict ────────────
 # Single source for BOTH the email banner and data/daily_state.json.
-def _score_light(s):
-    if s is None:
-        return 'na'
-    return 'pos' if s >= 60 else 'warn' if s >= 40 else 'neg'
-
-
+# (_score_light is defined up by combined(), which needs it for the
+#  contradiction penalty.)
 def _vol_light():
     # VIX level + 1-day move …
     base = 'na'
@@ -2268,6 +2277,9 @@ def build_verdict_state():
         subline = f'ציון משולב {c}/100 · אינדיקטורים מבניים מצטברים שליליים'
     if phase_label_now and phase_label_now != 'לא ידוע' and phase_label_now not in subline:
         subline = (subline + ' · ' if subline else '') + phase_label_now
+    # Phase 3.3 — surface the contradiction penalty in the bottom line.
+    if contradiction_penalty:
+        subline = (subline + ' · ' if subline else '') + f'עלייה צרה — הציון נחתך {contradiction_penalty} נק׳'
     return {
         'headline': headline, 'subline': subline, 'tone': tone, 'emoji': emoji,
         'lights': {
@@ -2424,7 +2436,7 @@ def _load_recipients():
 # Formula version stamp for the append-only history. Bump on any scoring
 # change (never rewrite past rows). Module-level so build_daily_state can
 # import it. See phase-2.4 / phase-3.0.
-FORMULA_VERSION = 'v2'   # v2: dynamic Flow weight by directional share (phase 3.1)
+FORMULA_VERSION = 'v3'   # v2: dynamic Flow weight (3.1); v3: contradiction penalty (3.3)
 
 
 def _append_scores_history():
