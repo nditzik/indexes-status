@@ -94,6 +94,20 @@ vix_chg_pct = num(vix_row.get('%Change')) if vix_row else None
 dxy = num(dxy_row.get('Latest')) if dxy_row else None
 tnx = num(tnx_row.get('Latest')) if tnx_row else None
 
+
+def _load_vix_term_ratio():
+    """VIX / VIX3M term-structure ratio from the server-fetched live
+    ticker (phase 2.3). >=1 = backwardation (acute near-term stress).
+    Feeds the volatility light — phase 3.2."""
+    try:
+        with open('data/live_ticker.json', encoding='utf-8') as f:
+            return json.load(f).get('vixTermRatio')
+    except Exception:
+        return None
+
+
+vix_term_ratio = _load_vix_term_ratio()
+
 # Non-macro stocks
 stocks = []
 for row in all_rows:
@@ -2171,13 +2185,48 @@ def _score_light(s):
 
 
 def _vol_light():
-    if not vix:
+    # VIX level + 1-day move …
+    base = 'na'
+    if vix:
+        if vix >= 25 or (vix_chg_pct is not None and vix_chg_pct >= 25):
+            base = 'neg'
+        elif vix >= 20 or (vix_chg_pct is not None and vix_chg_pct >= 10):
+            base = 'warn'
+        else:
+            base = 'pos'
+    # … combined with the VIX term structure (phase 3.2): backwardation
+    # (VIX/VIX3M >= 1) = acute near-term fear; 0.9-1.0 = flattening.
+    term = 'na'
+    if vix_term_ratio is not None:
+        term = 'neg' if vix_term_ratio >= 1.0 else 'warn' if vix_term_ratio >= 0.9 else 'pos'
+    order = {'na': -1, 'pos': 0, 'warn': 1, 'neg': 2}
+    worst = max((base, term), key=lambda x: order[x])
+    return worst
+
+
+def compute_rotation_light():
+    """Breadth-of-leadership light (phase 3.2), from the 20-session
+    EQ500-minus-SPX spread. Equal-weight lagging the cap-weight index =
+    leadership narrowing to a few mega-caps (narrow rally) → warn/neg.
+    Equal-weight in line or ahead = broad participation → pos."""
+    h = history_rich
+    if len(h) < 21:
         return 'na'
-    if vix >= 25 or (vix_chg_pct is not None and vix_chg_pct >= 25):
-        return 'neg'
-    if vix >= 20 or (vix_chg_pct is not None and vix_chg_pct >= 10):
+    spx_now, spx_20 = h[-1].get('spx_price'), h[-21].get('spx_price')
+    if not spx_now or not spx_20:
+        return 'na'
+    spx_ret = (spx_now / spx_20 - 1) * 100
+    eq = 1.0
+    for d in h[-20:]:
+        ac = d.get('avg_change')
+        if ac is not None:
+            eq *= (1 + ac / 100)
+    spread = (eq - 1) * 100 - spx_ret   # EQ500 minus SPX, 20 sessions
+    if spread <= -3:
+        return 'neg'    # cap-weight far ahead = narrow leadership
+    if spread <= -1:
         return 'warn'
-    return 'pos'
+    return 'pos'        # equal-weight in line or leading = broad
 
 
 def build_verdict_state():
@@ -2225,7 +2274,7 @@ def build_verdict_state():
             'trend': _score_light(t_score),
             'breadth': _score_light(b_score),
             'volatility': _vol_light(),
-            'rotation': 'na',
+            'rotation': compute_rotation_light(),
         },
     }
 

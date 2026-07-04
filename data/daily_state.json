@@ -58,7 +58,7 @@
       "trend": "pos",
       "breadth": "pos",
       "volatility": "pos",
-      "rotation": "na"
+      "rotation": "pos"
     }
   },
   "narrative": {
