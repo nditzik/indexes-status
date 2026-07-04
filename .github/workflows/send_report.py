@@ -2291,10 +2291,22 @@ def build_verdict_state():
     }
 
 
+DASHBOARD_URL = 'https://nditzik.github.io/indexes-status/index-v3.html'
+_LIGHT_EMOJI = {'pos': '🟢', 'warn': '🟡', 'neg': '🔴', 'na': '⚪'}
+_LIGHT_LABEL = {'trend': 'מגמה', 'breadth': 'רוחב', 'volatility': 'תנודתיות', 'rotation': 'רוטציה'}
+
+
 def build_verdict_banner():
     v = build_verdict_state()
     headline, subline, tone, emoji = v['headline'], v['subline'], v['tone'], v['emoji']
     color = {'pos': '#10b981', 'warn': '#f59e0b', 'neg': '#ef4444'}[tone]
+    lights = v.get('lights', {})
+    # Phase 4.2 — mirror the dashboard's Verdict layout: lights row + a
+    # link to the full dashboard, under the headline.
+    lights_html = ' &nbsp; '.join(
+        f"{_LIGHT_EMOJI.get(lights.get(k, 'na'), '⚪')} {_LIGHT_LABEL[k]}"
+        for k in ('trend', 'breadth', 'volatility', 'rotation')
+    )
     return f"""
 <div dir="rtl" style="{CARD}padding:16px 20px;margin-bottom:12px;border-right:4px solid {color};text-align:right;direction:rtl;">
   <div style="display:flex;align-items:center;gap:10px;text-align:right;direction:rtl;">
@@ -2302,6 +2314,10 @@ def build_verdict_banner():
     <span style="font-size:17px;font-weight:800;color:{color};line-height:1.25;">{headline}</span>
   </div>
   <div style="font-size:12px;color:#718096;margin-top:6px;text-align:right;">{subline}</div>
+  <div style="font-size:13px;margin-top:10px;text-align:right;direction:rtl;">{lights_html}</div>
+  <div style="margin-top:12px;text-align:right;">
+    <a href="{DASHBOARD_URL}" style="display:inline-block;background:{color};color:#fff;font-size:12px;font-weight:700;text-decoration:none;padding:8px 16px;border-radius:6px;">לדשבורד המלא ←</a>
+  </div>
 </div>
 """
 
