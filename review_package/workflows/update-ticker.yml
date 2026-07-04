@@ -1,0 +1,51 @@
+name: Update live ticker (server-side fetch)
+
+# Runs every 5 minutes during US trading hours Mon-Fri (UTC).
+# Public CORS proxies are unreliable, so we fetch Yahoo from GitHub's
+# own runners and write the result to data/live_ticker.json. The
+# dashboard reads same-origin — no CORS layer at all.
+#
+# Coverage: 13:00–20:55 UTC, Mon-Fri. Cron may run a few minutes late,
+# which is fine for a ticker checked once every few minutes by humans.
+
+on:
+  schedule:
+    - cron: '*/5 13-20 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-ticker:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: update-ticker
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch live ticker
+        id: fetch
+        # Exit codes from fetch_ticker.py:
+        #   0 — values changed, write + commit
+        #   1 — all symbols failed (file left as-is, fail loudly)
+        #   2 — wiggle below threshold, file updated but skip commit
+        # `continue-on-error` lets us inspect the code without failing
+        # the workflow when 2 is returned.
+        continue-on-error: true
+        run: |
+          python3 scripts/fetch_ticker.py
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+
+      - name: Commit + push (if changed)
+        if: steps.fetch.outputs.exit_code == '0'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/live_ticker.json
+          git diff --staged --quiet || git commit -m "Live ticker update"
+          # Pull-rebase in case the manual daily workflow committed
+          # while we were running.
+          git pull --rebase --autostash origin main
+          git push

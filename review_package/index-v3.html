@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>סטטוס יומי · S&P 500</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"
+            integrity="sha384-FcQlsUOd0TJjROrBxhJdUhXTUgNJQxTMcxZe6nHbaEfFL1zjQ+bq/uRoBQxb0KMo"
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+    <!-- Production stylesheet — legacy renderers fire into legacy IDs inside the tabs -->
+    <link rel="stylesheet" href="v2/overview-prod.css?v=20260619d">
+    <link rel="stylesheet" href="v2/overview-v3.css?v=20260619d">
+</head>
+<body class="overview-prod-root v3-body">
+
+<div id="ov2_loading" class="ov2-loading">
+    <div class="ov2-loading-dot"></div>
+    <div class="ov2-loading-dot"></div>
+    <div class="ov2-loading-dot"></div>
+</div>
+
+<div class="v3-root" id="v3_root" style="display:none;">
+
+    <!-- ═══ HEADER ═══ -->
+    <header class="v3-header">
+        <div class="v3-header-inner">
+            <div class="v3-header-brand">
+                <img src="logo.png" alt="" class="v3-header-logo">
+                <span class="v3-header-title">סטטוס יומי · שוק אמריקאי · S&amp;P 500</span>
+            </div>
+            <div class="v3-header-meta">
+                <span id="v3_dateLabel">—</span>
+                <a class="v3-header-link" href="index.html">גרסה ישנה ←</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- ═══ LIVE TICKER (always visible) ═══ -->
+    <div class="ov2-ticker v3-ticker">
+        <div class="ov2-ticker-label">
+            <span class="ov2-ticker-pulse"></span>
+            שווקים חיים
+        </div>
+        <div class="ov2-ticker-items">
+            <div class="ov2-ticker-item" data-tooltip="SPY · ה-ETF של S&P 500">
+                <span class="ov2-ticker-name">SPY · S&amp;P 500</span>
+                <span class="ov2-ticker-val" id="ov2_tkSPY">—</span>
+                <span class="ov2-ticker-chg" id="ov2_tkSPYChg">—</span>
+            </div>
+            <div class="ov2-ticker-item" data-tooltip="QQQ · ה-ETF של ה-NASDAQ 100">
+                <span class="ov2-ticker-name">QQQ · NASDAQ</span>
+                <span class="ov2-ticker-val" id="ov2_tkNDX">—</span>
+                <span class="ov2-ticker-chg" id="ov2_tkNDXChg">—</span>
+            </div>
+            <div class="ov2-ticker-item" data-tooltip="DIA · ה-ETF של ה-Dow Jones">
+                <span class="ov2-ticker-name">DIA · DOW</span>
+                <span class="ov2-ticker-val" id="ov2_tkDJI">—</span>
+                <span class="ov2-ticker-chg" id="ov2_tkDJIChg">—</span>
+            </div>
+            <div class="ov2-ticker-item" data-tooltip="IWM · ה-ETF של ה-Russell 2000">
+                <span class="ov2-ticker-name">IWM · Russell 2000</span>
+                <span class="ov2-ticker-val" id="ov2_tkRUT">—</span>
+                <span class="ov2-ticker-chg" id="ov2_tkRUTChg">—</span>
+            </div>
+            <div class="ov2-ticker-item" data-tooltip="מדד הפחד — תנודתיות צפויה ל-30 הימים הקרובים. מתחת 15 רגוע, מעל 25 לחוץ">
+                <span class="ov2-ticker-name">VIX · מדד הפחד</span>
+                <span class="ov2-ticker-val" id="ov2_tkVIX">—</span>
+                <span class="ov2-ticker-chg" id="ov2_tkVIXChg">—</span>
+            </div>
+            <div class="ov2-ticker-item" data-tooltip="תשואת אג&quot;ח ממשלת ארה&quot;ב ל-10 שנים — עלייה חדה מכבידה על מניות">
+                <span class="ov2-ticker-name">אג"ח 10 שנים</span>
+                <span class="ov2-ticker-val" id="ov2_tkTNX">—</span>
+                <span class="ov2-ticker-chg" id="ov2_tkTNXChg">—</span>
+            </div>
+            <div class="ov2-ticker-item" data-tooltip="DXY — מדד הדולר מול סל מטבעות. דולר חזק = רוח נגדית לרווחי חברות">
+                <span class="ov2-ticker-name">DXY · מדד הדולר</span>
+                <span class="ov2-ticker-val" id="ov2_tkDXY">—</span>
+                <span class="ov2-ticker-chg" id="ov2_tkDXYChg">—</span>
+            </div>
+        </div>
+        <div class="ov2-ticker-time">
+            עודכן <span id="ov2_tkUpdated">—</span>
+        </div>
+    </div>
+
+    <!-- ═══ RISK-OFF BANNER (always visible when active) ═══ -->
+    <div class="ov2-risk-off" id="ov2_riskOff" style="display:none;">
+        <div class="ov2-risk-off-head">
+            <span class="ov2-risk-off-icon" id="ov2_riskOffIcon">🚨</span>
+            <span class="ov2-risk-off-title" id="ov2_riskOffTitle">יום מסוכן בשוק</span>
+        </div>
+        <ul class="ov2-risk-off-list" id="ov2_riskOffList"></ul>
+        <div class="ov2-risk-off-days" id="ov2_riskOffDays" style="display:none;"></div>
+        <div class="ov2-risk-off-action" id="ov2_riskOffAction"><b>המשמעות:</b> לא מוסיפים קניות עד שהשוק נרגע. פירוט בהמלצות למטה.</div>
+        <div class="ov2-risk-off-live" id="ov2_riskOffLive" style="display:none;"></div>
+        <div class="ov2-risk-off-note" id="ov2_riskOffNote">למה הציון הכללי כמעט לא זז? כי הוא מודד את התמונה הגדולה (המגמה) — הבאנר הזה מתריע על האירוע של היום.</div>
+    </div>
+
+    <!-- ═══ TAB NAV ═══ -->
+    <nav class="v3-tabs" id="v3_tabs">
+        <button class="v3-tab-btn v3-tab-active" data-tab="main">ראשי</button>
+        <button class="v3-tab-btn" data-tab="tech">טכני</button>
+        <button class="v3-tab-btn" data-tab="options">אופציות</button>
+        <button class="v3-tab-btn" data-tab="sectors">סקטורים ומניות</button>
+        <button class="v3-tab-btn" data-tab="knn">מגמה (KNN)</button>
+    </nav>
+
+    <!-- ════════════════ TAB 1: ראשי ════════════════ -->
+    <section class="v3-tab-panel v3-tab-panel-active" id="v3_tab_main">
+
+        <!-- 1. סטטוס השוק -->
+        <div class="v3-status" id="v3_status" data-tone="">
+            <div class="v3-status-main">
+                <div class="v3-status-icon" id="v3_blIcon">⚪</div>
+                <div class="v3-status-text">
+                    <div class="v3-bottom-line-headline" id="v3_blHeadline">—</div>
+                    <div class="v3-bottom-line-sub" id="v3_blSub">—</div>
+                </div>
+                <div class="v3-status-score">
+                    <div class="v3-score-big" id="v3_scoreBig">—</div>
+                    <div class="v3-status-score-meta">
+                        <div class="v3-score-label" id="v3_phaseLabel">—</div>
+                        <div class="v3-score-confidence" id="v3_phaseConf">—</div>
+                    </div>
+                </div>
+            </div>
+            <div class="v3-score-interp" id="v3_scoreInterp">—</div>
+        </div>
+
+        <!-- Quick numbers strip — click jumps to the tab -->
+        <div class="v3-quick-strip" id="v3_quickStrip">
+            <button class="v3-quick-item" data-tab="tech">
+                <span class="v3-quick-label">טכני</span>
+                <span class="v3-quick-val" id="v3_qsTech">—</span>
+            </button>
+            <button class="v3-quick-item" data-tab="options">
+                <span class="v3-quick-label">אופציות</span>
+                <span class="v3-quick-val" id="v3_qsFlow">—</span>
+            </button>
+            <button class="v3-quick-item" data-tab="tech">
+                <span class="v3-quick-label">רוחב</span>
+                <span class="v3-quick-val" id="v3_qsBreadth">—</span>
+            </button>
+            <button class="v3-quick-item" data-tab="knn">
+                <span class="v3-quick-label">מגמה (KNN)</span>
+                <span class="v3-quick-val" id="v3_qsKnn">—</span>
+            </button>
+        </div>
+
+        <!-- 2. המלצות -->
+        <div class="v3-card v3-recs">
+            <div class="v3-card-head">
+                <span class="v3-card-eyebrow">המלצות</span>
+                <span class="v3-card-title">מה לעשות היום</span>
+            </div>
+            <div class="v3-card-body">
+                <ul class="v3-recs-list" id="v3_recsList">
+                    <li>טוען...</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 7. סיכום יומי -->
+        <div class="v3-card v3-summary">
+            <div class="v3-card-head">
+                <span class="v3-card-eyebrow">סיכום יומי</span>
+                <span class="v3-card-title" id="v3_summaryHeadline">—</span>
+            </div>
+            <div class="v3-card-body">
+                <div class="v3-summary-rationale" id="v3_summaryRationale">—</div>
+                <div class="v3-summary-blocks">
+                    <div class="v3-summary-block"><span class="v3-summary-label">היום:</span><span id="v3_summaryToday">—</span></div>
+                    <div class="v3-summary-block"><span class="v3-summary-label">השבוע:</span><span id="v3_summaryWeek">—</span></div>
+                    <div class="v3-summary-block"><span class="v3-summary-label">הרקע:</span><span id="v3_summaryBackground">—</span></div>
+                    <div class="v3-summary-block"><span class="v3-summary-label">לעקוב:</span><span id="v3_summaryWatchFor">—</span></div>
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- ════════════════ TAB 2: טכני ════════════════ -->
+    <section class="v3-tab-panel" id="v3_tab_tech">
+
+        <div class="v3-card v3-card-tech">
+            <div class="v3-card-head">
+                <span class="v3-card-eyebrow">טכני</span>
+                <span class="v3-card-title">SPX · MA · RSI · VIX · נפח · ימי מכירות</span>
+            </div>
+            <div class="v3-card-body">
+                <ul class="v3-stat-list" id="v3_techList">
+                    <li>טוען...</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Legacy MCC card — full structural detail -->
+        <div class="ov2-mcc" id="ov2_mcc" style="margin-top:14px;">
+            <div class="ov2-mcc-accent" id="ov2_mccPhaseAccent"></div>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; gap:16px;">
+                <div style="min-width:0;">
+                    <div class="ov2-eyebrow">מרכז בקרת שוק · משטר נוכחי</div>
+                    <div class="ov2-mcc-phase-row">
+                        <span class="ov2-mcc-glyph" id="ov2_mccGlyph">—</span>
+                        <span class="ov2-mcc-phase-label-he" id="ov2_mccPhaseLabelHe">—</span>
+                        <span class="ov2-mcc-phase-label" id="ov2_mccPhaseLabel">—</span>
+                    </div>
+                    <div class="ov2-mcc-duration-row">
+                        <span class="ov2-mcc-duration" id="ov2_mccDuration">—</span>
+                        <span class="ov2-mcc-entered" id="ov2_mccEntered">—</span>
+                    </div>
+                </div>
+            </div>
+            <div class="ov2-mcc-narrative" id="ov2_mccNarrative">—</div>
+            <div class="ov2-mcc-grid">
+                <div class="ov2-mcc-block-state">
+                    <div style="display:flex; align-items:flex-start; gap:12px;">
+                        <div><div class="ov2-mcc-meta-label">רמת סיכון</div><div class="ov2-mcc-meta-value" id="ov2_mccRisk">—</div></div>
+                        <div style="flex:1;"><div class="ov2-mcc-meta-label">הטיית פוזיציה</div><div class="ov2-mcc-meta-value" id="ov2_mccBias">—</div></div>
+                    </div>
+                </div>
+                <div class="ov2-mcc-block-score">
+                    <div class="ov2-mcc-score-top">
+                        <span class="ov2-mcc-score-val" id="ov2_mccScoreVal">—</span>
+                        <span class="ov2-mcc-score-max">/100</span>
+                        <span style="margin-right:auto; font-size:11px; color:var(--ov2-text-2); font-weight:600;">ציון משולב</span>
+                    </div>
+                    <div class="ov2-mcc-bar"><div class="ov2-mcc-bar-fill" id="ov2_mccBarFill" style="width:0%"></div></div>
+                    <div class="ov2-mcc-interpretation" id="ov2_mccInterpretation" style="display:none;"></div>
+                    <div class="ov2-coverage-chip" id="ov2_coverageChip" style="display:none;"></div>
+                </div>
+                <div class="ov2-mcc-block-meta">
+                    <div class="ov2-mcc-score-top">
+                        <span class="ov2-mcc-score-max">%</span>
+                        <span class="ov2-mcc-score-val" id="ov2_mccConfVal">—</span>
+                        <span style="margin-right:auto; font-size:11px; color:var(--ov2-text-2); font-weight:600;">רמת ביטחון בשלב</span>
+                    </div>
+                    <div class="ov2-mcc-bar"><div class="ov2-mcc-bar-fill" id="ov2_mccConfBar" style="width:0%"></div></div>
+                </div>
+            </div>
+            <div class="ov2-mcc-drivers">
+                <div class="ov2-driver"><span class="ov2-driver-lbl">NH/NL</span><span class="ov2-driver-val" id="ov2_drvNhnl">—</span></div>
+                <div class="ov2-driver"><span class="ov2-driver-lbl">% מעל MA200</span><span class="ov2-driver-val" id="ov2_drvMa200">—</span></div>
+                <div class="ov2-driver"><span class="ov2-driver-lbl">VIX</span><span class="ov2-driver-val" id="ov2_drvVix">—</span></div>
+                <div class="ov2-driver"><span class="ov2-driver-lbl">ימי הפצה</span><span class="ov2-driver-val" id="ov2_drvDist">—</span></div>
+                <div class="ov2-driver"><span class="ov2-driver-lbl">רוחב</span><span class="ov2-driver-val" id="ov2_drvBreadth">—</span></div>
+                <div class="ov2-driver"><span class="ov2-driver-lbl">Combined</span><span class="ov2-driver-val" id="ov2_drvCombined">—</span></div>
+            </div>
+        </div>
+
+        <!-- Macro Trail — long-history SPX vs EQ500 -->
+        <div class="ov2-macro-trail" id="ov2_macroTrail" style="margin-top:14px;">
+            <div class="ov2-macro-trail-head">
+                <div>
+                    <div class="ov2-eyebrow" style="color:var(--ov2-cat-breadth);">היסטוריה — הנתיב הרחב vs המדד</div>
+                    <div class="ov2-macro-trail-title">SPX (משוקלל) · EQ500 (שוויוני) — מנורמלים ל-100</div>
+                    <div class="ov2-macro-trail-sub" id="ov2_macroTrailSub">טוען נתונים היסטוריים...</div>
+                </div>
+                <div class="ov2-macro-trail-stats">
+                    <div class="ov2-macro-trail-stat">
+                        <span class="ov2-macro-trail-stat-label">SPX מצטבר</span>
+                        <span class="ov2-macro-trail-stat-val" id="ov2_macroTrailSpxRet">—</span>
+                    </div>
+                    <div class="ov2-macro-trail-stat">
+                        <span class="ov2-macro-trail-stat-label">EQ500 מצטבר</span>
+                        <span class="ov2-macro-trail-stat-val" id="ov2_macroTrailEqRet">—</span>
+                    </div>
+                    <div class="ov2-macro-trail-stat">
+                        <span class="ov2-macro-trail-stat-label">פער (EQ500-SPX)</span>
+                        <span class="ov2-macro-trail-stat-val" id="ov2_macroTrailSpread">—</span>
+                    </div>
+                </div>
+            </div>
+            <div class="ov2-macro-trail-chart-wrap">
+                <canvas id="ov2_macroTrailChart"></canvas>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- ════════════════ TAB 3: אופציות ════════════════ -->
+    <section class="v3-tab-panel" id="v3_tab_options">
+
+        <div class="v3-card v3-card-options">
+            <div class="v3-card-head">
+                <span class="v3-card-eyebrow">אופציות</span>
+                <span class="v3-card-title">זרימה מוסדית + ביטחון</span>
+            </div>
+            <div class="v3-card-body">
+                <div class="v3-score-row">
+                    <div class="v3-score-big v3-score-flow" id="v3_flowScore">—</div>
+                    <div class="v3-score-side">
+                        <div class="v3-score-label" id="v3_flowLabel">—</div>
+                        <div class="v3-score-confidence" id="v3_flowConfidence">—</div>
+                    </div>
+                </div>
+                <ul class="v3-stat-list" id="v3_flowContext">
+                    <li>טוען...</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Legacy Flow card — full detail -->
+        <div class="ov2-flow-card" id="ov2_flowCard" style="margin-top:14px;">
+            <div class="ov2-flow-card-accent"></div>
+            <div>
+                <div class="ov2-eyebrow" style="color:var(--ov2-cat-flow); margin-bottom:4px;">זרימת אופציות SPX</div>
+                <div class="ov2-title-m">לאן הכסף הגדול נע</div>
+                <div class="ov2-subtitle">ניתוח עסקאות options על SPX/SPXW · השוואה ל-baseline נע של 22 יום</div>
+            </div>
+
+            <div class="ov2-flow-grid">
+                <div class="ov2-flow-score-block" data-tooltip="ציון 0-100 שמסכם את כיוון זרימת הכסף הישיר (Ask+Bid). גבוה = כסף קונה calls אגרסיבי, נמוך = כסף קונה puts אגרסיבי. Mid מוחרג מהחישוב — דילרים/בלוקים אינם כיווניים.">
+                    <div class="ov2-flow-score-val" id="ov2_flowScoreVal">—</div>
+                    <div class="ov2-flow-score-label">ציון Flow · directional</div>
+                    <div class="ov2-flow-status" id="ov2_flowStatus">—</div>
+                    <div class="ov2-flow-score-side" id="ov2_flowScoreSide" style="display:none;"></div>
+                </div>
+                <div class="ov2-flow-metric" data-tooltip="P/C Premium = יחס פרמיית puts ל-calls. ב-SPX הממוצע הוא 0.34. ערכים גבוהים = יותר ביקוש להגנה.">
+                    <div class="ov2-flow-metric-label">P/C Premium</div>
+                    <div class="ov2-flow-metric-value" id="ov2_flowPcPremiumVal">—</div>
+                    <div class="ov2-flow-metric-sub" id="ov2_flowPcPremiumSub">—</div>
+                </div>
+                <div class="ov2-flow-metric" data-tooltip="אחוז הפרמיה שהושקעה ב-calls מתוך הסך הכולל היום.">
+                    <div class="ov2-flow-metric-label">% פרמיית calls</div>
+                    <div class="ov2-flow-metric-value" id="ov2_flowCallPctVal">—</div>
+                    <div class="ov2-flow-metric-sub" id="ov2_flowCallPctSub">—</div>
+                </div>
+                <div class="ov2-flow-metric" data-tooltip="IV Skew = הפער בין IV של puts ל-calls. מודד את הפחד היחסי.">
+                    <div class="ov2-flow-metric-label">IV Skew</div>
+                    <div class="ov2-flow-metric-value" id="ov2_flowIvSkewVal">—</div>
+                    <div class="ov2-flow-metric-sub" id="ov2_flowIvSkewSub">—</div>
+                </div>
+                <div class="ov2-flow-metric" data-tooltip="מספר העסקאות עם פרמיה מעל 5 מיליון דולר היום. מדד לפעילות מוסדית.">
+                    <div class="ov2-flow-metric-label">עסקאות גדולות</div>
+                    <div class="ov2-flow-metric-value" id="ov2_flowBigTradesVal">—</div>
+                    <div class="ov2-flow-metric-sub" id="ov2_flowBigTradesSub">—</div>
+                </div>
+            </div>
+
+            <div class="ov2-panel-divider"></div>
+            <div class="ov2-eyebrow" style="color:var(--ov2-text-2); margin-bottom:2px;">פירוט CALL vs PUT · לפי עסקאות ופרמיה</div>
+            <div style="font-size:11px; color:var(--ov2-text-3); margin-bottom:10px;">ערכי DTE בטבלה זו = <strong>היום בלבד</strong>.</div>
+            <div class="ov2-flow-cp-grid">
+                <div class="ov2-flow-cp-card cp-call">
+                    <div class="ov2-flow-cp-head">
+                        <span class="ov2-flow-cp-label">▲ Calls · הימור עלייה</span>
+                        <span class="ov2-flow-cp-sub" id="ov2_flowCallSummary">—</span>
+                    </div>
+                    <div id="ov2_flowCallTable">—</div>
+                </div>
+                <div class="ov2-flow-cp-card cp-put">
+                    <div class="ov2-flow-cp-head">
+                        <span class="ov2-flow-cp-label">▼ Puts · הימור ירידה / הגנה</span>
+                        <span class="ov2-flow-cp-sub" id="ov2_flowPutSummary">—</span>
+                    </div>
+                    <div id="ov2_flowPutTable">—</div>
+                </div>
+            </div>
+            <div class="ov2-flow-agg-interp">
+                <span class="ov2-eyebrow" style="color:var(--ov2-text-3); margin-left:8px;">פירוש</span>
+                <span id="ov2_flowAggInterp">—</span>
+            </div>
+            <div id="ov2_flowDteSummary"></div>
+
+            <div class="ov2-panel-divider"></div>
+            <div class="ov2-eyebrow" style="color:var(--ov2-text-2); margin-bottom:8px;">איכות העסקאות · בורסה + פוזיציות פותחות</div>
+            <div class="ov2-flow-cp-grid">
+                <div class="ov2-flow-cp-card">
+                    <div class="ov2-flow-cp-head">
+                        <span class="ov2-flow-cp-label">📍 בורסה / סוג ביצוע</span>
+                    </div>
+                    <div id="ov2_flowQualityCodes">—</div>
+                    <div class="ov2-flow-side-size-note" id="ov2_flowQualityIsoNote" style="margin-top:8px;">—</div>
+                </div>
+                <div class="ov2-flow-cp-card">
+                    <div class="ov2-flow-cp-head">
+                        <span class="ov2-flow-cp-label">🎯 פוזיציות פותחות · Conviction</span>
+                    </div>
+                    <div id="ov2_flowQualityOpens">—</div>
+                    <div class="ov2-flow-side-size-note" id="ov2_flowQualityOpenNote" style="margin-top:8px;">—</div>
+                </div>
+            </div>
+
+            <div class="ov2-panel-divider"></div>
+            <div class="ov2-eyebrow" style="color:var(--ov2-text-2); margin-bottom:8px;">היום ביחס לעבר · השוואה ל-22 ימי מסחר</div>
+            <div id="ov2_flowHistory">—</div>
+
+            <div class="ov2-collapsible" id="ov2_flowFormulaCollapse">
+                <div class="ov2-collapsible-head" onclick="this.parentElement.classList.toggle('open')" style="background:var(--ov2-bg-2);">
+                    <div class="ov2-collapsible-head-text">
+                        <div class="ov2-eyebrow" style="color:var(--ov2-cat-action)">איך הציון מחושב?</div>
+                        <div class="ov2-title-s" style="font-weight:500;">פירוט מלא של הנוסחה — לחץ להרחבה</div>
+                    </div>
+                    <span class="ov2-collapsible-chev">▼</span>
+                </div>
+                <div class="ov2-collapsible-body">
+                    <div class="ov2-formula">
+                        <div style="margin-bottom:8px;" id="ov2_flowFormulaCombined">—</div>
+                        <div style="border-top:1px dashed var(--ov2-border); padding-top:8px;" id="ov2_flowFormulaInternal">—</div>
+                        <div style="margin-top:8px; font-size:11px; color:var(--ov2-text-3);">
+                            הציון חושב כאבסולוטי, ללא baseline היסטורי — כל יום עומד לעצמו. 50 = ניטרלי, 70+ = יום שורי, 30- = יום דובי.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flow vs Price — 22-day timeline -->
+        <div class="ov2-fvp" id="ov2_flowVsPrice" style="margin-top:14px;">
+            <div class="ov2-fvp-head">
+                <div>
+                    <div class="ov2-eyebrow" style="color:var(--ov2-cat-action);">מגמת אופציות מול מחיר</div>
+                    <div class="ov2-fvp-title">22 ימי מסחר אחרונים — ציון Flow מול תשואת SPX מצטברת</div>
+                    <div class="ov2-fvp-sub" id="ov2_fvpSub">טוען נתוני flow...</div>
+                </div>
+                <div class="ov2-fvp-stats">
+                    <div class="ov2-fvp-stat">
+                        <span class="ov2-fvp-stat-label">קורלציה</span>
+                        <span class="ov2-fvp-stat-val" id="ov2_fvpCorr">—</span>
+                    </div>
+                    <div class="ov2-fvp-stat">
+                        <span class="ov2-fvp-stat-label">סטייה היום (אופציות נגד מחיר)</span>
+                        <span class="ov2-fvp-stat-val" id="ov2_fvpDiv">—</span>
+                    </div>
+                    <div class="ov2-fvp-stat">
+                        <span class="ov2-fvp-stat-label">DTE ממוצע — חלון 22 ימים</span>
+                        <span class="ov2-fvp-stat-val" id="ov2_fvpDte">—</span>
+                    </div>
+                </div>
+            </div>
+            <div class="ov2-fvp-chart-wrap">
+                <canvas id="ov2_fvpChart"></canvas>
+            </div>
+            <div class="ov2-fvp-verdict" id="ov2_fvpVerdict">—</div>
+        </div>
+
+    </section>
+
+    <!-- ════════════════ TAB 4: סקטורים ומניות ════════════════ -->
+    <section class="v3-tab-panel" id="v3_tab_sectors">
+
+        <div class="v3-card v3-card-sectors">
+            <div class="v3-card-head">
+                <span class="v3-card-eyebrow">סקטורים</span>
+                <span class="v3-card-title">מפת חום · 11 סקטורי S&amp;P · יומי + מנהיגות ארוכת-טווח</span>
+            </div>
+            <div class="v3-card-body">
+                <table class="v3-sector-table" id="v3_sectorTable">
+                    <tbody><tr><td>טוען...</td></tr></tbody>
+                </table>
+                <div class="v3-sector-stats" id="v3_sectorStats"></div>
+            </div>
+        </div>
+
+        <div class="v3-card v3-card-stocks" style="margin-top:14px;">
+            <div class="v3-card-head">
+                <span class="v3-card-eyebrow">מניות חמות</span>
+                <span class="v3-card-title">מומנטום + נפח חריג + מנהיגות · Top 5 מול 5 חלשות</span>
+            </div>
+            <div class="v3-card-body">
+                <div class="v3-stocks-cols">
+                    <div class="v3-stocks-col">
+                        <div class="v3-stocks-col-head v3-pos">חמות 🔥</div>
+                        <ul class="v3-stocks-list" id="v3_stocksTop"><li>טוען...</li></ul>
+                    </div>
+                    <div class="v3-stocks-col">
+                        <div class="v3-stocks-col-head v3-neg">חלשות</div>
+                        <ul class="v3-stocks-list" id="v3_stocksBottom"><li>טוען...</li></ul>
+                    </div>
+                </div>
+                <div class="v3-stocks-note">חמות = מעל MA200 + RSI חזק + נפח מוגבר + Wtd Alpha חיובי — לא רק העלייה היומית. ×N = נפח ביחס לממוצע. α = מנהיגות שנתית מול המדד.</div>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- ════════════════ TAB 5: מגמה (KNN) ════════════════ -->
+    <section class="v3-tab-panel" id="v3_tab_knn">
+
+        <div class="v3-card v3-card-trend">
+            <div class="v3-card-head">
+                <span class="v3-card-eyebrow">מגמה היסטורית</span>
+                <span class="v3-card-title">KNN · 10 ימים דומים בעבר</span>
+            </div>
+            <div class="v3-card-body">
+                <ul class="v3-stat-list" id="v3_trendList">
+                    <li>טוען...</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="ov2-echo" id="ov2_echo" style="margin-top:14px;">
+            <div class="ov2-echo-head">
+                <div class="ov2-eyebrow">תבניות היסטוריות (KNN)</div>
+                <div class="ov2-echo-sub" id="ov2_echoSub">—</div>
+            </div>
+            <div class="ov2-echo-verdict" id="ov2_echoVerdict">—</div>
+            <div class="ov2-echo-horizons" id="ov2_echoHorizons"></div>
+            <div class="ov2-echo-scenario" id="ov2_echoScenario"></div>
+            <div class="ov2-echo-ew" id="ov2_echoEarlyWarning">
+                <div class="ov2-echo-ew-head">
+                    <div class="ov2-echo-ew-title">תבניות פעילות</div>
+                    <div class="ov2-echo-ew-sub" id="ov2_echoEwSub">—</div>
+                </div>
+                <div class="ov2-echo-ew-signals" id="ov2_echoEwSignals"></div>
+                <div class="ov2-echo-ew-verdict" id="ov2_echoEwVerdict"></div>
+            </div>
+            <div class="ov2-ft-matured-table-wrap" id="ov2_maturedTableWrap" style="margin-top:18px;">
+                <div class="ov2-echo-ew-head">
+                    <div class="ov2-echo-ew-title">תבניות שעברו 5 ימי בחינה — מעקב ביניים + פסיקת יום 20</div>
+                    <div class="ov2-echo-ew-sub" id="ov2_maturedTableSub">—</div>
+                </div>
+                <div id="ov2_maturedTable"></div>
+            </div>
+            <div class="ov2-echo-matches">
+                <div class="ov2-echo-matches-label">ימים דומים בעבר:</div>
+                <div class="ov2-echo-matches-list" id="ov2_echoMatches">—</div>
+            </div>
+            <canvas id="ov2_echoPathsChart"></canvas>
+        </div>
+
+    </section>
+
+</div>
+
+<!-- ═══ SCRIPTS (same order as legacy index.html) ═══ -->
+<script src="v2/regime.js?v=20260619d"></script>
+<script src="v2/narrative.js?v=20260619d"></script>
+<script src="v2/historical.js?v=20260619d"></script>
+<script src="v2/patterns.js?v=20260619d"></script>
+<script src="v2/forward-tracking.js?v=20260619d"></script>
+<script src="v2/overview-prod.js?v=20260619d"></script>
+
+<script>
+// ─── Tab switching ───
+(function () {
+    function activateTab(name) {
+        document.querySelectorAll('.v3-tab-btn').forEach(b =>
+            b.classList.toggle('v3-tab-active', b.dataset.tab === name));
+        document.querySelectorAll('.v3-tab-panel').forEach(p =>
+            p.classList.toggle('v3-tab-panel-active', p.id === 'v3_tab_' + name));
+        // Chart.js renders 0-width inside hidden panels — nudge a resize
+        // after the panel becomes visible so charts size correctly.
+        setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+        try { history.replaceState(null, '', '#' + name); } catch (_) {}
+    }
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-tab]');
+        if (!btn) return;
+        activateTab(btn.dataset.tab);
+    });
+    // Restore tab from URL hash on load
+    window.addEventListener('load', function () {
+        const root = document.getElementById('v3_root');
+        if (root) root.style.display = '';
+        const dl = document.getElementById('v3_dateLabel');
+        if (dl) {
+            const d = new Date();
+            dl.textContent = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+        }
+        const hash = (location.hash || '').replace('#', '');
+        if (['main', 'tech', 'options', 'sectors', 'knn'].includes(hash)) {
+            activateTab(hash);
+        }
+    });
+})();
+</script>
+
+</body>
+</html>

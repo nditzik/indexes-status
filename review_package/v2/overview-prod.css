@@ -1,0 +1,3284 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   OVERVIEW PROD · v1.5 — Light theme + Hebrew RTL + high contrast.
+   Scoped to .overview-prod-root.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Design tokens · LIGHT THEME (high contrast) ── */
+:root {
+    /* Surfaces */
+    --ov2-bg-0:           #f8fafc;   /* page bg (cream/very light) */
+    --ov2-bg-1:           #ffffff;   /* card bg (pure white) */
+    --ov2-bg-2:           #f1f5f9;   /* nested / hover */
+    --ov2-bg-3:           #e2e8f0;   /* active / selected */
+    --ov2-bg-tooltip:     #1f2937;   /* dark tooltip background */
+
+    /* Borders */
+    --ov2-border:         #e5e7eb;
+    --ov2-border-strong:  #d1d5db;
+    --ov2-border-bright:  #9ca3af;
+
+    /* Text — high contrast as requested */
+    --ov2-text-1:         #1F2937;   /* primary — near-black */
+    --ov2-text-2:         #4B5563;   /* secondary — medium-dark gray */
+    --ov2-text-3:         #6B7280;   /* tertiary — still readable on cream */
+    --ov2-text-inverse:   #f9fafb;   /* for dark surfaces */
+
+    /* State (value-driven) — DARKER variants for light bg */
+    --ov2-pos:            #059669;
+    --ov2-pos-bright:     #047857;
+    --ov2-pos-bg:         rgba(5, 150, 105, 0.10);
+    --ov2-neg:            #DC2626;
+    --ov2-neg-bright:     #B91C1C;
+    --ov2-neg-bg:         rgba(220, 38, 38, 0.10);
+    --ov2-warn:           #D97706;
+    --ov2-warn-bright:    #B45309;
+    --ov2-warn-bg:        rgba(217, 119, 6, 0.12);
+    --ov2-neutral:        #6B7280;
+
+    /* Category accents (system-driven) */
+    --ov2-cat-breadth:    #2563EB;
+    --ov2-cat-momentum:   #059669;
+    --ov2-cat-risk:       #DC2626;
+    --ov2-cat-flow:       #7C3AED;
+    --ov2-cat-sector:     #D97706;
+    --ov2-cat-macro:      #4F46E5;
+    --ov2-cat-historical: #0D9488;
+    --ov2-cat-action:     #0EA5E9;
+
+    /* Heatmap ramp */
+    --ov2-hm-strong-neg:  #991B1B;
+    --ov2-hm-neg:         #DC2626;
+    --ov2-hm-weak-neg:    #F59E0B;
+    --ov2-hm-neutral:     #D1D5DB;
+    --ov2-hm-weak-pos:    #4ADE80;
+    --ov2-hm-pos:         #16A34A;
+    --ov2-hm-strong-pos:  #15803D;
+
+    /* Spacing */
+    --ov2-space-1: 4px;
+    --ov2-space-2: 8px;
+    --ov2-space-3: 12px;
+    --ov2-space-4: 16px;
+    --ov2-space-5: 24px;
+    --ov2-space-6: 32px;
+
+    --ov2-radius:    6px;
+    --ov2-radius-sm: 4px;
+
+    --ov2-font-ui:   'Inter', 'Heebo', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --ov2-font-mono: 'JetBrains Mono', ui-monospace, 'Menlo', 'Consolas', monospace;
+
+    --ov2-shadow-card:    0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.03);
+    --ov2-shadow-pop:     0 4px 12px rgba(15, 23, 42, 0.10);
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   SCOPED ROOT
+   ───────────────────────────────────────────────────────────────────── */
+
+.overview-prod-root {
+    font-family: var(--ov2-font-ui);
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ov2-text-1);
+    direction: rtl;
+    text-align: right;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--ov2-bg-0);
+    padding: var(--ov2-space-4);
+    border-radius: var(--ov2-radius);
+}
+.overview-prod-root *, .overview-prod-root *::before, .overview-prod-root *::after { box-sizing: border-box; }
+.overview-prod-root button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+.overview-prod-root canvas, .overview-prod-root svg { display: block; }
+.overview-prod-root a { color: inherit; text-decoration: none; }
+
+/* ── Typography helpers ── */
+.overview-prod-root .ov2-eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--ov2-text-2);
+    line-height: 1.2;
+    direction: ltr;
+    text-align: right;
+}
+.overview-prod-root .ov2-title-l { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25; color: var(--ov2-text-1); }
+.overview-prod-root .ov2-title-m { font-size: 15px; font-weight: 700; line-height: 1.3; color: var(--ov2-text-1); }
+.overview-prod-root .ov2-title-s { font-size: 13px; font-weight: 600; line-height: 1.3; color: var(--ov2-text-1); }
+.overview-prod-root .ov2-subtitle { font-size: 12px; font-weight: 500; color: var(--ov2-text-2); line-height: 1.45; }
+.overview-prod-root .ov2-num {
+    font-family: var(--ov2-font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+.overview-prod-root .ov2-muted { color: var(--ov2-text-3); }
+.overview-prod-root .ov2-pos { color: var(--ov2-pos); }
+.overview-prod-root .ov2-neg { color: var(--ov2-neg); }
+.overview-prod-root .ov2-warn { color: var(--ov2-warn); }
+
+/* ── EXECUTIVE STRIP ── */
+.overview-prod-root .ov2-strip {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius);
+    padding: 14px 20px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: var(--ov2-space-5);
+    margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-strip-state {
+    display: flex;
+    align-items: center;
+    gap: var(--ov2-space-3);
+    flex-wrap: wrap;
+}
+.overview-prod-root .ov2-state-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--ov2-warn);
+    box-shadow: 0 0 0 3px var(--ov2-warn-bg);
+    flex-shrink: 0;
+}
+.overview-prod-root .ov2-state-dot.ov2-pos { background: var(--ov2-pos); box-shadow: 0 0 0 3px var(--ov2-pos-bg); }
+.overview-prod-root .ov2-state-dot.ov2-neg { background: var(--ov2-neg); box-shadow: 0 0 0 3px var(--ov2-neg-bg); }
+
+.overview-prod-root .ov2-strip-state-label {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+.overview-prod-root .ov2-strip-state-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-strip-state-score {
+    font-family: var(--ov2-font-mono);
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    margin-right: var(--ov2-space-2);
+    font-size: 14px;
+}
+
+.overview-prod-root .ov2-strip-indices {
+    display: flex;
+    gap: var(--ov2-space-5);
+    align-items: center;
+    flex-wrap: wrap;
+}
+.overview-prod-root .ov2-idx {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    line-height: 1.1;
+    min-width: 86px;
+    /* Thin separator between adjacent tiles. The strip is RTL — using
+       a border-right means the line sits on the LEFT visually,
+       between this tile and the next one to its left. */
+    border-right: 1px solid var(--ov2-border);
+    padding-right: var(--ov2-space-4);
+}
+/* Strip is RTL; first item visually is rightmost — no border there. */
+.overview-prod-root .ov2-strip-indices .ov2-idx:first-of-type {
+    border-right: none;
+    padding-right: 0;
+}
+.overview-prod-root .ov2-idx-name {
+    font-size: 10px;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+.overview-prod-root .ov2-idx-row {
+    display: flex;
+    gap: var(--ov2-space-2);
+    align-items: baseline;
+    justify-content: center;
+    font-family: var(--ov2-font-mono);
+    font-variant-numeric: tabular-nums;
+}
+.overview-prod-root .ov2-idx-val { font-size: 16px; font-weight: 700; color: var(--ov2-text-1); }
+.overview-prod-root .ov2-idx-chg { font-size: 12px; font-weight: 600; }
+
+.overview-prod-root .ov2-icon-btn {
+    width: 28px; height: 28px;
+    border-radius: var(--ov2-radius);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ov2-text-2);
+    transition: background 120ms ease, color 120ms ease;
+}
+.overview-prod-root .ov2-icon-btn:hover { background: var(--ov2-bg-2); color: var(--ov2-text-1); }
+
+/* ── BODY GRID ── */
+.overview-prod-root .ov2-body {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: var(--ov2-space-4);
+    align-items: start;
+}
+@media (max-width: 1200px) {
+    .overview-prod-root .ov2-body { grid-template-columns: 1fr; }
+}
+
+/* ── PANEL ── */
+.overview-prod-root .ov2-panel {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-4);
+    position: relative;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+    margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-panel:hover {
+    border-color: var(--ov2-border-strong);
+}
+.overview-prod-root .ov2-panel-accent {
+    position: absolute;
+    top: 0; right: 0; left: 0;
+    height: 3px;
+    border-radius: var(--ov2-radius) var(--ov2-radius) 0 0;
+    background: var(--ov2-cat-breadth);
+}
+.overview-prod-root .ov2-panel-accent.cat-momentum   { background: var(--ov2-cat-momentum); }
+.overview-prod-root .ov2-panel-accent.cat-risk       { background: var(--ov2-cat-risk); }
+.overview-prod-root .ov2-panel-accent.cat-flow       { background: var(--ov2-cat-flow); }
+.overview-prod-root .ov2-panel-accent.cat-sector     { background: var(--ov2-cat-sector); }
+.overview-prod-root .ov2-panel-accent.cat-macro      { background: var(--ov2-cat-macro); }
+.overview-prod-root .ov2-panel-accent.cat-action     { background: var(--ov2-cat-action); }
+
+.overview-prod-root .ov2-panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--ov2-space-3);
+    margin-bottom: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-panel-divider {
+    height: 1px;
+    background: var(--ov2-border);
+    margin: var(--ov2-space-3) calc(var(--ov2-space-4) * -1);
+}
+.overview-prod-root .ov2-panel-footer {
+    margin-top: var(--ov2-space-3);
+    padding-top: var(--ov2-space-3);
+    border-top: 1px solid var(--ov2-border);
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    line-height: 1.5;
+}
+
+/* ── MCC CARD ── */
+/* ─── Daily Narrative panel ────────────────────────────────────────
+   Sits above the MCC card. Shares its visual language (rounded card,
+   colored accent strip on top) but with a quieter background so the
+   eye reads it first as "the summary" rather than another KPI block. */
+.overview-prod-root .ov2-narrative {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border-strong);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-5);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-narrative-accent {
+    position: absolute;
+    top: 0; right: 0; left: 0;
+    height: 4px;
+    background: var(--ov2-cat-breadth);
+    transition: background 200ms;
+}
+.overview-prod-root .ov2-narrative-headline {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--ov2-text-1);
+    margin-bottom: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: baseline;
+}
+/* Meta-label = the integrated verdict (e.g. "מצב מעורב"). Coloured by
+   the stateClass the narrative module returns. */
+.overview-prod-root .ov2-narrative-meta {
+    font-weight: 800;
+}
+.overview-prod-root .ov2-narrative-meta.ov2-pos    { color: var(--ov2-pos); }
+.overview-prod-root .ov2-narrative-meta.ov2-neg    { color: var(--ov2-neg); }
+.overview-prod-root .ov2-narrative-meta.ov2-warn   { color: var(--ov2-warn, #D97706); }
+.overview-prod-root .ov2-narrative-meta.ov2-muted  { color: var(--ov2-text-3); }
+.overview-prod-root .ov2-narrative-rationale {
+    font-weight: 500;
+    color: var(--ov2-text-2);
+}
+.overview-prod-root .ov2-narrative-sep {
+    color: var(--ov2-text-3);
+    font-weight: 400;
+    margin: 0 2px;
+}
+/* 4-layer structured list. Each row has a fixed-width label ("היום:")
+   plus the body — so the labels align vertically and the eye can scan
+   straight down the column. */
+.overview-prod-root .ov2-narrative-layers {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.overview-prod-root .ov2-narrative-layer {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 5px 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ov2-text-2);
+}
+.overview-prod-root .ov2-narrative-layer::before {
+    content: "←";  /* Arrow points right-to-left to match RTL flow */
+    color: var(--ov2-text-3);
+    font-weight: 600;
+    flex-shrink: 0;
+}
+.overview-prod-root .ov2-narrative-layer-label {
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    flex-shrink: 0;
+    min-width: 55px;
+}
+.overview-prod-root .ov2-narrative-layer-text {
+    flex: 1;
+}
+/* The "Watch-for" row gets a subtle visual lift so it reads as the
+   forward-looking call to attention. */
+.overview-prod-root .ov2-narrative-layer--watch {
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--ov2-border);
+}
+.overview-prod-root .ov2-narrative-layer--watch .ov2-narrative-layer-label {
+    color: var(--ov2-cat-breadth);
+}
+/* "בעבר" — historical context, populated async after KNN settles.
+   Uses cat-action color to differentiate from the forward-looking
+   watch-for row (cat-breadth). */
+.overview-prod-root .ov2-narrative-layer--history .ov2-narrative-layer-label {
+    color: var(--ov2-cat-action);
+}
+
+.overview-prod-root .ov2-mcc {
+    background: linear-gradient(135deg, var(--ov2-bg-1) 0%, var(--ov2-bg-2) 100%);
+    border: 1px solid var(--ov2-border-strong);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-5);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
+}
+
+/* ─── Macro Trail panel — long-history SPX vs EQ500 ──────────────────
+   Sits between the Daily Narrative (today's story) and the MCC card
+   (current regime). Shows the same comparison the EQ500 ticker hints
+   at, but over years instead of a snapshot. The chart anchors visual
+   intuition for the narrative panel's "broad vs narrow rally" wording. */
+.overview-prod-root .ov2-macro-trail {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border-strong);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-5);
+    margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-macro-trail-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: var(--ov2-space-4);
+    margin-bottom: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-macro-trail-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-macro-trail-sub {
+    font-size: 12px;
+    color: var(--ov2-text-3);
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-macro-trail-stats {
+    display: flex;
+    gap: var(--ov2-space-5);
+    flex-wrap: wrap;
+}
+.overview-prod-root .ov2-macro-trail-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 80px;
+}
+.overview-prod-root .ov2-macro-trail-stat-label {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+.overview-prod-root .ov2-macro-trail-stat-val {
+    font-family: var(--ov2-font-mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-macro-trail-stat-val.ov2-pos { color: var(--ov2-pos); }
+.overview-prod-root .ov2-macro-trail-stat-val.ov2-neg { color: var(--ov2-neg); }
+.overview-prod-root .ov2-macro-trail-chart-wrap {
+    position: relative;
+    height: 260px;
+    width: 100%;
+}
+/* ─── Historical Echo panel — pattern matching outcomes ──────────────
+   Sits below the Macro Trail. The trail above shows the long-term
+   shape; this panel quantifies "the last time we looked like today,
+   here's what came next" as a statistical distribution. */
+.overview-prod-root .ov2-echo {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border-strong);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-5);
+    margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-echo-head {
+    margin-bottom: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-echo-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-echo-sub {
+    font-size: 12px;
+    color: var(--ov2-text-3);
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-echo-verdict {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ov2-text-1);
+    padding: var(--ov2-space-3);
+    background: var(--ov2-bg-2);
+    border-radius: var(--ov2-radius-sm);
+    border-right: 3px solid var(--ov2-cat-action);
+    margin-bottom: var(--ov2-space-4);
+    line-height: 1.6;
+}
+.overview-prod-root .ov2-echo-verdict.ov2-pos { border-right-color: var(--ov2-pos); }
+.overview-prod-root .ov2-echo-verdict.ov2-neg { border-right-color: var(--ov2-neg); }
+
+/* 3-column horizon grid: 5d / 10d / 20d */
+.overview-prod-root .ov2-echo-horizons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--ov2-space-3);
+    margin-bottom: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-echo-horizon {
+    background: var(--ov2-bg-2);
+    border-radius: var(--ov2-radius-sm);
+    padding: var(--ov2-space-3);
+    text-align: center;
+    border: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-echo-horizon-label {
+    font-size: 11px;
+    color: var(--ov2-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+.overview-prod-root .ov2-echo-horizon-median {
+    font-family: var(--ov2-font-mono);
+    font-size: 22px;
+    font-weight: 700;
+}
+.overview-prod-root .ov2-echo-horizon-median.ov2-pos { color: var(--ov2-pos); }
+.overview-prod-root .ov2-echo-horizon-median.ov2-neg { color: var(--ov2-neg); }
+.overview-prod-root .ov2-echo-horizon-median.ov2-muted { color: var(--ov2-text-3); }
+.overview-prod-root .ov2-echo-horizon-meta {
+    font-size: 11px;
+    color: var(--ov2-text-2);
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-echo-horizon-range {
+    font-family: var(--ov2-font-mono);
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    margin-top: 6px;
+}
+
+/* ─── Scenario summary block ─────────────────────────────────────────
+   Three-paragraph digest sitting between the horizon cards and the
+   paths chart: endpoint envelope · intraperiod drawdowns · regime
+   caveat. Designed so a cold reader gets the headline in 15 seconds
+   without scrolling through the rest of the panel. */
+.overview-prod-root .ov2-echo-scenario {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-md);
+    padding: var(--ov2-space-3);
+    margin-bottom: var(--ov2-space-4);
+    border-right: 4px solid var(--ov2-cat-historical, #6366F1);
+}
+.overview-prod-root .ov2-echo-scenario.ov2-pos {
+    border-right-color: var(--ov2-pos);
+    background: var(--ov2-pos-bg);
+}
+.overview-prod-root .ov2-echo-scenario.ov2-neg {
+    border-right-color: var(--ov2-neg);
+    background: var(--ov2-neg-bg);
+}
+.overview-prod-root .ov2-echo-scenario-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    margin-bottom: var(--ov2-space-3);
+    letter-spacing: 0.02em;
+}
+.overview-prod-root .ov2-echo-scenario-blocks {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--ov2-space-3);
+}
+@media (max-width: 900px) {
+    .overview-prod-root .ov2-echo-scenario-blocks {
+        grid-template-columns: 1fr;
+    }
+}
+.overview-prod-root .ov2-echo-scenario-block {
+    background: var(--ov2-bg-2);
+    border-radius: var(--ov2-radius-sm);
+    padding: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-echo-scenario.ov2-pos .ov2-echo-scenario-block,
+.overview-prod-root .ov2-echo-scenario.ov2-neg .ov2-echo-scenario-block {
+    background: var(--ov2-bg-1);
+}
+.overview-prod-root .ov2-echo-scenario-block-head {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ov2-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+}
+.overview-prod-root .ov2-echo-scenario-block-body {
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: var(--ov2-text-2);
+}
+.overview-prod-root .ov2-echo-scenario-block-body strong {
+    color: var(--ov2-text-1);
+    font-family: var(--ov2-font-mono);
+}
+.overview-prod-root .ov2-echo-scenario-block-body em {
+    font-style: normal;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+}
+
+/* Early-warning sub-panel — distills the bullish-vs-bearish
+   separation analysis from patterns.js into 2 actionable signals
+   the user can check in the days right after a pattern fires. */
+.overview-prod-root .ov2-echo-ew {
+    margin-top: var(--ov2-space-4);
+    padding-top: var(--ov2-space-3);
+    border-top: 1px dashed var(--ov2-border);
+}
+.overview-prod-root .ov2-echo-ew-head {
+    margin-bottom: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-echo-ew-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    letter-spacing: 0.02em;
+}
+.overview-prod-root .ov2-echo-ew-sub {
+    font-size: 11px;
+    color: var(--ov2-text-3);
+    margin-top: 2px;
+}
+.overview-prod-root .ov2-echo-ew-signals {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ov2-space-3);
+    margin-bottom: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-echo-ew-signal {
+    background: var(--ov2-bg-2);
+    border-radius: var(--ov2-radius-sm);
+    padding: var(--ov2-space-3);
+    border-right: 3px solid var(--ov2-cat-action);
+}
+.overview-prod-root .ov2-echo-ew-signal.ov2-strong {
+    border-right-color: var(--ov2-pos);
+}
+.overview-prod-root .ov2-echo-ew-signal-head {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    margin-bottom: 6px;
+}
+.overview-prod-root .ov2-echo-ew-signal-rule {
+    font-size: 12.5px;
+    color: var(--ov2-text-2);
+    line-height: 1.6;
+    margin-bottom: 6px;
+}
+.overview-prod-root .ov2-echo-ew-signal-stats {
+    font-family: var(--ov2-font-mono);
+    font-size: 11px;
+    color: var(--ov2-text-3);
+    line-height: 1.6;
+}
+.overview-prod-root .ov2-echo-ew-signal-live {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    background: var(--ov2-bg-1);
+    border-radius: var(--ov2-radius-sm);
+    border: 1px solid var(--ov2-border);
+    font-size: 12px;
+}
+.overview-prod-root .ov2-echo-ew-signal-live-label {
+    color: var(--ov2-text-3);
+    font-weight: 600;
+}
+.overview-prod-root .ov2-echo-ew-signal-live-val {
+    font-family: var(--ov2-font-mono);
+    font-weight: 700;
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-echo-ew-signal-live-status {
+    margin-right: auto;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+.overview-prod-root .ov2-echo-ew-signal-live-status.ov2-pos {
+    background: var(--ov2-pos-bg);
+    color: var(--ov2-pos);
+}
+.overview-prod-root .ov2-echo-ew-signal-live-status.ov2-neg {
+    background: var(--ov2-neg-bg);
+    color: var(--ov2-neg);
+}
+/* Aggregate verdict line — shows up between the cards and the caveat. */
+.overview-prod-root .ov2-echo-ew-verdict {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ov2-text-1);
+    padding: var(--ov2-space-3);
+    background: var(--ov2-bg-2);
+    border-radius: var(--ov2-radius-sm);
+    margin-bottom: var(--ov2-space-3);
+    text-align: center;
+}
+.overview-prod-root .ov2-echo-ew-verdict:empty {
+    display: none;
+}
+.overview-prod-root .ov2-echo-ew-verdict.ov2-pos {
+    background: var(--ov2-pos-bg);
+    color: var(--ov2-pos-bright);
+}
+.overview-prod-root .ov2-echo-ew-verdict.ov2-neg {
+    background: var(--ov2-neg-bg);
+    color: var(--ov2-neg-bright);
+}
+.overview-prod-root .ov2-echo-ew-note {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    line-height: 1.5;
+    margin-top: var(--ov2-space-3);
+}
+
+/* ─── Forward-tracking table ─────────────────────────────────────────
+   One table inside the Forward Tracking panel. Each <tr> = one active
+   pattern (anchor 0-5 trading days back). Rows are appended naturally
+   as new trading days produce new snapshots. */
+.overview-prod-root .ov2-ft-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-bottom: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-ft-table thead th {
+    text-align: right;
+    padding: 8px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ov2-text-3);
+    background: var(--ov2-bg-2);
+    border-bottom: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-ft-table tbody td {
+    padding: 10px;
+    border-bottom: 1px solid var(--ov2-border);
+    vertical-align: middle;
+}
+.overview-prod-root .ov2-ft-table tbody tr:last-child td {
+    border-bottom: none;
+}
+.overview-prod-root .ov2-ft-table tbody tr:hover {
+    background: var(--ov2-bg-2);
+}
+.overview-prod-root .ov2-ft-status-matured {
+    color: var(--ov2-pos);
+    font-weight: 700;
+    font-size: 11px;
+}
+.overview-prod-root .ov2-ft-status-inflight {
+    color: var(--ov2-warn);
+    font-weight: 600;
+    font-size: 11px;
+}
+.overview-prod-root .ov2-ft-status-pending {
+    color: var(--ov2-text-3);
+    font-size: 11px;
+    font-style: italic;
+}
+.overview-prod-root .ov2-ft-status-warn {
+    color: var(--ov2-neg);
+    font-weight: 700;
+    font-size: 11px;
+}
+.overview-prod-root .ov2-ft-range {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    margin-top: 2px;
+    font-weight: 400;
+}
+
+/* ─── Risk-Off banner ───
+   Neutral slate box (user preference): the warning CONTENT is what
+   alarms, not a screaming background. Only the live-session strip
+   carries traffic colors (green/red), since it's the only part that
+   reflects what's happening right now. */
+.overview-prod-root .ov2-risk-off {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    color: #f1f5f9;
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25);
+    border: 1px solid rgba(241, 245, 249, 0.12);
+}
+.overview-prod-root .ov2-risk-off-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.overview-prod-root .ov2-risk-off-icon {
+    font-size: 22px;
+}
+.overview-prod-root .ov2-risk-off-title {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+}
+.overview-prod-root .ov2-risk-off-list {
+    margin: 0 0 10px;
+    padding: 0;
+    list-style: none;
+}
+.overview-prod-root .ov2-risk-off-list li {
+    font-size: 13px;
+    padding: 4px 0;
+    line-height: 1.5;
+    color: #e2e8f0;
+}
+.overview-prod-root .ov2-risk-off-list li::before {
+    content: "• ";
+    margin-left: 4px;
+    color: #fca5a5;
+    font-weight: 700;
+}
+/* Green-close context line (background warnings only) */
+.overview-prod-root .ov2-risk-off-list li.ov2-risk-off-context {
+    color: #6ee7b7;
+    font-weight: 600;
+}
+.overview-prod-root .ov2-risk-off-list li.ov2-risk-off-context::before {
+    color: #34d399;
+}
+.overview-prod-root .ov2-risk-off-note {
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1.6;
+    padding-top: 8px;
+    border-top: 1px solid rgba(241, 245, 249, 0.15);
+    font-weight: 400;
+}
+.overview-prod-root .ov2-risk-off-days {
+    font-size: 12px;
+    color: #cbd5e0;
+    font-family: var(--ov2-font-mono);
+    margin-bottom: 8px;
+    line-height: 1.6;
+    direction: rtl;
+}
+.overview-prod-root .ov2-risk-off-action {
+    font-size: 13px;
+    color: #f1f5f9;
+    margin-bottom: 8px;
+}
+/* Live strip — the only colored element. Neutral by default,
+   green when the live session is up ≥1%, red when down ≤-0.3%. */
+.overview-prod-root .ov2-risk-off-live {
+    font-size: 12.5px;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.10);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+.overview-prod-root .ov2-risk-off-live.ov2-live-pos {
+    background: linear-gradient(135deg, #065f46, #047857);
+    color: #ecfdf5;
+}
+.overview-prod-root .ov2-risk-off-live.ov2-live-neg {
+    background: linear-gradient(135deg, #991b1b, #b91c1c);
+    color: #fef2f2;
+}
+.overview-prod-root .ov2-ft-outlier-flag {
+    display: inline-block;
+    background: #fef3c7;
+    color: #92400e;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-right: 6px;
+    border: 1px solid #fcd34d;
+}
+.overview-prod-root .ov2-ft-quality-flag {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-right: 6px;
+}
+.overview-prod-root .ov2-ft-quality-insufficient {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+}
+.overview-prod-root .ov2-ft-insufficient-row td {
+    background: #fef2f2;
+    color: #7f1d1d;
+}
+.overview-prod-root .ov2-ft-insufficient-msg {
+    color: #991b1b;
+    font-weight: 700;
+    font-size: 11px;
+    font-style: italic;
+}
+.overview-prod-root .ov2-ft-skipped-row td {
+    color: var(--ov2-text-3);
+    font-size: 11px;
+    font-style: italic;
+    border-top: 1px dashed var(--ov2-border);
+    padding: 8px 10px;
+}
+.overview-prod-root .ov2-ft-noedge {
+    color: var(--ov2-text-3);
+    font-style: italic;
+    font-weight: 400;
+}
+.overview-prod-root .ov2-ft-track-within {
+    color: var(--ov2-pos);
+    font-weight: 700;
+    font-size: 11px;
+    white-space: nowrap;
+}
+.overview-prod-root .ov2-ft-track-break {
+    color: var(--ov2-neg);
+    font-weight: 700;
+    font-size: 11px;
+    white-space: nowrap;
+}
+.overview-prod-root .ov2-ft-track-surprise {
+    color: #2563eb;
+    font-weight: 700;
+    font-size: 11px;
+    white-space: nowrap;
+}
+.overview-prod-root .ov2-echo-insufficient {
+    display: block;
+    background: #fef2f2;
+    color: #7f1d1d;
+    border: 1px solid #fca5a5;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 4px 0;
+}
+.overview-prod-root .ov2-coverage-chip {
+    margin-top: 8px;
+    padding: 6px 10px;
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+    border-radius: 6px;
+    font-size: 11px;
+    line-height: 1.4;
+    cursor: help;
+}
+.overview-prod-root .ov2-mcc-interpretation {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: var(--ov2-bg-2);
+    border-radius: 6px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--ov2-text-1);
+    text-align: right;
+    direction: rtl;
+}
+.overview-prod-root .ov2-mcc-interpretation b {
+    color: var(--ov2-text-1);
+    font-weight: 700;
+}
+.overview-prod-root .ov2-ft-summary-row td {
+    background: var(--ov2-bg-2);
+    font-weight: 700;
+    font-size: 11px;
+    border-top: 2px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-ft-summary-row:hover td {
+    background: var(--ov2-bg-2);
+}
+.overview-prod-root .ov2-ft-td-anchor {
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    white-space: nowrap;
+    width: 80px;
+}
+.overview-prod-root .ov2-ft-td-day {
+    white-space: nowrap;
+    width: 70px;
+}
+.overview-prod-root .ov2-ft-td-signals {
+    min-width: 360px;
+}
+.overview-prod-root .ov2-ft-td-verdict {
+    text-align: left;
+    white-space: nowrap;
+    width: 110px;
+}
+/* Day N/5 progress chip — Day 0 gray, 1-2 amber, 3-4 blue, 5 green. */
+.overview-prod-root .ov2-ft-day {
+    font-family: var(--ov2-font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--ov2-bg-2);
+    color: var(--ov2-text-3);
+    display: inline-block;
+}
+.overview-prod-root .ov2-ft-day.ov2-ft-day-0 {
+    background: var(--ov2-bg-2);
+    color: var(--ov2-text-3);
+}
+.overview-prod-root .ov2-ft-day.ov2-ft-day-1,
+.overview-prod-root .ov2-ft-day.ov2-ft-day-2 {
+    background: var(--ov2-cat-action-bg, rgba(245, 158, 11, 0.10));
+    color: var(--ov2-cat-action, #b45309);
+}
+.overview-prod-root .ov2-ft-day.ov2-ft-day-3,
+.overview-prod-root .ov2-ft-day.ov2-ft-day-4 {
+    background: var(--ov2-cat-momentum-bg, rgba(59, 130, 246, 0.10));
+    color: var(--ov2-cat-momentum, #1d4ed8);
+}
+.overview-prod-root .ov2-ft-day.ov2-ft-day-5 {
+    background: var(--ov2-pos-bg);
+    color: var(--ov2-pos);
+}
+/* Signal chips — one per top signal, inline in the signals cell. */
+.overview-prod-root .ov2-ft-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.overview-prod-root .ov2-ft-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    background: var(--ov2-bg-2);
+    border: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-ft-chip.ov2-pos {
+    background: var(--ov2-pos-bg);
+    border-color: var(--ov2-pos);
+    color: var(--ov2-pos);
+}
+.overview-prod-root .ov2-ft-chip.ov2-neg {
+    background: var(--ov2-neg-bg);
+    border-color: var(--ov2-neg);
+    color: var(--ov2-neg);
+}
+.overview-prod-root .ov2-ft-chip.ov2-ft-chip-pending {
+    color: var(--ov2-text-3);
+    font-style: italic;
+}
+.overview-prod-root .ov2-ft-chip-name {
+    font-weight: 700;
+}
+.overview-prod-root .ov2-ft-chip-val {
+    font-family: var(--ov2-font-mono);
+    font-weight: 700;
+}
+.overview-prod-root .ov2-ft-chip-cmp {
+    font-family: var(--ov2-font-mono);
+    font-size: 10px;
+    color: inherit;
+    opacity: 0.85;
+}
+.overview-prod-root .ov2-ft-chip-mark {
+    font-weight: 700;
+    margin-right: 2px;
+}
+/* Per-row verdict badge */
+.overview-prod-root .ov2-ft-verdict {
+    font-family: var(--ov2-font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: var(--ov2-bg-2);
+    color: var(--ov2-text-2);
+    display: inline-block;
+}
+.overview-prod-root .ov2-ft-verdict.ov2-pos {
+    background: var(--ov2-pos-bg);
+    color: var(--ov2-pos);
+}
+.overview-prod-root .ov2-ft-verdict.ov2-neg {
+    background: var(--ov2-neg-bg);
+    color: var(--ov2-neg);
+}
+.overview-prod-root .ov2-ft-verdict-pending {
+    background: var(--ov2-bg-2);
+    color: var(--ov2-text-3);
+    font-style: italic;
+}
+
+/* Matured-pattern projection row — appears once a pattern reaches Day
+   5/5. Spans the full table width, shows day-20 target date + expected
+   median outcome from the historical analogs. Border color reflects
+   whether the 5-day signals confirmed (green) or were mixed/failed
+   (amber/gray). */
+.overview-prod-root .ov2-ft-matured-row td {
+    padding: 0;
+    border-bottom: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-ft-matured {
+    padding: 12px 16px;
+    font-size: 12.5px;
+    color: var(--ov2-text-1);
+    line-height: 1.7;
+    border-right: 4px solid var(--ov2-border);
+    background: var(--ov2-bg-2);
+}
+.overview-prod-root .ov2-ft-matured.ov2-ft-matured-confirmed {
+    background: linear-gradient(to right, var(--ov2-pos-bg), var(--ov2-bg-1));
+    border-right-color: var(--ov2-pos);
+}
+.overview-prod-root .ov2-ft-matured.ov2-ft-matured-mixed {
+    background: linear-gradient(to right, var(--ov2-warn-bg, rgba(245,158,11,0.08)), var(--ov2-bg-1));
+    border-right-color: var(--ov2-warn, #f59e0b);
+}
+.overview-prod-root .ov2-ft-matured.ov2-ft-matured-failed {
+    background: linear-gradient(to right, var(--ov2-neg-bg), var(--ov2-bg-1));
+    border-right-color: var(--ov2-neg);
+}
+.overview-prod-root .ov2-ft-matured-icon {
+    font-size: 16px;
+    margin-left: 6px;
+}
+.overview-prod-root .ov2-ft-matured-sep {
+    color: var(--ov2-text-3);
+    margin: 0 4px;
+}
+
+/* Paths chart — 12 trajectories + median overlay */
+.overview-prod-root .ov2-echo-paths-wrap {
+    position: relative;
+    height: 180px;
+    width: 100%;
+    margin-bottom: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-echo-paths-label {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+/* List of match dates */
+.overview-prod-root .ov2-echo-matches {
+    margin-bottom: var(--ov2-space-3);
+    padding-top: var(--ov2-space-3);
+    border-top: 1px dashed var(--ov2-border);
+}
+.overview-prod-root .ov2-echo-matches-label {
+    font-size: 11px;
+    color: var(--ov2-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.overview-prod-root .ov2-echo-matches-list {
+    font-family: var(--ov2-font-mono);
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    line-height: 1.8;
+}
+.overview-prod-root .ov2-echo-match-chip {
+    display: inline-block;
+    background: var(--ov2-bg-2);
+    border: 1px solid var(--ov2-border);
+    border-radius: 4px;
+    padding: 2px 8px;
+    margin: 2px 4px 2px 0;
+    cursor: help;
+}
+.overview-prod-root .ov2-echo-caveat {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    line-height: 1.5;
+    padding-top: var(--ov2-space-3);
+    border-top: 1px solid var(--ov2-border);
+}
+
+/* ─── Flow vs Price panel — options sentiment timeline vs SPX ────────
+   Sits below the Historical Echo. Both Echo and FvP are short-term
+   panels (last 22-30 days) while the Macro Trail above them is the
+   10-year backdrop. The chart overlays the flow score (left axis) on
+   top of cumulative SPX return (right axis), so the eye can spot
+   divergences immediately. */
+.overview-prod-root .ov2-fvp {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border-strong);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-5);
+    margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-fvp-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: var(--ov2-space-4);
+    margin-bottom: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-fvp-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-fvp-sub {
+    font-size: 12px;
+    color: var(--ov2-text-3);
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-fvp-stats {
+    display: flex;
+    gap: var(--ov2-space-5);
+    flex-wrap: wrap;
+}
+.overview-prod-root .ov2-fvp-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 100px;
+}
+.overview-prod-root .ov2-fvp-stat-label {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+.overview-prod-root .ov2-fvp-stat-val {
+    font-family: var(--ov2-font-mono);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-fvp-stat-val.ov2-pos { color: var(--ov2-pos); }
+.overview-prod-root .ov2-fvp-stat-val.ov2-neg { color: var(--ov2-neg); }
+.overview-prod-root .ov2-fvp-chart-wrap {
+    position: relative;
+    height: 240px;
+    width: 100%;
+}
+.overview-prod-root .ov2-fvp-verdict {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ov2-text-1);
+    padding: var(--ov2-space-3);
+    background: var(--ov2-bg-2);
+    border-radius: var(--ov2-radius-sm);
+    border-right: 3px solid var(--ov2-cat-action);
+    margin-top: var(--ov2-space-4);
+    line-height: 1.6;
+}
+.overview-prod-root .ov2-fvp-verdict.ov2-pos { border-right-color: var(--ov2-pos); }
+.overview-prod-root .ov2-fvp-verdict.ov2-neg { border-right-color: var(--ov2-neg); }
+.overview-prod-root .ov2-fvp-caveat {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    line-height: 1.5;
+    padding-top: var(--ov2-space-3);
+    margin-top: var(--ov2-space-3);
+    border-top: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-mcc-accent {
+    position: absolute;
+    top: 0; right: 0; left: 0;
+    height: 4px;
+    background: var(--ov2-cat-breadth);
+    transition: background 200ms;
+}
+
+.overview-prod-root .ov2-mcc-phase-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--ov2-space-3);
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+}
+.overview-prod-root .ov2-mcc-glyph {
+    font-size: 28px;
+    line-height: 1;
+    font-family: var(--ov2-font-mono);
+    font-weight: 700;
+    color: var(--ov2-warn);
+    transition: color 200ms;
+}
+.overview-prod-root .ov2-mcc-phase-label {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--ov2-text-1);
+    text-transform: uppercase;
+}
+.overview-prod-root .ov2-mcc-phase-label-he {
+    font-size: 16px;
+    color: var(--ov2-text-1);
+    font-weight: 700;
+}
+.overview-prod-root .ov2-mcc-state-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--ov2-warn-bg);
+    color: var(--ov2-warn-bright);
+    border: 1px solid var(--ov2-warn);
+    margin-right: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-mcc-state-label.ov2-pos { background: var(--ov2-pos-bg); color: var(--ov2-pos-bright); border-color: var(--ov2-pos); }
+.overview-prod-root .ov2-mcc-state-label.ov2-neg { background: var(--ov2-neg-bg); color: var(--ov2-neg-bright); border-color: var(--ov2-neg); }
+
+.overview-prod-root .ov2-mcc-duration-row {
+    display: flex;
+    gap: var(--ov2-space-3);
+    align-items: baseline;
+    margin-bottom: var(--ov2-space-3);
+    flex-wrap: wrap;
+}
+.overview-prod-root .ov2-mcc-duration {
+    font-size: 12px;
+    font-family: var(--ov2-font-mono);
+    color: var(--ov2-text-1);
+    font-weight: 700;
+    background: var(--ov2-bg-2);
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-mcc-entered {
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    font-weight: 500;
+}
+.overview-prod-root .ov2-mcc-narrative {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--ov2-text-1);
+    background: var(--ov2-bg-1);
+    padding: var(--ov2-space-3) var(--ov2-space-4);
+    border-radius: var(--ov2-radius);
+    border-right: 3px solid var(--ov2-cat-breadth);
+    margin-bottom: var(--ov2-space-4);
+    font-weight: 500;
+    box-shadow: var(--ov2-shadow-card);
+}
+
+.overview-prod-root .ov2-mcc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--ov2-space-5);
+    position: relative;
+    margin-bottom: var(--ov2-space-4);
+}
+@media (max-width: 800px) {
+    .overview-prod-root .ov2-mcc-grid { grid-template-columns: 1fr; }
+}
+.overview-prod-root .ov2-mcc-block-state,
+.overview-prod-root .ov2-mcc-block-score,
+.overview-prod-root .ov2-mcc-block-meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ov2-space-2);
+}
+/* Thin vertical separators between the 4 visual top-row categories:
+   רמת סיכון | הטיית פוזיציה | ציון משולב | רמת ביטחון בשלב
+   In RTL, block-state is rightmost (DOM-first) and block-meta is
+   leftmost (DOM-last). Adding border-right to score and meta puts
+   the divider between visually-adjacent cells. */
+.overview-prod-root .ov2-mcc-block-score,
+.overview-prod-root .ov2-mcc-block-meta {
+    border-right: 1px solid var(--ov2-border);
+    padding-right: var(--ov2-space-4);
+}
+/* Inner separator inside block-state — between רמת סיכון (1st inner div)
+   and הטיית פוזיציה (2nd inner div). The 2nd item gets a right-side
+   border which in RTL appears between the two items. */
+.overview-prod-root .ov2-mcc-block-state > div > div:nth-child(2) {
+    border-right: 1px solid var(--ov2-border);
+    padding-right: var(--ov2-space-3);
+}
+@media (max-width: 800px) {
+    .overview-prod-root .ov2-mcc-block-score,
+    .overview-prod-root .ov2-mcc-block-meta {
+        border-right: none;
+        padding-right: 0;
+        border-top: 1px solid var(--ov2-border);
+        padding-top: var(--ov2-space-3);
+    }
+    .overview-prod-root .ov2-mcc-block-state > div > div:nth-child(2) {
+        border-right: none;
+        padding-right: 0;
+    }
+}
+.overview-prod-root .ov2-mcc-score-top {
+    display: flex;
+    align-items: baseline;
+    gap: var(--ov2-space-2);
+    margin-bottom: var(--ov2-space-2);
+    flex-wrap: wrap;
+}
+.overview-prod-root .ov2-mcc-score-val {
+    font-size: 38px;
+    font-weight: 800;
+    color: var(--ov2-text-1);
+    font-family: var(--ov2-font-mono);
+    line-height: 1;
+    letter-spacing: -0.02em;
+}
+.overview-prod-root .ov2-mcc-score-max {
+    font-size: 16px;
+    font-family: var(--ov2-font-mono);
+    color: var(--ov2-text-3);
+}
+.overview-prod-root .ov2-mcc-bar {
+    height: 8px;
+    background: var(--ov2-bg-3);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-mcc-bar-fill {
+    height: 100%;
+    /* Gradient direction flipped for RTL: green on the visual right
+       (reading-start in Hebrew), red on the visual left. Score 84%
+       fills from the right; the high portion sits in the green zone
+       and reads as "good" first in RTL eye-flow. */
+    background: linear-gradient(90deg, var(--ov2-pos) 0%, var(--ov2-warn) 50%, var(--ov2-neg) 100%);
+    border-radius: 4px;
+    transition: width 400ms;
+}
+.overview-prod-root .ov2-mcc-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-mcc-meta-row:last-child { border-bottom: none; }
+.overview-prod-root .ov2-mcc-meta-label {
+    font-size: 11px;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+.overview-prod-root .ov2-mcc-meta-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+}
+/* Confidence bar — matches the score bar in height + gradient so the
+   two read as the same visual family. Previously this bar was a
+   shorter solid amber, which looked like a secondary indicator. */
+.overview-prod-root .ov2-mcc-conf-bar {
+    height: 8px;
+    background: var(--ov2-bg-3);
+    border-radius: 4px;
+    margin-top: 6px;
+    overflow: hidden;
+    border: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-mcc-conf-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--ov2-neg) 0%, var(--ov2-warn) 50%, var(--ov2-pos) 100%);
+    border-radius: 4px;
+    transition: width 400ms, background 200ms;
+}
+
+/* Drivers row — 6 metrics. Each cell: centered label + centered value
+   stacked, with a thin vertical separator between visually-adjacent
+   cells. In RTL the DOM-first cell appears rightmost; border-right on
+   every cell except :first-child gives separators between every pair. */
+.overview-prod-root .ov2-mcc-drivers {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0;
+    padding: var(--ov2-space-3) 0 0;
+    border-top: 1px solid var(--ov2-border);
+    position: relative;
+}
+@media (max-width: 800px) {
+    .overview-prod-root .ov2-mcc-drivers { grid-template-columns: repeat(3, 1fr); }
+}
+.overview-prod-root .ov2-driver {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+    padding: 0 var(--ov2-space-3);
+    cursor: help;
+    border-right: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-driver:first-child {
+    border-right: none;
+}
+@media (max-width: 800px) {
+    /* On mobile the grid wraps to 2 rows of 3 — recompute borders so
+       there's no leftover divider at the wrap break. */
+    .overview-prod-root .ov2-driver { border-right: none; padding: var(--ov2-space-2); }
+}
+.overview-prod-root .ov2-driver-lbl {
+    font-size: 11px;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+.overview-prod-root .ov2-driver-val {
+    font-family: var(--ov2-font-mono);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+}
+
+.overview-prod-root .ov2-mcc-chips {
+    display: flex;
+    gap: var(--ov2-space-2);
+    flex-wrap: wrap;
+    margin-top: var(--ov2-space-3);
+    padding-top: var(--ov2-space-3);
+    border-top: 1px solid var(--ov2-border);
+    position: relative;
+}
+
+/* MCC conclusion — one-paragraph synthesis under the chips, color-
+   coded by sentiment. Reads as "given everything above, here's the
+   actual story". Hidden when empty. */
+.overview-prod-root .ov2-mcc-conclusion {
+    margin-top: var(--ov2-space-3);
+    padding: var(--ov2-space-3) var(--ov2-space-4);
+    border-radius: var(--ov2-radius-sm);
+    font-size: 13px;
+    line-height: 1.65;
+    background: var(--ov2-bg-2);
+    color: var(--ov2-text-1);
+    border-right: 3px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-mcc-conclusion:empty {
+    display: none;
+}
+.overview-prod-root .ov2-mcc-conclusion.ov2-pos {
+    background: var(--ov2-pos-bg);
+    border-right-color: var(--ov2-pos);
+}
+.overview-prod-root .ov2-mcc-conclusion.ov2-neg {
+    background: var(--ov2-neg-bg);
+    border-right-color: var(--ov2-neg);
+}
+.overview-prod-root .ov2-mcc-conclusion.ov2-warn {
+    background: var(--ov2-warn-bg, rgba(245, 158, 11, 0.08));
+    border-right-color: var(--ov2-warn, #f59e0b);
+}
+.overview-prod-root .ov2-mcc-conclusion.ov2-muted {
+    background: var(--ov2-bg-2);
+    border-right-color: var(--ov2-border);
+    color: var(--ov2-text-2);
+}
+
+/* ── CHIPS ── */
+.overview-prod-root .ov2-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ov2-space-2);
+    padding: 5px 12px;
+    background: var(--ov2-bg-2);
+    border: 1px solid var(--ov2-border);
+    border-radius: 999px;
+    font-size: 11px;
+    color: var(--ov2-text-1);
+    font-weight: 600;
+    cursor: help;
+}
+.overview-prod-root .ov2-chip-state {
+    background: var(--ov2-bg-2);
+    border: 1px solid var(--ov2-border-strong);
+    color: var(--ov2-text-1);
+    font-weight: 700;
+}
+.overview-prod-root .ov2-chip-state::before {
+    content: '● ';
+    margin-left: 2px;
+    opacity: 0.6;
+    color: var(--ov2-text-2);
+}
+.overview-prod-root .ov2-chip-transition {
+    background: var(--ov2-bg-2);
+    border: 1px dashed var(--ov2-border-bright);
+    color: var(--ov2-text-1);
+    font-weight: 600;
+}
+.overview-prod-root .ov2-chip-warning {
+    background: var(--ov2-warn-bg);
+    border: 1px solid var(--ov2-warn);
+    color: var(--ov2-warn-bright);
+    font-weight: 700;
+}
+.overview-prod-root .ov2-chip-confirmation {
+    background: var(--ov2-pos-bg);
+    border: 1px solid var(--ov2-pos);
+    color: var(--ov2-pos-bright);
+    font-weight: 700;
+}
+.overview-prod-root .ov2-chip-cat-breadth    { box-shadow: inset 3px 0 0 var(--ov2-cat-breadth); }
+.overview-prod-root .ov2-chip-cat-momentum   { box-shadow: inset 3px 0 0 var(--ov2-cat-momentum); }
+.overview-prod-root .ov2-chip-cat-risk       { box-shadow: inset 3px 0 0 var(--ov2-cat-risk); }
+.overview-prod-root .ov2-chip-cat-flow       { box-shadow: inset 3px 0 0 var(--ov2-cat-flow); }
+.overview-prod-root .ov2-chip-cat-sector     { box-shadow: inset 3px 0 0 var(--ov2-cat-sector); }
+.overview-prod-root .ov2-chip-cat-action     { box-shadow: inset 3px 0 0 var(--ov2-cat-action); }
+
+/* ── KPI GROUPS ── */
+.overview-prod-root .ov2-kpi-groups {
+    display: grid;
+    grid-template-columns: 3fr 2fr 3fr;
+    gap: var(--ov2-space-4);
+    margin-bottom: var(--ov2-space-4);
+}
+@media (max-width: 1000px) {
+    .overview-prod-root .ov2-kpi-groups { grid-template-columns: 1fr; }
+}
+.overview-prod-root .ov2-kpi-group { display: flex; flex-direction: column; gap: var(--ov2-space-2); }
+.overview-prod-root .ov2-kpi-group-head {
+    display: flex;
+    align-items: center;
+    gap: var(--ov2-space-2);
+    padding: 0 var(--ov2-space-1);
+}
+.overview-prod-root .ov2-kpi-group-tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ov2-text-1);
+    padding: 3px 10px;
+    background: var(--ov2-bg-1);
+    border-radius: 4px;
+    border: 1px solid var(--ov2-border);
+    border-right: 3px solid var(--ov2-cat-breadth);
+}
+.overview-prod-root .ov2-kpi-group[data-cat="risk"] .ov2-kpi-group-tag { border-right-color: var(--ov2-cat-risk); }
+.overview-prod-root .ov2-kpi-group[data-cat="trend"] .ov2-kpi-group-tag { border-right-color: var(--ov2-cat-momentum); }
+.overview-prod-root .ov2-kpi-group-line {
+    flex: 1;
+    height: 1px;
+    background: var(--ov2-border);
+}
+.overview-prod-root .ov2-kpi-cards { display: grid; gap: var(--ov2-space-2); }
+.overview-prod-root .ov2-kpi-group:nth-child(1) .ov2-kpi-cards { grid-template-columns: 1fr 1fr 1fr; }
+.overview-prod-root .ov2-kpi-group:nth-child(2) .ov2-kpi-cards { grid-template-columns: 1fr 1fr; }
+.overview-prod-root .ov2-kpi-group:nth-child(3) .ov2-kpi-cards { grid-template-columns: 1fr 1fr 1fr; }
+.overview-prod-root .ov2-kpi {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-3);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+    cursor: help;
+    min-height: 110px;
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-kpi:hover {
+    border-color: var(--ov2-border-strong);
+    background: var(--ov2-bg-1);
+    transform: translateY(-1px);
+    box-shadow: var(--ov2-shadow-pop);
+}
+.overview-prod-root .ov2-kpi-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.02em;
+}
+.overview-prod-root .ov2-kpi-value {
+    font-family: var(--ov2-font-mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+}
+.overview-prod-root .ov2-kpi-delta {
+    font-family: var(--ov2-font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ov2-text-2);
+}
+.overview-prod-root .ov2-kpi-delta.ov2-pos { color: var(--ov2-pos); }
+.overview-prod-root .ov2-kpi-delta.ov2-neg { color: var(--ov2-neg); }
+.overview-prod-root .ov2-kpi-delta.ov2-warn { color: var(--ov2-warn); }
+.overview-prod-root .ov2-kpi-value.ov2-pos { color: var(--ov2-pos); }
+.overview-prod-root .ov2-kpi-value.ov2-neg { color: var(--ov2-neg); }
+.overview-prod-root .ov2-kpi-value.ov2-warn { color: var(--ov2-warn); }
+
+/* ── SECTOR HEATMAP ── */
+.overview-prod-root .ov2-heatmap-compact {
+    display: grid;
+    grid-template-columns: repeat(11, 1fr);
+    gap: 3px;
+}
+@media (max-width: 800px) {
+    .overview-prod-root .ov2-heatmap-compact { grid-template-columns: repeat(4, 1fr); }
+}
+.overview-prod-root .ov2-hm-cell {
+    aspect-ratio: 1 / 0.7;
+    min-height: 64px;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    font-family: var(--ov2-font-mono);
+    font-variant-numeric: tabular-nums;
+    transition: transform 120ms;
+    cursor: pointer;
+    color: #ffffff;
+}
+.overview-prod-root .ov2-hm-cell:hover {
+    transform: scale(1.06);
+    z-index: 5;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+.overview-prod-root .ov2-hm-sym { font-size: 10px; font-weight: 700; opacity: 0.95; letter-spacing: 0.04em; text-transform: uppercase; }
+.overview-prod-root .ov2-hm-val { font-size: 13px; font-weight: 800; margin-top: 2px; }
+.overview-prod-root .ov2-hm-bg-strong-neg { background: var(--ov2-hm-strong-neg); }
+.overview-prod-root .ov2-hm-bg-neg        { background: var(--ov2-hm-neg); }
+.overview-prod-root .ov2-hm-bg-weak-neg   { background: var(--ov2-hm-weak-neg); }
+.overview-prod-root .ov2-hm-bg-neutral    { background: var(--ov2-hm-neutral); color: var(--ov2-text-1); }
+.overview-prod-root .ov2-hm-bg-weak-pos   { background: var(--ov2-hm-weak-pos); color: var(--ov2-text-1); }
+.overview-prod-root .ov2-hm-bg-pos        { background: var(--ov2-hm-pos); }
+.overview-prod-root .ov2-hm-bg-strong-pos { background: var(--ov2-hm-strong-pos); }
+
+/* ── PILL ── */
+.overview-prod-root .ov2-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-family: var(--ov2-font-mono);
+}
+.overview-prod-root .ov2-pill.ov2-pos  { background: var(--ov2-pos-bg);  color: var(--ov2-pos-bright); }
+.overview-prod-root .ov2-pill.ov2-neg  { background: var(--ov2-neg-bg);  color: var(--ov2-neg-bright); }
+.overview-prod-root .ov2-pill.ov2-warn { background: var(--ov2-warn-bg); color: var(--ov2-warn-bright); }
+
+/* ── ALERTS RAIL ──
+   Sticky on desktop so the chip context stays visible while the main
+   column scrolls. After the legend card was added the rail can grow
+   taller than the viewport — without max-height + internal scroll,
+   sticky positions the TOP of the rail while the bottom sits off-screen
+   forever. The combination of position:sticky + max-height + overflow
+   gives the rail a "scroll-within-viewport" behaviour: it follows the
+   page down to its sticky top, then its own content scrolls. */
+.overview-prod-root .ov2-rail {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-4);
+    position: sticky;
+    top: var(--ov2-space-4);
+    max-height: calc(100vh - 2 * var(--ov2-space-4));
+    overflow-y: auto;
+    box-shadow: var(--ov2-shadow-card);
+}
+@media (max-width: 1200px) {
+    /* Single-column layout — rail stacks under main; sticky/scroll-cap
+       no longer make sense and would clip the content. */
+    .overview-prod-root .ov2-rail {
+        position: static;
+        max-height: none;
+        overflow-y: visible;
+    }
+}
+.overview-prod-root .ov2-rail-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-rail-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-rail-count {
+    font-family: var(--ov2-font-mono);
+    font-size: 11px;
+    color: var(--ov2-text-1);
+    background: var(--ov2-bg-2);
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-weight: 700;
+    border: 1px solid var(--ov2-border);
+}
+
+.overview-prod-root .ov2-alert {
+    background: var(--ov2-bg-2);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-3);
+    border-right: 4px solid var(--ov2-warn);
+    margin-bottom: var(--ov2-space-2);
+    transition: border-color 120ms, background 120ms, transform 120ms;
+    cursor: help;
+}
+.overview-prod-root .ov2-alert:hover { background: var(--ov2-bg-3); transform: translateX(-2px); }
+.overview-prod-root .ov2-alert.ov2-severity-warn { border-right-color: var(--ov2-warn); }
+.overview-prod-root .ov2-alert.ov2-severity-pos  { border-right-color: var(--ov2-pos); }
+.overview-prod-root .ov2-alert.ov2-severity-neg  { border-right-color: var(--ov2-neg); }
+.overview-prod-root .ov2-alert.ov2-severity-info { border-right-color: var(--ov2-cat-action); }
+.overview-prod-root .ov2-alert-head {
+    display: flex;
+    align-items: center;
+    gap: var(--ov2-space-2);
+    margin-bottom: 4px;
+}
+.overview-prod-root .ov2-alert-icon {
+    font-size: 12px;
+    color: var(--ov2-warn-bright);
+    font-family: var(--ov2-font-mono);
+    width: 14px;
+    text-align: center;
+    font-weight: 700;
+}
+.overview-prod-root .ov2-alert.ov2-severity-pos .ov2-alert-icon { color: var(--ov2-pos-bright); }
+.overview-prod-root .ov2-alert.ov2-severity-neg .ov2-alert-icon { color: var(--ov2-neg-bright); }
+.overview-prod-root .ov2-alert.ov2-severity-info .ov2-alert-icon { color: var(--ov2-cat-action); }
+.overview-prod-root .ov2-alert-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ov2-text-2);
+}
+.overview-prod-root .ov2-alert-body {
+    font-size: 13px;
+    color: var(--ov2-text-1);
+    line-height: 1.45;
+    margin-bottom: var(--ov2-space-2);
+    font-weight: 500;
+}
+.overview-prod-root .ov2-alert-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--ov2-text-3);
+    font-weight: 500;
+}
+.overview-prod-root .ov2-alert-action {
+    color: var(--ov2-cat-action);
+    font-weight: 600;
+}
+
+/* ── COLLAPSIBLE ── */
+.overview-prod-root .ov2-collapsible {
+    margin-bottom: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-collapsible-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: var(--ov2-space-3);
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius);
+    transition: border-color 120ms, background 120ms;
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-collapsible-head:hover { border-color: var(--ov2-border-strong); background: var(--ov2-bg-2); }
+.overview-prod-root .ov2-collapsible-head-text { display: flex; flex-direction: column; gap: 2px; }
+.overview-prod-root .ov2-collapsible-chev {
+    color: var(--ov2-text-2);
+    font-family: var(--ov2-font-mono);
+    transition: transform 200ms;
+}
+.overview-prod-root .ov2-collapsible.open .ov2-collapsible-chev { transform: rotate(180deg); }
+.overview-prod-root .ov2-collapsible-body {
+    display: none;
+    padding-top: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-collapsible.open .ov2-collapsible-body { display: block; }
+
+/* ── LOADING ── */
+.overview-prod-root .ov2-loading {
+    padding: var(--ov2-space-6) var(--ov2-space-5);
+    text-align: center;
+    color: var(--ov2-text-2);
+}
+.overview-prod-root .ov2-loading-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--ov2-cat-action);
+    margin: 0 4px;
+    animation: ov2-pulse 1.2s ease-in-out infinite;
+}
+.overview-prod-root .ov2-loading-dot:nth-child(2) { animation-delay: 0.15s; }
+.overview-prod-root .ov2-loading-dot:nth-child(3) { animation-delay: 0.30s; }
+@keyframes ov2-pulse {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40%           { transform: scale(1);   opacity: 1;   }
+}
+
+/* ── ERROR PANEL ── */
+.overview-prod-root .ov2-error-panel {
+    background: var(--ov2-bg-1);
+    border: 2px solid var(--ov2-neg);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-4);
+    margin: var(--ov2-space-5) auto;
+    max-width: 600px;
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-error-panel pre {
+    background: var(--ov2-bg-2);
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    overflow: auto;
+    color: var(--ov2-text-1);
+    border: 1px solid var(--ov2-border);
+    direction: ltr;
+    text-align: left;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   HIDE EXISTING DASHBOARD CHROME WHILE ON OVERVIEW V2
+   When .overview-prod-root is the active overview, the old .app-header
+   "סקירת שוק · תמונת מצב כללית" is redundant with our Executive Strip.
+   ═══════════════════════════════════════════════════════════════════════ */
+.app-main:has(.tab-view[data-tab-view="overview"].active .overview-prod-root) .app-header { display: none; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FLOW CARD (SPX options flow visibility)
+   ═══════════════════════════════════════════════════════════════════════ */
+.overview-prod-root .ov2-flow-card {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-4);
+    position: relative;
+    margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-flow-card-accent {
+    position: absolute;
+    top: 0; right: 0; left: 0;
+    height: 3px;
+    background: var(--ov2-cat-flow);
+    border-radius: var(--ov2-radius) var(--ov2-radius) 0 0;
+}
+.overview-prod-root .ov2-flow-grid {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr 1fr 1fr;
+    gap: var(--ov2-space-4);
+    align-items: center;
+    margin-top: var(--ov2-space-3);
+}
+@media (max-width: 900px) {
+    .overview-prod-root .ov2-flow-grid { grid-template-columns: 1fr 1fr; }
+}
+.overview-prod-root .ov2-flow-score-block {
+    text-align: center;
+    border-left: 1px solid var(--ov2-border);
+    padding-left: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-flow-score-val {
+    font-family: var(--ov2-font-mono);
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--ov2-text-1);
+    line-height: 1;
+}
+.overview-prod-root .ov2-flow-score-label {
+    font-size: 10px;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-flow-score-side {
+    font-size: 11px;
+    font-family: var(--ov2-font-mono);
+    margin-top: 6px;
+    line-height: 1.4;
+}
+.overview-prod-root .ov2-flow-status {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    margin-top: 6px;
+}
+.overview-prod-root .ov2-flow-status.ov2-pos { color: var(--ov2-pos-bright); }
+.overview-prod-root .ov2-flow-status.ov2-neg { color: var(--ov2-neg-bright); }
+.overview-prod-root .ov2-flow-status.ov2-warn { color: var(--ov2-warn-bright); }
+.overview-prod-root .ov2-flow-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: help;
+}
+.overview-prod-root .ov2-flow-metric-label {
+    font-size: 11px;
+    color: var(--ov2-text-2);
+    font-weight: 600;
+}
+.overview-prod-root .ov2-flow-metric-value {
+    font-family: var(--ov2-font-mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-flow-metric-sub {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    font-weight: 500;
+}
+
+/* Call/Put breakdown inside Flow card */
+.overview-prod-root .ov2-flow-cp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--ov2-space-3);
+    margin-bottom: var(--ov2-space-3);
+}
+@media (max-width: 700px) {
+    .overview-prod-root .ov2-flow-cp-grid { grid-template-columns: 1fr; }
+}
+.overview-prod-root .ov2-flow-cp-card {
+    background: var(--ov2-bg-2);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-3);
+    cursor: help;
+}
+.overview-prod-root .ov2-flow-cp-card.cp-call { border-right: 3px solid var(--ov2-pos); }
+.overview-prod-root .ov2-flow-cp-card.cp-put  { border-right: 3px solid var(--ov2-neg); }
+.overview-prod-root .ov2-flow-cp-head {
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-flow-cp-label {
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    font-size: 13px;
+}
+.overview-prod-root .ov2-flow-cp-card.cp-call .ov2-flow-cp-label { color: var(--ov2-pos-bright); }
+.overview-prod-root .ov2-flow-cp-card.cp-put  .ov2-flow-cp-label { color: var(--ov2-neg-bright); }
+.overview-prod-root .ov2-flow-cp-rows { display: flex; flex-direction: column; gap: 6px; }
+.overview-prod-root .ov2-flow-cp-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 12px;
+    color: var(--ov2-text-2);
+}
+.overview-prod-root .ov2-flow-cp-row b {
+    font-family: var(--ov2-font-mono);
+    color: var(--ov2-text-1);
+    font-weight: 700;
+    font-size: 14px;
+}
+.overview-prod-root .ov2-flow-cp-mono {
+    font-family: var(--ov2-font-mono);
+    color: var(--ov2-text-1);
+    font-size: 11px;
+    font-weight: 600;
+}
+.overview-prod-root .ov2-flow-cp-sub {
+    display: block;
+    font-size: 11px;
+    color: var(--ov2-text-2);
+    font-weight: 500;
+    margin-top: 2px;
+    font-family: var(--ov2-font-mono);
+}
+.overview-prod-root .ov2-flow-side-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+.overview-prod-root .ov2-flow-side-table thead th {
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 10px 6px;
+    text-align: center;
+    border-bottom: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-flow-side-table thead th:first-child { text-align: right; }
+.overview-prod-root .ov2-flow-side-table tbody td {
+    padding: 12px 6px;
+    border-bottom: 1px solid var(--ov2-border);
+    vertical-align: middle;
+    text-align: center;
+    color: var(--ov2-text-1);
+    font-family: var(--ov2-font-mono);
+    font-size: 15px;
+}
+.overview-prod-root .ov2-flow-side-table tbody td b {
+    font-size: 16px;
+    font-weight: 700;
+}
+.overview-prod-root .ov2-flow-side-table tbody td:first-child {
+    text-align: right;
+    font-family: var(--ov2-font-ui);
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    font-size: 14px;
+}
+.overview-prod-root .ov2-flow-side-table .ov2-flow-side-sub {
+    display: block;
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    font-weight: 500;
+    margin-top: 2px;
+}
+.overview-prod-root .ov2-flow-side-table .ov2-flow-side-pct {
+    color: var(--ov2-text-2);
+    font-weight: 600;
+    font-size: 13px;
+}
+.overview-prod-root .ov2-flow-side-table .ov2-flow-side-ask td:first-child b { color: var(--ov2-pos); }
+.overview-prod-root .ov2-flow-side-table .ov2-flow-side-bid td:first-child b { color: var(--ov2-neg); }
+.overview-prod-root .ov2-flow-side-table .ov2-flow-side-mid td:first-child b { color: var(--ov2-text-3); }
+.overview-prod-root .ov2-flow-side-table .ov2-flow-side-mid td { opacity: 0.8; border-bottom: none; }
+.overview-prod-root .ov2-flow-side-table tfoot td {
+    padding: 12px 8px;
+    background: var(--ov2-bg-3);
+    border-radius: var(--ov2-radius-sm);
+    text-align: center;
+    font-size: 13px;
+    color: var(--ov2-text-1);
+    font-weight: 500;
+}
+.overview-prod-root .ov2-flow-side-table tfoot .ov2-flow-side-signal {
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    margin-left: 8px;
+    font-family: var(--ov2-font-ui);
+}
+.overview-prod-root .ov2-flow-side-table tfoot b {
+    color: var(--ov2-text-1);
+    font-family: var(--ov2-font-mono);
+    font-weight: 700;
+}
+.overview-prod-root .ov2-flow-side-avg {
+    color: var(--ov2-text-1);
+    font-family: var(--ov2-font-mono);
+    font-size: 14px;
+    font-weight: 700;
+}
+.overview-prod-root .ov2-flow-side-dte {
+    color: var(--ov2-text-1);
+    font-family: var(--ov2-font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--ov2-bg-2);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--ov2-border);
+}
+
+/* DTE Summary block */
+.overview-prod-root .ov2-flow-dte-summary {
+    background: var(--ov2-bg-2);
+    border: 1px solid var(--ov2-border);
+    border-right: 4px solid var(--ov2-cat-historical);
+    border-radius: var(--ov2-radius-sm);
+    padding: 12px 16px;
+    margin-bottom: var(--ov2-space-3);
+    margin-top: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-flow-dte-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--ov2-space-3);
+    margin: 8px 0;
+}
+.overview-prod-root .ov2-flow-dte-cell {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.overview-prod-root .ov2-flow-dte-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.04em;
+}
+.overview-prod-root .ov2-flow-dte-value {
+    font-family: var(--ov2-font-mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-flow-dte-sub {
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    font-weight: 500;
+}
+.overview-prod-root .ov2-flow-dte-interp {
+    font-size: 13px;
+    color: var(--ov2-text-1);
+    line-height: 1.5;
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--ov2-border);
+    font-weight: 500;
+}
+
+/* DTE distribution stacked bar */
+.overview-prod-root .ov2-flow-dte-dist {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--ov2-border);
+}
+.overview-prod-root .ov2-flow-dte-dist-row {
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.overview-prod-root .ov2-flow-dte-dist-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    text-align: right;
+}
+.overview-prod-root .ov2-dte-stack {
+    display: flex;
+    height: 28px;
+    border-radius: var(--ov2-radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--ov2-border);
+    background: var(--ov2-bg-1);
+    direction: ltr;  /* keep bucket order visually consistent */
+}
+.overview-prod-root .ov2-dte-bucket {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-family: var(--ov2-font-mono);
+    font-weight: 700;
+    font-size: 11px;
+    transition: filter 120ms;
+    cursor: help;
+    min-width: 0;
+}
+.overview-prod-root .ov2-dte-bucket:hover { filter: brightness(1.15); }
+.overview-prod-root .ov2-dte-bucket-pct {
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Bucket colors — heat to cool (short = warm, long = cool) */
+.overview-prod-root .bucket-0_7d     { background: #ef4444; }  /* red — very short */
+.overview-prod-root .bucket-8_30d    { background: #f59e0b; }  /* amber — short */
+.overview-prod-root .bucket-31_90d   { background: #4f8af7; }  /* blue — medium */
+.overview-prod-root .bucket-91_180d  { background: #2563eb; }  /* deep blue — long */
+.overview-prod-root .bucket-180plusd { background: #7c3aed; }  /* violet — LEAPS */
+
+/* Legend */
+.overview-prod-root .ov2-flow-dte-dist-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+    direction: ltr;
+    justify-content: flex-end;
+}
+.overview-prod-root .ov2-dte-legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--ov2-font-mono);
+    color: #ffffff;
+}
+.overview-prod-root .ov2-flow-side-size-note {
+    background: var(--ov2-bg-1);
+    padding: 10px 12px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--ov2-text-1);
+    border-top: 1px dashed var(--ov2-border);
+    line-height: 1.6;
+    font-weight: 500;
+}
+.overview-prod-root .ov2-flow-side-size-note b {
+    color: var(--ov2-text-1);
+    font-family: var(--ov2-font-mono);
+    font-weight: 700;
+}
+/* ISO Sweep highlight — conviction signal */
+.overview-prod-root .ov2-flow-quality-iso td {
+    background: var(--ov2-cat-action);
+    color: var(--ov2-text-inverse);
+}
+.overview-prod-root .ov2-flow-quality-iso td b {
+    color: var(--ov2-text-inverse);
+}
+.overview-prod-root .ov2-flow-quality-iso td .ov2-flow-side-sub,
+.overview-prod-root .ov2-flow-quality-iso td .ov2-flow-side-pct {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.overview-prod-root .ov2-flow-agg-interp {
+    background: var(--ov2-bg-2);
+    padding: 16px 20px;
+    border-radius: var(--ov2-radius-sm);
+    color: var(--ov2-text-1);
+    margin-bottom: var(--ov2-space-3);
+    border-right: 4px solid var(--ov2-cat-flow);
+    cursor: help;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.overview-prod-root .ov2-flow-agg-headline {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--ov2-text-1);
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+}
+.overview-prod-root .ov2-flow-agg-meaning {
+    font-size: 14px;
+    color: var(--ov2-text-1);
+    line-height: 1.5;
+    font-weight: 500;
+}
+/* Evidence table — Hebrew-leading, no inline mixing */
+.overview-prod-root .ov2-flow-evidence-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    overflow: hidden;
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-flow-evidence-table th {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.04em;
+    padding: 8px 12px;
+    text-align: center;
+    background: var(--ov2-bg-2);
+    border-bottom: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-flow-evidence-table th:first-child { text-align: right; }
+.overview-prod-root .ov2-flow-evidence-table td {
+    padding: 10px 12px;
+    font-size: 14px;
+    color: var(--ov2-text-1);
+    text-align: center;
+    font-family: var(--ov2-font-mono);
+    font-weight: 600;
+    border-bottom: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-flow-evidence-table tr:last-child td { border-bottom: none; }
+.overview-prod-root .ov2-flow-evidence-table td:first-child {
+    text-align: right;
+    font-family: var(--ov2-font-ui);
+    font-weight: 700;
+}
+
+/* Divergence — explainer cards */
+.overview-prod-root .ov2-flow-agg-divergence-head {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ov2-warn);
+    margin-top: 8px;
+    letter-spacing: 0.02em;
+}
+.overview-prod-root .ov2-flow-agg-divergence {
+    background: var(--ov2-warn-bg);
+    border-right: 4px solid var(--ov2-warn);
+    border-radius: var(--ov2-radius-sm);
+    padding: 12px 16px;
+    margin-top: 4px;
+}
+.overview-prod-root .ov2-flow-agg-div-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ov2-warn-bright);
+    margin-bottom: 4px;
+}
+.overview-prod-root .ov2-flow-agg-div-body {
+    font-size: 14px;
+    color: var(--ov2-text-1);
+    line-height: 1.6;
+    margin-bottom: 4px;
+}
+.overview-prod-root .ov2-flow-agg-div-body b {
+    font-weight: 700;
+}
+.overview-prod-root .ov2-flow-agg-div-sub {
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    line-height: 1.5;
+    font-style: italic;
+}
+
+/* Conviction note — premium-weighted (replaces old single-line) */
+.overview-prod-root .ov2-conv-note-main {
+    font-size: 14px;
+    color: var(--ov2-text-1);
+    font-weight: 600;
+    line-height: 1.5;
+}
+.overview-prod-root .ov2-conv-note-main b {
+    font-weight: 800;
+}
+.overview-prod-root .ov2-conv-note-detail {
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    margin-top: 4px;
+    line-height: 1.5;
+}
+.overview-prod-root .ov2-conv-note-divergence {
+    background: var(--ov2-warn-bg);
+    border-right: 3px solid var(--ov2-warn);
+    border-radius: var(--ov2-radius-sm);
+    padding: 6px 10px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--ov2-text-1);
+    line-height: 1.5;
+}
+.overview-prod-root .ov2-flow-side-prem {
+    font-family: var(--ov2-font-mono);
+    font-size: 13px;
+    color: var(--ov2-text-2);
+    font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MARKET × FLOW SYNERGY
+   ═══════════════════════════════════════════════════════════════════════ */
+.overview-prod-root .ov2-synergy {
+    background: linear-gradient(135deg, var(--ov2-bg-1) 0%, var(--ov2-bg-2) 100%);
+    border: 1px solid var(--ov2-border-strong);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-4);
+    position: relative;
+    margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-synergy-accent {
+    position: absolute;
+    top: 0; right: 0; left: 0;
+    height: 3px;
+    background: var(--ov2-cat-action);
+    border-radius: var(--ov2-radius) var(--ov2-radius) 0 0;
+}
+.overview-prod-root .ov2-synergy-pair {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: var(--ov2-space-4);
+    align-items: center;
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    padding: var(--ov2-space-4);
+    margin-bottom: var(--ov2-space-3);
+}
+@media (max-width: 700px) {
+    .overview-prod-root .ov2-synergy-pair {
+        grid-template-columns: 1fr;
+    }
+}
+.overview-prod-root .ov2-synergy-side {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.overview-prod-root .ov2-synergy-side-headline {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.1;
+}
+.overview-prod-root .ov2-synergy-side-detail {
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    font-weight: 500;
+}
+.overview-prod-root .ov2-synergy-arrow {
+    font-size: 28px;
+    color: var(--ov2-text-3);
+    font-weight: 700;
+}
+
+/* Lean bar */
+.overview-prod-root .ov2-synergy-lean {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    padding: var(--ov2-space-3) var(--ov2-space-4);
+    margin-bottom: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-synergy-lean-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.04em;
+}
+.overview-prod-root .ov2-synergy-lean-value {
+    font-family: var(--ov2-font-mono);
+    font-size: 15px;
+    font-weight: 700;
+}
+.overview-prod-root .ov2-synergy-lean-track {
+    position: relative;
+    height: 16px;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    border: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-synergy-lean-zone-neg {
+    flex: 1; background: linear-gradient(to right, rgba(220,38,38,0.5), rgba(220,38,38,0.15));
+}
+.overview-prod-root .ov2-synergy-lean-zone-mid {
+    flex: 1; background: rgba(217,119,6,0.10);
+}
+.overview-prod-root .ov2-synergy-lean-zone-pos {
+    flex: 1; background: linear-gradient(to left, rgba(5,150,105,0.5), rgba(5,150,105,0.15));
+}
+.overview-prod-root .ov2-synergy-lean-marker {
+    position: absolute;
+    top: -3px;
+    width: 4px;
+    height: 22px;
+    background: var(--ov2-text-1);
+    border-radius: 2px;
+    box-shadow: 0 1px 4px rgba(15,23,42,0.3);
+    transition: left 400ms;
+}
+.overview-prod-root .ov2-synergy-lean-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    font-family: var(--ov2-font-mono);
+    direction: ltr;
+}
+
+/* Alignment verdict box */
+.overview-prod-root .ov2-synergy-alignment {
+    display: flex;
+    align-items: center;
+    gap: var(--ov2-space-3);
+    padding: 12px 16px;
+    border-radius: var(--ov2-radius-sm);
+    border: 1px solid var(--ov2-border);
+    margin-bottom: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-synergy-confirm     { background: var(--ov2-pos-bg);  border-color: var(--ov2-pos); }
+.overview-prod-root .ov2-synergy-bullish-div { background: rgba(14,165,233,0.10); border-color: var(--ov2-cat-action); }
+.overview-prod-root .ov2-synergy-bearish-div { background: var(--ov2-warn-bg); border-color: var(--ov2-warn); }
+.overview-prod-root .ov2-synergy-neutral     { background: var(--ov2-bg-2); }
+.overview-prod-root .ov2-synergy-align-emoji {
+    font-size: 26px;
+    line-height: 1;
+}
+.overview-prod-root .ov2-synergy-align-content { flex: 1; }
+.overview-prod-root .ov2-synergy-align-label {
+    font-size: 14px;
+    color: var(--ov2-text-1);
+    margin-bottom: 4px;
+}
+.overview-prod-root .ov2-synergy-align-desc {
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    font-weight: 500;
+}
+
+/* Cross-signals list */
+.overview-prod-root .ov2-synergy-signals {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    padding: var(--ov2-space-3) var(--ov2-space-4);
+    margin-bottom: var(--ov2-space-3);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.overview-prod-root .ov2-synergy-signal {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 8px 10px;
+    background: var(--ov2-bg-2);
+    border-radius: var(--ov2-radius-sm);
+    font-size: 13px;
+    color: var(--ov2-text-1);
+    line-height: 1.5;
+}
+.overview-prod-root .ov2-synergy-signal.ov2-signal-pos { border-right: 3px solid var(--ov2-pos); }
+.overview-prod-root .ov2-synergy-signal.ov2-signal-neg { border-right: 3px solid var(--ov2-warn); }
+.overview-prod-root .ov2-synergy-signal-icon {
+    flex-shrink: 0;
+    font-weight: 700;
+    font-family: var(--ov2-font-mono);
+    color: var(--ov2-text-1);
+    min-width: 20px;
+}
+.overview-prod-root .ov2-synergy-signal-text { flex: 1; }
+
+/* Narrative box — kept for legacy callers but no longer rendered by the
+   main synergy panel (replaced by ov2-synergy-conclusion + Q&A below). */
+.overview-prod-root .ov2-synergy-narrative {
+    background: var(--ov2-text-1);
+    color: var(--ov2-text-inverse);
+    border-radius: var(--ov2-radius-sm);
+    padding: 14px 18px;
+}
+.overview-prod-root .ov2-synergy-narrative .ov2-eyebrow {
+    color: rgba(255,255,255,0.7);
+}
+.overview-prod-root .ov2-synergy-narrative-text {
+    font-size: 15px;
+    line-height: 1.6;
+    font-weight: 500;
+}
+.overview-prod-root .ov2-synergy-narrative-text b {
+    color: #ffffff;
+    font-weight: 800;
+}
+
+/* ─── Conclusion-first layout (2026-05-26) ────────────────────────────
+   The synergy panel was redesigned around 3 user goals:
+   1. Show the takeaway FIRST (banner at top)
+   2. Answer 3 questions in plain Hebrew (Q&A blocks)
+   3. Hide technical numbers in a collapsible <details>
+   These styles support all three. */
+.overview-prod-root .ov2-synergy-conclusion {
+    border-radius: var(--ov2-radius-md);
+    padding: 16px 18px;
+    margin-bottom: var(--ov2-space-3);
+    border-right: 4px solid var(--ov2-border);
+    background: var(--ov2-bg-2);
+}
+.overview-prod-root .ov2-synergy-conclusion.ov2-synergy-confirm {
+    background: var(--ov2-pos-bg);
+    border-right-color: var(--ov2-pos);
+}
+.overview-prod-root .ov2-synergy-conclusion.ov2-synergy-bullish-div {
+    background: var(--ov2-pos-bg);
+    border-right-color: var(--ov2-pos);
+}
+.overview-prod-root .ov2-synergy-conclusion.ov2-synergy-bearish-div {
+    background: var(--ov2-warn-bg, rgba(245, 158, 11, 0.08));
+    border-right-color: var(--ov2-warn, #f59e0b);
+}
+.overview-prod-root .ov2-synergy-conclusion.ov2-synergy-muted {
+    background: var(--ov2-bg-2);
+    border-right-color: var(--ov2-border);
+}
+.overview-prod-root .ov2-synergy-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ov2-text-2);
+    margin-bottom: 8px;
+}
+.overview-prod-root .ov2-synergy-status-icon { font-size: 14px; }
+.overview-prod-root .ov2-synergy-headline {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    line-height: 1.4;
+    margin-bottom: 6px;
+}
+.overview-prod-root .ov2-synergy-action {
+    font-size: 13px;
+    color: var(--ov2-text-2);
+    line-height: 1.5;
+}
+
+/* Q&A blocks */
+.overview-prod-root .ov2-synergy-qa {
+    padding: 12px 16px;
+    margin-bottom: var(--ov2-space-2);
+    background: var(--ov2-bg-1);
+    border-radius: var(--ov2-radius-sm);
+    border: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-synergy-q {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    margin-bottom: 6px;
+}
+.overview-prod-root .ov2-synergy-a {
+    font-size: 13px;
+    color: var(--ov2-text-2);
+    line-height: 1.6;
+}
+.overview-prod-root .ov2-synergy-list {
+    margin: 4px 0 0 0;
+    padding: 0;
+    list-style: none;
+}
+.overview-prod-root .ov2-synergy-list li {
+    font-size: 13px;
+    color: var(--ov2-text-2);
+    line-height: 1.6;
+    padding: 4px 0;
+}
+
+/* Collapsible technical details */
+.overview-prod-root .ov2-synergy-tech {
+    margin-top: var(--ov2-space-3);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    background: var(--ov2-bg-2);
+}
+.overview-prod-root .ov2-synergy-tech > summary {
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ov2-text-2);
+    user-select: none;
+}
+.overview-prod-root .ov2-synergy-tech > summary:hover {
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-synergy-tech-body {
+    padding: 12px 14px 14px;
+    border-top: 1px solid var(--ov2-border);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ov2-space-3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FLOW HISTORY — "היום ביחס לעבר" (4 stat tiles + 7-day pattern timeline)
+   ═══════════════════════════════════════════════════════════════════════ */
+.overview-prod-root .ov2-flow-history-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--ov2-space-3);
+    margin-bottom: var(--ov2-space-3);
+}
+@media (max-width: 800px) {
+    .overview-prod-root .ov2-flow-history-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.overview-prod-root .ov2-flow-history-item {
+    background: var(--ov2-bg-2);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    padding: 12px 14px;
+    cursor: help;
+    transition: border-color 120ms;
+}
+.overview-prod-root .ov2-flow-history-item:hover {
+    border-color: var(--ov2-border-strong);
+}
+.overview-prod-root .ov2-flow-history-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+}
+.overview-prod-root .ov2-flow-history-value {
+    font-family: var(--ov2-font-mono);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    line-height: 1.1;
+}
+.overview-prod-root .ov2-flow-history-sub {
+    font-size: 13px;
+    color: var(--ov2-text-3);
+    font-weight: 500;
+}
+.overview-prod-root .ov2-flow-history-foot {
+    font-size: 11px;
+    color: var(--ov2-text-2);
+    margin-top: 6px;
+    font-weight: 500;
+}
+.overview-prod-root .ov2-flow-history-foot.ov2-pos { color: var(--ov2-pos); font-weight: 700; }
+.overview-prod-root .ov2-flow-history-foot.ov2-neg { color: var(--ov2-neg); font-weight: 700; }
+
+/* 7-day pattern timeline */
+.overview-prod-root .ov2-flow-history-timeline {
+    background: var(--ov2-bg-2);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    padding: 12px 14px;
+}
+.overview-prod-root .ov2-flow-pattern-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+@media (max-width: 800px) {
+    .overview-prod-root .ov2-flow-pattern-row { grid-template-columns: repeat(4, 1fr); }
+}
+.overview-prod-root .ov2-flow-pattern-cell {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    padding: 8px 6px;
+    text-align: center;
+    cursor: help;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-height: 72px;
+    justify-content: center;
+    transition: transform 120ms, border-color 120ms;
+}
+.overview-prod-root .ov2-flow-pattern-cell:hover {
+    transform: translateY(-2px);
+    border-color: var(--ov2-border-bright);
+}
+.overview-prod-root .ov2-flow-pattern-cell.is-today {
+    border: 2px solid var(--ov2-cat-action);
+    background: var(--ov2-bg-1);
+    box-shadow: 0 2px 6px rgba(14, 165, 233, 0.15);
+}
+.overview-prod-root .ov2-flow-pattern-cell .pat-date {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    font-family: var(--ov2-font-mono);
+    font-weight: 600;
+}
+.overview-prod-root .ov2-flow-pattern-cell .pat-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    line-height: 1.2;
+}
+.overview-prod-root .ov2-flow-pattern-cell .pat-score {
+    font-family: var(--ov2-font-mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+}
+
+/* Pattern-specific cell colors (subtle backgrounds) */
+.overview-prod-root .ov2-flow-pattern-cell.pat-bullish_strong  { background: rgba(5, 150, 105, 0.12); border-color: rgba(5, 150, 105, 0.3); }
+.overview-prod-root .ov2-flow-pattern-cell.pat-bullish_mild    { background: rgba(5, 150, 105, 0.06); }
+.overview-prod-root .ov2-flow-pattern-cell.pat-bearish_strong  { background: rgba(220, 38, 38, 0.12); border-color: rgba(220, 38, 38, 0.3); }
+.overview-prod-root .ov2-flow-pattern-cell.pat-bearish_mild    { background: rgba(220, 38, 38, 0.06); }
+.overview-prod-root .ov2-flow-pattern-cell.pat-short_vol       { background: rgba(124, 58, 237, 0.10); border-color: rgba(124, 58, 237, 0.3); }
+.overview-prod-root .ov2-flow-pattern-cell.pat-long_vol        { background: rgba(14, 165, 233, 0.12); border-color: rgba(14, 165, 233, 0.3); }
+.overview-prod-root .ov2-flow-pattern-cell.pat-hedge_demand    { background: rgba(217, 119, 6, 0.10); }
+.overview-prod-root .ov2-flow-pattern-cell.pat-writing_puts    { background: rgba(5, 150, 105, 0.10); }
+.overview-prod-root .ov2-flow-pattern-cell.pat-balanced        { background: var(--ov2-bg-1); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DAILY SUMMARY PANEL (bottom — deterministic narrative)
+   ═══════════════════════════════════════════════════════════════════════ */
+.overview-prod-root .ov2-summary {
+    background: linear-gradient(135deg, var(--ov2-bg-1) 0%, var(--ov2-bg-2) 100%);
+    border: 1px solid var(--ov2-border-strong);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-5);
+    margin-bottom: var(--ov2-space-4);
+    position: relative;
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-summary-accent {
+    position: absolute;
+    top: 0; right: 0; left: 0;
+    height: 3px;
+    background: var(--ov2-cat-action);
+    border-radius: var(--ov2-radius) var(--ov2-radius) 0 0;
+}
+.overview-prod-root .ov2-summary-head {
+    margin-bottom: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-summary-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    margin-bottom: 4px;
+}
+.overview-prod-root .ov2-summary-section-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+/* TODAY block */
+.overview-prod-root .ov2-summary-today {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-right: 4px solid var(--ov2-cat-action);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-4);
+    margin-bottom: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-summary-today-stats {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--ov2-space-3);
+}
+@media (max-width: 800px) {
+    .overview-prod-root .ov2-summary-today-stats { grid-template-columns: repeat(2, 1fr); }
+}
+.overview-prod-root .ov2-summary-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 4px;
+    border-right: 1px solid var(--ov2-border);
+    cursor: help;
+}
+.overview-prod-root .ov2-summary-stat:last-child { border-right: none; }
+.overview-prod-root .ov2-summary-stat-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.overview-prod-root .ov2-summary-stat-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    font-family: var(--ov2-font-mono);
+    line-height: 1.1;
+}
+.overview-prod-root .ov2-summary-stat-value.ov2-pos { color: var(--ov2-pos); }
+.overview-prod-root .ov2-summary-stat-value.ov2-neg { color: var(--ov2-neg); }
+.overview-prod-root .ov2-summary-stat-sub {
+    font-size: 11px;
+    color: var(--ov2-text-3);
+    font-weight: 500;
+}
+
+/* HISTORY table */
+.overview-prod-root .ov2-summary-history {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-right: 4px solid var(--ov2-cat-historical);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-4);
+    margin-bottom: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+.overview-prod-root .ov2-summary-table th {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ov2-text-2);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 10px 8px;
+    text-align: center;
+    border-bottom: 2px solid var(--ov2-border-strong);
+    cursor: help;
+}
+.overview-prod-root .ov2-summary-table th:first-child { text-align: right; }
+.overview-prod-root .ov2-summary-table td {
+    padding: 10px 8px;
+    text-align: center;
+    color: var(--ov2-text-1);
+    font-family: var(--ov2-font-mono);
+    font-weight: 600;
+    border-bottom: 1px solid var(--ov2-border);
+}
+.overview-prod-root .ov2-summary-table td:first-child {
+    text-align: right;
+    font-family: var(--ov2-font-ui);
+    font-weight: 600;
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-summary-table .ov2-summary-today-row {
+    background: var(--ov2-bg-2);
+    font-weight: 800;
+}
+.overview-prod-root .ov2-summary-table .ov2-summary-today-row td {
+    font-weight: 700;
+}
+.overview-prod-root .ov2-summary-table .ov2-summary-date {
+    color: var(--ov2-text-1);
+    font-weight: 600;
+}
+
+/* CORRELATION block */
+.overview-prod-root .ov2-summary-corr {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-right: 4px solid var(--ov2-cat-flow);
+    border-radius: var(--ov2-radius);
+    padding: var(--ov2-space-4);
+    margin-bottom: var(--ov2-space-3);
+}
+.overview-prod-root .ov2-summary-corr-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--ov2-border);
+}
+.overview-prod-root .ov2-summary-corr-val {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+    font-family: var(--ov2-font-mono);
+}
+.overview-prod-root .ov2-summary-corr-samples {
+    font-size: 11px;
+    color: var(--ov2-text-3);
+    font-weight: 500;
+}
+.overview-prod-root .ov2-summary-corr-interp {
+    font-size: 14px;
+    color: var(--ov2-text-1);
+    line-height: 1.6;
+    font-weight: 500;
+}
+.overview-prod-root .ov2-summary-bottomline {
+    background: var(--ov2-text-1);
+    color: var(--ov2-text-inverse);
+    padding: var(--ov2-space-4) var(--ov2-space-5);
+    border-radius: var(--ov2-radius);
+    font-size: 16px;
+    font-weight: 700;
+    text-align: right;
+    margin-top: var(--ov2-space-3);
+    line-height: 1.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LIVE TICKER BAR (inside Overview, prominent)
+   ═══════════════════════════════════════════════════════════════════════ */
+.overview-prod-root .ov2-ticker {
+    background: var(--ov2-bg-1);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius);
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--ov2-space-4);
+    flex-wrap: wrap;
+    margin-bottom: var(--ov2-space-4);
+    box-shadow: var(--ov2-shadow-card);
+}
+.overview-prod-root .ov2-ticker-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--ov2-text-2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.overview-prod-root .ov2-ticker-pulse {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ov2-pos);
+    animation: ov2-ticker-pulse 1.6s ease-in-out infinite;
+}
+@keyframes ov2-ticker-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 var(--ov2-pos-bg); }
+    50%      { box-shadow: 0 0 0 6px transparent; }
+}
+.overview-prod-root .ov2-ticker-items {
+    display: flex;
+    gap: var(--ov2-space-5);
+    align-items: center;
+    flex-wrap: wrap;
+    flex: 1;
+    justify-content: center;
+}
+.overview-prod-root .ov2-ticker-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: center;
+    min-width: 110px;
+    /* Same separator pattern as the strip — thin divider between
+       adjacent tiles. Uses border-right because the container is RTL. */
+    border-right: 1px solid var(--ov2-border);
+    padding-right: var(--ov2-space-4);
+}
+.overview-prod-root .ov2-ticker-items .ov2-ticker-item:first-of-type {
+    border-right: none;
+    padding-right: 0;
+}
+.overview-prod-root .ov2-ticker-name {
+    font-size: 11px;
+    color: var(--ov2-text-2);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.overview-prod-root .ov2-ticker-val {
+    font-family: var(--ov2-font-mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ov2-text-1);
+}
+.overview-prod-root .ov2-ticker-chg {
+    font-family: var(--ov2-font-mono);
+    font-size: 12px;
+    font-weight: 600;
+}
+.overview-prod-root .ov2-ticker-time {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    font-family: var(--ov2-font-mono);
+}
+/* EQ500 tile — end-of-day, not live. The small date below the change
+   makes the staleness explicit (other tiles refresh every 60s from
+   Stooq, this one only when a new CSV lands). */
+.overview-prod-root .ov2-ticker-date {
+    font-size: 10px;
+    color: var(--ov2-text-3);
+    font-family: var(--ov2-font-mono);
+    margin-top: 2px;
+}
+.overview-prod-root .ov2-ticker-item--eod {
+    position: relative;
+}
+.overview-prod-root .ov2-ticker-item--eod::before {
+    content: "סוף יום";
+    position: absolute;
+    /* Raised to -16px so the bottom edge of the badge clears the tile
+       title underneath. The badge itself is ~12px tall (8px font + 2px
+       padding + 2px border), so -16px leaves a ~4px gap. */
+    top: -16px;
+    right: 50%;
+    transform: translateX(50%);
+    font-size: 8px;
+    font-weight: 700;
+    color: var(--ov2-text-3);
+    background: var(--ov2-bg-1);
+    padding: 1px 5px;
+    border: 1px solid var(--ov2-border);
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FORMULA POPOVER (for score calculation explanation)
+   ═══════════════════════════════════════════════════════════════════════ */
+.overview-prod-root .ov2-formula {
+    margin-top: var(--ov2-space-3);
+    padding: var(--ov2-space-3);
+    background: var(--ov2-bg-2);
+    border: 1px solid var(--ov2-border);
+    border-radius: var(--ov2-radius-sm);
+    font-size: 12px;
+    color: var(--ov2-text-2);
+    line-height: 1.6;
+}
+.overview-prod-root .ov2-formula b { color: var(--ov2-text-1); font-weight: 700; }
+.overview-prod-root .ov2-formula-expand {
+    color: var(--ov2-cat-action);
+    cursor: pointer;
+    font-weight: 600;
+    user-select: none;
+}
+.overview-prod-root .ov2-formula-expand:hover { text-decoration: underline; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ENHANCED ALERTS (in rail) — show meaning inline
+   ═══════════════════════════════════════════════════════════════════════ */
+.overview-prod-root .ov2-alert-meaning {
+    font-size: 11px;
+    color: var(--ov2-text-2);
+    line-height: 1.5;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--ov2-border);
+    font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CUSTOM TOOLTIP SYSTEM
+   Activated by data-tooltip="..." attribute. Shows on hover.
+   ═══════════════════════════════════════════════════════════════════════ */
+.overview-prod-root [data-tooltip] { position: relative; }
+.overview-prod-root [data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    right: 0;
+    background: var(--ov2-bg-tooltip);
+    color: var(--ov2-text-inverse);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    font-weight: 500;
+    width: 260px;
+    max-width: 320px;
+    z-index: 1000;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.20);
+    direction: rtl;
+    text-align: right;
+    white-space: normal;
+    pointer-events: none;
+    animation: ov2-tooltip-in 120ms ease-out;
+}
+.overview-prod-root [data-tooltip]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 2px);
+    right: 12px;
+    border: 6px solid transparent;
+    border-top-color: var(--ov2-bg-tooltip);
+    z-index: 1000;
+    pointer-events: none;
+}
+@keyframes ov2-tooltip-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}

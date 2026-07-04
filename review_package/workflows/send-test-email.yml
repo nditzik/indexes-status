@@ -1,0 +1,22 @@
+name: Send Test Email
+
+on:
+  workflow_dispatch:
+    inputs:
+      recipients:
+        description: 'רשימת כתובות (מופרדות בפסיק)'
+        required: true
+        default: 'nditzik@gmail.com'
+        type: string
+
+jobs:
+  send-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Send test email
+        env:
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          TEST_RECIPIENTS: ${{ github.event.inputs.recipients }}
+        run: python3 .github/workflows/send_report.py

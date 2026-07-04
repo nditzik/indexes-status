@@ -1,0 +1,577 @@
+// ─── Daily Narrative — strategic 4-layer story builder ────────────────
+//
+// v2.0 — Returns a structured object with five fields the renderer
+// drops into separate DOM slots:
+//
+//   {
+//     headline:    { metaLabel, rationale, stateClass },
+//     today:       "...",
+//     week:        "...",
+//     background:  "...",
+//     watchFor:    ["...", "..."],
+//     debug:       {...}
+//   }
+//
+// Layered design (was a single paragraph in v1):
+//   1. headline    — meta-judgement combining regime + recent direction
+//   2. today       — one-day breadth + sector tilt
+//   3. week        — 5-day equal-vs-cap spread
+//   4. background  — phase + duration + dominant regime driver (no jargon)
+//   5. watchFor    — 1-2 specific levels worth monitoring next
+//
+// Everything is rule-based, no LLM. Plain Hebrew throughout — terms
+// like "distribution days" / "P/C ratio" are translated inline
+// ("ימי מכירה כבדה (ירידות בנפח גבוה)") rather than left to the user.
+
+(function () {
+    'use strict';
+
+    const VERSION = '2.0';
+
+    // ─── helpers ──────────────────────────────────────────────────────
+    function fmtAbs1(v) {
+        if (v == null || !Number.isFinite(v)) return '—';
+        return Math.abs(v).toFixed(1);
+    }
+    function fmtAbs2(v) {
+        if (v == null || !Number.isFinite(v)) return '—';
+        return Math.abs(v).toFixed(2);
+    }
+
+    // 5-day cumulative equal-vs-cap spread, computed exactly the same
+    // way as in v1 — sum of (eq_avg − spx_chg) over the last 5 history
+    // days. Positive = breadth beat the index that week, negative =
+    // index outpaced the average stock (narrow rally).
+    function cumulativeSpread(hist, days) {
+        if (!Array.isArray(hist) || hist.length === 0) return null;
+        const window = hist.slice(-days);
+        let total = 0, counted = 0;
+        for (const h of window) {
+            const eq  = h.m && h.m.avgChange != null ? h.m.avgChange : null;
+            const cap = h.m && h.m.macro && h.m.macro.spx
+                        && h.m.macro.spx.chgPct != null
+                        ? h.m.macro.spx.chgPct : null;
+            if (eq == null || cap == null) continue;
+            total += (eq - cap);
+            counted++;
+        }
+        return counted === 0 ? null : total;
+    }
+
+    // ─── 1. Headline — meta-judgement ─────────────────────────────────
+    //
+    // The headline collapses everything into one of six meta-labels
+    // plus a one-phrase rationale. Mapping:
+    //
+    //   regime POS × recent POS  →  "ראלי חזק"          (green)
+    //   regime POS × recent NEG  →  "חולשה מתהווה"      (warn)
+    //   regime NEG × recent POS  →  "מצב מעורב"         (warn)
+    //   regime NEG × recent NEG  →  "אזהרה מסלימה"       (red)
+    //   regime MID × recent POS  →  "שיפור מתהווה"      (pos)
+    //   regime MID × recent NEG  →  "התייצבות שברירית"  (warn)
+    //   regime MID × recent MID  →  "התייצבות"          (warn)
+    //
+    // The rationale half describes WHY in two phrases joined by "אבל":
+    // the positive driver + the negative driver, so the contradiction
+    // (when present) is named rather than hidden.
+
+    function recentDriverPhrase(metrics, hist) {
+        // Pick the strongest positive driver and quote its actual number.
+        // Generic phrases like "broad strength" without a value were the
+        // main complaint about v2 of the narrative — fixed here.
+        const spread5d = cumulativeSpread(hist, 5);
+        const breadthDelta = metrics.breadth5dDelta;
+        if (spread5d != null && spread5d > 1.5) {
+            return `רוחב מתחזק חזק (+${spread5d.toFixed(1)}% השבוע)`;
+        }
+        if (spread5d != null && spread5d > 0.5) {
+            return `רוחב משתפר (+${spread5d.toFixed(1)}% השבוע)`;
+        }
+        if (breadthDelta != null && breadthDelta > 5) {
+            return `אחוז המניות מעל MA200 עלה ב-${breadthDelta.toFixed(1)}% בשבוע`;
+        }
+        return 'תנועה חיובית קצרת-טווח';
+    }
+
+    function regimeDriverPhrase(metrics) {
+        // What's the most pressing regime concern? Highest-impact first.
+        // Note: "selling days" replaced the misleading "distribution days"
+        // phrasing — the underlying count no longer claims a volume check
+        // it never actually performed.
+        const dist = metrics.distributionDays;
+        const distRecent = metrics.sellDaysRecent10;
+        const pctMa200 = metrics.pctMa200;
+        const vix = metrics.vix;
+        const nhnl = metrics.nhMinusNl;
+
+        // Thresholds calibrated to the tighter -0.5% selling-day rule:
+        // with that definition, even 3 sell days in 10 sessions is
+        // unusual, and 5 in 25 is the new warning threshold.
+        if (distRecent != null && distRecent >= 3) {
+            return `${distRecent} ימים שליליים חזקים ב-10 ימים אחרונים (אשכול טרי)`;
+        }
+        if (dist != null && dist >= 5) {
+            return `${dist} ימים שליליים חזקים ב-25 ימים אחרונים`;
+        }
+        if (pctMa200 != null && pctMa200 < 30) return `רק ${Math.round(pctMa200)}% מהמניות מעל MA200`;
+        if (vix != null && vix > 25) return `VIX ${vix.toFixed(1)} (מעל סף הפאניקה)`;
+        if (nhnl != null && nhnl <= -50) return `${nhnl} שיאים-שפלים נטו (חריג שלילי)`;
+        if (pctMa200 != null && pctMa200 < 50) return `רוחב טווח-ארוך חלש (${Math.round(pctMa200)}% מעל MA200)`;
+        return 'הפאזה הטכנית עדיין שלילית';
+    }
+
+    function buildHeadline(metrics, hist, phase) {
+        const regimeStateClass = phase && phase.phase ? phase.phase.stateClass : 'muted';
+
+        // ── Risk-Off override — highest priority ──
+        // On a risk event day (SPX ≤ -1.5%, VIX spike) the headline must
+        // never read bullish, no matter what the structural matrix below
+        // says ("ראלי חזק on a -1.6% day" bug). Gated on ACUTE only: a
+        // background warning (accumulated selling days) must not relabel
+        // a +1.7% green close as "יום סיכון" — the accumulation already
+        // shows in the banner and the watch-for line.
+        if (metrics.riskOff && metrics.riskOff.active && metrics.riskOff.acute) {
+            const reasons = (metrics.riskOff.reasons || []).map(r => r.text).join(' · ');
+            if (regimeStateClass === 'pos') {
+                return {
+                    metaLabel: 'יום סיכון בתוך מגמה חיובית',
+                    stateClass: 'warn',
+                    rationale: reasons + ' — המבנה ארוך-הטווח עדיין חיובי, אבל היום עצמו מסוכן',
+                };
+            }
+            return {
+                metaLabel: 'יום סיכון',
+                stateClass: 'neg',
+                rationale: reasons,
+            };
+        }
+
+        // Recent positivity score: blend of equal-vs-cap spread (5d)
+        // and the change in % of stocks above MA200 (5d). Tuned so
+        // ~+0.5 to +1.5 is the "yes, recent improvement" band.
+        const spread5d = cumulativeSpread(hist, 5) || 0;
+        const breadthDelta = metrics.breadth5dDelta || 0;
+        const recentScore = spread5d * 0.5 + breadthDelta * 0.05;
+
+        // SPX 5-day direction gate — a positive spread on a falling
+        // market is breadth RESILIENCE, not breadth IMPROVEMENT.
+        // recentPos additionally requires the index itself to be up
+        // over the window; a 5d drop ≤ -2% forces recentNeg outright.
+        let spx5d = 0, spxCounted = 0;
+        for (const h of hist.slice(-5)) {
+            const c = h.m && h.m.macro && h.m.macro.spx
+                      && h.m.macro.spx.chgPct != null ? h.m.macro.spx.chgPct : null;
+            if (c == null) continue;
+            spx5d += c;
+            spxCounted++;
+        }
+        if (spxCounted === 0) spx5d = 0;
+        const recentPos = recentScore > 0.5 && spx5d > 0;
+        const recentNeg = recentScore < -0.5 || spx5d <= -2;
+
+        let metaLabel, stateClass, rationale;
+
+        // Rationale always quotes the driving NUMBER when there is one.
+        // The previous version leaned on slogans ("המגמה והרוחב יד ביד",
+        // "על רקע התייצבות") that the user correctly flagged as unclear.
+        // Now: every rationale either names the metric + value, or names
+        // the specific weakness it can't avoid.
+        if (regimeStateClass === 'pos') {
+            if (recentPos) {
+                metaLabel = 'ראלי חזק';
+                stateClass = 'pos';
+                rationale = `המגמה הטכנית חיובית והרוחב מתחזק (${recentDriverPhrase(metrics, hist)})`;
+            } else if (recentNeg) {
+                metaLabel = 'חולשה מתהווה';
+                stateClass = 'warn';
+                // Name the actual driver: price drop vs breadth erosion.
+                const sp5 = cumulativeSpread(hist, 5);
+                let weakTxt;
+                if (spx5d <= -2) {
+                    weakTxt = `SPX ירד ${Math.abs(spx5d).toFixed(1)}% בחמשת הימים האחרונים`;
+                } else if (sp5 != null && sp5 < 0) {
+                    weakTxt = `הרוחב נחלש (${sp5.toFixed(1)}% השבוע)`;
+                } else {
+                    weakTxt = 'חולשה בשבוע האחרון';
+                }
+                rationale = `המגמה הטכנית עדיין חיובית אבל ${weakTxt}`;
+            } else {
+                metaLabel = 'מגמה יציבה';
+                stateClass = 'pos';
+                rationale = 'המגמה הטכנית חיובית, אין סטייה משמעותית השבוע';
+            }
+        } else if (regimeStateClass === 'neg') {
+            if (recentPos) {
+                metaLabel = 'מצב מעורב';
+                stateClass = 'warn';
+                // Connector " אבל " carries the contrast on its own — no
+                // trailing "עדיין מסוכן" that wouldn't agree grammatically
+                // with all the plural-subject driver phrases.
+                rationale = recentDriverPhrase(metrics, hist) + ' אבל '
+                          + regimeDriverPhrase(metrics);
+            } else if (recentNeg) {
+                metaLabel = 'אזהרה מסלימה';
+                stateClass = 'neg';
+                rationale = `${regimeDriverPhrase(metrics)} בנוסף לחולשה השבוע`;
+            } else {
+                metaLabel = 'מגמה תחת לחץ';
+                stateClass = 'neg';
+                rationale = `${regimeDriverPhrase(metrics)} (יציב, ללא הסלמה)`;
+            }
+        } else {
+            // regime 'warn' or 'muted' — typically distribution/baseBuilding/etc.
+            if (recentPos) {
+                metaLabel = 'שיפור מתהווה';
+                stateClass = 'pos';
+                // Old "על רקע התייצבות" was vague — "stabilization" sounds
+                // positive but the reader had no idea what it referred to.
+                // Replace with an honest acknowledgement that the LONG-term
+                // trend has not yet confirmed the short-term improvement.
+                rationale = `${recentDriverPhrase(metrics, hist)} — המגמה הטכנית ארוכת-הטווח עדיין לא אישרה`;
+            } else if (recentNeg) {
+                metaLabel = 'התייצבות שברירית';
+                stateClass = 'warn';
+                const spread5d = cumulativeSpread(hist, 5);
+                const spreadTxt = spread5d != null
+                    ? `(פער 5d ${spread5d.toFixed(1)}%)`
+                    : '';
+                rationale = `הרוחב מתרופף השבוע ${spreadTxt} ללא תמיכה מצד המגמה הטכנית`;
+            } else {
+                metaLabel = 'התייצבות';
+                stateClass = 'warn';
+                rationale = 'אין כיוון מבוסס — לא חיובי ולא שלילי';
+            }
+        }
+
+        return { metaLabel, rationale, stateClass };
+    }
+
+    // ─── 2. Today — one-day breadth + sector tilt + options pulse ────
+    function buildToday(metrics) {
+        const avg = metrics.avgChange;
+        const spx = metrics.spx && metrics.spx.chgPct;
+        if (avg == null || spx == null) return 'אין נתוני יום נוכחי.';
+
+        // Naming convention: we call the equal-weighted view "המדד
+        // השוויוני" everywhere — same label as the EQ500 ticker tile —
+        // so a reader doesn't have to translate between "המניה הממוצעת"
+        // (technically true but informal) and the ticker.
+        const avgVerb = avg >= 0 ? 'עלה' : 'ירד';
+        const spxVerb = spx >= 0 ? 'עלה' : 'ירד';
+
+        // Sector tilt — only mention when there's a clear lead, so we
+        // don't add noise on a mixed day. Phrasing names the SENTIMENT
+        // implication (risk-on vs risk-off) instead of leaving the
+        // reader to translate the cyclical/defensive jargon themselves.
+        //   cyc ≥ 0.67  — at least 2 of the top-3 sectors are cyclical
+        //                 (IT/CD/FIN/IND/MAT/EN/COMM) = risk-on
+        //   def ≥ 0.67  — at least 2 of the top-3 are defensive
+        //                 (HC/CS/UTIL/REIT) = risk-off
+        const cyc = metrics.cyclicalLeadership;
+        const def = metrics.defensiveLeadership;
+        let sectorTail = '';
+        if (cyc != null && cyc >= 0.67) {
+            sectorTail = ', סקטורי-צמיחה מובילים — סנטימנט אופטימי';
+        } else if (def != null && def >= 0.67) {
+            sectorTail = ', סקטורים הגנתיים מובילים — סנטימנט זהיר';
+        } else if (cyc != null && def != null) {
+            if (cyc > def + 0.1) sectorTail = ', נטייה חיובית — סקטורי צמיחה מובילים';
+            else if (def > cyc + 0.1) sectorTail = ', נטייה זהירה — סקטורי הגנה מובילים';
+        }
+
+        // Options pulse — surface what the flow z-scores say in plain
+        // Hebrew. The flow data is a 35% pillar of the combined score
+        // and was completely absent from the daily narrative before.
+        // Trigger thresholds picked to filter noise: |z| >= 0.7 is
+        // "noteworthy", >= 1.5 is "strong".
+        let optionsTail = '';
+        const z = metrics.flow && metrics.flow.z ? metrics.flow.z : null;
+        if (z) {
+            // pc_premium: positive z = more put premium than usual (hedging)
+            const pc = z.pc_premium;
+            // call_premium_pct: positive z = call dominance (bullish)
+            const cp = z.call_premium_pct;
+            const absPc = pc != null ? Math.abs(pc) : 0;
+            const absCp = cp != null ? Math.abs(cp) : 0;
+            // Pick whichever signal is stronger, mention it explicitly.
+            if (absPc >= 1.5 && pc > 0) {
+                optionsTail = `, אופציות בגידור חזק (P/C z=+${pc.toFixed(1)})`;
+            } else if (absCp >= 1.5 && cp > 0) {
+                optionsTail = `, פרמיית קולים חריגה (z=+${cp.toFixed(1)} — אופטימי)`;
+            } else if (absPc >= 0.7 && pc > 0) {
+                optionsTail = `, אופציות נוטות להגנה (P/C z=+${pc.toFixed(1)})`;
+            } else if (absCp >= 0.7 && cp > 0) {
+                optionsTail = `, פרמיית קולים מוגברת (z=+${cp.toFixed(1)})`;
+            } else if (absPc >= 0.7 && pc < 0) {
+                optionsTail = `, אופציות מורגעות (P/C z=${pc.toFixed(1)})`;
+            }
+        }
+
+        return `המדד השוויוני ${avgVerb} ${fmtAbs2(avg)}% בעוד המדד `
+             + `${spxVerb} ${fmtAbs2(spx)}%${sectorTail}${optionsTail}.`;
+    }
+
+    // ─── 3. Week — 5-day equal-vs-cap spread ──────────────────────────
+    function buildWeek(hist) {
+        const spread5d = cumulativeSpread(hist, 5);
+        if (spread5d == null) return 'אין מספיק היסטוריה לחישוב שבועי.';
+
+        const mag = fmtAbs1(spread5d);
+        if (spread5d > 1.0) {
+            return `המדד השוויוני הביס את המדד הקאפ-משוקלל ב-${mag}% — מגמת השתתפות חיובית.`;
+        }
+        if (spread5d < -1.0) {
+            return `המדד הקאפ-משוקלל הביס את המדד השוויוני ב-${mag}% — דפוס של ראלי צר, מובל ע"י מעטות.`;
+        }
+        return 'המדד השוויוני והמדד הקאפ-משוקלל בקצב דומה — אין נטייה ברורה.';
+    }
+
+    // Count consecutive recent trading days where SPX closed above its
+    // MA200. Used to express "השוק במגמה חיובית כבר X ימי מסחר" —
+    // a structural measure independent of the specific phase classification.
+    // This way we can say "the uptrend has been going for weeks" even
+    // when the SPECIFIC confirmed_uptrend label only crystallised today.
+    function countSpxAboveMa200(hist) {
+        if (!Array.isArray(hist) || hist.length === 0) return 0;
+        let count = 0;
+        for (let i = hist.length - 1; i >= 0; i--) {
+            const spx = hist[i] && hist[i].m && hist[i].m.macro && hist[i].m.macro.spx;
+            if (!spx || spx.price == null || spx.ma200 == null) break;
+            if (!(spx.price > spx.ma200)) break;
+            count++;
+        }
+        return count;
+    }
+
+    // Phase-specific status descriptor — lists the criteria values that
+    // matter for the active phase, in plain Hebrew. The "כל הקריטריונים
+    // יושבים יחד" framing comes from option ג' (approved 2026-05-24):
+    // describe the present state factually, no "today is new" drama.
+    function phaseCriteriaDescriptor(phaseId, m) {
+        if (phaseId === 'confirmed_uptrend') {
+            return `בריאות ${m.combined}, VIX ${m.vix.toFixed(1)}, ימי מכירה ${m.distributionDays} בלבד מתוך 25`;
+        }
+        if (phaseId === 'uptrend_pressure') {
+            return `ציון בריאות ${m.combined}, VIX ${m.vix.toFixed(1)}`;
+        }
+        if (phaseId === 'distribution') {
+            return `${m.distributionDays} ימי מכירה ב-25 הימים האחרונים (סף ≥4), ציון ${m.combined}`;
+        }
+        if (phaseId === 'correction') {
+            return `ציון ${m.combined}, VIX ${m.vix.toFixed(1)}`;
+        }
+        if (phaseId === 'capitulation') {
+            return `VIX ${m.vix.toFixed(1)}, ציון ${m.combined}, שיאי שפל ${Math.abs(m.nhMinusNl)}`;
+        }
+        if (phaseId === 'base_building') {
+            const delta = m.breadth5dDelta >= 0 ? '+' : '';
+            return `ציון ${m.combined}, רוחב ${delta}${m.breadth5dDelta.toFixed(1)} נק' ב-5 ימים`;
+        }
+        if (phaseId === 'thrust') {
+            return `${m.rsiThrust} מניות חוצות סף RSI כלפי מעלה`;
+        }
+        return null;
+    }
+
+    // ─── 4. Background — phase + duration + dominant driver ───────────
+    function buildBackground(metrics, hist, phase, phaseDuration) {
+        const phaseLabel = phase && phase.phase ? phase.phase.labelHe : 'לא ידוע';
+        const phaseId = phase && phase.phase ? phase.phase.id : null;
+        const days = phaseDuration ? phaseDuration.days : null;
+        const parts = [];
+
+        // Option ג' (2026-05-24): describe the CURRENT state factually,
+        // without claiming "started today" — which misled readers when
+        // the broader uptrend had been ongoing for weeks and only the
+        // specific classification crystallised today.
+        //
+        // Structure: phase label · criteria values · broader-trend tail
+        // The tail uses "consecutive recent days SPX > MA200" as the
+        // structural marker, not the specific phase's days counter.
+        const descriptor = phaseCriteriaDescriptor(phaseId, metrics);
+        let line;
+        if (descriptor) {
+            line = `מצב השוק: "${phaseLabel}". כל הקריטריונים יושבים יחד: ${descriptor}.`;
+        } else {
+            line = `מצב השוק: "${phaseLabel}".`;
+        }
+
+        // Broader uptrend duration — only meaningful for the bullish family.
+        // Counted as consecutive recent days where SPX > MA200.
+        if (phaseId === 'confirmed_uptrend' || phaseId === 'uptrend_pressure'
+                || phaseId === 'thrust') {
+            const broadDays = countSpxAboveMa200(hist);
+            if (broadDays >= 30) {
+                line += ` השוק במגמה חיובית (SPX מעל MA200) כבר ${broadDays} ימי מסחר — תקופה ארוכה.`;
+            } else if (broadDays >= 5) {
+                line += ` השוק במגמה חיובית (SPX מעל MA200) ${broadDays} ימי מסחר אחרונים.`;
+            }
+        } else if (days != null && days >= 30) {
+            line += ` הסיווג הזה תקף ${days} ימי מסחר — מצב יציב לאורך זמן.`;
+        } else if (days != null && days >= 1) {
+            line += ` הסיווג הזה תקף ${days} ימי מסחר.`;
+        }
+
+        parts.push(line);
+
+        // Selling-days context: honest about what's measured (SPX-based,
+        // not volume-based) and aware of FRESHNESS — a cluster in the
+        // last 10 sessions is a different story than the same count
+        // spread across the full 25-day window.
+        const dist = metrics.distributionDays;
+        const recent10 = metrics.sellDaysRecent10;
+        const pctMa200 = metrics.pctMa200;
+
+        // Threshold logic mirrors regimeDriverPhrase — with the tighter
+        // -0.5% rule, 3 fresh days or 5 in the full window is the new
+        // "noteworthy" line.
+        if (recent10 != null && recent10 >= 3) {
+            // Fresh cluster — most worrying
+            parts.push(`${recent10} ימים שליליים חזקים ב-10 הימים האחרונים — אשכול טרי, סימן אזהרה.`);
+        } else if (dist != null && dist >= 5) {
+            // High count but spread out
+            const recentFresh = recent10 != null ? ` (מהם ${recent10} ב-10 הימים האחרונים)` : '';
+            parts.push(`${dist} ימים שליליים חזקים ב-25 ימים אחרונים${recentFresh} — מעל הסף הרגיל.`);
+        } else if (dist != null && dist >= 2) {
+            // 2-4 days: normal-noise range
+            const tail = recent10 != null && recent10 > 0
+                ? ` (מהם ${recent10} ב-10 ימים אחרונים)`
+                : '';
+            parts.push(`${dist} ימים שליליים חזקים ב-25 ימים אחרונים${tail} — בטווח נורמלי, ללא אשכול חריג.`);
+        } else if (dist != null && dist <= 1) {
+            // Very quiet: worth mentioning as reassurance
+            parts.push(`${dist} ימים שליליים חזקים בלבד ב-25 ימים — שוק ללא מכירות בולטות.`);
+        }
+
+        // Breadth context — separate signal, not always relevant
+        if (pctMa200 != null && pctMa200 < 40) {
+            parts.push(`רק ${Math.round(pctMa200)}% מהמניות מעל ממוצע 200 — חולשה מבנית.`);
+        } else if (pctMa200 != null && pctMa200 >= 70) {
+            parts.push(`${Math.round(pctMa200)}% מהמניות מעל ממוצע 200 — מבנה חזק.`);
+        }
+
+        return parts.join(' ');
+    }
+
+    // ─── 5. Watch-for — 1-2 next-most-actionable triggers ─────────────
+    //
+    // We test each candidate trigger and assign it a priority. Picks
+    // the top 2 highest-priority firing triggers (lower number = more
+    // important). Designed so the layer reads as 1-2 sentences that
+    // would meaningfully change the trader's read if they hit.
+    function buildWatchFor(metrics) {
+        const triggers = [];
+
+        // %MA50 — a clean classical breadth threshold (50%). Picking
+        // 'cross 50 up' or 'cross 50 down' based on where we are now.
+        const p50 = metrics.pctMa50;
+        if (p50 != null) {
+            if (p50 < 50 && p50 > 25) {
+                triggers.push({
+                    priority: 1,
+                    text: `%MA50 חוצה 50% (כעת ${Math.round(p50)}%) → הפאזה תשתפר.`,
+                });
+            } else if (p50 >= 50 && p50 < 75) {
+                triggers.push({
+                    priority: 3,
+                    text: `%MA50 יורד מתחת ל-50% (כעת ${Math.round(p50)}%) → סיכון להידרדרות.`,
+                });
+            }
+        }
+
+        // VIX — the volatility fear gauge. 18 / 22 are the conventional
+        // 'calm' / 'caution' rails. Each branch describes what to WATCH
+        // FOR from the current zone — not what the current value is.
+        // (Fixed 2026-05-25: previous wording said "VIX מעל 22" even when
+        //  VIX was 16.7 — it conflated "where we are" with "what to watch".)
+        const vix = metrics.vix;
+        if (vix != null) {
+            if (vix < 18) {
+                // Calm zone. Watch for VIX climbing into caution range.
+                triggers.push({
+                    priority: 3,
+                    text: `VIX מטפס מעל 18 (כעת ${vix.toFixed(1)}) → התחלת אי-וודאות.`,
+                });
+            } else if (vix >= 18 && vix < 22) {
+                // Mid zone. Watch for VIX crossing into stress range.
+                triggers.push({
+                    priority: 2,
+                    text: `VIX מטפס מעל 22 (כעת ${vix.toFixed(1)}) → אזהרה חדשה.`,
+                });
+            } else if (vix >= 22) {
+                // Stressed. Watch for VIX easing back into the calm zone.
+                triggers.push({
+                    priority: 1,
+                    text: `VIX יורד מתחת ל-18 (כעת ${vix.toFixed(1)}) → רגיעה ובחזרה לסיכון.`,
+                });
+            }
+        }
+
+        // Distribution-days unwind — only when currently elevated.
+        const dist = metrics.distributionDays;
+        if (dist != null && dist >= 5) {
+            triggers.push({
+                priority: 1,
+                text: `ימי מכירה כבדה יורדים מתחת ל-5 (כעת ${dist}) → שיפור פאזה.`,
+            });
+        }
+
+        // New-high / new-low rebalance, only when very lopsided.
+        const nhnl = metrics.nhMinusNl;
+        if (nhnl != null && nhnl <= -30) {
+            triggers.push({
+                priority: 2,
+                text: `שיאים-שפלים מתאזנים (כעת ${nhnl}) → סוף החולשה.`,
+            });
+        } else if (nhnl != null && nhnl >= 50) {
+            triggers.push({
+                priority: 3,
+                text: `שיאים-שפלים יורדים מתחת ל-20 → אובדן מומנטום.`,
+            });
+        }
+
+        // Equal-vs-cap cumulative spread sign change — premium signal
+        // for the broad/narrow rally narrative.
+        // (We don't add this here without hist context; the rationale
+        // already mentions the spread, so this would be redundant.)
+
+        triggers.sort((a, b) => a.priority - b.priority);
+        return triggers.slice(0, 2).map(t => t.text);
+    }
+
+    // ─── Public API ──────────────────────────────────────────────────
+    window.Narrative = {
+        VERSION,
+        build(metrics, hist, phase, phaseDuration) {
+            const headline = buildHeadline(metrics, hist, phase);
+            const today = buildToday(metrics);
+            const week = buildWeek(hist);
+            const background = buildBackground(metrics, hist, phase, phaseDuration);
+            const watchFor = buildWatchFor(metrics);
+
+            const debug = {
+                version: VERSION,
+                inputs: {
+                    pctMa50: metrics.pctMa50,
+                    pctMa200: metrics.pctMa200,
+                    nhMinusNl: metrics.nhMinusNl,
+                    distributionDays: metrics.distributionDays,
+                    vix: metrics.vix,
+                    avgChange: metrics.avgChange,
+                    spxChgPct: metrics.spx ? metrics.spx.chgPct : null,
+                    breadth5dDelta: metrics.breadth5dDelta,
+                    spread5d: cumulativeSpread(hist, 5),
+                    spread20d: cumulativeSpread(hist, 20),
+                    cyclicalLeadership: metrics.cyclicalLeadership,
+                    defensiveLeadership: metrics.defensiveLeadership,
+                    phaseId: phase && phase.phase ? phase.phase.id : null,
+                    phaseStateClass: phase && phase.phase ? phase.phase.stateClass : null,
+                    phaseDurationDays: phaseDuration ? phaseDuration.days : null,
+                    histSamples: hist ? hist.length : 0,
+                },
+            };
+
+            return { headline, today, week, background, watchFor, debug };
+        },
+    };
+})();
