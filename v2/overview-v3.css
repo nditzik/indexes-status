@@ -142,6 +142,27 @@
 .v3-recs {
     margin-bottom: 14px;
 }
+/* Phase 2.5b — UOA confirmation / divergence card */
+.v3-uoa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 680px) { .v3-uoa-grid { grid-template-columns: 1fr; } }
+.v3-uoa-head { font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+.v3-uoa-head.v3-pos { color: #065f46; }
+.v3-uoa-head.v3-neg { color: #991b1b; }
+.v3-uoa-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 4px; border-bottom: 1px solid #f1f5f9; font-size: 12px;
+}
+.v3-uoa-row:last-of-type { border-bottom: none; }
+.v3-uoa-sym { font-family: 'JetBrains Mono', monospace; font-weight: 800; color: #1a202c; min-width: 52px; }
+.v3-uoa-sec { color: #718096; font-size: 11px; }
+.v3-uoa-chg { font-family: 'JetBrains Mono', monospace; font-weight: 700; margin-right: auto; }
+.v3-uoa-chg.v3-pos { color: #10b981; }
+.v3-uoa-chg.v3-neg { color: #ef4444; }
+.v3-uoa-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
+.v3-uoa-tag.v3-pos { color: #065f46; background: #d1fae5; }
+.v3-uoa-tag.v3-neg { color: #991b1b; background: #fee2e2; }
+.v3-uoa-grid > .v3-stocks-note { grid-column: 1 / -1; }
+
 /* Phase 4c — Action Zone (leading-sector movers) */
 .v3-action-row {
     display: flex;

@@ -13,8 +13,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
     <!-- Production stylesheet — legacy renderers fire into legacy IDs inside the tabs -->
-    <link rel="stylesheet" href="v2/overview-prod.css?v=20260704f">
-    <link rel="stylesheet" href="v2/overview-v3.css?v=20260704f">
+    <link rel="stylesheet" href="v2/overview-prod.css?v=20260704g">
+    <link rel="stylesheet" href="v2/overview-v3.css?v=20260704g">
 </head>
 <body class="overview-prod-root v3-body">
 
@@ -478,6 +478,17 @@
             </div>
         </div>
 
+        <!-- UOA confirmation / divergence (phase 2.5b) -->
+        <div class="v3-card v3-card-uoa" id="v3_uoaCard" style="margin-top:14px;">
+            <div class="v3-card-head">
+                <span class="v3-card-eyebrow">אופציות חריגות מול חוזק</span>
+                <span class="v3-card-title">אישור / סתירה — לאן הכסף החכם זורם</span>
+            </div>
+            <div class="v3-card-body">
+                <div class="v3-uoa-grid" id="v3_uoaConfirm">טוען...</div>
+            </div>
+        </div>
+
     </section>
 
     <!-- ════════════════ TAB 5: מגמה (KNN) ════════════════ -->
@@ -558,13 +569,13 @@
 </div>
 
 <!-- ═══ SCRIPTS (same order as legacy index.html) ═══ -->
-<script src="v2/regime.js?v=20260704f"></script>
-<script src="v2/narrative.js?v=20260704f"></script>
-<script src="v2/historical.js?v=20260704f"></script>
-<script src="v2/patterns.js?v=20260704f"></script>
-<script src="v2/forward-tracking.js?v=20260704f"></script>
-<script src="v2/overview-prod.js?v=20260704f"></script>
-<script src="v2/verdict.js?v=20260704f"></script>
+<script src="v2/regime.js?v=20260704g"></script>
+<script src="v2/narrative.js?v=20260704g"></script>
+<script src="v2/historical.js?v=20260704g"></script>
+<script src="v2/patterns.js?v=20260704g"></script>
+<script src="v2/forward-tracking.js?v=20260704g"></script>
+<script src="v2/overview-prod.js?v=20260704g"></script>
+<script src="v2/verdict.js?v=20260704g"></script>
 
 <script>
 // ─── Tab switching ───

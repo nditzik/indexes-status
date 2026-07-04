@@ -5296,6 +5296,7 @@ function renderV3Cards(metrics, phaseResult, data, hist, duration) {
     renderV3OptionsCard(metrics);
     renderV3SectorsCard(metrics, data && data.sectors);
     renderV3StocksCard(data);
+    renderV3UoaConfirmation(metrics, data);   // phase 2.5b — UOA confirmation/divergence
     renderV3DailySummary(metrics, hist, phaseResult, duration);
     renderV3TrendCard();
     renderScoreForwardTable();   // phase 3.4 — async, fills when history matures
@@ -5588,6 +5589,10 @@ function renderV3SectorsCard(metrics, sectorsMap) {
     const nameOf = s => codes[s.code] || s.code || '—';
     const sorted = [...metrics.sectors].sort((a, b) => b.avgChg - a.avgChg);
     const hasAlpha = sorted.some(s => s.avgAlpha != null);
+    // Phase 2.5b — net UOA (unusual options) direction per sector: does
+    // the smart money back this sector's strength, or fade it?
+    const uoaBySec = (metrics._uoa && metrics._uoa.bySector) || {};
+    const hasUoa = Object.keys(uoaBySec).length > 0;
     tbody.innerHTML = sorted.map(s => {
         const avg = s.avgChg;
         let bg = '#f7fafc', color = '#4a5568';
@@ -5607,10 +5612,23 @@ function renderV3SectorsCard(metrics, sectorsMap) {
             const aColor = a == null ? '#a0aec0' : a >= 0 ? '#047857' : '#991b1b';
             alphaCell = `<td style="color:${aColor};font-size:11px;opacity:0.85;" title="ממוצע Wtd Alpha — מנהיגות שנתית מול המדד">${aTxt}</td>`;
         }
+        let uoaCell = '';
+        if (hasUoa) {
+            const su = uoaBySec[s.code];
+            if (su && su.net) {
+                const netM = su.net / 1e6;
+                const uColor = su.dir === 'Call' ? '#047857' : '#991b1b';
+                const dot = su.dir === 'Call' ? '🟢' : '🔴';
+                uoaCell = `<td style="color:${uColor};font-size:11px;white-space:nowrap;" title="פעילות אופציות חריגה נטו — ${su.count} מניות בסקטור">${dot} ${netM >= 0 ? '+' : '−'}$${Math.abs(netM).toFixed(0)}M</td>`;
+            } else {
+                uoaCell = `<td style="color:#cbd5e0;font-size:11px;">—</td>`;
+            }
+        }
         return `<tr style="background:${bg};">
             <td style="color:${color};">${nameOf(s)}</td>
             <td style="color:${color};">${sign}${avg.toFixed(2)}%</td>
             ${alphaCell}
+            ${uoaCell}
         </tr>`;
     }).join('');
     if (stats && sorted.length) {
@@ -5711,7 +5729,7 @@ function renderV3ActionZone(metrics, data) {
         el.innerHTML = '<div class="v3-stocks-note">אין מועמדות בולטות מהסקטורים המובילים היום.</div>';
         return;
     }
-    const uoaMap = metrics._uoa || {};
+    const uoaMap = (metrics._uoa && metrics._uoa.symbols) || {};
     const rows = top.map(s => {
         const secName = codes[s.sector] || s.sector;
         const badges = [];
@@ -5736,6 +5754,55 @@ function renderV3ActionZone(metrics, data) {
     const leadNames = [...leading].map(c => codes[c] || c).join(' · ');
     el.innerHTML = rows +
         `<div class="v3-stocks-note">מהסקטורים המובילים היום: ${leadNames}. מומנטום = מעל MA200 + RSI חזק + נפח חריג + מנהיגות שנתית.</div>`;
+}
+
+// ─── UOA confirmation / divergence (phase 2.5b) ─────────────────────
+// Connects unusual options activity to STRENGTH: among technically
+// strong stocks (above MA200) in today's LEADING sectors, which have
+// bullish UOA (✅ conviction) vs bearish Puts (⚠️ the smart money fading
+// a strong name — the divergences are the valuable part). Sectors tab.
+function renderV3UoaConfirmation(metrics, data) {
+    const el = document.getElementById('v3_uoaConfirm');
+    if (!el) return;
+    const uoa = (metrics._uoa && metrics._uoa.symbols) || {};
+    if (!Object.keys(uoa).length) { el.style.display = 'none'; return; }
+    el.style.display = '';
+    const sm = data.sectors || {}, tk = sm.tickers || {}, cd = sm.codes || {};
+    const leading = new Set((metrics.sectors || []).slice()
+        .sort((a, b) => b.avgChg - a.avgChg).slice(0, 3).map(s => s.code));
+    const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(/[%+,]/g, '')); return Number.isFinite(n) ? n : null; };
+    const strength = {};
+    for (const r of (data.today || [])) {
+        const sym = (r.Symbol || '').trim();
+        if (!sym || sym.startsWith('$')) continue;
+        strength[sym] = { chg: num(r['%Change']), ma200: num(r['200D MA']), latest: num(r.Latest), sector: tk[sym] };
+    }
+    const confirm = [], diverge = [];
+    for (const sym of Object.keys(uoa)) {
+        const u = uoa[sym], st = strength[sym];
+        if (!st || !st.sector || !leading.has(st.sector)) continue;   // leading sectors only
+        if (!(st.ma200 && st.latest > st.ma200)) continue;            // technically strong only
+        const rec = { sym, sec: cd[st.sector] || st.sector, chg: st.chg || 0, dir: u.dir, volOi: u.volOiMax };
+        (u.dir === 'Call' ? confirm : diverge).push(rec);
+    }
+    confirm.sort((a, b) => b.volOi - a.volOi);
+    diverge.sort((a, b) => b.volOi - a.volOi);
+    const row = (r, tone) => `<div class="v3-uoa-row">
+        <span class="v3-uoa-sym">${r.sym}</span>
+        <span class="v3-uoa-sec">${r.sec}</span>
+        <span class="v3-uoa-chg ${r.chg >= 0 ? 'v3-pos' : 'v3-neg'}">${r.chg >= 0 ? '+' : ''}${r.chg.toFixed(2)}%</span>
+        <span class="v3-uoa-tag ${tone}">${r.dir === 'Call' ? '📈' : '📉'} ×${r.volOi}</span>
+    </div>`;
+    el.innerHTML =
+        `<div class="v3-uoa-col">
+            <div class="v3-uoa-head v3-pos">✅ אישור — כסף חכם שורי על מניות חזקות (${confirm.length})</div>
+            ${confirm.slice(0, 8).map(r => row(r, 'v3-pos')).join('') || '<div class="v3-stocks-note">אין</div>'}
+        </div>
+        <div class="v3-uoa-col">
+            <div class="v3-uoa-head v3-neg">⚠️ סתירה — Puts על מניה חזקה בסקטור מוביל (${diverge.length})</div>
+            ${diverge.slice(0, 8).map(r => row(r, 'v3-neg')).join('') || '<div class="v3-stocks-note">אין סתירות — הכסף החכם מאשר את החוזק</div>'}
+        </div>
+        <div class="v3-stocks-note">רק מניות מעל MA200 בסקטורים המובילים היום. סתירה = Puts חריגים על מניה חזקה — הכסף הגדול מהמר נגד.</div>`;
 }
 
 function renderV3TrendCard() {
