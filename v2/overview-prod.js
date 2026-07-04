@@ -5019,6 +5019,8 @@ async function init() {
             if (s.combined != null) metrics.combined = s.combined;
             metrics._verdict = dailyState.verdict || null;   // pre-computed headline/lights
             metrics._flowWeight = dailyState.flowWeight || null;   // phase 3.1
+            metrics._vixTermRatio = dailyState.vixTermRatio;       // phase 4b
+            metrics._evidence = dailyState.evidence || null;      // phase 4b
         }
 
         const phaseResult = Regime.classifyPhase({
@@ -5163,6 +5165,111 @@ async function renderScoreForwardTable() {
         <div class="v3-stocks-note">כמה עלה/ירד SPX 20 ימי מסחר אחרי כל ציון, לפי טווח. מבוסס על ${matured.length} תבניות שהבשילו.</div>`;
 }
 
+// ─── Evidence Zone — 4 cards (one per status light), phase 4b ───────
+// Each card: 2-3 numbers with a decision threshold beside each (iron
+// rule) + a sparkline of the last 20 sessions from `hist`. The light
+// tone comes from the single-source verdict; the display numbers from
+// daily_state.evidence; the sparkline series from the loaded history.
+function _lightColor(tone) {
+    return tone === 'pos' ? '#10b981' : tone === 'warn' ? '#f59e0b'
+         : tone === 'neg' ? '#ef4444' : '#94a3b8';
+}
+function _drawSpark(canvasId, data, color) {
+    const el = document.getElementById(canvasId);
+    if (!el || !window.Chart || !data || data.length < 2) return;
+    if (el._chart) el._chart.destroy();
+    el._chart = new Chart(el, {
+        type: 'line',
+        data: { labels: data.map((_, i) => i),
+            datasets: [{ data, borderColor: color, borderWidth: 2, pointRadius: 0, tension: 0.3, fill: false }] },
+        options: {
+            responsive: true, maintainAspectRatio: false, animation: false,
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            scales: { x: { display: false }, y: { display: false } },
+        },
+    });
+}
+function renderV3Evidence(metrics, hist) {
+    const lights = (metrics._verdict && metrics._verdict.lights) || {};
+    const ev = metrics._evidence || {};
+    const setDot = (id, tone) => {
+        const el = document.getElementById(id);
+        if (el) el.className = 'v3-ev-dot v3-light-' + (tone || 'na');
+    };
+    const num = (label, val, thr, tone) =>
+        `<div class="v3-ev-num"><span class="v3-ev-num-label">${label}</span>`
+        + `<span class="v3-ev-num-val ${tone || ''}">${val}</span>`
+        + `<span class="v3-ev-num-thr">${thr}</span></div>`;
+    const put = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+
+    // Series from the last 20 sessions of loaded history
+    const recent = (hist || []).slice(-20);
+    const px  = h => (h.m && h.m.macro && h.m.macro.spx) ? h.m.macro.spx.price : null;
+    const spx = recent.map(px).filter(v => v != null);
+    const brd = recent.map(h => (h.m && h.m.pctMa200 != null) ? h.m.pctMa200 : null).filter(v => v != null);
+    const vixS = recent.map(h => (h.m && h.m.macro) ? h.m.macro.vix : null).filter(v => v != null);
+    const spread = [];
+    if (recent.length) {
+        let eq = 100; const p0 = px(recent[0]);
+        for (const h of recent) {
+            const ac = h.m ? h.m.avgChange : null;
+            if (ac != null) eq *= (1 + ac / 100);
+            const p = px(h);
+            if (p0 && p) spread.push(eq - (p / p0 * 100));
+        }
+    }
+
+    // Trend
+    setDot('v3_evDotTrend', lights.trend);
+    let html = '';
+    if (ev.spxPrice && ev.spxMa200) {
+        const pct = (ev.spxPrice / ev.spxMa200 - 1) * 100;
+        html += num('SPX מול MA200', `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`, 'מעל = מגמה חיובית', pct > 0 ? 'v3-pos' : 'v3-neg');
+    }
+    if (metrics.techScore != null) {
+        html += num('ציון טכני', metrics.techScore, '≥60 חזק · <40 חלש',
+            metrics.techScore >= 60 ? 'v3-pos' : metrics.techScore >= 40 ? 'v3-warn' : 'v3-neg');
+    }
+    put('v3_evTrend', html);
+    _drawSpark('v3_evSparkTrend', spx, _lightColor(lights.trend));
+
+    // Breadth
+    setDot('v3_evDotBreadth', lights.breadth);
+    html = '';
+    if (ev.pctMa200 != null) {
+        html += num('% מעל MA200', `${ev.pctMa200}%`, '>50% בריא · <40% חלש',
+            ev.pctMa200 >= 50 ? 'v3-pos' : ev.pctMa200 >= 40 ? 'v3-warn' : 'v3-neg');
+    }
+    if (ev.nhCount != null && ev.nlCount != null) {
+        html += num('שיאים / שפלים', `${ev.nhCount} / ${ev.nlCount}`, 'שיאים > שפלים = חיובי', ev.nhCount > ev.nlCount ? 'v3-pos' : 'v3-neg');
+    }
+    put('v3_evBreadth', html);
+    _drawSpark('v3_evSparkBreadth', brd, _lightColor(lights.breadth));
+
+    // Volatility
+    setDot('v3_evDotVol', lights.volatility);
+    html = '';
+    if (ev.vix != null) {
+        html += num('VIX', ev.vix.toFixed(1), '<20 רגוע · >25 לחוץ', ev.vix < 20 ? 'v3-pos' : ev.vix < 25 ? 'v3-warn' : 'v3-neg');
+    }
+    if (metrics._vixTermRatio != null) {
+        const r = metrics._vixTermRatio;
+        html += num('VIX / VIX3M', r.toFixed(2), '<1 רגוע (contango) · ≥1 סטרס', r < 0.9 ? 'v3-pos' : r < 1 ? 'v3-warn' : 'v3-neg');
+    }
+    put('v3_evVol', html);
+    _drawSpark('v3_evSparkVol', vixS, _lightColor(lights.volatility));
+
+    // Rotation
+    setDot('v3_evDotRot', lights.rotation);
+    if (spread.length) {
+        const s = spread[spread.length - 1];
+        put('v3_evRot', num('פער EQ-SPX (20 ימים)', `${s >= 0 ? '+' : ''}${s.toFixed(1)}%`, '>0 רחב · <-1% צר', s >= 0 ? 'v3-pos' : s > -1 ? 'v3-warn' : 'v3-neg'));
+    } else {
+        put('v3_evRot', '<div class="v3-ev-num"><span class="v3-ev-num-thr">אין מספיק היסטוריה</span></div>');
+    }
+    _drawSpark('v3_evSparkRot', spread, _lightColor(lights.rotation));
+}
+
 function renderV3Cards(metrics, phaseResult, data, hist, duration) {
     // Single verdict pipeline owns the main-screen bottom line: headline,
     // subline, tone, status-lights, and the Action list. When the Python
@@ -5181,7 +5288,7 @@ function renderV3Cards(metrics, phaseResult, data, hist, duration) {
         } catch (e) { console.warn('[v3:verdict]', e); }
     }
     renderV3Status(metrics, phaseResult);   // score panel only now
-    renderV3QuickStrip(metrics);
+    renderV3Evidence(metrics, hist);        // phase 4b — 4 cards + sparklines
     renderV3TechCard(metrics);
     renderV3OptionsCard(metrics);
     renderV3SectorsCard(metrics, data && data.sectors);

@@ -13,8 +13,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
     <!-- Production stylesheet — legacy renderers fire into legacy IDs inside the tabs -->
-    <link rel="stylesheet" href="v2/overview-prod.css?v=20260704c">
-    <link rel="stylesheet" href="v2/overview-v3.css?v=20260704c">
+    <link rel="stylesheet" href="v2/overview-prod.css?v=20260704d">
+    <link rel="stylesheet" href="v2/overview-v3.css?v=20260704d">
 </head>
 <body class="overview-prod-root v3-body">
 
@@ -134,24 +134,28 @@
             <div class="v3-score-interp" id="v3_scoreInterp">—</div>
         </div>
 
-        <!-- Quick numbers strip — click jumps to the tab -->
-        <div class="v3-quick-strip" id="v3_quickStrip">
-            <button class="v3-quick-item" data-tab="tech">
-                <span class="v3-quick-label">טכני</span>
-                <span class="v3-quick-val" id="v3_qsTech">—</span>
-            </button>
-            <button class="v3-quick-item" data-tab="options">
-                <span class="v3-quick-label">אופציות</span>
-                <span class="v3-quick-val" id="v3_qsFlow">—</span>
-            </button>
-            <button class="v3-quick-item" data-tab="tech">
-                <span class="v3-quick-label">רוחב</span>
-                <span class="v3-quick-val" id="v3_qsBreadth">—</span>
-            </button>
-            <button class="v3-quick-item" data-tab="knn">
-                <span class="v3-quick-label">מגמה (KNN)</span>
-                <span class="v3-quick-val" id="v3_qsKnn">—</span>
-            </button>
+        <!-- Evidence Zone — 4 cards (one per status light), phase 4b -->
+        <div class="v3-evidence" id="v3_evidence">
+            <div class="v3-ev-card" data-tab="tech">
+                <div class="v3-ev-head"><span class="v3-ev-dot" id="v3_evDotTrend"></span><span class="v3-ev-title">מגמה</span><span class="v3-ev-drill">פירוט ↗</span></div>
+                <div class="v3-ev-nums" id="v3_evTrend"></div>
+                <div class="v3-ev-spark-wrap"><canvas id="v3_evSparkTrend"></canvas></div>
+            </div>
+            <div class="v3-ev-card" data-tab="tech">
+                <div class="v3-ev-head"><span class="v3-ev-dot" id="v3_evDotBreadth"></span><span class="v3-ev-title">רוחב</span><span class="v3-ev-drill">פירוט ↗</span></div>
+                <div class="v3-ev-nums" id="v3_evBreadth"></div>
+                <div class="v3-ev-spark-wrap"><canvas id="v3_evSparkBreadth"></canvas></div>
+            </div>
+            <div class="v3-ev-card" data-tab="tech">
+                <div class="v3-ev-head"><span class="v3-ev-dot" id="v3_evDotVol"></span><span class="v3-ev-title">תנודתיות</span><span class="v3-ev-drill">פירוט ↗</span></div>
+                <div class="v3-ev-nums" id="v3_evVol"></div>
+                <div class="v3-ev-spark-wrap"><canvas id="v3_evSparkVol"></canvas></div>
+            </div>
+            <div class="v3-ev-card" data-tab="sectors">
+                <div class="v3-ev-head"><span class="v3-ev-dot" id="v3_evDotRot"></span><span class="v3-ev-title">רוטציה</span><span class="v3-ev-drill">פירוט ↗</span></div>
+                <div class="v3-ev-nums" id="v3_evRot"></div>
+                <div class="v3-ev-spark-wrap"><canvas id="v3_evSparkRot"></canvas></div>
+            </div>
         </div>
 
         <!-- 2. המלצות -->
@@ -543,13 +547,13 @@
 </div>
 
 <!-- ═══ SCRIPTS (same order as legacy index.html) ═══ -->
-<script src="v2/regime.js?v=20260704c"></script>
-<script src="v2/narrative.js?v=20260704c"></script>
-<script src="v2/historical.js?v=20260704c"></script>
-<script src="v2/patterns.js?v=20260704c"></script>
-<script src="v2/forward-tracking.js?v=20260704c"></script>
-<script src="v2/overview-prod.js?v=20260704c"></script>
-<script src="v2/verdict.js?v=20260704c"></script>
+<script src="v2/regime.js?v=20260704d"></script>
+<script src="v2/narrative.js?v=20260704d"></script>
+<script src="v2/historical.js?v=20260704d"></script>
+<script src="v2/patterns.js?v=20260704d"></script>
+<script src="v2/forward-tracking.js?v=20260704d"></script>
+<script src="v2/overview-prod.js?v=20260704d"></script>
+<script src="v2/verdict.js?v=20260704d"></script>
 
 <script>
 // ─── Tab switching ───

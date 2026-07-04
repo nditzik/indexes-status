@@ -49,6 +49,15 @@
     "directionalShare": 0.315,
     "midShare": 0.685
   },
+  "vixTermRatio": 0.8304,
+  "evidence": {
+    "spxPrice": 7483.24,
+    "spxMa200": 6947.29,
+    "pctMa200": 64.7,
+    "vix": 16.15,
+    "nhCount": 132,
+    "nlCount": 90
+  },
   "verdict": {
     "headline": "השוק יציב — אך עם לחץ מכירות מצטבר, בזהירות",
     "subline": "6 ימי מכירה רחבה בחודש האחרון (הסף: 4) — לחץ מוסדי מצטבר · מגמה תחת לחץ",

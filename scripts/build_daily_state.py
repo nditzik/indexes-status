@@ -40,6 +40,15 @@ def build_state():
                             for d, c in sr.risk_off_selling_days],
         },
         'flowWeight': getattr(sr, 'flow_weight', None),   # phase 3.1
+        'vixTermRatio': getattr(sr, 'vix_term_ratio', None),   # phase 3.2 / 4b
+        'evidence': {   # phase 4b — numbers for the Evidence cards
+            'spxPrice': sr.spx.get('price') if sr.spx else None,
+            'spxMa200': sr.spx.get('ma200') if sr.spx else None,
+            'pctMa200': round(sr.p200, 1) if getattr(sr, 'p200', None) is not None else None,
+            'vix': sr.vix,
+            'nhCount': getattr(sr, 'nh', None),
+            'nlCount': getattr(sr, 'nl', None),
+        },
         'verdict': verdict,   # {headline, subline, tone, emoji, lights}
         'narrative': {
             'headline': sr.meta_label_now,
