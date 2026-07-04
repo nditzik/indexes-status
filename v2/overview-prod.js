@@ -5192,7 +5192,7 @@ function _drawSpark(canvasId, data, color) {
         },
     });
 }
-function renderV3Evidence(metrics, hist) {
+function renderV3Evidence(metrics, hist, data) {
     const lights = (metrics._verdict && metrics._verdict.lights) || {};
     const ev = metrics._evidence || {};
     const setDot = (id, tone) => {
@@ -5311,7 +5311,7 @@ function renderV3Cards(metrics, phaseResult, data, hist, duration) {
         } catch (e) { console.warn('[v3:verdict]', e); }
     }
     renderV3Status(metrics, phaseResult);   // score panel only now
-    renderV3Evidence(metrics, hist);        // phase 4b — 4 cards + sparklines
+    renderV3Evidence(metrics, hist, data);        // phase 4b — 4 cards + sparklines
     renderV3ActionZone(metrics, data);      // phase 4c — leading-sector movers
     renderV3TechCard(metrics);
     renderV3OptionsCard(metrics);
