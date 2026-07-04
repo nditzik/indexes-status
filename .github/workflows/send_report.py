@@ -2450,9 +2450,12 @@ def _load_recipients():
     )
 
 # Formula version stamp for the append-only history. Bump on any scoring
-# change (never rewrite past rows). Module-level so build_daily_state can
-# import it. See phase-2.4 / phase-3.0.
-FORMULA_VERSION = 'v3'   # v2: dynamic Flow weight (3.1); v3: contradiction penalty (3.3)
+# change; NEVER rewrite past rows. Module-level so build_daily_state can
+# import it. See phase-2.4 / phase-3.0. Version log:
+#   v1 — base weighted composite (0.40 Tech + 0.35 Flow + 0.25 Breadth)
+#   v2 — dynamic Flow weight by directional share (phase 3.1)
+#   v3 — contradiction penalty: Trend↔Breadth opposite extremes → −10 (phase 3.3)
+FORMULA_VERSION = 'v3'
 
 
 def _append_scores_history():

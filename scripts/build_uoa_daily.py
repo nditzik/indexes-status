@@ -20,8 +20,14 @@ import json
 import re
 
 UOA_RE = re.compile(r'uoa-stocks-(\d{2})-(\d{2})-(\d{4})\.csv$')
-DTE_MIN = 7
-VOLOI_MIN = 3.0
+
+# Filter thresholds (SPEC 2.5). MIN_DTE = 30 keeps only options that
+# carry real DIRECTIONAL POSITIONING: it drops weeklies and short-dated
+# gamma / 0-1DTE gambling, which dominate raw UOA counts but say little
+# about where the smart money is positioning. MIN_VOLOI = 3 keeps
+# activity that is unusual relative to existing open interest.
+MIN_DTE = 30
+MIN_VOLOI = 3.0
 
 
 def _num(v):
@@ -61,7 +67,8 @@ def load_sectors():
 def build():
     path = latest_uoa_file()
     if not path:
-        return {'symbols': {}, 'bySector': {}}
+        return {'filters': {'minDte': MIN_DTE, 'minVolOi': MIN_VOLOI},
+                'symbols': {}, 'bySector': {}}
     tickers = load_sectors()
     sp = set(tickers.keys())
     txt = open(path, encoding='utf-8-sig').read().replace('\r\n', '\n')
@@ -73,9 +80,9 @@ def build():
             continue
         dte = _num(_col(r, 'DTE'))
         voloi = _num(_col(r, 'Vol/OI', 'VolOI'))
-        if dte is None or dte < DTE_MIN:
+        if dte is None or dte < MIN_DTE:
             continue
-        if voloi is None or voloi < VOLOI_MIN:
+        if voloi is None or voloi < MIN_VOLOI:
             continue
         typ = (_col(r, 'Type') or '').strip().lower()
         price = _num(_col(r, 'Latest', 'Midpoint', 'Last'))
@@ -124,7 +131,13 @@ def build():
             'dir': 'Call' if net >= 0 else 'Put',
             'count': x['count'],
         }
-    return {'symbols': symbols, 'bySector': by_sector}
+    # Record which filters produced this file, so we know retroactively
+    # how each day's UOA was built (SPEC 2.5 review fix 1).
+    return {
+        'filters': {'minDte': MIN_DTE, 'minVolOi': MIN_VOLOI},
+        'symbols': symbols,
+        'bySector': by_sector,
+    }
 
 
 def main():

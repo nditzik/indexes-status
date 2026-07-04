@@ -90,7 +90,10 @@ frozen. Daily email: `.github/workflows/send_report.py`.
 ### UOA (2.5 + 3.5)
 - `scripts/build_uoa_daily.py` → `data/uoa_daily.json`: per S&P symbol, dominant
   direction (Call/Put by premium = `Latest×Volume×100`), max Vol/OI, total premium.
-  Filters: **DTE ≥ 7, Vol/OI ≥ 3, symbol in `sectors.json`**.
+  Filters: **DTE ≥ 30, Vol/OI ≥ 3, symbol in `sectors.json`** (config
+  `MIN_DTE`/`MIN_VOLOI` at the top of the script; 30 keeps directional
+  positioning, drops weeklies/gamma noise per SPEC 2.5). `uoa_daily.json`
+  records `"filters": {minDte, minVolOi}` so each day's basis is known.
 - Action Zone badge (`UOA 📈/📉 ×VolOI`, green Call / red Put) from `metrics._uoa`.
 - Real export columns handled: `Symbol, Price~, Exp Date, DTE, Type, Strike, Bid,
   Latest, Ask, Volume, Open Int, Vol/OI, Delta, Time` (no premium/IV columns).
