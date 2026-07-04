@@ -93,11 +93,13 @@ jobs:
         run: python3 .github/workflows/send_report.py
 
       # send_report.py appends the day's scores to data/scores_history.json
-      # (append-only) on a real send. Commit that record. Separate commit
-      # because the email is the last step and the file is written there.
-      - name: Commit scores history (append-only)
+      # (append-only) on a real send. Then derive the forward-return file
+      # (phase 3.4) and commit both. Separate commit because the email is
+      # the last step and scores_history is written there.
+      - name: Score history + forward tracking (append-only)
         run: |
+          python3 scripts/build_score_forward.py
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/scores_history.json
-          git diff --staged --quiet || { git commit -m "scores_history: append daily record"; git push; }
+          git add data/scores_history.json data/score_forward.json
+          git diff --staged --quiet || { git commit -m "scores_history + score_forward: daily update"; git push; }

@@ -5107,6 +5107,62 @@ async function init() {
 // Reuses metrics + phase already computed by the standard pipeline —
 // zero new computation, selection + formatting only.
 // ═════════════════════════════════════════════════════════════════════
+// ─── Score forward-tracking distribution (phase 3.4) ────────────────
+// Reads data/score_forward.json (built in CI from scores_history) and
+// groups the matured 20-day SPX returns by combined-score band, so we
+// can see whether a high score actually preceded gains. Display-layer
+// aggregation only — the forward returns themselves come from Python.
+async function renderScoreForwardTable() {
+    const el = document.getElementById('v3_scoreFwd');
+    if (!el) return;
+    let rows;
+    try {
+        rows = await fetchJSON(`${DATA_BASE}/score_forward.json`);
+    } catch (_) {
+        el.style.display = 'none';
+        return;
+    }
+    const matured = (rows || []).filter(r => r && r.fwd20 != null && r.combined != null);
+    if (matured.length < 3) {
+        el.innerHTML = '<div class="v3-stocks-note">אין עדיין מספיק היסטוריה — הטבלה מתמלאת ככל שהציונים היומיים מבשילים (20 ימי מסחר קדימה). נדרשות לפחות 3 תבניות שהבשילו.</div>';
+        return;
+    }
+    const BANDS = [
+        { lo: 70, hi: 101, label: '70–100 (חזק)' },
+        { lo: 55, hi: 70,  label: '55–70 (מתון)' },
+        { lo: 30, hi: 55,  label: '30–55 (חלש)' },
+        { lo: 0,  hi: 30,  label: '0–30 (שלילי)' },
+    ];
+    const median = arr => {
+        const s = arr.slice().sort((a, b) => a - b), m = Math.floor(s.length / 2);
+        return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+    };
+    const body = BANDS.map(b => {
+        const inB = matured.filter(r => r.combined >= b.lo && r.combined < b.hi);
+        if (!inB.length) {
+            return `<tr><td>${b.label}</td><td class="v3-muted">—</td><td class="v3-muted">—</td><td class="v3-muted">0</td></tr>`;
+        }
+        const rets = inB.map(r => r.fwd20);
+        const med = median(rets);
+        const hit = rets.filter(v => v > 0).length;
+        const medCls = med > 0 ? 'v3-pos' : med < 0 ? 'v3-neg' : '';
+        return `<tr>
+            <td>${b.label}</td>
+            <td class="${medCls}">${med >= 0 ? '+' : ''}${med.toFixed(2)}%</td>
+            <td>${hit} מתוך ${inB.length}</td>
+            <td>${inB.length}</td>
+        </tr>`;
+    }).join('');
+    el.innerHTML = `
+        <table class="v3-sector-table">
+            <thead><tr>
+                <th>טווח ציון משולב</th><th>חציון 20d</th><th>חיוביים</th><th>מדגם</th>
+            </tr></thead>
+            <tbody>${body}</tbody>
+        </table>
+        <div class="v3-stocks-note">כמה עלה/ירד SPX 20 ימי מסחר אחרי כל ציון, לפי טווח. מבוסס על ${matured.length} תבניות שהבשילו.</div>`;
+}
+
 function renderV3Cards(metrics, phaseResult, data, hist, duration) {
     // Single verdict pipeline owns the main-screen bottom line: headline,
     // subline, tone, status-lights, and the Action list. When the Python
@@ -5132,6 +5188,7 @@ function renderV3Cards(metrics, phaseResult, data, hist, duration) {
     renderV3StocksCard(data);
     renderV3DailySummary(metrics, hist, phaseResult, duration);
     renderV3TrendCard();
+    renderScoreForwardTable();   // phase 3.4 — async, fills when history matures
 }
 
 // ─── 1. Status score panel — combined score + phase + interpretation ──
