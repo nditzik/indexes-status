@@ -13,8 +13,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
     <!-- Production stylesheet — legacy renderers fire into legacy IDs inside the tabs -->
-    <link rel="stylesheet" href="v2/overview-prod.css?v=20260704k">
-    <link rel="stylesheet" href="v2/overview-v3.css?v=20260704k">
+    <link rel="stylesheet" href="v2/overview-prod.css?v=20260704l">
+    <link rel="stylesheet" href="v2/overview-v3.css?v=20260704l">
 </head>
 <body class="overview-prod-root v3-body">
 
@@ -132,6 +132,30 @@
             <!-- 4 status lights (verdict pipeline) -->
             <div class="v3-lights" id="v3_lights"></div>
             <div class="v3-score-interp" id="v3_scoreInterp">—</div>
+        </div>
+
+        <!-- Daily thinking layer — Analysis → Conclusion → Recommendation,
+             synthesized in Python (data/daily_state.json → conclusion). -->
+        <div class="v3-concl" id="v3_conclusion" style="display:none;">
+            <div class="v3-concl-head">
+                <span class="v3-concl-state" id="v3_conclState">—</span>
+                <span class="v3-concl-conviction" id="v3_conclConviction">—</span>
+            </div>
+            <div class="v3-concl-block">
+                <div class="v3-concl-label">📊 ניתוח</div>
+                <div class="v3-concl-analysis" id="v3_conclAnalysis"></div>
+            </div>
+            <div class="v3-concl-block">
+                <div class="v3-concl-label">🧠 מסקנה</div>
+                <div class="v3-concl-body" id="v3_conclBody">—</div>
+                <div class="v3-concl-change" id="v3_conclChange"></div>
+            </div>
+            <div class="v3-concl-block">
+                <div class="v3-concl-label">🎯 המלצה</div>
+                <div class="v3-concl-action" id="v3_conclAction">—</div>
+                <div class="v3-concl-triggers" id="v3_conclTriggers"></div>
+            </div>
+            <div class="v3-concl-insight" id="v3_conclInsight"></div>
         </div>
 
         <!-- Evidence Zone — 4 cards (one per status light), phase 4b -->
@@ -570,13 +594,13 @@
 </div>
 
 <!-- ═══ SCRIPTS (same order as legacy index.html) ═══ -->
-<script src="v2/regime.js?v=20260704k"></script>
-<script src="v2/narrative.js?v=20260704k"></script>
-<script src="v2/historical.js?v=20260704k"></script>
-<script src="v2/patterns.js?v=20260704k"></script>
-<script src="v2/forward-tracking.js?v=20260704k"></script>
-<script src="v2/overview-prod.js?v=20260704k"></script>
-<script src="v2/verdict.js?v=20260704k"></script>
+<script src="v2/regime.js?v=20260704l"></script>
+<script src="v2/narrative.js?v=20260704l"></script>
+<script src="v2/historical.js?v=20260704l"></script>
+<script src="v2/patterns.js?v=20260704l"></script>
+<script src="v2/forward-tracking.js?v=20260704l"></script>
+<script src="v2/overview-prod.js?v=20260704l"></script>
+<script src="v2/verdict.js?v=20260704l"></script>
 
 <script>
 // ─── Tab switching ───

@@ -384,6 +384,121 @@
     font-weight: 700;
 }
 
+/* ── Daily thinking layer — Analysis → Conclusion → Recommendation ── */
+.v3-concl {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.v3-concl-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+.v3-concl-state {
+    font-size: 17px;
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: #334155;
+}
+.v3-concl-state.v3-pos  { background: #d1fae5; color: #065f46; }
+.v3-concl-state.v3-warn { background: #fef3c7; color: #92400e; }
+.v3-concl-state.v3-neg  { background: #fee2e2; color: #991b1b; }
+.v3-concl-conviction {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #475569;
+}
+.v3-concl-conviction.v3-pos  { background: #d1fae5; color: #065f46; }
+.v3-concl-conviction.v3-warn { background: #fef3c7; color: #92400e; }
+.v3-concl-conviction.v3-neg  { background: #fee2e2; color: #991b1b; }
+.v3-concl-block { margin-bottom: 12px; }
+.v3-concl-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 0.03em;
+    margin-bottom: 6px;
+}
+.v3-concl-arow {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 2px 0;
+}
+.v3-concl-dot {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    align-self: flex-start;
+    margin-top: 5px;
+}
+.v3-concl-dot.v3-pos  { background: #10b981; }
+.v3-concl-dot.v3-neg  { background: #ef4444; }
+.v3-concl-dot.v3-warn { background: #f59e0b; }
+.v3-concl-adom {
+    flex: 0 0 auto;
+    min-width: 66px;
+    font-weight: 700;
+    color: #475569;
+}
+.v3-concl-atext { color: #334155; }
+.v3-concl-body {
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: #1a202c;
+    font-weight: 500;
+    background: #f8fafc;
+    border-right: 3px solid #94a3b8;
+    padding: 10px 12px;
+    border-radius: 6px;
+}
+.v3-concl-change {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 6px;
+}
+.v3-concl-change:empty { display: none; }
+.v3-concl-chg-label { font-weight: 700; color: #475569; }
+.v3-concl-action {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a202c;
+    background: #eff6ff;
+    border-right: 3px solid #3b82f6;
+    padding: 10px 12px;
+    border-radius: 6px;
+}
+.v3-concl-triggers {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 6px;
+}
+.v3-concl-triggers:empty { display: none; }
+.v3-concl-trig { font-size: 12px; line-height: 1.5; }
+.v3-concl-insight {
+    font-size: 12.5px;
+    color: #475569;
+    border-top: 1px dashed #e2e8f0;
+    padding-top: 10px;
+    margin-top: 4px;
+}
+.v3-concl-insight:empty { display: none; }
+
 /* ─── Stat list (used in tech + flow context + trend) ─── */
 .v3-stat-list {
     margin: 0;

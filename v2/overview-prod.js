@@ -5069,6 +5069,7 @@ async function init() {
             metrics._rotation = dailyState.rotation || null;      // review fix 2 (Rotation v2)
             metrics._pressure = dailyState.riskOff || null;       // pressure card redesign
             metrics._flow = dailyState.flow || null;              // options-tab: direction label + canonical midPct
+            metrics._conclusion = dailyState.conclusion || null;  // daily thinking layer (analysis→conclusion→recommendation)
         }
 
         const phaseResult = Regime.classifyPhase({
@@ -5356,6 +5357,7 @@ function renderV3Cards(metrics, phaseResult, data, hist, duration) {
         } catch (e) { console.warn('[v3:verdict]', e); }
     }
     renderV3Status(metrics, phaseResult);   // score panel only now
+    renderV3Conclusion(metrics);            // daily thinking layer
     renderV3Evidence(metrics, hist, data);        // phase 4b — 4 cards + sparklines
     renderV3ActionZone(metrics, data);      // phase 4c — leading-sector movers
     renderV3TechCard(metrics);
@@ -5373,6 +5375,68 @@ function renderV3Cards(metrics, phaseResult, data, hist, duration) {
 // are now owned by the single verdict pipeline (v2/verdict.js →
 // Verdict.render). This function only fills the SCORE side, so there's
 // exactly one source of the bottom line. See phase-1.2.
+// Daily thinking layer — renders data/daily_state.json's `conclusion`
+// (Analysis → Conclusion → Recommendation). All text is synthesized in
+// Python; this only paints it. Hidden if the field is absent (fallback).
+const V3_STATE_LABEL = {
+    confirmed_strength: 'מגמה בריאה',
+    narrow_strength:    'עלייה לא-מאושרת',
+    chop:               'חוסר הכרעה',
+    weak_stabilizing:   'חולשה מתייצבת',
+    weak_expanding:     'חולשה מתרחבת',
+    acute:              'יום סיכון',
+};
+const V3_STATE_TONE = {
+    confirmed_strength: 'v3-pos', narrow_strength: 'v3-warn', chop: 'v3-warn',
+    weak_stabilizing: 'v3-warn', weak_expanding: 'v3-neg', acute: 'v3-neg',
+};
+const V3_CONV = {
+    high:   { txt: 'ביטחון גבוה',  cls: 'v3-pos' },
+    medium: { txt: 'ביטחון בינוני', cls: 'v3-warn' },
+    low:    { txt: 'ביטחון נמוך',   cls: 'v3-neg' },
+};
+function renderV3Conclusion(metrics) {
+    const wrap = document.getElementById('v3_conclusion');
+    if (!wrap) return;
+    const c = metrics._conclusion;
+    if (!c || !c.conclusion) { wrap.style.display = 'none'; return; }
+    wrap.style.display = '';
+    const setText = (id, t) => { const e = document.getElementById(id); if (e) e.textContent = t || ''; };
+    const setHtml = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h || ''; };
+
+    const stEl = document.getElementById('v3_conclState');
+    if (stEl) {
+        stEl.textContent = V3_STATE_LABEL[c.state] || c.state || '—';
+        stEl.className = 'v3-concl-state ' + (V3_STATE_TONE[c.state] || '');
+    }
+    const cv = V3_CONV[c.conviction] || null;
+    const cvEl = document.getElementById('v3_conclConviction');
+    if (cvEl) {
+        cvEl.textContent = cv ? cv.txt : '';
+        cvEl.className = 'v3-concl-conviction ' + (cv ? cv.cls : '');
+    }
+    // Analysis — one row per data domain, tone dot + text.
+    const dot = t => `<span class="v3-concl-dot ${t === 'pos' ? 'v3-pos' : t === 'neg' ? 'v3-neg' : 'v3-warn'}"></span>`;
+    setHtml('v3_conclAnalysis', (c.analysis || []).map(a =>
+        `<div class="v3-concl-arow">${dot(a.tone)}<span class="v3-concl-adom">${a.domain}</span><span class="v3-concl-atext">${a.text}</span></div>`
+    ).join(''));
+
+    setText('v3_conclBody', c.conclusion);
+    // "What changed since the last reading"
+    const chg = Array.isArray(c.change) ? c.change : [];
+    setHtml('v3_conclChange', chg.length
+        ? `<span class="v3-concl-chg-label">מאתמול:</span> ${chg.join(' · ')}` : '');
+
+    const rec = c.recommendation || {};
+    setText('v3_conclAction', rec.action || '—');
+    const trig = [];
+    if (rec.improve) trig.push(`<span class="v3-concl-trig v3-pos">▲ שיפור: ${rec.improve}</span>`);
+    if (rec.worsen)  trig.push(`<span class="v3-concl-trig v3-neg">▼ הרעה: ${rec.worsen}</span>`);
+    setHtml('v3_conclTriggers', trig.join(''));
+
+    setHtml('v3_conclInsight', c.insight ? `💡 ${c.insight}` : '');
+}
+
 function renderV3Status(metrics, phaseResult) {
     // Score + phase + adaptive interpretation (right side of the strip)
     const c = metrics.combined;
