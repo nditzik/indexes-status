@@ -2602,6 +2602,35 @@ def build_conclusion():
     if dist_days >= 4:
         cooling.append(f'{dist_days} ימי מכירה ב-25')
 
+    # ── Smart-money cross-check (runs in EVERY state) ──
+    # Does the OPTIONS FLOW confirm the price, or fight it? A divergence
+    # between price and flow is the most valuable "thinking" signal:
+    # dip-buying INTO a sell-off, or distribution INTO a rally. The same
+    # down day means two different things depending on the flow.
+    # Price direction: an acute day IS a down event (the crash dominates);
+    # otherwise take the prevailing regime from the combined score (daily
+    # noise excluded). Mutually exclusive by construction.
+    if acute:
+        price_up, price_down = False, True
+    else:
+        price_up   = C is not None and C >= 55
+        price_down = C is not None and C < 45
+    flow_bull  = F is not None and F >= 55
+    flow_bear  = F is not None and F < 45
+    divergence, div_note = None, ''
+    if price_down and flow_bull:
+        divergence = 'dip_buying'
+        div_note = f'זרימת האופציות שורית (Flow {F}) — הכסף הגדול קונה לתוך הירידה, כנראה קניית דיפ ולא מכירה רגילה'
+    elif price_up and flow_bear:
+        divergence = 'distribution'
+        div_note = f'זרימת האופציות דובית (Flow {F}) — הכסף הגדול מוכר לתוך העלייה; אזהרת דיסטריביושן'
+    elif price_up and flow_bull:
+        divergence = 'confirm_up'
+        div_note = f'האופציות מאשרות את העלייה (Flow {F} שורי)'
+    elif price_down and flow_bear:
+        divergence = 'confirm_down'
+        div_note = f'האופציות מאשרות את החולשה (Flow {F} דובי)'
+
     # ── market state (drives the conclusion) ──
     improving = (narrative_metrics.get('breadth5dDelta') or 0) > 0
     if acute:
@@ -2648,22 +2677,36 @@ def build_conclusion():
         'text': f'{dist_days} ימי מכירה ב-25 · {sell_days_3} ב-3 האחרונים.',
         'tone': 'neg' if dist_days >= 4 else 'warn' if dist_days >= 2 else 'pos'})
 
-    # ── CONCLUSION — synthesis per state ──
+    # ── CONCLUSION — synthesis per state, with the smart-money cross-check ──
     if state == 'acute':
-        conclusion = 'יום סיכון — אירוע מכירה חד היום. הבאנר האדום מתריע; זו העדיפות.'
+        base = f'יום סיכון — אירוע מכירה חד היום ({_acute_reason() or "ירידה חדה"}).'
+        if divergence == 'dip_buying':
+            conclusion = base + f' אבל {div_note} — זו לא ירידה רגילה.'
+        elif divergence == 'confirm_down':
+            conclusion = base + f' {div_note} — הכסף הגדול בורח יחד עם המחיר, אישור חולשה.'
+        else:
+            conclusion = base + ' הבאנר האדום מתריע; זו העדיפות היום.'
     elif state == 'confirmed_strength':
         conclusion = (f'השוק חזק ומאושר מבפנים: מחיר במגמת-על (טכני {T}), רוחב רחב '
                       f'({p200_r}% מעל MA200), והמנהיגות והאופציות תומכות. עלייה מגובה.')
     elif state == 'narrow_strength':
         conclusion = ('השוק חזק כלפי חוץ אבל מתקרר מבפנים — ' + ' · '.join(cooling[:3])
                       + '. עלייה לא-מאושרת: חוזק מחיר שאינו מגובה ברוחב פנימי.')
+        if divergence == 'distribution':
+            conclusion += f' יתרה מכך — {div_note}.'
     elif state == 'weak_stabilizing':
         conclusion = (f'חולשה עם סימני התייצבות: ציון משולב {C}, אך הרוחב משתפר. '
                       'ייתכן תהליך תחתית — עדיין לא איתות כניסה.')
+        if divergence == 'dip_buying':
+            conclusion += f' תומך בכך: {div_note}.'
     elif state == 'weak_expanding':
         conclusion = (f'חולשה מתרחבת: ציון משולב {C}, הרוחב יורד והמנהיגות הגנתית. לחץ שנמשך.')
+        if divergence == 'dip_buying':
+            conclusion += f' סימן מנוגד יחיד: {div_note} — לעקוב אחרי התייצבות.'
     else:
         conclusion = (f'חוסר הכרעה: ציון משולב {C}, הסיגנלים מפוצלים ואין כיוון ברור.')
+        if divergence in ('dip_buying', 'distribution'):
+            conclusion += f' {div_note}.'
 
     # ── RECOMMENDATION — action + the specific triggers that flip it ──
     REC = {
@@ -2677,6 +2720,15 @@ def build_conclusion():
         'chop':               ('להמתין לאיתות ברור לפני פעולה.', 'פריצה ברורה + Flow תומך', 'שבירה כלפי מטה'),
     }
     action, improve, worsen = REC[state]
+    # Acute day: the action stays conservative (don't catch a falling
+    # knife), but the triggers change with the flow — dip-buying flips the
+    # framing to "watch for the entry", confirmed-down to "full defense".
+    if state == 'acute' and divergence == 'dip_buying':
+        action  = 'לא קונים היום — לא רודפים ירידה, אבל לא מוכרים בפאניקה.'
+        improve = 'התייצבות מחר + Flow נשאר מעל 55 → נקודת כניסה מוקדמת'
+        worsen  = 'המשך ירידה + Flow מתהפך לדובי → הגנה מלאה'
+    elif state == 'acute' and divergence == 'confirm_down':
+        action  = 'הגנה — לקצץ חשיפה, לא לחפש תחתית עדיין.'
     recommendation = {'action': action, 'improve': improve, 'worsen': worsen}
 
     # ── CONVICTION — how much price and internals agree ──
@@ -2685,6 +2737,10 @@ def build_conclusion():
     elif state == 'chop':
         conviction = 'low'
     else:
+        conviction = 'medium'
+    # A price↔flow divergence means the signals disagree — never claim high
+    # conviction when the smart money is fighting the tape.
+    if divergence in ('dip_buying', 'distribution') and conviction == 'high':
         conviction = 'medium'
 
     # ── INSIGHT — the single sharpest signal today (salience-ranked) ──
