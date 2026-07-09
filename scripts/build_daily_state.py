@@ -86,6 +86,10 @@ def build_state():
             'series': sr.compute_rotation_series(),   # cyclical−defensive momentum sparkline
         },
         'verdict': verdict,   # {headline, subline, tone, emoji, lights}
+        # Conclusion engine — the daily thinking layer (Analysis →
+        # Conclusion → Recommendation), synthesized in Python from all the
+        # data. The main page renders this instead of a band-lookup line.
+        'conclusion': sr.build_conclusion(),
         'narrative': {
             'headline': sr.meta_label_now,
             'rationale': sr.rationale_now,

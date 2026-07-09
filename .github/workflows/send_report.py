@@ -294,6 +294,15 @@ def _load_sector_map():
         return {}
 SECTOR_MAP = _load_sector_map()
 
+def _load_sector_names():
+    """Sector-code → Hebrew name (for the conclusion engine's prose)."""
+    try:
+        sm = json.load(open('data/sectors.json', encoding='utf-8'))
+        return sm.get('codes') or {}
+    except Exception:
+        return {}
+SECTOR_NAMES = _load_sector_names()
+
 # Cyclical (risk-on) vs defensive (risk-off) sector codes. Rotation is
 # "healthy" (green) when cyclicals lead, "risk-off" (red) when the money
 # hides in defensives. Codes per data/sectors.json.
@@ -2541,6 +2550,186 @@ def compute_rotation_light(sector_rs=None):
     if dfn >= 2 and cyc <= 1:
         return 'neg'        # money hiding in defensives → risk-off rotation
     return 'warn'
+
+
+def build_conclusion():
+    """The daily thinking layer: Analysis → Conclusion → Recommendation,
+    SYNTHESIZED from all four data domains (price/trend, breadth,
+    volatility, options flow) plus rotation and pressure — instead of a
+    score-band lookup that reads the same every day. DISPLAY ONLY: no
+    scoring change, no FORMULA_VERSION bump. Emitted to daily_state so the
+    dashboard and email render one thought."""
+    if c_score is None:
+        return None
+    C, T, B, F = c_score, t_score, b_score, f_score
+    acute = bool(risk_off_acute)
+    hr = history_rich
+
+    # ── raw signals across the domains ──
+    eq_today  = hr[-1].get('avg_change')  if hr else None
+    spx_today = hr[-1].get('spx_chg_pct') if hr else None
+    day_narrow = (eq_today is not None and spx_today is not None
+                  and spx_today > 0 and (spx_today - eq_today) >= 0.4)
+    spread20 = compute_eq_spx_spread()
+    p200_r = round(p200)
+    p50_r  = round(a50 / total * 100) if total else None
+    rs = compute_sector_rs()
+    lead = leading_sectors(rs)
+    cyc = sum(1 for c in lead if c in CYCLICAL_SECTORS)
+    dfn = sum(1 for c in lead if c in DEFENSIVE_SECTORS)
+    rot_light = compute_rotation_light(rs)
+    lead_names = ' · '.join(SECTOR_NAMES.get(c, c) for c in lead) or '—'
+    broad_days = count_spx_above_ma200(hr)
+    fdir = flow_direction
+    pc = flow.get('pc_p') if flow else None
+    mid = flow.get('midPct') if flow else None
+
+    # ── cooling signals: internal weakness beneath a strong tape ──
+    cooling = []
+    if day_narrow:
+        cooling.append(f'עלייה צרה (שוויוני {eq_today:+.2f}% מול מדד {spx_today:+.2f}%)')
+    if spread20 is not None and spread20 < -0.5:
+        cooling.append(f'פער EQ-SPX שלילי ({spread20:+.1f}% ב-20 יום)')
+    if dfn >= 2 and cyc <= 1:
+        cooling.append(f'מנהיגות הגנתית ({lead_names})')
+    elif rot_light == 'warn' and cyc <= 1:
+        cooling.append(f'מנהיגות מצטמצמת ({lead_names})')
+    # Options: use the DIRECTIONAL Flow score, not raw P/C (which is
+    # Mid-contaminated and can contradict the directional read — that
+    # exact incoherence is what we're removing).
+    if F is not None and F < 48:
+        cooling.append(f'אופציות הגנתיות (Flow {F})')
+    if dist_days >= 4:
+        cooling.append(f'{dist_days} ימי מכירה ב-25')
+
+    # ── market state (drives the conclusion) ──
+    improving = (narrative_metrics.get('breadth5dDelta') or 0) > 0
+    if acute:
+        state = 'acute'
+    elif C >= 60:
+        state = 'narrow_strength' if cooling else 'confirmed_strength'
+    elif C < 45:
+        state = 'weak_stabilizing' if improving else 'weak_expanding'
+    else:
+        state = 'chop'
+
+    # ── ANALYSIS — one factual line per data domain ──
+    def _btone(pos_ok, neg_bad):
+        return 'pos' if pos_ok else ('neg' if neg_bad else 'warn')
+    analysis = []
+    analysis.append({'domain': 'מחיר ומגמה',
+        'text': f'SPX מעל MA200 כבר {broad_days} ימי מסחר · ציון טכני {T}.',
+        'tone': _btone(T is not None and T >= 60, T is not None and T < 40)})
+    btxt = f'{p200_r}% מהמניות מעל MA200'
+    if day_narrow:
+        btxt += f' — אך היום העלייה צרה (שוויוני {eq_today:+.2f}% מול {spx_today:+.2f}%)'
+    analysis.append({'domain': 'רוחב', 'text': btxt + '.',
+        'tone': 'warn' if day_narrow else _btone((p200 or 0) >= 55, (p200 or 0) < 40)})
+    if vix is not None:
+        vtxt = f'VIX {vix:.1f} · ' + ('רגוע' if vix < 20 else 'לחוץ')
+        vtone = 'pos' if vix < 20 else 'warn' if vix < 25 else 'neg'
+    else:
+        vtxt, vtone = 'VIX —', 'warn'
+    analysis.append({'domain': 'תנודתיות', 'text': vtxt + '.', 'tone': vtone})
+    if F is not None:
+        # The directional Flow score is canonical; raw P/C is Mid-
+        # contaminated and dropped here to avoid a misleading "60 offensive
+        # · P/C 1.29 defensive" side-by-side.
+        otxt = f'Flow {F} ({fdir["label"]})'
+        if mid is not None: otxt += f' · {round(mid)}% Mid'
+        otone = _btone(F >= 55, F < 45)
+    else:
+        otxt, otone = 'אין נתוני אופציות היום', 'warn'
+    analysis.append({'domain': 'אופציות', 'text': otxt + '.', 'tone': otone})
+    analysis.append({'domain': 'רוטציה',
+        'text': f'מובילים: {lead_names} (מחזוריים {cyc} / הגנתיים {dfn}).',
+        'tone': 'pos' if rot_light == 'pos' else 'neg' if rot_light == 'neg' else 'warn'})
+    analysis.append({'domain': 'לחץ',
+        'text': f'{dist_days} ימי מכירה ב-25 · {sell_days_3} ב-3 האחרונים.',
+        'tone': 'neg' if dist_days >= 4 else 'warn' if dist_days >= 2 else 'pos'})
+
+    # ── CONCLUSION — synthesis per state ──
+    if state == 'acute':
+        conclusion = 'יום סיכון — אירוע מכירה חד היום. הבאנר האדום מתריע; זו העדיפות.'
+    elif state == 'confirmed_strength':
+        conclusion = (f'השוק חזק ומאושר מבפנים: מחיר במגמת-על (טכני {T}), רוחב רחב '
+                      f'({p200_r}% מעל MA200), והמנהיגות והאופציות תומכות. עלייה מגובה.')
+    elif state == 'narrow_strength':
+        conclusion = ('השוק חזק כלפי חוץ אבל מתקרר מבפנים — ' + ' · '.join(cooling[:3])
+                      + '. עלייה לא-מאושרת: חוזק מחיר שאינו מגובה ברוחב פנימי.')
+    elif state == 'weak_stabilizing':
+        conclusion = (f'חולשה עם סימני התייצבות: ציון משולב {C}, אך הרוחב משתפר. '
+                      'ייתכן תהליך תחתית — עדיין לא איתות כניסה.')
+    elif state == 'weak_expanding':
+        conclusion = (f'חולשה מתרחבת: ציון משולב {C}, הרוחב יורד והמנהיגות הגנתית. לחץ שנמשך.')
+    else:
+        conclusion = (f'חוסר הכרעה: ציון משולב {C}, הסיגנלים מפוצלים ואין כיוון ברור.')
+
+    # ── RECOMMENDATION — action + the specific triggers that flip it ──
+    REC = {
+        'acute':              ('לא קונים היום — עד שהשוק מתייצב.', 'יום מסחר יציב', 'ירידה חדה נוספת'),
+        'confirmed_strength': ('להחזיק ולהוסיף חשיפה במנות מדודות.', 'המשך רוחב חיובי', 'רוטציה נהפכת הגנתית או Flow מתחת ל-45'),
+        'narrow_strength':    ('להחזיק קיים · לא להוסיף חשיפה חדשה · להדק סטופים על החלשות.',
+                               'המדד השוויוני מדביק (רוחב מתרחב) + Flow מעל ~58',
+                               'יום מכירה נוסף או %MA50 מתחת ל-65%'),
+        'weak_stabilizing':   ('להמתין לאישור — לא להיכנס עדיין.', 'רוחב ו-Flow ממשיכים לעלות', 'חזרה לירידות'),
+        'weak_expanding':     ('הגנה — לקצץ חשיפה בהדרגה, עדיפות למזומן.', 'התייצבות ברוחב', 'המשך הידרדרות'),
+        'chop':               ('להמתין לאיתות ברור לפני פעולה.', 'פריצה ברורה + Flow תומך', 'שבירה כלפי מטה'),
+    }
+    action, improve, worsen = REC[state]
+    recommendation = {'action': action, 'improve': improve, 'worsen': worsen}
+
+    # ── CONVICTION — how much price and internals agree ──
+    if state in ('acute', 'confirmed_strength', 'weak_expanding'):
+        conviction = 'high'
+    elif state == 'chop':
+        conviction = 'low'
+    else:
+        conviction = 'medium'
+
+    # ── INSIGHT — the single sharpest signal today (salience-ranked) ──
+    cands = []
+    if day_narrow:
+        cands.append((abs(spx_today - eq_today) * 3,
+            f'פער המדד השוויוני מול המדד נפתח ל-{spx_today - eq_today:.2f}% היום — העלייה על קומץ מניות.'))
+    if flow_streak >= 3:
+        cands.append((flow_streak,
+            f'{fdir["label"]} כבר {flow_streak} ימים מול הממוצע החודשי — מגמה נמשכת באופציות.'))
+    if spread20 is not None:
+        cands.append((abs(spread20),
+            f'פער EQ-SPX ל-20 יום {spread20:+.1f}% — ' + ('רוחב רחב' if spread20 >= 0 else 'ראלי צר')))
+    if dfn >= 2 and cyc <= 1:
+        cands.append((4, f'המנהיגות דפנסיבית ({lead_names}) — בריחה למקלטים.'))
+    if sell_days_3 >= 2:
+        cands.append((sell_days_3 * 1.5, f'{sell_days_3} ימי מכירה ב-3 הימים האחרונים — קיבוץ הדוק.'))
+    insight = max(cands, key=lambda x: x[0])[1] if cands else ''
+
+    # ── CHANGE — what moved since the previous trading day ──
+    change = []
+    try:
+        if len(flow_files) >= 2 and F is not None:
+            f_prev = _flow_score_from_file(flow_files[-2])
+            if f_prev is not None and abs(F - f_prev) >= 4:
+                change.append(f'Flow {f_prev}→{F} {"↑" if F > f_prev else "↓"}')
+    except Exception:
+        pass
+    try:
+        if len(hr) >= 2:
+            b_prev = hr[-2].get('pct_ma200')
+            if b_prev is not None and abs(p200 - b_prev) >= 2:
+                change.append(f'רוחב {round(b_prev)}%→{p200_r}% {"↑" if p200 > b_prev else "↓"}')
+    except Exception:
+        pass
+
+    return {
+        'state': state,
+        'analysis': analysis,
+        'conclusion': conclusion,
+        'recommendation': recommendation,
+        'conviction': conviction,
+        'insight': insight,
+        'change': change,
+    }
 
 
 def build_verdict_state():
