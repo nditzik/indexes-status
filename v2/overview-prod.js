@@ -673,8 +673,19 @@ function computeFlowDay(rows) {
         const iv = parseFloat(ivStr);
         const code = String(r.Code || '').trim().toUpperCase();
         const opening = String(r['*'] || '').trim();
-        const dteVal = parseInt(r.DTE, 10);
-        const hasDte = Number.isFinite(dteVal);
+        // DTE — Barchart's 2026-07 flow export DROPPED the DTE column and
+        // moved to an ISO "Exp Date" (e.g. 2027-12-17T16:30:00-06:00). Use
+        // the DTE column when present; otherwise derive days-to-expiry from
+        // Exp Date. Without this the whole DTE panel reads zero.
+        let dteVal = parseInt(r.DTE, 10);
+        if (!Number.isFinite(dteVal)) {
+            const expRaw = r['Exp Date'] || r.Expires || r.Expiration;
+            const exp = expRaw ? new Date(String(expRaw).trim()) : null;
+            if (exp && !isNaN(exp.getTime())) {
+                dteVal = Math.round((exp.getTime() - Date.now()) / 86400000);
+            }
+        }
+        const hasDte = Number.isFinite(dteVal) && dteVal >= 0;
         const dtePrem = hasDte ? dteVal * prem : 0;
 
         if (t === 'call') {
@@ -5353,6 +5364,12 @@ function renderV3Cards(metrics, phaseResult, data, hist, duration) {
                           ? computeRecommendations(metrics, phaseResult).slice(0, 4) : [],
                   })
                 : window.Verdict.build(metrics, phaseResult);
+            // Main headline summarizes THIS trading day (from the conclusion
+            // engine); the accumulated context drops to the subline.
+            if (metrics._conclusion && metrics._conclusion.headline) {
+                v.headline = metrics._conclusion.headline;
+                if (metrics._conclusion.subline) v.subline = metrics._conclusion.subline;
+            }
             window.Verdict.render(v);
         } catch (e) { console.warn('[v3:verdict]', e); }
     }

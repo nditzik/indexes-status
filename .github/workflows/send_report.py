@@ -2777,8 +2777,44 @@ def build_conclusion():
     except Exception:
         pass
 
+    # ── HEADLINE — a summary of THIS trading day (direction + magnitude +
+    # character), so the main headline changes daily instead of repeating
+    # a backward-looking state. The accumulated context (selling pressure,
+    # score) drops to the subline. ──
+    if state == 'acute':
+        ar = _acute_reason()
+        headline = 'יום סיכון' + (f' — {ar}' if ar else ' — ירידה חדה')
+    elif spx_today is None:
+        headline = 'יום מסחר — אין נתוני מדד'
+    else:
+        s = spx_today
+        if s >= 0.75:      base = f'יום עלייה +{s:.1f}%'
+        elif s >= 0.15:    base = f'יום עלייה מתון +{s:.1f}%'
+        elif s > -0.15:    base = 'יום שטוח — המדד כמעט ללא שינוי'
+        elif s > -0.75:    base = f'יום ירידה מתון {s:.1f}%'
+        else:              base = f'יום ירידה {s:.1f}%'
+        char = ''
+        if s >= 0.15 and eq_today is not None:
+            if (s - eq_today) >= 0.4:      char = ' — צר, על מעט מניות'
+            elif (eq_today - s) >= 0.25:   char = ' — רחבה'
+            elif (p200 or 0) >= 60:        char = ' — רחבה ובריאה'
+        elif s <= -0.5 and eq_today is not None:
+            if eq_today <= -0.3:           char = ' — מכירה רחבה'
+            elif (eq_today - s) >= 0.25:   char = ' — מוגבלת למגה-קאפ'
+        headline = base + char
+    sub_parts = []
+    if dist_days >= 4:
+        sub_parts.append(f'לחץ מכירות מצטבר ({dist_days} ימי מכירה ב-25)')
+    elif risk_off_reasons:
+        sub_parts.append(risk_off_reasons[0])
+    if C is not None:
+        sub_parts.append(f'ציון משולב {C}')
+    subline = ' · '.join(sub_parts)
+
     return {
         'state': state,
+        'headline': headline,
+        'subline': subline,
         'analysis': analysis,
         'conclusion': conclusion,
         'recommendation': recommendation,
@@ -2849,6 +2885,13 @@ _LIGHT_LABEL = {'trend': 'מגמה', 'breadth': 'רוחב', 'volatility': 'תנ�
 def build_verdict_banner():
     v = build_verdict_state()
     headline, subline, tone, emoji = v['headline'], v['subline'], v['tone'], v['emoji']
+    # Mirror the dashboard: the main headline summarizes the trading day
+    # (conclusion engine); the accumulated context moves to the subline.
+    _concl = build_conclusion()
+    if _concl and _concl.get('headline'):
+        headline = _concl['headline']
+        if _concl.get('subline'):
+            subline = _concl['subline']
     color = {'pos': '#10b981', 'warn': '#f59e0b', 'neg': '#ef4444'}[tone]
     lights = v.get('lights', {})
     # Phase 4.2 — mirror the dashboard's Verdict layout: lights row + a
