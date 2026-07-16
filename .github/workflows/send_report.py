@@ -3088,10 +3088,25 @@ def _append_scores_history():
         print(f'scores_history append failed: {_e}')
 
 
+def _email_enabled():
+    """Kill-switch for the outbound daily email. Set EMAIL_ENABLED=0 to
+    keep the whole pipeline running (dashboard rebuild, parity, score
+    history) while sending nothing. Default ON, so a manual/dispatch run
+    still sends. Flip the env in .github/workflows/update-data.yml."""
+    v = os.environ.get('EMAIL_ENABLED', '1').strip().lower()
+    return v not in ('0', 'false', 'no', 'off')
+
+
 def main():
     """Send the daily email + record scores. All side effects live here so
     the module can be IMPORTED (parity_test, build_daily_state) to read the
     computed top-level values without sending anything. See phase-3.0."""
+    if not _email_enabled():
+        # Paused by the user (2026-07). Everything else still runs — the
+        # dashboard updates and the score history is still recorded.
+        print('EMAIL_ENABLED=0 → daily email NOT sent (pipeline continues).')
+        _append_scores_history()
+        return
     recipients, subject_prefix = _load_recipients()
     payload = json.dumps({
         "sender": {"name": "S&P Dashboard", "email": "nditzik@gmail.com"},

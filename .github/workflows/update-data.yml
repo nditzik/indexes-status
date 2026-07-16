@@ -87,8 +87,15 @@ jobs:
       - name: Parity check (scores must match between dashboard & email)
         run: python3 tests/parity_test.py
 
-      - name: Send email — daily market report
+      # NOTE: the daily email is PAUSED (user request, 2026-07).
+      # This step still runs send_report.py — it must, because that's what
+      # appends data/scores_history.json (the next step depends on it) —
+      # but EMAIL_ENABLED=0 makes it skip the Brevo send.
+      # ► To resume the daily email: set EMAIL_ENABLED to '1' below.
+      # ► To send a one-off now: run the "send-test-email" workflow manually.
+      - name: Build report + record scores (email paused)
         env:
+          EMAIL_ENABLED: '0'
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
           # Subscriber list. Set the EMAIL_SUBSCRIBERS GitHub Secret
           # (JSON array or comma-separated emails) to override the
