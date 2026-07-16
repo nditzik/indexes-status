@@ -2,12 +2,17 @@ name: Data freshness alert
 
 # Watchdog: the morning after each US trading day, check that the
 # watchlist CSV actually arrived. If not, email the owner (only).
-# 03:30 UTC ≈ 06:30 Israel (summer; 05:30 in winter — cron is fixed UTC).
-# Tue–Sat: Tue checks Mon's file … Sat checks Fri's file. Sun/Mon have no
-# fresh trading-day file to expect.
+#
+# ⏸️ PAUSED (user request, 2026-07) — together with the daily email, all
+# scheduled morning mail is off. The cron below is commented out, so this
+# now runs ONLY when triggered manually (workflow_dispatch).
+# ► To resume the morning watchdog: uncomment the `schedule:` block.
+#   '30 3 * * 2-6' = 03:30 UTC ≈ 06:30 Israel (summer; 05:30 winter — cron
+#   is fixed UTC). Tue–Sat: Tue checks Mon's file … Sat checks Fri's.
+#   Sun/Mon have no fresh trading-day file to expect.
 on:
-  schedule:
-    - cron: '30 3 * * 2-6'
+  # schedule:
+  #   - cron: '30 3 * * 2-6'
   workflow_dispatch:
 
 jobs:
