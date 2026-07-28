@@ -5194,36 +5194,51 @@ async function renderV3KnnForecast() {
         if (meta) meta.textContent = 'אין עדיין מספיק snapshots.';
         return;
     }
+    const fmtDate = iso => { const p = String(iso).split('-'); return p.length === 3 ? `${p[2]}/${p[1]}` : iso; };
     if (meta) {
         const pct = d.hitRate != null ? Math.round(d.hitRate * 100) : null;
-        meta.innerHTML = pct != null
-            ? `<b class="${pct >= 60 ? 'v3-pos' : 'v3-warn'}">${pct}%</b> מהימים המדד נחת בתוך רצועת התחזית · ${d.maturedCount} מתוך ${d.total} הבשילו (20 יום)`
-            : `${d.total} snapshots · טרם הבשילו מספיק ל-20 יום`;
+        const parts = [];
+        parts.push(pct != null
+            ? `<b class="${pct >= 60 ? 'v3-pos' : 'v3-warn'}">${pct}%</b> מהימים המדד נחת בתוך הרצועה · ${d.maturedCount}/${d.total} הבשילו`
+            : `${d.total} ימים · טרם הבשילו ל-20 יום`);
+        if (d.lowConfCount) parts.push(`<span class="v3-warn">${d.lowConfCount} ימים באמינות נמוכה</span> (התאמות רחוקות — כתום/מקווקו)`);
+        if (d.gapDates && d.gapDates.length) parts.push(`פערים ללא תחזית: ${d.gapDates.map(fmtDate).join(', ')}`);
+        meta.innerHTML = parts.join(' · ');
     }
-    const fmtDate = iso => { const p = String(iso).split('-'); return p.length === 3 ? `${p[2]}/${p[1]}` : iso; };
-    const labels = series.map(r => fmtDate(r.date));
-    const ptColor = series.map(r => r.actual == null ? 'transparent'
-        : (r.hit ? '#10b981' : '#ef4444'));
+    const S = series;                              // closure for segment callbacks
+    const lowAt = i => S[i] && S[i].confidence === 'low';
+    const BLUE = 'rgba(59,130,246,0.35)', ORANGE = 'rgba(245,158,11,0.7)';
+    const labels = S.map(r => fmtDate(r.date));
+    // Band-line segment styling: an edge touching a low-confidence day turns
+    // dashed orange; the fill under it lightens to orange. Gaps are nulls →
+    // the lines simply break (a visible "no forecast" gap).
+    const segBorder = { borderColor: c => lowAt(c.p1DataIndex) ? ORANGE : BLUE,
+                        borderDash:  c => lowAt(c.p1DataIndex) ? [4, 3] : undefined };
     if (canvas._chart) canvas._chart.destroy();
     canvas._chart = new Chart(canvas, {
         type: 'line',
         data: {
             labels,
             datasets: [
-                { label: 'תקרת הצפי', data: series.map(r => r.fcMax),
-                  borderColor: 'rgba(59,130,246,0.35)', borderWidth: 1,
-                  pointRadius: 0, fill: false, tension: 0.2 },
-                { label: 'רצפת הצפי', data: series.map(r => r.fcMin),
-                  borderColor: 'rgba(59,130,246,0.35)', borderWidth: 1,
-                  pointRadius: 0, fill: '-1', backgroundColor: 'rgba(59,130,246,0.10)',
-                  tension: 0.2 },
-                { label: 'צפי (חציון)', data: series.map(r => r.fcMedian),
+                { label: 'תקרת הצפי', data: S.map(r => r.fcMax),
+                  borderColor: BLUE, borderWidth: 1, pointRadius: 0, fill: false,
+                  tension: 0.2, spanGaps: false, segment: segBorder },
+                { label: 'רצפת הצפי', data: S.map(r => r.fcMin),
+                  borderColor: BLUE, borderWidth: 1, pointRadius: 0, fill: '-1',
+                  backgroundColor: 'rgba(59,130,246,0.10)', tension: 0.2, spanGaps: false,
+                  segment: Object.assign({
+                      backgroundColor: c => lowAt(c.p1DataIndex)
+                          ? 'rgba(245,158,11,0.10)' : 'rgba(59,130,246,0.10)' }, segBorder) },
+                { label: 'צפי (חציון)', data: S.map(r => r.fcMedian),
                   borderColor: 'rgba(59,130,246,0.6)', borderWidth: 1.5,
-                  borderDash: [4, 3], pointRadius: 0, fill: false, tension: 0.2 },
-                { label: 'בפועל', data: series.map(r => r.actual),
-                  borderColor: '#1a202c', borderWidth: 2, spanGaps: false,
-                  pointRadius: 3, pointBackgroundColor: ptColor,
-                  pointBorderColor: ptColor, tension: 0.1 },
+                  borderDash: [4, 3], pointRadius: 0, fill: false, tension: 0.2, spanGaps: false },
+                { label: 'בפועל', data: S.map(r => r.actual),
+                  borderColor: '#1a202c', borderWidth: 2, spanGaps: false, tension: 0.1,
+                  pointRadius: S.map(r => r.actual == null ? 0 : (r.confidence === 'low' ? 4 : 3)),
+                  pointBackgroundColor: S.map(r => r.actual == null ? 'transparent' : (r.hit ? '#10b981' : '#ef4444')),
+                  pointBorderColor: S.map(r => r.confidence === 'low' ? '#f59e0b'
+                      : (r.actual == null ? 'transparent' : (r.hit ? '#10b981' : '#ef4444'))),
+                  pointBorderWidth: S.map(r => r.confidence === 'low' ? 2 : 1) },
             ],
         },
         options: {
@@ -5238,6 +5253,13 @@ async function renderV3KnnForecast() {
                             const v = c.parsed.y;
                             if (v == null) return `${c.dataset.label}: —`;
                             return `${c.dataset.label}: ${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
+                        },
+                        footer: (items) => {
+                            const r = S[items[0] && items[0].dataIndex];
+                            if (!r) return '';
+                            if (r.gap) return '⚠ אין תחזית ליום זה';
+                            if (r.confidence === 'low') return `⚠ אמינות נמוכה · מרחק חציוני ${r.medDist}`;
+                            return '';
                         },
                     },
                 },
