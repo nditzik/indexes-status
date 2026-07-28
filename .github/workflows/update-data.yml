@@ -70,6 +70,11 @@ jobs:
       - name: Build uoa_daily.json (unusual options activity)
         run: python3 scripts/build_uoa_daily.py
 
+      # KNN forecast-vs-actual series (the analogs' 20d band + realized SPX)
+      # for the "צפי מול בפועל" chart in the KNN tab.
+      - name: Build knn_forecast.json (forecast vs actual)
+        run: python3 scripts/build_knn_forecast.py
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"

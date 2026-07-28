@@ -5174,6 +5174,85 @@ async function init() {
 // groups the matured 20-day SPX returns by combined-score band, so we
 // can see whether a high score actually preceded gains. Display-layer
 // aggregation only — the forward returns themselves come from Python.
+// KNN forecast-vs-actual — the analogs' 20-day return band (min–max, wide)
+// drawn as a shaded Bollinger-like envelope, with the realized SPX return
+// threading through it. Green point = inside the band (forecast held),
+// red = broke out. All data from data/knn_forecast.json (built in CI).
+async function renderV3KnnForecast() {
+    const canvas = document.getElementById('v3_knnfcChart');
+    const meta = document.getElementById('v3_knnfcMeta');
+    if (!canvas || !window.Chart) return;
+    let d;
+    try {
+        d = await fetchJSON(`${DATA_BASE}/knn_forecast.json`);
+    } catch (_) {
+        if (meta) meta.textContent = 'אין עדיין נתוני תחזית.';
+        return;
+    }
+    const series = (d && d.series) || [];
+    if (series.length < 2) {
+        if (meta) meta.textContent = 'אין עדיין מספיק snapshots.';
+        return;
+    }
+    if (meta) {
+        const pct = d.hitRate != null ? Math.round(d.hitRate * 100) : null;
+        meta.innerHTML = pct != null
+            ? `<b class="${pct >= 60 ? 'v3-pos' : 'v3-warn'}">${pct}%</b> מהימים המדד נחת בתוך רצועת התחזית · ${d.maturedCount} מתוך ${d.total} הבשילו (20 יום)`
+            : `${d.total} snapshots · טרם הבשילו מספיק ל-20 יום`;
+    }
+    const fmtDate = iso => { const p = String(iso).split('-'); return p.length === 3 ? `${p[2]}/${p[1]}` : iso; };
+    const labels = series.map(r => fmtDate(r.date));
+    const ptColor = series.map(r => r.actual == null ? 'transparent'
+        : (r.hit ? '#10b981' : '#ef4444'));
+    if (canvas._chart) canvas._chart.destroy();
+    canvas._chart = new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                { label: 'תקרת הצפי', data: series.map(r => r.fcMax),
+                  borderColor: 'rgba(59,130,246,0.35)', borderWidth: 1,
+                  pointRadius: 0, fill: false, tension: 0.2 },
+                { label: 'רצפת הצפי', data: series.map(r => r.fcMin),
+                  borderColor: 'rgba(59,130,246,0.35)', borderWidth: 1,
+                  pointRadius: 0, fill: '-1', backgroundColor: 'rgba(59,130,246,0.10)',
+                  tension: 0.2 },
+                { label: 'צפי (חציון)', data: series.map(r => r.fcMedian),
+                  borderColor: 'rgba(59,130,246,0.6)', borderWidth: 1.5,
+                  borderDash: [4, 3], pointRadius: 0, fill: false, tension: 0.2 },
+                { label: 'בפועל', data: series.map(r => r.actual),
+                  borderColor: '#1a202c', borderWidth: 2, spanGaps: false,
+                  pointRadius: 3, pointBackgroundColor: ptColor,
+                  pointBorderColor: ptColor, tension: 0.1 },
+            ],
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: true, labels: { boxWidth: 12, font: { size: 11 } } },
+                tooltip: {
+                    rtl: true,
+                    callbacks: {
+                        label: (c) => {
+                            const v = c.parsed.y;
+                            if (v == null) return `${c.dataset.label}: —`;
+                            return `${c.dataset.label}: ${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
+                        },
+                    },
+                },
+            },
+            scales: {
+                y: { title: { display: true, text: 'תשואת 20 יום (%)', font: { size: 11 } },
+                     ticks: { callback: v => (v >= 0 ? '+' : '') + v + '%', font: { size: 10 } },
+                     grid: { color: 'rgba(0,0,0,0.05)' } },
+                x: { ticks: { font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
+                     grid: { display: false } },
+            },
+        },
+    });
+}
+
 async function renderScoreForwardTable() {
     const el = document.getElementById('v3_scoreFwd');
     if (!el) return;
@@ -5385,6 +5464,7 @@ function renderV3Cards(metrics, phaseResult, data, hist, duration) {
     renderV3DailySummary(metrics, hist, phaseResult, duration);
     renderV3TrendCard();
     renderScoreForwardTable();   // phase 3.4 — async, fills when history matures
+    renderV3KnnForecast();       // KNN forecast-vs-actual band chart (async)
 }
 
 // ─── 1. Status score panel — combined score + phase + interpretation ──

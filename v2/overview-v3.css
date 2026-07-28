@@ -499,6 +499,12 @@
 }
 .v3-concl-insight:empty { display: none; }
 
+/* ── KNN forecast vs actual chart ── */
+.v3-knnfc-meta { font-size: 12.5px; color: #4a5568; margin-bottom: 10px; line-height: 1.5; }
+.v3-knnfc-chart { position: relative; height: 320px; }
+@media (max-width: 640px) { .v3-knnfc-chart { height: 260px; } }
+.v3-knnfc-note { font-size: 11px; color: #718096; line-height: 1.55; margin-top: 10px; }
+
 /* ─── Stat list (used in tech + flow context + trend) ─── */
 .v3-stat-list {
     margin: 0;

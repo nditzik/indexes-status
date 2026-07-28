@@ -1,0 +1,352 @@
+{
+  "horizon": 20,
+  "hitRate": 0.818,
+  "maturedCount": 22,
+  "total": 43,
+  "series": [
+    {
+      "date": "2026-05-22",
+      "fcMin": -0.98,
+      "fcMax": 5.67,
+      "fcMedian": 1.31,
+      "actual": -1.45,
+      "hit": false
+    },
+    {
+      "date": "2026-05-26",
+      "fcMin": -3.89,
+      "fcMax": 3.06,
+      "fcMedian": 1.7,
+      "actual": -2.14,
+      "hit": true
+    },
+    {
+      "date": "2026-05-27",
+      "fcMin": -1.96,
+      "fcMax": 2.93,
+      "fcMedian": 1.89,
+      "actual": -2.17,
+      "hit": false
+    },
+    {
+      "date": "2026-05-28",
+      "fcMin": -1.96,
+      "fcMax": 2.93,
+      "fcMedian": -0.3,
+      "actual": -2.77,
+      "hit": false
+    },
+    {
+      "date": "2026-05-29",
+      "fcMin": -4.36,
+      "fcMax": 4.04,
+      "fcMedian": 1.02,
+      "actual": -1.84,
+      "hit": true
+    },
+    {
+      "date": "2026-05-30",
+      "fcMin": -4.36,
+      "fcMax": 4.04,
+      "fcMedian": 1.02,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-06-01",
+      "fcMin": -3.01,
+      "fcMax": 4.04,
+      "fcMedian": 1.64,
+      "actual": -1.32,
+      "hit": true
+    },
+    {
+      "date": "2026-06-02",
+      "fcMin": -0.81,
+      "fcMax": 4.28,
+      "fcMedian": 0.87,
+      "actual": -1.66,
+      "hit": false
+    },
+    {
+      "date": "2026-06-03",
+      "fcMin": -2.45,
+      "fcMax": 3.67,
+      "fcMedian": 0.22,
+      "actual": -0.93,
+      "hit": true
+    },
+    {
+      "date": "2026-06-04",
+      "fcMin": -3.83,
+      "fcMax": 3.91,
+      "fcMedian": 0.07,
+      "actual": -0.62,
+      "hit": true
+    },
+    {
+      "date": "2026-06-05",
+      "fcMin": -9.3,
+      "fcMax": 3.43,
+      "fcMedian": 1.41,
+      "actual": 1.63,
+      "hit": true
+    },
+    {
+      "date": "2026-06-08",
+      "fcMin": -8.38,
+      "fcMax": 4.61,
+      "fcMedian": 2.27,
+      "actual": 1.04,
+      "hit": true
+    },
+    {
+      "date": "2026-06-09",
+      "fcMin": -10.49,
+      "fcMax": 6.76,
+      "fcMedian": 1.48,
+      "actual": 2.13,
+      "hit": true
+    },
+    {
+      "date": "2026-06-10",
+      "fcMin": -3.78,
+      "fcMax": 7.27,
+      "fcMedian": 1.41,
+      "actual": 4.24,
+      "hit": true
+    },
+    {
+      "date": "2026-06-11",
+      "fcMin": -4.75,
+      "fcMax": 5.74,
+      "fcMedian": 2.77,
+      "actual": 1.64,
+      "hit": true
+    },
+    {
+      "date": "2026-06-16",
+      "fcMin": -3.83,
+      "fcMax": 4.82,
+      "fcMedian": 1.95,
+      "actual": 0.3,
+      "hit": true
+    },
+    {
+      "date": "2026-06-17",
+      "fcMin": -2.47,
+      "fcMax": 8.53,
+      "fcMedian": 1.32,
+      "actual": 0.51,
+      "hit": true
+    },
+    {
+      "date": "2026-06-18",
+      "fcMin": -6.67,
+      "fcMax": 6.89,
+      "fcMedian": 1.7,
+      "actual": -0.76,
+      "hit": true
+    },
+    {
+      "date": "2026-06-22",
+      "fcMin": -7.55,
+      "fcMax": 5.94,
+      "fcMedian": 1.31,
+      "actual": 0.49,
+      "hit": true
+    },
+    {
+      "date": "2026-06-23",
+      "fcMin": -12.08,
+      "fcMax": 6.76,
+      "fcMedian": 2.65,
+      "actual": 1.81,
+      "hit": true
+    },
+    {
+      "date": "2026-06-24",
+      "fcMin": -8.38,
+      "fcMax": 6.76,
+      "fcMedian": 3.86,
+      "actual": 0.68,
+      "hit": true
+    },
+    {
+      "date": "2026-06-25",
+      "fcMin": -8.38,
+      "fcMax": 6.76,
+      "fcMedian": 3.37,
+      "actual": 0.74,
+      "hit": true
+    },
+    {
+      "date": "2026-06-26",
+      "fcMin": -8.38,
+      "fcMax": 6.76,
+      "fcMedian": 3.86,
+      "actual": 0.8,
+      "hit": true
+    },
+    {
+      "date": "2026-06-29",
+      "fcMin": -11.2,
+      "fcMax": 6.98,
+      "fcMedian": 2.95,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-06-30",
+      "fcMin": -4.99,
+      "fcMax": 4.76,
+      "fcMedian": 2.36,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-07-01",
+      "fcMin": -4.99,
+      "fcMax": 6.96,
+      "fcMedian": 2.36,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-07-02",
+      "fcMin": -4.99,
+      "fcMax": 4.73,
+      "fcMedian": 2.36,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-07-06",
+      "fcMin": -4.99,
+      "fcMax": 4.73,
+      "fcMedian": 3.12,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-07-07",
+      "fcMin": -29.18,
+      "fcMax": 4.73,
+      "fcMedian": 2.45,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-07-08",
+      "fcMin": -5.6,
+      "fcMax": 5.63,
+      "fcMedian": 1.97,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-07-09",
+      "fcMin": -5.17,
+      "fcMax": 5.28,
+      "fcMedian": 1.77,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-07-10",
+      "fcMin": -7.19,
+      "fcMax": 5.16,
+      "fcMedian": 0.78,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-07-13",
+      "fcMin": -28.57,
+      "fcMax": 4.25,
+      "fcMedian": 0.13,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-07-14",
+      "fcMin": -5.17,
+      "fcMax": 5.28,
+      "fcMedian": 1.44,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-07-15",
+      "fcMin": -5.96,
+      "fcMax": 3.39,
+      "fcMedian": 1.33,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-07-16",
+      "fcMin": -7.38,
+      "fcMax": 5.26,
+      "fcMedian": 3.13,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-07-17",
+      "fcMin": -5.76,
+      "fcMax": 4.61,
+      "fcMedian": 2.1,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-07-20",
+      "fcMin": -5.6,
+      "fcMax": 5.56,
+      "fcMedian": 1.83,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-07-21",
+      "fcMin": -5.6,
+      "fcMax": 4.28,
+      "fcMedian": 0.19,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-07-22",
+      "fcMin": -3.29,
+      "fcMax": 5.16,
+      "fcMedian": 0.88,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-07-23",
+      "fcMin": -2.09,
+      "fcMax": 5.91,
+      "fcMedian": 2.56,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-07-24",
+      "fcMin": -5.16,
+      "fcMax": 5.26,
+      "fcMedian": 0.63,
+      "actual": null,
+      "hit": null
+    },
+    {
+      "date": "2026-07-27",
+      "fcMin": -11.6,
+      "fcMax": 5.26,
+      "fcMedian": 1.54,
+      "actual": null,
+      "hit": null
+    }
+  ]
+}
