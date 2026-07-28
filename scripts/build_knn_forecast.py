@@ -105,8 +105,9 @@ def build():
         row = {
             'date': d, 'gap': False,
             'fcMin': _r2(oc.get('min')), 'fcMax': _r2(oc.get('max')),
+            'fcQ25': _r2(oc.get('q25')), 'fcQ75': _r2(oc.get('q75')),  # core band
             'fcMedian': _r2(oc.get('median')),
-            'actual': None, 'hit': None,
+            'actual': None, 'hit': None, 'coreHit': None,
             'confidence': conf, 'medDist': med_dist,
         }
         i = idx.get(d)
@@ -116,14 +117,18 @@ def build():
             row['actual'] = actual
             if row['fcMin'] is not None and row['fcMax'] is not None:
                 row['hit'] = bool(row['fcMin'] <= actual <= row['fcMax'])
+            if row['fcQ25'] is not None and row['fcQ75'] is not None:
+                row['coreHit'] = bool(row['fcQ25'] <= actual <= row['fcQ75'])
         rows.append(row)
 
     matured = [r for r in rows if r['actual'] is not None]
     hits = [r for r in matured if r['hit']]
+    core_hits = [r for r in matured if r['coreHit']]
     low_conf = [r for r in rows if r['confidence'] == 'low']
     return {
         'horizon': HORIZON,
         'hitRate': round(len(hits) / len(matured), 3) if matured else None,
+        'coreHitRate': round(len(core_hits) / len(matured), 3) if matured else None,
         'maturedCount': len(matured),
         'total': sum(1 for r in rows if not r['gap']),
         'gapDates': gap_dates,
@@ -137,8 +142,9 @@ def main():
     with open('data/knn_forecast.json', 'w', encoding='utf-8') as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
     print(f"Wrote data/knn_forecast.json ({out['total']} snapshots, "
-          f"{out['maturedCount']} matured, hitRate={out['hitRate']}, "
-          f"{out['lowConfCount']} low-conf, {len(out['gapDates'])} gaps)")
+          f"{out['maturedCount']} matured, wide-hit={out['hitRate']}, "
+          f"core-hit={out['coreHitRate']}, {out['lowConfCount']} low-conf, "
+          f"{len(out['gapDates'])} gaps)")
 
 
 if __name__ == '__main__':

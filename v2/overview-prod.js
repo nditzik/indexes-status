@@ -5197,12 +5197,18 @@ async function renderV3KnnForecast() {
     const fmtDate = iso => { const p = String(iso).split('-'); return p.length === 3 ? `${p[2]}/${p[1]}` : iso; };
     if (meta) {
         const pct = d.hitRate != null ? Math.round(d.hitRate * 100) : null;
+        const core = d.coreHitRate != null ? Math.round(d.coreHitRate * 100) : null;
         const parts = [];
-        parts.push(pct != null
-            ? `<b class="${pct >= 60 ? 'v3-pos' : 'v3-warn'}">${pct}%</b> מהימים המדד נחת בתוך הרצועה · ${d.maturedCount}/${d.total} הבשילו`
-            : `${d.total} ימים · טרם הבשילו ל-20 יום`);
-        if (d.lowConfCount) parts.push(`<span class="v3-warn">${d.lowConfCount} ימים באמינות נמוכה</span> (התאמות רחוקות — כתום/מקווקו)`);
-        if (d.gapDates && d.gapDates.length) parts.push(`פערים ללא תחזית: ${d.gapDates.map(fmtDate).join(', ')}`);
+        if (pct != null) {
+            let s = `רצועה רחבה: <b class="${pct >= 60 ? 'v3-pos' : 'v3-warn'}">${pct}%</b>`;
+            if (core != null) s += ` · ליבה (q25–q75): <b class="${core >= 55 ? 'v3-pos' : 'v3-warn'}">${core}%</b>`;
+            s += ` בתוך הרצועה · ${d.maturedCount}/${d.total} הבשילו`;
+            parts.push(s);
+        } else {
+            parts.push(`${d.total} ימים · טרם הבשילו ל-20 יום`);
+        }
+        if (d.lowConfCount) parts.push(`<span class="v3-warn">${d.lowConfCount} ימים באמינות נמוכה</span> (כתום/מקווקו)`);
+        if (d.gapDates && d.gapDates.length) parts.push(`פערים: ${d.gapDates.map(fmtDate).join(', ')}`);
         meta.innerHTML = parts.join(' · ');
     }
     const S = series;                              // closure for segment callbacks
@@ -5220,17 +5226,28 @@ async function renderV3KnnForecast() {
         data: {
             labels,
             datasets: [
-                { label: 'תקרת הצפי', data: S.map(r => r.fcMax),
+                // Wide band (min–max) — datasets 0,1
+                { label: 'רצועה רחבה (min–max)', data: S.map(r => r.fcMax),
                   borderColor: BLUE, borderWidth: 1, pointRadius: 0, fill: false,
                   tension: 0.2, spanGaps: false, segment: segBorder },
                 { label: 'רצפת הצפי', data: S.map(r => r.fcMin),
                   borderColor: BLUE, borderWidth: 1, pointRadius: 0, fill: '-1',
-                  backgroundColor: 'rgba(59,130,246,0.10)', tension: 0.2, spanGaps: false,
+                  backgroundColor: 'rgba(59,130,246,0.09)', tension: 0.2, spanGaps: false,
                   segment: Object.assign({
                       backgroundColor: c => lowAt(c.p1DataIndex)
-                          ? 'rgba(245,158,11,0.10)' : 'rgba(59,130,246,0.10)' }, segBorder) },
+                          ? 'rgba(245,158,11,0.09)' : 'rgba(59,130,246,0.09)' }, segBorder) },
+                // Core band (q25–q75) — datasets 2,3 — the meaningful test
+                { label: 'ליבה (q25–q75)', data: S.map(r => r.fcQ75),
+                  borderColor: 'rgba(59,130,246,0.5)', borderWidth: 1, pointRadius: 0,
+                  fill: false, tension: 0.2, spanGaps: false, segment: segBorder },
+                { label: 'ליבה תחתונה', data: S.map(r => r.fcQ25),
+                  borderColor: 'rgba(59,130,246,0.5)', borderWidth: 1, pointRadius: 0, fill: '-1',
+                  backgroundColor: 'rgba(59,130,246,0.24)', tension: 0.2, spanGaps: false,
+                  segment: Object.assign({
+                      backgroundColor: c => lowAt(c.p1DataIndex)
+                          ? 'rgba(245,158,11,0.22)' : 'rgba(59,130,246,0.24)' }, segBorder) },
                 { label: 'צפי (חציון)', data: S.map(r => r.fcMedian),
-                  borderColor: 'rgba(59,130,246,0.6)', borderWidth: 1.5,
+                  borderColor: 'rgba(59,130,246,0.7)', borderWidth: 1.5,
                   borderDash: [4, 3], pointRadius: 0, fill: false, tension: 0.2, spanGaps: false },
                 { label: 'בפועל', data: S.map(r => r.actual),
                   borderColor: '#1a202c', borderWidth: 2, spanGaps: false, tension: 0.1,
@@ -5245,7 +5262,9 @@ async function renderV3KnnForecast() {
             responsive: true, maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             plugins: {
-                legend: { display: true, labels: { boxWidth: 12, font: { size: 11 } } },
+                legend: { display: true, labels: { boxWidth: 12, font: { size: 11 },
+                    // Hide the two lower-bound helper lines (min & q25).
+                    filter: (it) => ![1, 3].includes(it.datasetIndex) } },
                 tooltip: {
                     rtl: true,
                     callbacks: {
