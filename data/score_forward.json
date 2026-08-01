@@ -191,7 +191,7 @@
     "confidence": null,
     "coverage": null,
     "formulaVersion": "v4",
-    "fwd5": null,
+    "fwd5": 0.4,
     "fwd20": null
   },
   {
@@ -239,6 +239,19 @@
     "breadth": 75,
     "flow": 0,
     "combined": 49,
+    "phase": "uptrend_pressure",
+    "confidence": null,
+    "coverage": null,
+    "formulaVersion": "v4",
+    "fwd5": null,
+    "fwd20": null
+  },
+  {
+    "date": "2026-07-30",
+    "tech": 77,
+    "breadth": 80,
+    "flow": 27,
+    "combined": 69,
     "phase": "uptrend_pressure",
     "confidence": null,
     "coverage": null,
