@@ -75,12 +75,15 @@ jobs:
       - name: Build knn_forecast.json (forecast vs actual)
         run: python3 scripts/build_knn_forecast.py
 
-      # AI analyst note — Claude writes a specific, non-templated analysis of
-      # the day's data (data/ai_analysis.json), the lead card on the main
-      # page. NO-OP without the ANTHROPIC_API_KEY secret, so it never
-      # overwrites a hand-written note before the key is configured.
-      # ► To enable: add repo secret ANTHROPIC_API_KEY.
-      - name: Build ai_analysis.json (daily AI analyst note)
+      # Daily analyst note — the lead card on the main page. Two stages:
+      # (1) a FREE rule-based note (always runs, no key) that names the
+      #     movers, detects rotation, sums selling pressure, etc.
+      # (2) an optional Claude upgrade that OVERWRITES it only when the
+      #     ANTHROPIC_API_KEY secret is present. Without a key you get (1).
+      - name: Build ai_analysis.json (rule-based, free)
+        run: python3 scripts/build_analysis_rules.py
+
+      - name: Upgrade ai_analysis.json with Claude (if key set)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python3 scripts/build_ai_analysis.py
