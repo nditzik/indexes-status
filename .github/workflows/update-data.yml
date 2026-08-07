@@ -75,6 +75,16 @@ jobs:
       - name: Build knn_forecast.json (forecast vs actual)
         run: python3 scripts/build_knn_forecast.py
 
+      # AI analyst note — Claude writes a specific, non-templated analysis of
+      # the day's data (data/ai_analysis.json), the lead card on the main
+      # page. NO-OP without the ANTHROPIC_API_KEY secret, so it never
+      # overwrites a hand-written note before the key is configured.
+      # ► To enable: add repo secret ANTHROPIC_API_KEY.
+      - name: Build ai_analysis.json (daily AI analyst note)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 scripts/build_ai_analysis.py
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"

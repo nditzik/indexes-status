@@ -5057,8 +5057,10 @@ async function init() {
         const data = await loadData();
         const dailyState = await fetchJSON(`${DATA_BASE}/daily_state.json`).catch(() => null);
         const uoaDaily = await fetchJSON(`${DATA_BASE}/uoa_daily.json`).catch(() => null);   // phase 3.5
+        const aiAnalysis = await fetchJSON(`${DATA_BASE}/ai_analysis.json`).catch(() => null);   // AI analyst note
         const { todayM, hist, metrics, flowAnalytics } = computeMetrics(data);
         metrics._uoa = uoaDaily || null;
+        metrics._ai = aiAnalysis || null;
 
         // ── Single source of truth (phase-3.0 stage 2) ──
         // Trust the Python-computed scored brain (data/daily_state.json)
@@ -5493,6 +5495,7 @@ function renderV3Cards(metrics, phaseResult, data, hist, duration) {
             window.Verdict.render(v);
         } catch (e) { console.warn('[v3:verdict]', e); }
     }
+    renderV3AiAnalysis(metrics);            // AI analyst note (lead of the page)
     renderV3Status(metrics, phaseResult);   // score panel only now
     renderV3Conclusion(metrics);            // daily thinking layer
     renderV3Evidence(metrics, hist, data);        // phase 4b — 4 cards + sparklines
@@ -5573,6 +5576,36 @@ function renderV3Conclusion(metrics) {
     setHtml('v3_conclTriggers', trig.join(''));
 
     setHtml('v3_conclInsight', c.insight ? `💡 ${c.insight}` : '');
+}
+
+// AI daily analyst note — renders data/ai_analysis.json (free-form
+// analysis of the day's data). The lead of the main page. Hidden if the
+// file is absent. All prose is generated upstream (Claude); JS only paints.
+function renderV3AiAnalysis(metrics) {
+    const wrap = document.getElementById('v3_aiAnalysis');
+    if (!wrap) return;
+    const a = metrics._ai;
+    if (!a || (!a.headline && !(a.paragraphs && a.paragraphs.length))) {
+        wrap.style.display = 'none';
+        return;
+    }
+    wrap.style.display = '';
+    const set = (id, t) => { const e = document.getElementById(id); if (e) e.textContent = t || ''; };
+    const setH = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h || ''; };
+
+    const confEl = document.getElementById('v3_aiConf');
+    if (confEl) {
+        confEl.textContent = a.confidence ? `ביטחון: ${a.confidence}` : '';
+        confEl.style.display = a.confidence ? '' : 'none';
+    }
+    set('v3_aiHeadline', a.headline || '');
+    const paras = Array.isArray(a.paragraphs) ? a.paragraphs
+        : (a.body ? [a.body] : []);
+    setH('v3_aiBody', paras.map(p => `<p>${p}</p>`).join(''));
+    setH('v3_aiWatch', a.watchFor
+        ? `<span class="v3-ai-watch-label">👁 מה לעקוב:</span> ${a.watchFor}` : '');
+    const dt = a.date ? (() => { const p = String(a.date).split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : a.date; })() : '';
+    setH('v3_aiFoot', dt ? `ניתוח ליום המסחר ${dt}` : '');
 }
 
 function renderV3Status(metrics, phaseResult) {

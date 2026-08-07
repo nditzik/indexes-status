@@ -13,8 +13,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
     <!-- Production stylesheet — legacy renderers fire into legacy IDs inside the tabs -->
-    <link rel="stylesheet" href="v2/overview-prod.css?v=20260704p">
-    <link rel="stylesheet" href="v2/overview-v3.css?v=20260704p">
+    <link rel="stylesheet" href="v2/overview-prod.css?v=20260704q">
+    <link rel="stylesheet" href="v2/overview-v3.css?v=20260704q">
 </head>
 <body class="overview-prod-root v3-body">
 
@@ -112,6 +112,19 @@
 
     <!-- ════════════════ TAB 1: ראשי ════════════════ -->
     <section class="v3-tab-panel v3-tab-panel-active" id="v3_tab_main">
+
+        <!-- AI daily analyst note — free-form analysis of the day's data
+             (data/ai_analysis.json). The lead of the main page. -->
+        <div class="v3-ai" id="v3_aiAnalysis" style="display:none;">
+            <div class="v3-ai-head">
+                <span class="v3-ai-eyebrow">🧠 ניתוח יומי · פרשן השוק</span>
+                <span class="v3-ai-conf" id="v3_aiConf"></span>
+            </div>
+            <div class="v3-ai-headline" id="v3_aiHeadline">—</div>
+            <div class="v3-ai-body" id="v3_aiBody"></div>
+            <div class="v3-ai-watch" id="v3_aiWatch"></div>
+            <div class="v3-ai-foot" id="v3_aiFoot"></div>
+        </div>
 
         <!-- 1. סטטוס השוק -->
         <div class="v3-status" id="v3_status" data-tone="">
@@ -607,13 +620,13 @@
 </div>
 
 <!-- ═══ SCRIPTS (same order as legacy index.html) ═══ -->
-<script src="v2/regime.js?v=20260704p"></script>
-<script src="v2/narrative.js?v=20260704p"></script>
-<script src="v2/historical.js?v=20260704p"></script>
-<script src="v2/patterns.js?v=20260704p"></script>
-<script src="v2/forward-tracking.js?v=20260704p"></script>
-<script src="v2/overview-prod.js?v=20260704p"></script>
-<script src="v2/verdict.js?v=20260704p"></script>
+<script src="v2/regime.js?v=20260704q"></script>
+<script src="v2/narrative.js?v=20260704q"></script>
+<script src="v2/historical.js?v=20260704q"></script>
+<script src="v2/patterns.js?v=20260704q"></script>
+<script src="v2/forward-tracking.js?v=20260704q"></script>
+<script src="v2/overview-prod.js?v=20260704q"></script>
+<script src="v2/verdict.js?v=20260704q"></script>
 
 <script>
 // ─── Tab switching ───
