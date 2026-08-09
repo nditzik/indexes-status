@@ -219,6 +219,8 @@ def build():
         'date': state.get('date'),
         'headline': headline,
         'blocks': blocks,
+        # אותות שלושת התחומים כנתון מובנה — לצ'יפים באתר (bull/bear/mixed)
+        'domains': {'stocks': stocks_sig, 'sectors': sectors_sig, 'options': options_sig},
         # Flat paragraphs kept as a fallback for any consumer that doesn't
         # render blocks (e.g. a future email).
         'paragraphs': [ln for b in blocks for ln in b['lines']],
