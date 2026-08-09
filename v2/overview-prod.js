@@ -5602,9 +5602,19 @@ function renderV3AiAnalysis(metrics) {
         confEl.style.display = a.confidence ? '' : 'none';
     }
     set('v3_aiHeadline', a.headline || '');
-    const paras = Array.isArray(a.paragraphs) ? a.paragraphs
-        : (a.body ? [a.body] : []);
-    setH('v3_aiBody', paras.map(p => `<p>${p}</p>`).join(''));
+    // Prefer the 4-block structure (מניות / סקטורים / אופציות / התמונה
+    // המשולבת); fall back to a flat paragraph list.
+    const blocks = Array.isArray(a.blocks) ? a.blocks : null;
+    if (blocks && blocks.length) {
+        setH('v3_aiBody', blocks.map(b =>
+            `<div class="v3-ai-block"><div class="v3-ai-block-title">${b.title || ''}</div>`
+            + (b.lines || []).map(l => `<p>${l}</p>`).join('')
+            + `</div>`).join(''));
+    } else {
+        const paras = Array.isArray(a.paragraphs) ? a.paragraphs
+            : (a.body ? [a.body] : []);
+        setH('v3_aiBody', paras.map(p => `<p>${p}</p>`).join(''));
+    }
     setH('v3_aiWatch', a.watchFor
         ? `<span class="v3-ai-watch-label">👁 מה לעקוב:</span> ${a.watchFor}` : '');
     const dt = a.date ? (() => { const p = String(a.date).split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : a.date; })() : '';

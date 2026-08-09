@@ -16,7 +16,7 @@ import glob
 import io
 import json
 import re
-from collections import Counter
+from collections import Counter, defaultdict
 
 WL_RE = re.compile(r'watchlist-sp-500-intraday-(\d{2})-(\d{2})-(\d{4})\.csv$')
 FL_RE = re.compile(r'spx-options-flow-(\d{2})-(\d{2})-(\d{4})\.csv$')
@@ -104,7 +104,13 @@ def build():
     strong = C is not None and C >= 60
     weak = C is not None and C < 45
     narrow = down > up
+    rot = state.get('rotation') or {}
+    rot_light = ((state.get('verdict') or {}).get('lights') or {}).get('rotation')
+    lead_names = ' · '.join(names.get(c, c) for c in rot.get('leadingSectors', []))
+    cyc, dfn = rot.get('cyclicalLeading', 0), rot.get('defensiveLeading', 0)
 
+    # Headline = a factual read of the day (no over-claim; the integrated
+    # block carries the nuance, so they never contradict).
     if risk.get('acute'):
         headline = 'יום סיכון — אירוע מכירה חד'
     elif strong and narrow:
@@ -116,84 +122,107 @@ def build():
     else:
         headline = 'שוק מעורב — ללא הכרעה ברורה'
 
-    paras = []
-    # 1 — index + breadth + selling pressure
+    # ── Block 1: מניות (טכני) ──
     breadth_clause = 'אבל הרוחב חלש' if narrow else 'והרוחב רחב'
-    p1 = (f'המדד {"יציב" if strong else "חלש"} '
-          f'(ציון משולב {C}, VIX {vix:.1f}), {breadth_clause}: '
-          f'{down} מניות ירדו מול {up} שעלו, {below} מתחת ל-MA50.')
+    l_breadth = (f'המדד {"יציב" if strong else "חלש"} (ציון משולב {C}, VIX {vix:.1f}), '
+                 f'{breadth_clause}: {down} מניות ירדו מול {up} שעלו, {below} מתחת ל-MA50.')
     if dist_days:
-        p1 += f' לחץ מכירות מצטבר: {dist_days} ימי מכירה ב-25 הימים האחרונים.'
-    paras.append(p1)
-
-    # 2 — laggards / leaders by name + rotation insight
-    lag_sec, lead_sec = dom_sector(laggards), dom_sector(leaders)
+        l_breadth += f' לחץ מכירות מצטבר: {dist_days} ימי מכירה ב-25.'
     lag_txt = ', '.join(f"{x['s']} {_pct(x['chg'])}" for x in laggards)
     lead_txt = ', '.join(f"{x['s']} {_pct(x['chg'])}" for x in leaders)
-    p2 = (f'המפגרים{f" בעיקר ב{lag_sec}" if lag_sec else ""}: {lag_txt}. '
-          f'המובילים{f" ב{lead_sec}" if lead_sec else ""}: {lead_txt}.')
-    if lag_sec and lead_sec and lag_sec != lead_sec:
-        p2 += f' רוטציה מ{lag_sec} לעבר {lead_sec}.'
-    paras.append(p2)
-
-    # 3 — mega-caps
+    l_movers = f'מובילים: {lead_txt}. מפגרים: {lag_txt}.'
     mega = [x for x in stocks if x['s'] in MEGA]
-    up_mega = [x for x in mega if x['chg'] > 0.3]
     broken = [x for x in mega if not x['aboveMa50']]
+    l_mega = ''
     if mega:
-        lead_m = max(mega, key=lambda x: x['chg'])
-        p3 = f"בגדולות, {lead_m['s']} ({_pct(lead_m['chg'])}) הוביל"
-        # "held the index" only makes sense on a NARROW day; on a broad day
-        # no single mega-cap is carrying it.
-        p3 += ' והחזיק את המדד' if (lead_m['chg'] > 0.3 and narrow) else ''
-        if broken:
-            p3 += f". {', '.join(x['s'] for x in broken)} כבר מתחת ל-MA50."
-        else:
-            p3 += '.'
-        paras.append(p3)
+        lm = max(mega, key=lambda x: x['chg'])
+        l_mega = f"בגדולות, {lm['s']} ({_pct(lm['chg'])}) הוביל"
+        l_mega += ' והחזיק את המדד' if (lm['chg'] > 0.3 and narrow) else ''
+        l_mega += (f". {', '.join(x['s'] for x in broken)} מתחת ל-MA50." if broken else '.')
 
-    # 4 — options: lead with the DELTA-WEIGHTED net bet (the real read),
-    # then the quadrant story (buy puts + sell calls = bearish), then
-    # Flow/P/C as secondary context.
+    # ── Block 2: סקטורים ──
+    sec_today = defaultdict(list)
+    for x in stocks:
+        if x['sec']:
+            sec_today[x['sec']].append(x['chg'])
+    sec_avg = sorted(((s, sum(v)/len(v)) for s, v in sec_today.items() if len(v) >= 3),
+                     key=lambda t: -t[1])
+    l_sectors = ''
+    if sec_avg:
+        top = ' · '.join(f'{s} {avg:+.1f}%' for s, avg in sec_avg[:3])
+        bot = ' · '.join(f'{s} {avg:+.1f}%' for s, avg in sec_avg[-2:][::-1])
+        l_sectors = f'היום הובילו: {top}. פיגרו: {bot}.'
+    if lead_names:
+        rtype = 'מחזורית (סיכון-on)' if cyc > dfn else 'הגנתית (סיכון-off)' if dfn > cyc else 'מעורבת'
+        l_rotation = f'מנהיגות מתמשכת (RS 5+20 יום): {lead_names} — {rtype}.'
+    else:
+        l_rotation = 'אין מנהיגות סקטוריאלית מתמשכת (אף סקטור לא מנצח את המדד ב-5 וב-20 יום).'
+    lag_sec, lead_sec = dom_sector(laggards), dom_sector(leaders)
+    if lag_sec and lead_sec and lag_sec != lead_sec:
+        l_rotation += f' היום: רוטציה מ{lag_sec} לעבר {lead_sec}.'
+
+    # ── Block 3: אופציות (delta-weighted) ──
     dlabel = flow.get('deltaLabel') or ''
-    cb = flow.get('callBuyP') or 0
-    cs = flow.get('callSellP') or 0
-    pb = flow.get('putBuyP') or 0
-    ps = flow.get('putSellP') or 0
-    bull_act, bear_act = cb + ps, pb + cs   # buy-calls+sell-puts vs buy-puts+sell-calls
-    p4 = f'אופציות: הכסף הגדול נטו <b>{dlabel}</b> (משוקלל-דלתא)'
+    cb, cs = flow.get('callBuyP') or 0, flow.get('callSellP') or 0
+    pb, ps = flow.get('putBuyP') or 0, flow.get('putSellP') or 0
+    bull_act, bear_act = cb + ps, pb + cs
+    l_opt = f'הכסף הגדול נטו <b>{dlabel}</b> (משוקלל-דלתא)'
     if bear_act > bull_act and (pb or cs):
-        p4 += f' — פעולות דוביות דומיננטיות: קניית puts ${pb/1e6:.0f}M + מכירת calls ${cs/1e6:.0f}M'
+        l_opt += f' — פעולות דוביות דומיננטיות: קניית puts ${pb/1e6:.0f}M + מכירת calls ${cs/1e6:.0f}M'
     elif bull_act > bear_act and (cb or ps):
-        p4 += f' — פעולות שוריות דומיננטיות: קניית calls ${cb/1e6:.0f}M + מכירת puts ${ps/1e6:.0f}M'
+        l_opt += f' — פעולות שוריות דומיננטיות: קניית calls ${cb/1e6:.0f}M + מכירת puts ${ps/1e6:.0f}M'
     olean = flow.get('openingLean')
     if olean and olean != 'מאוזן':
-        p4 += f'. פוזיציות חדשות (ToOpen) נוטות {olean} — מדגם קטן'
+        l_opt += f'. פוזיציות חדשות (ToOpen) נוטות {olean} — מדגם קטן'
     tail = f"Flow {sc.get('flow')}"
     if flow_delta:
         tail += f' ({flow_delta})'
     if pc is not None:
         tail += f' · P/C {pc:.2f}'
-    paras.append(p4 + f'. {tail}.')
+    l_opt += f'. {tail}.'
 
-    # Bottom line = the actionable stance only. (A state LABEL like
-    # 'unconfirmed/narrow' can contradict a broad up-day, so we use just the
-    # action here; full headline↔state coherence is the blocks step.)
+    # ── Block 4: התמונה המשולבת — do the three domains agree? ──
+    stocks_sig = 'bull' if up > down * 1.15 else 'bear' if down > up * 1.15 else 'mixed'
+    sectors_sig = 'bull' if rot_light == 'pos' else 'bear' if rot_light == 'neg' else 'mixed'
+    options_sig = {'שורי': 'bull', 'דובי': 'bear', 'מאוזן': 'mixed'}.get(dlabel, 'mixed')
+    _he = {'bull': 'חיובי', 'bear': 'שלילי', 'mixed': 'מעורב'}
+    trio = f'מניות {_he[stocks_sig]} · סקטורים {_he[sectors_sig]} · אופציות {_he[options_sig]}.'
+    if stocks_sig == options_sig == sectors_sig and stocks_sig != 'mixed':
+        synth = f'שלושת המקורות מסכימים ({_he[stocks_sig]}) — תמונה קוהרנטית.'
+    elif stocks_sig == 'bull' and options_sig == 'bear':
+        synth = 'המחיר חזק אבל הכסף הגדול באופציות דובי — עלייה שאינה מאושרת מבפנים.'
+    elif stocks_sig == 'bear' and options_sig == 'bull':
+        synth = 'המחיר חלש אבל האופציות שוריות — ייתכן ניצול ירידה ע"י הכסף הגדול.'
+    elif sectors_sig == 'bear' and stocks_sig != 'bear':
+        synth = 'המחיר מחזיק אבל המנהיגות הסקטוריאלית מתגוננת — חוזק שלא מאושר ברוחב.'
+    else:
+        synth = 'תמונה מעורבת — הסיגנלים אינם מיושרים, אין הכרעה ברורה.'
     rec = concl.get('recommendation') or {}
-    bottom = rec.get('action', '')
+    action = rec.get('action', '')
+
+    blocks = [
+        {'title': '📈 מניות (טכני)', 'lines': [l for l in (l_breadth, l_movers, l_mega) if l]},
+        {'title': '🔄 סקטורים', 'lines': [l for l in (l_sectors, l_rotation) if l]},
+        {'title': '🎯 אופציות', 'lines': [l_opt]},
+        {'title': '🧩 התמונה המשולבת',
+         'lines': [f'{trio} {synth}'] + ([f'המלצה: {action}'] if action else [])},
+    ]
+
     watch_bits = []
     if rec.get('improve'):
         watch_bits.append(f"שיפור: {rec['improve']}")
     if rec.get('worsen'):
         watch_bits.append(f"הרעה: {rec['worsen']}")
-    watch = ' · '.join(watch_bits)
 
     conf_map = {'high': 'גבוה', 'medium': 'בינוני', 'low': 'נמוך'}
     return {
         'date': state.get('date'),
         'headline': headline,
-        'paragraphs': paras + ([f'שורה תחתונה: {bottom}'] if bottom else []),
-        'watchFor': watch,
+        'blocks': blocks,
+        # Flat paragraphs kept as a fallback for any consumer that doesn't
+        # render blocks (e.g. a future email).
+        'paragraphs': [ln for b in blocks for ln in b['lines']],
+        'watchFor': ' · '.join(watch_bits),
         'confidence': conf_map.get(concl.get('conviction'), 'בינוני'),
         'source': 'rules',
     }

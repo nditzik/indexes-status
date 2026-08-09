@@ -541,9 +541,25 @@
     font-size: 14px;
     line-height: 1.7;
     color: #1f2937;
-    margin: 0 0 10px;
+    margin: 0 0 8px;
 }
 .v3-ai-body p:last-child { margin-bottom: 0; }
+/* 4-block layout (מניות / סקטורים / אופציות / התמונה המשולבת) */
+.v3-ai-block { margin-bottom: 14px; }
+.v3-ai-block:last-child { margin-bottom: 0; }
+.v3-ai-block-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #4f46e5;
+    margin-bottom: 5px;
+}
+/* The integration block stands out — it's the synthesis. */
+.v3-ai-block:last-child {
+    background: #f5f3ff;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 4px;
+}
 .v3-ai-watch {
     font-size: 13.5px;
     line-height: 1.6;
