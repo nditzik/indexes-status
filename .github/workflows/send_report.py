@@ -684,10 +684,24 @@ if flow_files:
         call_tr = put_tr = 0
         callAskP = callBidP = callMidP = 0.0
         putAskP  = putBidP  = putMidP  = 0.0
+        # Delta-weighted net directional exposure (the REAL net bet, not just
+        # premium counting). Ask = buyer aggressor (+), Bid = seller (−);
+        # delta is signed (call +, put −), so a bought call and a bought put
+        # push opposite ways, and SELLING a call is bearish. delta_open =
+        # same but only for NEW positions (ToOpen). Descriptive read for the
+        # options block — does NOT touch the Flow score.
+        delta_net = delta_open = 0.0
         for r in rows:
             t = (r.get('Type','') or '').strip().lower()
             side = (r.get('Side','') or '').strip().lower()
             pr = num(r.get('Premium')) or 0
+            if t in ('call', 'put'):
+                dlt = num(r.get('Delta'))
+                if dlt is not None and side in ('ask', 'bid'):
+                    contrib = (1 if side == 'ask' else -1) * dlt * pr
+                    delta_net += contrib
+                    if 'open' in (r.get('*', '') or '').strip().lower():
+                        delta_open += contrib
             if t == 'call':
                 call_tr += 1
                 if   side == 'ask': callAskP += pr
@@ -758,6 +772,18 @@ if flow_files:
                 # institutional positioning actually looked like.
                 'callAskP': callAskP, 'callBidP': callBidP,
                 'putAskP': putAskP, 'putBidP': putBidP,
+                # ── Delta-weighted read (new, descriptive) ──
+                # deltaTilt ∈ [−1,+1]: net signed delta per $ of directional
+                # premium. Positive = net bullish exposure, negative = bearish.
+                'deltaTilt': round(delta_net / (callDirP + putDirP), 3) if (callDirP + putDirP) else None,
+                'deltaLabel': ('שורי' if delta_net > 0.05 * (callDirP + putDirP)
+                               else 'דובי' if delta_net < -0.05 * (callDirP + putDirP)
+                               else 'מאוזן'),
+                'openingLean': ('שורי' if delta_open > 0 else 'דובי' if delta_open < 0 else 'מאוזן'),
+                # The four quadrants (premium), named plainly for the note:
+                # buy = aggressor at Ask, sell = aggressor at Bid.
+                'callBuyP': round(callAskP), 'callSellP': round(callBidP),
+                'putBuyP':  round(putAskP),  'putSellP':  round(putBidP),
             }
     except Exception as e:
         print(f'Options flow parse error: {e}')

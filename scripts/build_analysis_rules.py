@@ -110,7 +110,7 @@ def build():
     elif strong and narrow:
         headline = 'עלייה צרה — המדד מחזיק, אבל הרוב יורד'
     elif strong:
-        headline = 'עלייה רחבה — השוק חזק מבפנים'
+        headline = 'יום עלייה רחב'
     elif weak:
         headline = 'חולשה — הלחץ נמשך'
     else:
@@ -118,9 +118,9 @@ def build():
 
     paras = []
     # 1 — index + breadth + selling pressure
+    breadth_clause = 'אבל הרוחב חלש' if narrow else 'והרוחב רחב'
     p1 = (f'המדד {"יציב" if strong else "חלש"} '
-          f'(ציון משולב {C}, VIX {vix:.1f}), '
-          f'אבל הרוחב {"חלש" if narrow else "רחב"}: '
+          f'(ציון משולב {C}, VIX {vix:.1f}), {breadth_clause}: '
           f'{down} מניות ירדו מול {up} שעלו, {below} מתחת ל-MA50.')
     if dist_days:
         p1 += f' לחץ מכירות מצטבר: {dist_days} ימי מכירה ב-25 הימים האחרונים.'
@@ -143,35 +143,44 @@ def build():
     if mega:
         lead_m = max(mega, key=lambda x: x['chg'])
         p3 = f"בגדולות, {lead_m['s']} ({_pct(lead_m['chg'])}) הוביל"
-        p3 += ' והחזיק את המדד' if lead_m['chg'] > 0.3 else ''
+        # "held the index" only makes sense on a NARROW day; on a broad day
+        # no single mega-cap is carrying it.
+        p3 += ' והחזיק את המדד' if (lead_m['chg'] > 0.3 and narrow) else ''
         if broken:
             p3 += f". {', '.join(x['s'] for x in broken)} כבר מתחת ל-MA50."
         else:
             p3 += '.'
         paras.append(p3)
 
-    # 4 — options (concise: Flow + Δ + P/C)
-    f_lbl = flow.get('directionLabel', '')
-    p4 = f"אופציות: Flow {sc.get('flow')}"
-    if f_lbl:
-        p4 += f' ({f_lbl})'
+    # 4 — options: lead with the DELTA-WEIGHTED net bet (the real read),
+    # then the quadrant story (buy puts + sell calls = bearish), then
+    # Flow/P/C as secondary context.
+    dlabel = flow.get('deltaLabel') or ''
+    cb = flow.get('callBuyP') or 0
+    cs = flow.get('callSellP') or 0
+    pb = flow.get('putBuyP') or 0
+    ps = flow.get('putSellP') or 0
+    bull_act, bear_act = cb + ps, pb + cs   # buy-calls+sell-puts vs buy-puts+sell-calls
+    p4 = f'אופציות: הכסף הגדול נטו <b>{dlabel}</b> (משוקלל-דלתא)'
+    if bear_act > bull_act and (pb or cs):
+        p4 += f' — פעולות דוביות דומיננטיות: קניית puts ${pb/1e6:.0f}M + מכירת calls ${cs/1e6:.0f}M'
+    elif bull_act > bear_act and (cb or ps):
+        p4 += f' — פעולות שוריות דומיננטיות: קניית calls ${cb/1e6:.0f}M + מכירת puts ${ps/1e6:.0f}M'
+    olean = flow.get('openingLean')
+    if olean and olean != 'מאוזן':
+        p4 += f'. פוזיציות חדשות (ToOpen) נוטות {olean} — מדגם קטן'
+    tail = f"Flow {sc.get('flow')}"
     if flow_delta:
-        p4 += f' · {flow_delta} מאתמול'
+        tail += f' ({flow_delta})'
     if pc is not None:
-        p4 += f' · P/C {pc:.2f}'
-    paras.append(p4 + '.')
+        tail += f' · P/C {pc:.2f}'
+    paras.append(p4 + f'. {tail}.')
 
-    # bottom line = state label + the concise action (avoids repeating the
-    # breadth/selling-day facts already stated above).
-    STATE_LABEL = {
-        'confirmed_strength': 'מגמה בריאה', 'narrow_strength': 'עלייה לא-מאושרת',
-        'chop': 'חוסר הכרעה', 'weak_stabilizing': 'חולשה מתייצבת',
-        'weak_expanding': 'חולשה מתרחבת', 'acute': 'יום סיכון',
-    }
+    # Bottom line = the actionable stance only. (A state LABEL like
+    # 'unconfirmed/narrow' can contradict a broad up-day, so we use just the
+    # action here; full headline↔state coherence is the blocks step.)
     rec = concl.get('recommendation') or {}
-    label = STATE_LABEL.get(concl.get('state'), '')
-    action = rec.get('action', '')
-    bottom = ' — '.join(x for x in (label, action) if x)
+    bottom = rec.get('action', '')
     watch_bits = []
     if rec.get('improve'):
         watch_bits.append(f"שיפור: {rec['improve']}")

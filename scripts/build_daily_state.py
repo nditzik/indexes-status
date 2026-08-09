@@ -63,6 +63,12 @@ def build_state():
             'smoothed': sr.flow_smoothed,
             'streak': sr.flow_streak,
             'compareLine': sr.flow_compare_line,
+            # Delta-weighted read (options-block upgrade) — the real net bet.
+            'deltaTilt': sr.flow.get('deltaTilt'),
+            'deltaLabel': sr.flow.get('deltaLabel'),
+            'openingLean': sr.flow.get('openingLean'),
+            'callBuyP': sr.flow.get('callBuyP'), 'callSellP': sr.flow.get('callSellP'),
+            'putBuyP': sr.flow.get('putBuyP'), 'putSellP': sr.flow.get('putSellP'),
         } if sr.flow else None),
         'vixTermRatio': getattr(sr, 'vix_term_ratio', None),   # phase 3.2 / 4b
         'evidence': {   # phase 4b — numbers for the Evidence cards
