@@ -1480,9 +1480,12 @@ function renderRiskOffBanner(metrics) {
     if (!wrap) return;
     const ro = metrics.riskOff;
     const p = metrics._pressure;   // Python-built card, when present
-    const active = (p && p.active) || (ro && ro.active);
-    if (!active) { wrap.style.display = 'none'; return; }
     const acute = !!((p && p.acute) || (ro && ro.acute));
+    // Show the banner ONLY on an acute risk day (sharp sell-off / VIX spike)
+    // — a genuine "don't buy today" alert. On normal accumulation days it's
+    // redundant with the analyst note (which already reports selling
+    // pressure in context), so it's hidden to cut the repetition.
+    if (!acute) { wrap.style.display = 'none'; return; }
 
     // Whole card goes red on an acute (risk) day; slate otherwise.
     wrap.classList.toggle('ov2-risk-off--acute', acute);
