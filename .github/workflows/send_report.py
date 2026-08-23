@@ -2560,11 +2560,15 @@ def compute_rotation_series(n=20):
 
 
 def compute_rotation_light(sector_rs=None):
-    """TRUE sectoral-rotation light (review fix 2). Green when risk-on
-    leadership is broad (≥3 cyclical sectors Leading), red when the money
-    rotates into defensives (defensives lead and cyclicals do not),
-    yellow otherwise. Replaces the old EQ-vs-SPX spread, which was a
-    second breadth measure — that now lives in the Breadth card."""
+    """TRUE sectoral-rotation light (review fix 2; margin rule added
+    2026-08-23). Green when risk-on leadership is broad (≥3 cyclical
+    sectors Leading). Red requires a CLEAR defensive tilt — the gap
+    between defensive and cyclical leaders is 2 or more (e.g. 2-vs-0,
+    3-vs-0, 3-vs-1) — not just a bare defensive majority: a 2-vs-1 split
+    (gap of 1) used to fire red on a near-tie and is now yellow instead.
+    Yellow = every other in-between case. Replaces the old EQ-vs-SPX
+    spread, which was a second breadth measure — that now lives in the
+    Breadth card."""
     rs = sector_rs if sector_rs is not None else compute_sector_rs()
     lead = [c for c, d in rs.items() if d.get('leading')]
     if not lead and len(history_rich) < 21:
@@ -2572,9 +2576,9 @@ def compute_rotation_light(sector_rs=None):
     cyc = sum(1 for c in lead if c in CYCLICAL_SECTORS)
     dfn = sum(1 for c in lead if c in DEFENSIVE_SECTORS)
     if cyc >= 3:
-        return 'pos'        # broad risk-on leadership → healthy rotation
-    if dfn >= 2 and cyc <= 1:
-        return 'neg'        # money hiding in defensives → risk-off rotation
+        return 'pos'         # broad risk-on leadership → healthy rotation
+    if (dfn - cyc) >= 2:
+        return 'neg'         # clear defensive tilt → risk-off rotation
     return 'warn'
 
 
@@ -2616,7 +2620,7 @@ def build_conclusion():
         cooling.append(f'עלייה צרה (שוויוני {eq_today:+.2f}% מול מדד {spx_today:+.2f}%)')
     if spread20 is not None and spread20 < -0.5:
         cooling.append(f'פער EQ-SPX שלילי ({spread20:+.1f}% ב-20 יום)')
-    if dfn >= 2 and cyc <= 1:
+    if (dfn - cyc) >= 2:
         cooling.append(f'מנהיגות הגנתית ({lead_names})')
     elif rot_light == 'warn' and cyc <= 1:
         cooling.append(f'מנהיגות מצטמצמת ({lead_names})')
@@ -2780,7 +2784,7 @@ def build_conclusion():
     if spread20 is not None:
         cands.append((abs(spread20),
             f'פער EQ-SPX ל-20 יום {spread20:+.1f}% — ' + ('רוחב רחב' if spread20 >= 0 else 'ראלי צר')))
-    if dfn >= 2 and cyc <= 1:
+    if (dfn - cyc) >= 2:
         cands.append((4, f'המנהיגות דפנסיבית ({lead_names}) — בריחה למקלטים.'))
     if sell_days_3 >= 2:
         cands.append((sell_days_3 * 1.5, f'{sell_days_3} ימי מכירה ב-3 הימים האחרונים — קיבוץ הדוק.'))

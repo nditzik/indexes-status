@@ -5460,10 +5460,12 @@ function renderV3Evidence(metrics, hist, data) {
     if (rot && Array.isArray(rot.leadingSectors)) {
         const cd = (data && data.sectors && data.sectors.codes) || {};
         const cyc = rot.cyclicalLeading || 0, def = rot.defensiveLeading || 0;
+        // אדום דורש פער ברור (2+) בין דפנסיבי למחזורי — לא רוב גרידא (עדכון 2026-08-23,
+        // תואם compute_rotation_light ב-send_report.py; 2-מול-1 היה אדום, עכשיו צהוב)
         let rHtml = num('סקטורים מחזוריים מובילים', String(cyc), '3+ = רוטציה בריאה',
-            cyc >= 3 ? 'v3-pos' : (def >= 2 && cyc <= 1) ? 'v3-neg' : 'v3-warn');
+            cyc >= 3 ? 'v3-pos' : (def - cyc) >= 2 ? 'v3-neg' : 'v3-warn');
         rHtml += num('סקטורים דפנסיביים מובילים', String(def), 'הובלה דפנסיבית = סיכון-off',
-            def >= 2 && cyc <= 1 ? 'v3-neg' : 'v3-warn');
+            (def - cyc) >= 2 ? 'v3-neg' : 'v3-warn');
         const names = (rot.leadingSectors || []).map(c => cd[c] || c).join(' · ') || '—';
         rHtml += `<div class="v3-ev-num"><span class="v3-ev-num-label">מובילים</span>`
             + `<span class="v3-ev-num-thr" style="text-align:right">${names}</span></div>`;
