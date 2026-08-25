@@ -691,6 +691,21 @@ if flow_files:
         # same but only for NEW positions (ToOpen). Descriptive read for the
         # options block — does NOT touch the Flow score.
         delta_net = delta_open = 0.0
+        # Multi-leg composition of the directional (Ask/Bid) universe.
+        # Codes CBMO/MFSL/MLET/MLFT are OPRA trade-condition codes that
+        # mark a print as ONE LEG of a combined
+        # multi-leg order (spread/collar/condor/etc), not a standalone
+        # naked directional bet. The CSV has no order/leg-group id, so we
+        # cannot net a print against its paired leg(s) — a print may even
+        # be the ONLY leg of its combo that cleared the export's size
+        # threshold, in which case it gets counted here as if it were a
+        # full naked bet. legMultiPct measures how much of the directional
+        # premium (the same universe delta_net is built from) is exposed
+        # to this ambiguity, so the reader can weight deltaTilt/deltaLabel
+        # accordingly — mirrors the existing Mid-based confidence_tier
+        # pattern below, but for a different, orthogonal concern.
+        MULTI_LEG_CODES = {'CBMO', 'MFSL', 'MLET', 'MLFT'}
+        legDirP = legMultiP = 0.0
         for r in rows:
             t = (r.get('Type','') or '').strip().lower()
             side = (r.get('Side','') or '').strip().lower()
@@ -702,6 +717,10 @@ if flow_files:
                     delta_net += contrib
                     if 'open' in (r.get('*', '') or '').strip().lower():
                         delta_open += contrib
+                if side in ('ask', 'bid'):
+                    legDirP += pr
+                    if (r.get('Code','') or '').strip().upper() in MULTI_LEG_CODES:
+                        legMultiP += pr
             if t == 'call':
                 call_tr += 1
                 if   side == 'ask': callAskP += pr
@@ -741,6 +760,15 @@ if flow_files:
             elif midPct >= 70: confidence_tier, confidence_note = 'limited', f'⚠ {midPct:.0f}% Mid — ביטחון מוגבל'
             elif midPct >= 50: confidence_tier, confidence_note = 'mid',     f'⚠ {midPct:.0f}% Mid (בלוקים/דילרים)'
             else:              confidence_tier, confidence_note = 'high',    ''
+
+            # Multi-leg confidence tier — derived from legMultiPct above.
+            # Symmetric by design (based on % magnitude, not deltaTilt's
+            # sign) so it fires the same for a בולי/דובי/מאוזן read alike.
+            legMultiPct = (legMultiP / legDirP * 100) if legDirP else 0
+            if   legMultiPct >= 90: leg_tier, leg_note = 'low',     f'⛔ {legMultiPct:.0f}% מולטי-לג — ביטחון נמוך מאוד בכיוון'
+            elif legMultiPct >= 70: leg_tier, leg_note = 'limited', f'⚠ {legMultiPct:.0f}% מולטי-לג — ביטחון מוגבל בכיוון'
+            elif legMultiPct >= 50: leg_tier, leg_note = 'mid',     f'⚠ {legMultiPct:.0f}% מולטי-לג — פרש בזהירות'
+            else:                   leg_tier, leg_note = 'high',    ''
 
             # Legacy ratios — kept for narrative compatibility but now
             # computed from DIRECTIONAL premium so they line up with the
@@ -784,6 +812,11 @@ if flow_files:
                 # buy = aggressor at Ask, sell = aggressor at Bid.
                 'callBuyP': round(callAskP), 'callSellP': round(callBidP),
                 'putBuyP':  round(putAskP),  'putSellP':  round(putBidP),
+                # Multi-leg confidence — see legMultiPct comment above.
+                # Applies to deltaTilt/deltaLabel (the delta-weighted read).
+                'legMultiPct': round(legMultiPct, 1),
+                'legTier': leg_tier,
+                'legNote': leg_note,
             }
     except Exception as e:
         print(f'Options flow parse error: {e}')

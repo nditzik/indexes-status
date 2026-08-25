@@ -69,6 +69,11 @@ def build_state():
             'openingLean': sr.flow.get('openingLean'),
             'callBuyP': sr.flow.get('callBuyP'), 'callSellP': sr.flow.get('callSellP'),
             'putBuyP': sr.flow.get('putBuyP'), 'putSellP': sr.flow.get('putSellP'),
+            # Multi-leg confidence for the delta-weighted read (deltaTilt/
+            # deltaLabel above) — symmetric, fires regardless of direction.
+            'legMultiPct': sr.flow.get('legMultiPct'),
+            'legTier': sr.flow.get('legTier'),
+            'legNote': sr.flow.get('legNote'),
         } if sr.flow else None),
         'vixTermRatio': getattr(sr, 'vix_term_ratio', None),   # phase 3.2 / 4b
         'evidence': {   # phase 4b — numbers for the Evidence cards
