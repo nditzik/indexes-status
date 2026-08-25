@@ -1,62 +1,62 @@
 {
-  "fetchedAt": "2026-08-21T21:02:06Z",
+  "fetchedAt": "2026-08-24T21:13:55Z",
   "source": "yahoo-v8-chart",
-  "vixTermRatio": 0.8178,
+  "vixTermRatio": 0.854,
   "tickers": [
     {
       "symbol": "SPY",
-      "price": 765.72,
-      "prev": 762.5999755859375,
-      "time": 1787342400,
+      "price": 763.47,
+      "prev": 765.719970703125,
+      "time": 1787601600,
       "state": null
     },
     {
       "symbol": "QQQ",
-      "price": 713.44,
-      "prev": 710.9299926757812,
-      "time": 1787342400,
+      "price": 706.32,
+      "prev": 713.4400024414062,
+      "time": 1787601600,
       "state": null
     },
     {
       "symbol": "DIA",
-      "price": 532.22,
-      "prev": 527.510009765625,
-      "time": 1787342400,
+      "price": 533.65,
+      "prev": 532.219970703125,
+      "time": 1787601600,
       "state": null
     },
     {
       "symbol": "IWM",
-      "price": 299.96,
-      "prev": 297.6700134277344,
-      "time": 1787342400,
+      "price": 297.97,
+      "prev": 299.9599914550781,
+      "time": 1787601600,
       "state": null
     },
     {
       "symbol": "^VIX",
-      "price": 15.13,
-      "prev": 16.010000228881836,
-      "time": 1787343301,
+      "price": 15.85,
+      "prev": 15.130000114440918,
+      "time": 1787602501,
       "state": null
     },
     {
       "symbol": "^VIX3M",
-      "price": 18.5,
-      "prev": 19.06,
-      "time": 1787343301,
+      "price": 18.56,
+      "prev": 18.5,
+      "time": 1787602501,
       "state": null
     },
     {
       "symbol": "^TNX",
-      "price": 4.738,
-      "prev": 4.696000099182129,
-      "time": 1787338794,
+      "price": 4.704,
+      "prev": 4.73799991607666,
+      "time": 1787597992,
       "state": null
     },
     {
       "symbol": "DX-Y.NYB",
-      "price": 98.848,
-      "prev": 98.9000015258789,
-      "time": 1787345525,
+      "price": 98.989,
+      "prev": 98.8,
+      "time": 1787605433,
       "state": null
     }
   ]
