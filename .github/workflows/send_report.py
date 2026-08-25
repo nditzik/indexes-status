@@ -692,27 +692,43 @@ if flow_files:
         # options block — does NOT touch the Flow score.
         delta_net = delta_open = 0.0
         # Multi-leg composition of the directional (Ask/Bid) universe.
-        # Codes CBMO/MFSL/MLET/MLFT/MLAT/MESL are OPRA trade-condition
-        # codes that mark a print as ONE LEG of a combined multi-leg order
-        # (spread/collar/condor/etc), not a standalone naked directional
-        # bet. The CSV has no order/leg-group id, so we cannot net a print
-        # against its paired leg(s) — a print may even be the ONLY leg of
-        # its combo that cleared the export's size threshold, in which
-        # case it gets counted here as if it were a full naked bet.
-        # legMultiPct measures how much of the directional premium (the
-        # same universe delta_net is built from) is exposed to this
-        # ambiguity, so the reader can weight deltaTilt/deltaLabel
+        # A print's Code marks it as ONE LEG of a combined multi-leg order
+        # (spread/collar/condor/stock+options combo/etc), not a standalone
+        # naked directional bet. The CSV has no order/leg-group id, so we
+        # cannot net a print against its paired leg(s) — a print may even
+        # be the ONLY leg of its combo that cleared the export's size
+        # threshold, in which case it gets counted here as if it were a
+        # full naked bet. legMultiPct measures how much of the directional
+        # premium (the same universe delta_net is built from) is exposed
+        # to this ambiguity, so the reader can weight deltaTilt/deltaLabel
         # accordingly — mirrors the existing Mid-based confidence_tier
         # pattern below, but for a different, orthogonal concern.
-        # NOTE 2026-08-25: MLAT ("Multi Leg Auction Transaction") and
-        # MESL ("Multi Leg auto-electronic trade against single leg(s)")
-        # were added after being spotted in a real SPY export — they were
-        # missing from the original set (built by inspecting one SPX
-        # file only) and were silently falling into the "clean" bucket.
-        # If a NEW unrecognized code shows up, verify it against
-        # Barchart's own trade-condition-code docs before adding it here
-        # — don't guess from the name alone.
-        MULTI_LEG_CODES = {'CBMO', 'MFSL', 'MLET', 'MLFT', 'MLAT', 'MESL'}
+        #
+        # 2026-08-25: replaced two incomplete allowlists (first 4 codes,
+        # then +MLAT/+MESL after they turned up in a real SPY export —
+        # both missed codes and silently undercounted legMultiPct) with
+        # the COMPLETE, closed set per OPRA's own trade-condition spec
+        # (Cboe "Update to Trade Condition Values", user-supplied full
+        # table cross-checked against it). OPRA defines only 6 single-leg
+        # condition types in total — everything else that names an actual
+        # leg-structure is multi-leg, no more codes can appear that
+        # aren't one of these two closed sets. SINGLE_LEG_CODES is kept
+        # here for documentation/symmetry (not used in the calc — a code
+        # not in MULTI_LEG_CODES simply doesn't add to legMultiP).
+        # Excluded from BOTH sets on purpose — these are lifecycle/
+        # routing flags orthogonal to leg-count, not single or multi:
+        # CANC/CNCL/CNCO/CNOL (cancellations), LATE/OPEN/OPNL/OSEQ/REOP
+        # (late/reopen sequencing), EXHT (extended-hours flag), MCTP
+        # (multilateral compression, not an options combo), ISOI
+        # (Intermarket Sweep Order — docs say "process like normal
+        # transaction", i.e. it's a routing tag layered on top of
+        # whichever single/multi-leg code actually applies, not a
+        # leg-count indicator itself).
+        SINGLE_LEG_CODES = {'AUTO', 'SLAI', 'SLAN', 'SLCN', 'SCLI', 'SLFT'}
+        MULTI_LEG_CODES = {
+            'CBMO', 'MASL', 'MESL', 'MFSL', 'MLAT', 'MLCT', 'MLET', 'MLFT',
+            'TASL', 'TESL', 'TFSL', 'TLAT', 'TLCT', 'TLET', 'TLFT',
+        }
         legDirP = legMultiP = 0.0
         for r in rows:
             t = (r.get('Type','') or '').strip().lower()
