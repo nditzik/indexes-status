@@ -692,19 +692,27 @@ if flow_files:
         # options block — does NOT touch the Flow score.
         delta_net = delta_open = 0.0
         # Multi-leg composition of the directional (Ask/Bid) universe.
-        # Codes CBMO/MFSL/MLET/MLFT are OPRA trade-condition codes that
-        # mark a print as ONE LEG of a combined
-        # multi-leg order (spread/collar/condor/etc), not a standalone
-        # naked directional bet. The CSV has no order/leg-group id, so we
-        # cannot net a print against its paired leg(s) — a print may even
-        # be the ONLY leg of its combo that cleared the export's size
-        # threshold, in which case it gets counted here as if it were a
-        # full naked bet. legMultiPct measures how much of the directional
-        # premium (the same universe delta_net is built from) is exposed
-        # to this ambiguity, so the reader can weight deltaTilt/deltaLabel
+        # Codes CBMO/MFSL/MLET/MLFT/MLAT/MESL are OPRA trade-condition
+        # codes that mark a print as ONE LEG of a combined multi-leg order
+        # (spread/collar/condor/etc), not a standalone naked directional
+        # bet. The CSV has no order/leg-group id, so we cannot net a print
+        # against its paired leg(s) — a print may even be the ONLY leg of
+        # its combo that cleared the export's size threshold, in which
+        # case it gets counted here as if it were a full naked bet.
+        # legMultiPct measures how much of the directional premium (the
+        # same universe delta_net is built from) is exposed to this
+        # ambiguity, so the reader can weight deltaTilt/deltaLabel
         # accordingly — mirrors the existing Mid-based confidence_tier
         # pattern below, but for a different, orthogonal concern.
-        MULTI_LEG_CODES = {'CBMO', 'MFSL', 'MLET', 'MLFT'}
+        # NOTE 2026-08-25: MLAT ("Multi Leg Auction Transaction") and
+        # MESL ("Multi Leg auto-electronic trade against single leg(s)")
+        # were added after being spotted in a real SPY export — they were
+        # missing from the original set (built by inspecting one SPX
+        # file only) and were silently falling into the "clean" bucket.
+        # If a NEW unrecognized code shows up, verify it against
+        # Barchart's own trade-condition-code docs before adding it here
+        # — don't guess from the name alone.
+        MULTI_LEG_CODES = {'CBMO', 'MFSL', 'MLET', 'MLFT', 'MLAT', 'MESL'}
         legDirP = legMultiP = 0.0
         for r in rows:
             t = (r.get('Type','') or '').strip().lower()
