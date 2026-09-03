@@ -176,7 +176,7 @@
     "midPct": 88.9,
     "directionLabel": "התקפי",
     "directionReason": "פרמיית Puts דומיננטית (P/C 0.77)",
-    "smoothed": 70,
+    "smoothed": 71,
     "streak": 0,
     "compareLine": "היום עקבי עם המגמה החודשית",
     "deltaTilt": 0.075,
@@ -205,44 +205,9 @@
       "ENE"
     ],
     "sectorRs": {
-      "MAT": {
-        "rs5": -1.67,
-        "rs20": 0.1,
-        "leading": false
-      },
       "CD": {
         "rs5": -2.94,
         "rs20": -5.1,
-        "leading": false
-      },
-      "FIN": {
-        "rs5": -1.27,
-        "rs20": 0.72,
-        "leading": false
-      },
-      "IND": {
-        "rs5": -4.06,
-        "rs20": -5.31,
-        "leading": false
-      },
-      "ENE": {
-        "rs5": 2.01,
-        "rs20": 4.64,
-        "leading": true
-      },
-      "IT": {
-        "rs5": -0.26,
-        "rs20": 1.1,
-        "leading": false
-      },
-      "COM": {
-        "rs5": -0.36,
-        "rs20": 4.61,
-        "leading": false
-      },
-      "HC": {
-        "rs5": -0.11,
-        "rs20": 4.66,
         "leading": false
       },
       "CS": {
@@ -250,14 +215,49 @@
         "rs20": 2.32,
         "leading": false
       },
-      "UTL": {
-        "rs5": -2.8,
-        "rs20": -2.76,
+      "COM": {
+        "rs5": -0.36,
+        "rs20": 4.61,
+        "leading": false
+      },
+      "IT": {
+        "rs5": -0.26,
+        "rs20": 1.1,
+        "leading": false
+      },
+      "MAT": {
+        "rs5": -1.67,
+        "rs20": 0.1,
         "leading": false
       },
       "RE": {
         "rs5": -2.92,
         "rs20": -4.18,
+        "leading": false
+      },
+      "ENE": {
+        "rs5": 2.01,
+        "rs20": 4.64,
+        "leading": true
+      },
+      "HC": {
+        "rs5": -0.11,
+        "rs20": 4.66,
+        "leading": false
+      },
+      "IND": {
+        "rs5": -4.06,
+        "rs20": -5.31,
+        "leading": false
+      },
+      "FIN": {
+        "rs5": -1.27,
+        "rs20": 0.72,
+        "leading": false
+      },
+      "UTL": {
+        "rs5": -2.8,
+        "rs20": -2.76,
         "leading": false
       }
     },
@@ -342,9 +342,7 @@
     },
     "conviction": "medium",
     "insight": "פער EQ-SPX ל-20 יום +0.2% — רוחב רחב",
-    "change": [
-      "Flow 77→67 ↓"
-    ]
+    "change": []
   },
   "narrative": {
     "headline": "חולשה מתהווה",
