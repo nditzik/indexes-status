@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-09-07T18:02:04Z",
+  "fetchedAt": "2026-09-07T21:26:42Z",
   "source": "yahoo-v8-chart",
   "vixTermRatio": 0.8688,
   "tickers": [
@@ -54,9 +54,9 @@
     },
     {
       "symbol": "DX-Y.NYB",
-      "price": 98.909,
+      "price": 99.176,
       "prev": 99.16000366210938,
-      "time": 1788803522,
+      "time": 1788815798,
       "state": null
     }
   ]
