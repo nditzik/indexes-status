@@ -515,5 +515,16 @@
     "confidence": null,
     "coverage": null,
     "formulaVersion": "v4"
+  },
+  {
+    "date": "2026-09-09",
+    "tech": 81,
+    "breadth": 37,
+    "flow": 67,
+    "combined": 55,
+    "phase": "uptrend_pressure",
+    "confidence": null,
+    "coverage": null,
+    "formulaVersion": "v4"
   }
 ]
