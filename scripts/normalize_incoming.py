@@ -30,11 +30,13 @@ DATA_DIR = 'data'
 CANON_RE = {
     'watchlist': re.compile(r'^watchlist-sp-500-intraday-\d{2}-\d{2}-\d{4}\.csv$'),
     'flow':      re.compile(r'^spx-options-flow-\d{2}-\d{2}-\d{4}\.csv$'),
+    'spyflow':   re.compile(r'^spy-options-flow-\d{2}-\d{2}-\d{4}\.csv$'),
     'uoa':       re.compile(r'^uoa-stocks-\d{2}-\d{2}-\d{4}\.csv$'),
 }
 CANON_FMT = {
     'watchlist': 'watchlist-sp-500-intraday-{mm}-{dd}-{yyyy}.csv',
     'flow':      'spx-options-flow-{mm}-{dd}-{yyyy}.csv',
+    'spyflow':   'spy-options-flow-{mm}-{dd}-{yyyy}.csv',
     'uoa':       'uoa-stocks-{mm}-{dd}-{yyyy}.csv',
 }
 
@@ -51,7 +53,30 @@ def classify(name):
         return 'watchlist'
     if 'spx' in c and 'option' in c and 'flow' in c:
         return 'flow'
+    if 'spy' in c and 'option' in c and 'flow' in c:
+        return 'spyflow'
     return None
+
+
+def flow_trade_date(path):
+    """Trade date of a flow export from its CONTENT (Exp Date − DTE, majority
+    vote) — Barchart names the SPY download by the *download* date, which is
+    the next morning for a file pulled before the open (2026-09-12: the file
+    named 09-12 held 09-11 trades). Returns a date or None."""
+    try:
+        import csv
+        from collections import Counter
+        from datetime import timedelta
+        votes = Counter()
+        with open(path, encoding='utf-8-sig', newline='') as f:
+            for r in csv.DictReader(f):
+                try:
+                    votes[datetime.strptime(r['Exp Date'], '%Y-%m-%d').date() - timedelta(days=int(float(r['DTE'])))] += 1
+                except Exception:
+                    continue
+        return votes.most_common(1)[0][0] if votes else None
+    except Exception:
+        return None
 
 
 def extract_date(name, fallback):
@@ -102,6 +127,13 @@ def main(dry_run=False):
         except OSError:
             mtime = datetime.now(timezone.utc).date()
         target = canonical_name(name, mtime)
+        # SPY flow: Barchart names the download by the download date, so even a
+        # canonical-looking name can carry the wrong day — the trade date comes
+        # from the content (Exp Date − DTE) and overrides the filename date.
+        if classify(name) == 'spyflow':
+            td = flow_trade_date(path)
+            if td:
+                target = CANON_FMT['spyflow'].format(mm=f'{td.month:02d}', dd=f'{td.day:02d}', yyyy=f'{td.year:04d}')
         if not target or target == name:
             continue
         dst = os.path.join(DATA_DIR, target)

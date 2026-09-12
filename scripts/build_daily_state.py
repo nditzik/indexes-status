@@ -74,6 +74,14 @@ def build_state():
             'legMultiPct': sr.flow.get('legMultiPct'),
             'legTier': sr.flow.get('legTier'),
             'legNote': sr.flow.get('legNote'),
+            # 2026-09-12: direction now read from the SPY export when present
+            # (SPX is ~99% multi-leg → structurally bullish). openTilt = tilt of
+            # prints with Volume > OI (likely new positions). See send_report.
+            'dirSource': sr.flow.get('dirSource'),
+            'dirNote': sr.flow.get('dirNote'),
+            'openTilt': sr.flow.get('openTilt'),
+            'openLabel': sr.flow.get('openLabel'),
+            'openP': sr.flow.get('openP'),
         } if sr.flow else None),
         'vixTermRatio': getattr(sr, 'vix_term_ratio', None),   # phase 3.2 / 4b
         'evidence': {   # phase 4b — numbers for the Evidence cards

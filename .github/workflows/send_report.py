@@ -19,6 +19,7 @@ from datetime import date as _date
 # ═══════════════════════════════════════════════════
 _WATCHLIST_DATE_RE = re.compile(r'watchlist-sp-500-intraday-(\d{2})-(\d{2})-(\d{4})\.csv$')
 _FLOW_DATE_RE      = re.compile(r'spx-options-flow-(\d{2})-(\d{2})-(\d{4})\.csv$')
+_SPY_FLOW_DATE_RE  = re.compile(r'spy-options-flow-(\d{2})-(\d{2})-(\d{4})\.csv$')
 
 def _iso_key(path, pattern=None):
     if pattern is None:
@@ -62,6 +63,92 @@ def load_csv(path):
     with open(path, encoding='utf-8-sig', newline='') as f:
         txt = f.read().replace('\r\n','\n').replace('\r','\n')
     return list(csv.DictReader(io.StringIO(txt)))
+
+
+# ═══════════════════════════════════════════════════
+#  Directional read from a flow export (2026-09-12)
+# ═══════════════════════════════════════════════════
+#  WHY SPY AND NOT SPX FOR DIRECTION: the SPX export (top ~350 prints) is
+#  97–100% multi-leg every day (spreads/collars/boxes/rolls) and only
+#  $1–48M/day of single-leg directional premium — a delta-weighted sum over
+#  legs of combos is structurally biased bullish (deep-ITM calls carry BOTH
+#  high delta AND high premium, so a handful of stock-replacement /
+#  box legs dominate). Measured 21.8–11.9.2026: 'שורי' on 15 of 19 days
+#  regardless of what the index did. The SPY export of the same day is
+#  27–72% multi-leg with 125–170 single-leg prints and $25–60M of
+#  single-leg premium, sides on 70–80% of prints — and its three honest
+#  reads (single-leg / Vol>OI / ToOpen) agree with each other. So:
+#  Flow SCORE (activity) stays on SPX; the directional read (deltaTilt,
+#  quadrants, openingLean, legMultiPct) comes from SPY when a same-day
+#  file exists, falling back to SPX otherwise. `openTilt` is new: the
+#  delta-weighted tilt of prints whose Volume > Open Interest (likely NEW
+#  positions) — closest thing to "what money did today".
+MULTI_LEG_CODES = {
+    'CBMO', 'MASL', 'MESL', 'MFSL', 'MLAT', 'MLCT', 'MLET', 'MLFT',
+    'TASL', 'TESL', 'TFSL', 'TLAT', 'TLCT', 'TLET', 'TLFT',
+}
+
+def directional_read(rows):
+    """Delta-weighted directional read of one flow export. Returns a dict of
+    the descriptive fields (deltaTilt/deltaLabel/openingLean/quadrants/
+    legMultiPct/legTier/legNote/openTilt/openLabel/openP) or None."""
+    delta_net = delta_open = 0.0
+    dirP = legMultiP = 0.0
+    callAskP = callBidP = putAskP = putBidP = 0.0
+    open_net = open_p = 0.0
+    n_dir = 0
+    for r in rows:
+        t = (r.get('Type', '') or '').strip().lower()
+        if t not in ('call', 'put'):
+            continue
+        side = (r.get('Side', '') or '').strip().lower()
+        if side not in ('ask', 'bid'):
+            continue
+        pr = num(r.get('Premium')) or 0
+        dlt = num(r.get('Delta'))
+        sgn = 1 if side == 'ask' else -1
+        n_dir += 1
+        dirP += pr
+        if (r.get('Code', '') or '').strip().upper() in MULTI_LEG_CODES:
+            legMultiP += pr
+        if t == 'call':
+            if sgn > 0: callAskP += pr
+            else:       callBidP += pr
+        else:
+            if sgn > 0: putAskP += pr
+            else:       putBidP += pr
+        if dlt is None:
+            continue
+        contrib = sgn * dlt * pr
+        delta_net += contrib
+        if 'open' in (r.get('*', '') or '').strip().lower():
+            delta_open += contrib
+        vol, oi = num(r.get('Volume')) or 0, num(r.get('Open Int')) or 0
+        if vol > oi:
+            open_net += contrib
+            open_p += pr
+    if not dirP:
+        return None
+    tilt = delta_net / dirP
+    lbl = lambda v: 'שורי' if v > 0.05 else 'דובי' if v < -0.05 else 'מאוזן'
+    legMultiPct = legMultiP / dirP * 100
+    if   legMultiPct >= 90: tier, note = 'low',     f'⛔ {legMultiPct:.0f}% מולטי-לג — ביטחון נמוך מאוד בכיוון'
+    elif legMultiPct >= 70: tier, note = 'limited', f'⚠ {legMultiPct:.0f}% מולטי-לג — ביטחון מוגבל בכיוון'
+    elif legMultiPct >= 50: tier, note = 'mid',     f'⚠ {legMultiPct:.0f}% מולטי-לג — פרש בזהירות'
+    else:                   tier, note = 'high',    ''
+    open_tilt = (open_net / open_p) if open_p else None
+    return {
+        'deltaTilt': round(tilt, 3),
+        'deltaLabel': lbl(tilt),
+        'openingLean': ('שורי' if delta_open > 0 else 'דובי' if delta_open < 0 else 'מאוזן'),
+        'callBuyP': round(callAskP), 'callSellP': round(callBidP),
+        'putBuyP':  round(putAskP),  'putSellP':  round(putBidP),
+        'legMultiPct': round(legMultiPct, 1), 'legTier': tier, 'legNote': note,
+        'openTilt': round(open_tilt, 3) if open_tilt is not None else None,
+        'openLabel': lbl(open_tilt) if open_tilt is not None else None,
+        'openP': round(open_p),
+        'dirPrints': n_dir,
+    }
 
 # ═══════════════════════════════════════════════════
 #  Parse today's watchlist (data.txt = copy of latest CSV)
@@ -841,7 +928,24 @@ if flow_files:
                 'legMultiPct': round(legMultiPct, 1),
                 'legTier': leg_tier,
                 'legNote': leg_note,
+                'dirSource': 'SPX',
+                'dirNote': 'קריאת הכיוון מייצוא SPX — כמעט כולו מבנים מרובי-רגליים; כיוון לא אמין',
             }
+            # ── Directional read from SPY (same trade date) — see directional_read() ──
+            _spx_iso = _iso_key(flow_files[-1], _FLOW_DATE_RE)
+            spy_files = sorted_by_date(glob.glob('data/spy-options-flow-*.csv'), _SPY_FLOW_DATE_RE)
+            spy_same = [p for p in spy_files if _iso_key(p, _SPY_FLOW_DATE_RE) == _spx_iso]
+            if spy_same:
+                dr = directional_read(load_csv(spy_same[-1]))
+                if dr:
+                    flow.update(dr)
+                    flow['dirSource'] = 'SPY'
+                    flow['dirNote'] = (f"קריאת הכיוון מייצוא SPY ({dr['dirPrints']} עסקאות עם צד, "
+                                       f"{dr['legMultiPct']:.0f}% מולטי-לג)")
+                    print(f"[flow] direction from {os.path.basename(spy_same[-1])}: "
+                          f"tilt {dr['deltaTilt']:+.2f} {dr['deltaLabel']} · open {dr['openLabel']} (${dr['openP']/1e6:.0f}M) · multi {dr['legMultiPct']:.0f}%")
+            else:
+                print(f'[flow] no SPY file for {_spx_iso} — direction falls back to SPX (unreliable)')
     except Exception as e:
         print(f'Options flow parse error: {e}')
 

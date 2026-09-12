@@ -187,16 +187,21 @@
     "smoothed": 71,
     "streak": 1,
     "compareLine": "היום התקפי יותר מהממוצע החודשי",
-    "deltaTilt": 0.394,
-    "deltaLabel": "שורי",
+    "deltaTilt": 0.002,
+    "deltaLabel": "מאוזן",
     "openingLean": "דובי",
-    "callBuyP": 482639400,
-    "callSellP": 92703500,
-    "putBuyP": 124054100,
-    "putSellP": 263123200,
-    "legMultiPct": 99.0,
-    "legTier": "low",
-    "legNote": "⛔ 99% מולטי-לג — ביטחון נמוך מאוד בכיוון"
+    "callBuyP": 9955800,
+    "callSellP": 5791800,
+    "putBuyP": 32948900,
+    "putSellP": 28222200,
+    "legMultiPct": 58.0,
+    "legTier": "mid",
+    "legNote": "⚠ 58% מולטי-לג — פרש בזהירות",
+    "dirSource": "SPY",
+    "dirNote": "קריאת הכיוון מייצוא SPY (177 עסקאות עם צד, 58% מולטי-לג)",
+    "openTilt": -0.068,
+    "openLabel": "דובי",
+    "openP": 27497300
   },
   "vixTermRatio": 0.8516,
   "evidence": {
@@ -211,19 +216,9 @@
   "rotation": {
     "leadingSectors": [],
     "sectorRs": {
-      "IND": {
-        "rs5": -0.4,
-        "rs20": -4.9,
-        "leading": false
-      },
-      "FIN": {
-        "rs5": -2.39,
-        "rs20": -0.87,
-        "leading": false
-      },
-      "COM": {
-        "rs5": -1.38,
-        "rs20": 1.41,
+      "CS": {
+        "rs5": -1.94,
+        "rs20": -1.49,
         "leading": false
       },
       "CD": {
@@ -236,9 +231,9 @@
         "rs20": -2.48,
         "leading": false
       },
-      "RE": {
-        "rs5": -1.56,
-        "rs20": -4.21,
+      "IT": {
+        "rs5": 2.46,
+        "rs20": -0.33,
         "leading": false
       },
       "ENE": {
@@ -246,24 +241,34 @@
         "rs20": 0.38,
         "leading": false
       },
-      "CS": {
-        "rs5": -1.94,
-        "rs20": -1.49,
-        "leading": false
-      },
       "HC": {
         "rs5": -3.29,
         "rs20": -1.07,
         "leading": false
       },
-      "IT": {
-        "rs5": 2.46,
-        "rs20": -0.33,
-        "leading": false
-      },
       "UTL": {
         "rs5": -0.6,
         "rs20": -2.64,
+        "leading": false
+      },
+      "IND": {
+        "rs5": -0.4,
+        "rs20": -4.9,
+        "leading": false
+      },
+      "COM": {
+        "rs5": -1.38,
+        "rs20": 1.41,
+        "leading": false
+      },
+      "RE": {
+        "rs5": -1.56,
+        "rs20": -4.21,
+        "leading": false
+      },
+      "FIN": {
+        "rs5": -2.39,
+        "rs20": -0.87,
         "leading": false
       }
     },
