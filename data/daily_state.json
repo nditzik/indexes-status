@@ -201,7 +201,24 @@
     "dirNote": "קריאת הכיוון מייצוא SPY (177 עסקאות עם צד, 58% מולטי-לג)",
     "openTilt": -0.068,
     "openLabel": "דובי",
-    "openP": 27497300
+    "openP": 27497300,
+    "research": {
+      "putAsk": 124054100,
+      "putBid": 263123200,
+      "put_sb": 2.121,
+      "iv_put": 16.67,
+      "long_share": 43.2,
+      "hedge_z": -0.82,
+      "rv20": 8.76,
+      "iv_rv": 1.9,
+      "spy": {
+        "putAsk": 32948900,
+        "putBid": 28222200,
+        "put_sb": 0.857,
+        "iv_put": 18.34,
+        "long_share": 17.0
+      }
+    }
   },
   "vixTermRatio": 0.8516,
   "evidence": {
@@ -216,29 +233,9 @@
   "rotation": {
     "leadingSectors": [],
     "sectorRs": {
-      "FIN": {
-        "rs5": -2.39,
-        "rs20": -0.87,
-        "leading": false
-      },
-      "COM": {
-        "rs5": -1.38,
-        "rs20": 1.41,
-        "leading": false
-      },
-      "CS": {
-        "rs5": -1.94,
-        "rs20": -1.49,
-        "leading": false
-      },
-      "IT": {
-        "rs5": 2.46,
-        "rs20": -0.33,
-        "leading": false
-      },
-      "UTL": {
-        "rs5": -0.6,
-        "rs20": -2.64,
+      "CD": {
+        "rs5": -2.38,
+        "rs20": -6.22,
         "leading": false
       },
       "IND": {
@@ -246,9 +243,9 @@
         "rs20": -4.9,
         "leading": false
       },
-      "CD": {
-        "rs5": -2.38,
-        "rs20": -6.22,
+      "CS": {
+        "rs5": -1.94,
+        "rs20": -1.49,
         "leading": false
       },
       "MAT": {
@@ -256,19 +253,39 @@
         "rs20": -2.48,
         "leading": false
       },
-      "RE": {
-        "rs5": -1.56,
-        "rs20": -4.21,
-        "leading": false
-      },
       "ENE": {
         "rs5": -0.36,
         "rs20": 0.38,
         "leading": false
       },
+      "COM": {
+        "rs5": -1.38,
+        "rs20": 1.41,
+        "leading": false
+      },
+      "UTL": {
+        "rs5": -0.6,
+        "rs20": -2.64,
+        "leading": false
+      },
+      "IT": {
+        "rs5": 2.46,
+        "rs20": -0.33,
+        "leading": false
+      },
+      "RE": {
+        "rs5": -1.56,
+        "rs20": -4.21,
+        "leading": false
+      },
       "HC": {
         "rs5": -3.29,
         "rs20": -1.07,
+        "leading": false
+      },
+      "FIN": {
+        "rs5": -2.39,
+        "rs20": -0.87,
         "leading": false
       }
     },

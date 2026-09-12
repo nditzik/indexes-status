@@ -88,6 +88,43 @@ MULTI_LEG_CODES = {
     'TASL', 'TESL', 'TFSL', 'TLAT', 'TLCT', 'TLET', 'TLFT',
 }
 
+def hedge_metrics(rows, d0=None):
+    """Research metrics (12.9.2026, phase 1 — see docs/research/options-hedging-phase1.md):
+    putAsk/putBid premium, put_sb (sell/buy of puts = who sells the insurance),
+    iv_put (premium-weighted IV of puts bought), long_share (% of bought-put
+    premium with 60+ DTE). Computed daily and STORED under flow.research so a
+    second sample accumulates; not displayed anywhere yet."""
+    putAsk = putBid = 0.0
+    iv_w = iv_p = long_p = 0.0
+    for r in rows:
+        t = (r.get('Type', '') or '').strip().lower()
+        side = (r.get('Side', '') or '').strip().lower()
+        pr = num(r.get('Premium')) or 0
+        if t != 'put':
+            continue
+        if side == 'ask':
+            putAsk += pr
+            iv = num(r.get('IV'))
+            if iv:
+                iv_w += iv * pr; iv_p += pr
+            dte = num(r.get('DTE'))
+            if dte is None and d0 is not None:
+                try:
+                    dte = (datetime.strptime(r.get('Exp Date', ''), '%Y-%m-%d').date() - d0).days
+                except Exception:
+                    dte = None
+            if dte is not None and dte >= 60:
+                long_p += pr
+        elif side == 'bid':
+            putBid += pr
+    return {
+        'putAsk': round(putAsk), 'putBid': round(putBid),
+        'put_sb': round(putBid / putAsk, 3) if putAsk else None,
+        'iv_put': round(iv_w / iv_p, 2) if iv_p else None,
+        'long_share': round(long_p / putAsk * 100, 1) if putAsk else None,
+    }
+
+
 def directional_read(rows):
     """Delta-weighted directional read of one flow export. Returns a dict of
     the descriptive fields (deltaTilt/deltaLabel/openingLean/quadrants/
@@ -946,6 +983,44 @@ if flow_files:
                           f"tilt {dr['deltaTilt']:+.2f} {dr['deltaLabel']} · open {dr['openLabel']} (${dr['openP']/1e6:.0f}M) · multi {dr['legMultiPct']:.0f}%")
             else:
                 print(f'[flow] no SPY file for {_spx_iso} — direction falls back to SPX (unreliable)')
+            # ── Research metrics (phase 1) — tracked daily, not displayed ──
+            try:
+                from datetime import date as _date
+                _y, _m, _d = _spx_iso.split('-')
+                _d0 = _date(int(_y), int(_m), int(_d))
+                hm = hedge_metrics(rows, _d0)
+                # hedge_z: today's bought-put premium vs the trailing 20 SPX files
+                prev = []
+                for pth in flow_files[-21:-1]:
+                    try:
+                        prev.append(hedge_metrics(load_csv(pth))['putAsk'])
+                    except Exception:
+                        pass
+                if len(prev) >= 10:
+                    mu = sum(prev) / len(prev)
+                    sd = (sum((x - mu) ** 2 for x in prev) / len(prev)) ** 0.5 or 1
+                    hm['hedge_z'] = round((hm['putAsk'] - mu) / sd, 2)
+                else:
+                    hm['hedge_z'] = None
+                # 20-day realized vol of the index (annualized, %) for IV/RV
+                try:
+                    _cl = [h.get('spx_price') for h in history_rich[-21:]]
+                    _cl = [float(c) for c in _cl if c]
+                    if len(_cl) >= 15:
+                        import math as _math
+                        _rs = [_math.log(_cl[i] / _cl[i - 1]) for i in range(1, len(_cl))]
+                        _mu = sum(_rs) / len(_rs)
+                        _rv = (sum((x - _mu) ** 2 for x in _rs) / len(_rs)) ** 0.5 * _math.sqrt(252) * 100
+                        hm['rv20'] = round(_rv, 2)
+                        hm['iv_rv'] = round(hm['iv_put'] / _rv, 2) if (hm['iv_put'] and _rv) else None
+                except Exception:
+                    pass
+                if spy_same:
+                    hm['spy'] = hedge_metrics(load_csv(spy_same[-1]), _d0)
+                flow['research'] = hm
+                print(f"[flow] research: put_sb {hm.get('put_sb')} · long_share {hm.get('long_share')} · hedge_z {hm.get('hedge_z')} · iv_rv {hm.get('iv_rv')}")
+            except Exception as e:
+                print(f'[flow] research metrics failed: {e}')
     except Exception as e:
         print(f'Options flow parse error: {e}')
 

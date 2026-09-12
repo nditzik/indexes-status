@@ -82,6 +82,8 @@ def build_state():
             'openTilt': sr.flow.get('openTilt'),
             'openLabel': sr.flow.get('openLabel'),
             'openP': sr.flow.get('openP'),
+            # research (phase 1, 12.9.2026): hedging metrics tracked daily, not displayed
+            'research': sr.flow.get('research'),
         } if sr.flow else None),
         'vixTermRatio': getattr(sr, 'vix_term_ratio', None),   # phase 3.2 / 4b
         'evidence': {   # phase 4b — numbers for the Evidence cards
