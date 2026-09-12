@@ -233,6 +233,41 @@
   "rotation": {
     "leadingSectors": [],
     "sectorRs": {
+      "COM": {
+        "rs5": -1.38,
+        "rs20": 1.41,
+        "leading": false
+      },
+      "FIN": {
+        "rs5": -2.39,
+        "rs20": -0.87,
+        "leading": false
+      },
+      "CS": {
+        "rs5": -1.94,
+        "rs20": -1.49,
+        "leading": false
+      },
+      "RE": {
+        "rs5": -1.56,
+        "rs20": -4.21,
+        "leading": false
+      },
+      "UTL": {
+        "rs5": -0.6,
+        "rs20": -2.64,
+        "leading": false
+      },
+      "HC": {
+        "rs5": -3.29,
+        "rs20": -1.07,
+        "leading": false
+      },
+      "MAT": {
+        "rs5": -2.05,
+        "rs20": -2.48,
+        "leading": false
+      },
       "CD": {
         "rs5": -2.38,
         "rs20": -6.22,
@@ -243,49 +278,14 @@
         "rs20": -4.9,
         "leading": false
       },
-      "CS": {
-        "rs5": -1.94,
-        "rs20": -1.49,
-        "leading": false
-      },
-      "MAT": {
-        "rs5": -2.05,
-        "rs20": -2.48,
-        "leading": false
-      },
-      "ENE": {
-        "rs5": -0.36,
-        "rs20": 0.38,
-        "leading": false
-      },
-      "COM": {
-        "rs5": -1.38,
-        "rs20": 1.41,
-        "leading": false
-      },
-      "UTL": {
-        "rs5": -0.6,
-        "rs20": -2.64,
-        "leading": false
-      },
       "IT": {
         "rs5": 2.46,
         "rs20": -0.33,
         "leading": false
       },
-      "RE": {
-        "rs5": -1.56,
-        "rs20": -4.21,
-        "leading": false
-      },
-      "HC": {
-        "rs5": -3.29,
-        "rs20": -1.07,
-        "leading": false
-      },
-      "FIN": {
-        "rs5": -2.39,
-        "rs20": -0.87,
+      "ENE": {
+        "rs5": -0.36,
+        "rs20": 0.38,
         "leading": false
       }
     },

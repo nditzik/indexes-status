@@ -3,6 +3,525 @@
     "minDte": 30,
     "minVolOi": 3.0
   },
-  "symbols": {},
-  "bySector": {}
+  "symbols": {
+    "NEE": {
+      "dir": "Put",
+      "volOiMax": 55.0,
+      "totalPremium": 603161,
+      "callPremium": 0,
+      "putPremium": 603161,
+      "contracts": 1
+    },
+    "MRK": {
+      "dir": "Call",
+      "volOiMax": 43.3,
+      "totalPremium": 30325500,
+      "callPremium": 30325500,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "AMZN": {
+      "dir": "Put",
+      "volOiMax": 30.1,
+      "totalPremium": 8951388,
+      "callPremium": 0,
+      "putPremium": 8951388,
+      "contracts": 2
+    },
+    "LYV": {
+      "dir": "Call",
+      "volOiMax": 25.1,
+      "totalPremium": 5414024,
+      "callPremium": 5414024,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "BAC": {
+      "dir": "Put",
+      "volOiMax": 22.9,
+      "totalPremium": 2281150,
+      "callPremium": 0,
+      "putPremium": 2281150,
+      "contracts": 2
+    },
+    "WYNN": {
+      "dir": "Call",
+      "volOiMax": 17.6,
+      "totalPremium": 315573,
+      "callPremium": 315573,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "GOOGL": {
+      "dir": "Call",
+      "volOiMax": 15.1,
+      "totalPremium": 37403457,
+      "callPremium": 31601017,
+      "putPremium": 5802440,
+      "contracts": 4
+    },
+    "BAX": {
+      "dir": "Call",
+      "volOiMax": 14.9,
+      "totalPremium": 112423,
+      "callPremium": 112423,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "INVH": {
+      "dir": "Call",
+      "volOiMax": 13.2,
+      "totalPremium": 108720,
+      "callPremium": 108720,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "HPE": {
+      "dir": "Put",
+      "volOiMax": 13.1,
+      "totalPremium": 2544146,
+      "callPremium": 860321,
+      "putPremium": 1683825,
+      "contracts": 4
+    },
+    "CB": {
+      "dir": "Call",
+      "volOiMax": 12.8,
+      "totalPremium": 1111185,
+      "callPremium": 1111185,
+      "putPremium": 0,
+      "contracts": 2
+    },
+    "COIN": {
+      "dir": "Put",
+      "volOiMax": 11.5,
+      "totalPremium": 33242,
+      "callPremium": 0,
+      "putPremium": 33242,
+      "contracts": 1
+    },
+    "FSLR": {
+      "dir": "Call",
+      "volOiMax": 10.6,
+      "totalPremium": 3814500,
+      "callPremium": 3814500,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "APA": {
+      "dir": "Put",
+      "volOiMax": 10.5,
+      "totalPremium": 1205662,
+      "callPremium": 534394,
+      "putPremium": 671268,
+      "contracts": 2
+    },
+    "NVDA": {
+      "dir": "Call",
+      "volOiMax": 10.2,
+      "totalPremium": 1083960,
+      "callPremium": 848160,
+      "putPremium": 235800,
+      "contracts": 2
+    },
+    "AMD": {
+      "dir": "Call",
+      "volOiMax": 10.2,
+      "totalPremium": 5987011,
+      "callPremium": 5987011,
+      "putPremium": 0,
+      "contracts": 2
+    },
+    "CRWD": {
+      "dir": "Call",
+      "volOiMax": 7.9,
+      "totalPremium": 2450949,
+      "callPremium": 2450949,
+      "putPremium": 0,
+      "contracts": 2
+    },
+    "UNH": {
+      "dir": "Call",
+      "volOiMax": 7.6,
+      "totalPremium": 37136875,
+      "callPremium": 37136875,
+      "putPremium": 0,
+      "contracts": 2
+    },
+    "AAPL": {
+      "dir": "Put",
+      "volOiMax": 7.5,
+      "totalPremium": 4611117,
+      "callPremium": 0,
+      "putPremium": 4611117,
+      "contracts": 2
+    },
+    "MPC": {
+      "dir": "Put",
+      "volOiMax": 7.3,
+      "totalPremium": 1372500,
+      "callPremium": 0,
+      "putPremium": 1372500,
+      "contracts": 1
+    },
+    "HPQ": {
+      "dir": "Call",
+      "volOiMax": 7.1,
+      "totalPremium": 583481,
+      "callPremium": 583481,
+      "putPremium": 0,
+      "contracts": 2
+    },
+    "ON": {
+      "dir": "Call",
+      "volOiMax": 7.0,
+      "totalPremium": 2331450,
+      "callPremium": 2331450,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "COO": {
+      "dir": "Put",
+      "volOiMax": 6.4,
+      "totalPremium": 88560,
+      "callPremium": 0,
+      "putPremium": 88560,
+      "contracts": 1
+    },
+    "FCX": {
+      "dir": "Call",
+      "volOiMax": 6.2,
+      "totalPremium": 404397,
+      "callPremium": 404397,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "HBAN": {
+      "dir": "Put",
+      "volOiMax": 6.0,
+      "totalPremium": 46210,
+      "callPremium": 0,
+      "putPremium": 46210,
+      "contracts": 2
+    },
+    "NOW": {
+      "dir": "Put",
+      "volOiMax": 5.9,
+      "totalPremium": 79458,
+      "callPremium": 0,
+      "putPremium": 79458,
+      "contracts": 1
+    },
+    "DIS": {
+      "dir": "Put",
+      "volOiMax": 5.7,
+      "totalPremium": 117090,
+      "callPremium": 0,
+      "putPremium": 117090,
+      "contracts": 1
+    },
+    "MET": {
+      "dir": "Put",
+      "volOiMax": 5.6,
+      "totalPremium": 959250,
+      "callPremium": 0,
+      "putPremium": 959250,
+      "contracts": 1
+    },
+    "ORCL": {
+      "dir": "Call",
+      "volOiMax": 5.5,
+      "totalPremium": 14790696,
+      "callPremium": 12500686,
+      "putPremium": 2290010,
+      "contracts": 5
+    },
+    "MU": {
+      "dir": "Put",
+      "volOiMax": 5.3,
+      "totalPremium": 13516176,
+      "callPremium": 39360,
+      "putPremium": 13476816,
+      "contracts": 2
+    },
+    "UBER": {
+      "dir": "Call",
+      "volOiMax": 5.3,
+      "totalPremium": 347787,
+      "callPremium": 347787,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "SWKS": {
+      "dir": "Call",
+      "volOiMax": 5.3,
+      "totalPremium": 1745720,
+      "callPremium": 1745720,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "KR": {
+      "dir": "Call",
+      "volOiMax": 5.2,
+      "totalPremium": 339270,
+      "callPremium": 339270,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "BSX": {
+      "dir": "Put",
+      "volOiMax": 5.2,
+      "totalPremium": 41961,
+      "callPremium": 0,
+      "putPremium": 41961,
+      "contracts": 1
+    },
+    "HUM": {
+      "dir": "Put",
+      "volOiMax": 5.2,
+      "totalPremium": 1448502,
+      "callPremium": 0,
+      "putPremium": 1448502,
+      "contracts": 1
+    },
+    "PSX": {
+      "dir": "Put",
+      "volOiMax": 5.2,
+      "totalPremium": 378430,
+      "callPremium": 0,
+      "putPremium": 378430,
+      "contracts": 1
+    },
+    "MDT": {
+      "dir": "Call",
+      "volOiMax": 5.0,
+      "totalPremium": 1082640,
+      "callPremium": 1082640,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "UPS": {
+      "dir": "Call",
+      "volOiMax": 5.0,
+      "totalPremium": 2180994,
+      "callPremium": 2180994,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "DOW": {
+      "dir": "Call",
+      "volOiMax": 4.8,
+      "totalPremium": 1014444,
+      "callPremium": 1014444,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "AXP": {
+      "dir": "Call",
+      "volOiMax": 4.6,
+      "totalPremium": 2307500,
+      "callPremium": 2307500,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "NXPI": {
+      "dir": "Call",
+      "volOiMax": 4.5,
+      "totalPremium": 686952,
+      "callPremium": 686952,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "META": {
+      "dir": "Call",
+      "volOiMax": 4.5,
+      "totalPremium": 5346735,
+      "callPremium": 5346735,
+      "putPremium": 0,
+      "contracts": 5
+    },
+    "WBD": {
+      "dir": "Put",
+      "volOiMax": 4.1,
+      "totalPremium": 276000,
+      "callPremium": 0,
+      "putPremium": 276000,
+      "contracts": 1
+    },
+    "ROL": {
+      "dir": "Put",
+      "volOiMax": 4.1,
+      "totalPremium": 304848,
+      "callPremium": 0,
+      "putPremium": 304848,
+      "contracts": 1
+    },
+    "PGR": {
+      "dir": "Put",
+      "volOiMax": 4.0,
+      "totalPremium": 294150,
+      "callPremium": 0,
+      "putPremium": 294150,
+      "contracts": 1
+    },
+    "NFLX": {
+      "dir": "Put",
+      "volOiMax": 4.0,
+      "totalPremium": 1444795,
+      "callPremium": 0,
+      "putPremium": 1444795,
+      "contracts": 1
+    },
+    "DELL": {
+      "dir": "Put",
+      "volOiMax": 4.0,
+      "totalPremium": 686400,
+      "callPremium": 0,
+      "putPremium": 686400,
+      "contracts": 1
+    },
+    "WDC": {
+      "dir": "Put",
+      "volOiMax": 4.0,
+      "totalPremium": 267806,
+      "callPremium": 0,
+      "putPremium": 267806,
+      "contracts": 1
+    },
+    "ADBE": {
+      "dir": "Put",
+      "volOiMax": 4.0,
+      "totalPremium": 838380,
+      "callPremium": 0,
+      "putPremium": 838380,
+      "contracts": 1
+    },
+    "PANW": {
+      "dir": "Put",
+      "volOiMax": 3.8,
+      "totalPremium": 192096,
+      "callPremium": 0,
+      "putPremium": 192096,
+      "contracts": 1
+    },
+    "C": {
+      "dir": "Call",
+      "volOiMax": 3.7,
+      "totalPremium": 1155990,
+      "callPremium": 1155990,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "AVGO": {
+      "dir": "Put",
+      "volOiMax": 3.6,
+      "totalPremium": 19160575,
+      "callPremium": 0,
+      "putPremium": 19160575,
+      "contracts": 1
+    },
+    "WELL": {
+      "dir": "Call",
+      "volOiMax": 3.6,
+      "totalPremium": 133140,
+      "callPremium": 133140,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "GIS": {
+      "dir": "Call",
+      "volOiMax": 3.5,
+      "totalPremium": 652715,
+      "callPremium": 652715,
+      "putPremium": 0,
+      "contracts": 1
+    },
+    "CVNA": {
+      "dir": "Put",
+      "volOiMax": 3.4,
+      "totalPremium": 1978704,
+      "callPremium": 0,
+      "putPremium": 1978704,
+      "contracts": 1
+    }
+  },
+  "bySector": {
+    "UTL": {
+      "callPremium": 0,
+      "putPremium": 603161,
+      "net": -603161,
+      "dir": "Put",
+      "count": 1
+    },
+    "HC": {
+      "callPremium": 68657438,
+      "putPremium": 1579023,
+      "net": 67078415,
+      "dir": "Call",
+      "count": 7
+    },
+    "CD": {
+      "callPremium": 5729597,
+      "putPremium": 10930092,
+      "net": -5200495,
+      "dir": "Put",
+      "count": 4
+    },
+    "FIN": {
+      "callPremium": 4574675,
+      "putPremium": 3614002,
+      "net": 960673,
+      "dir": "Call",
+      "count": 8
+    },
+    "COM": {
+      "callPremium": 37295539,
+      "putPremium": 7640325,
+      "net": 29655214,
+      "dir": "Call",
+      "count": 6
+    },
+    "RE": {
+      "callPremium": 241860,
+      "putPremium": 0,
+      "net": 241860,
+      "dir": "Call",
+      "count": 2
+    },
+    "IT": {
+      "callPremium": 28034090,
+      "putPremium": 43522283,
+      "net": -15488193,
+      "dir": "Put",
+      "count": 17
+    },
+    "ENE": {
+      "callPremium": 4348894,
+      "putPremium": 2422198,
+      "net": 1926696,
+      "dir": "Call",
+      "count": 4
+    },
+    "MAT": {
+      "callPremium": 1418841,
+      "putPremium": 0,
+      "net": 1418841,
+      "dir": "Call",
+      "count": 2
+    },
+    "CS": {
+      "callPremium": 991985,
+      "putPremium": 0,
+      "net": 991985,
+      "dir": "Call",
+      "count": 2
+    },
+    "IND": {
+      "callPremium": 2180994,
+      "putPremium": 304848,
+      "net": 1876146,
+      "dir": "Call",
+      "count": 2
+    }
+  }
 }
