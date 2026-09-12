@@ -58,6 +58,24 @@ def classify(name):
     return None
 
 
+def uoa_trade_date(path):
+    """Trade date of a UOA export from its Time column (YYYY-MM-DD, majority vote)."""
+    try:
+        import csv
+        from collections import Counter
+        votes = Counter()
+        with open(path, encoding='utf-8-sig', newline='') as f:
+            for r in csv.DictReader(f):
+                t = (r.get('Time') or '')[:10]
+                try:
+                    votes[datetime.strptime(t, '%Y-%m-%d').date()] += 1
+                except Exception:
+                    continue
+        return votes.most_common(1)[0][0] if votes else None
+    except Exception:
+        return None
+
+
 def flow_trade_date(path):
     """Trade date of a flow export from its CONTENT (Exp Date − DTE, majority
     vote) — Barchart names the SPY download by the *download* date, which is
@@ -134,6 +152,12 @@ def main(dry_run=False):
             td = flow_trade_date(path)
             if td:
                 target = CANON_FMT['spyflow'].format(mm=f'{td.month:02d}', dd=f'{td.day:02d}', yyyy=f'{td.year:04d}')
+        # UOA (unusual stock options activity): same download-date problem; the
+        # export carries the trade date in its Time column — use that.
+        if classify(name) == 'uoa':
+            td = uoa_trade_date(path)
+            if td:
+                target = CANON_FMT['uoa'].format(mm=f'{td.month:02d}', dd=f'{td.day:02d}', yyyy=f'{td.year:04d}')
         if not target or target == name:
             continue
         dst = os.path.join(DATA_DIR, target)
