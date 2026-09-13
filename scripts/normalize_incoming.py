@@ -31,12 +31,14 @@ CANON_RE = {
     'watchlist': re.compile(r'^watchlist-sp-500-intraday-\d{2}-\d{2}-\d{4}\.csv$'),
     'flow':      re.compile(r'^spx-options-flow-\d{2}-\d{2}-\d{4}\.csv$'),
     'spyflow':   re.compile(r'^spy-options-flow-\d{2}-\d{2}-\d{4}\.csv$'),
+    'allflow':   re.compile(r'^options-flow-\d{2}-\d{2}-\d{4}\.csv$'),
     'uoa':       re.compile(r'^uoa-stocks-\d{2}-\d{2}-\d{4}\.csv$'),
 }
 CANON_FMT = {
     'watchlist': 'watchlist-sp-500-intraday-{mm}-{dd}-{yyyy}.csv',
     'flow':      'spx-options-flow-{mm}-{dd}-{yyyy}.csv',
     'spyflow':   'spy-options-flow-{mm}-{dd}-{yyyy}.csv',
+    'allflow':   'options-flow-{mm}-{dd}-{yyyy}.csv',
     'uoa':       'uoa-stocks-{mm}-{dd}-{yyyy}.csv',
 }
 
@@ -55,6 +57,8 @@ def classify(name):
         return 'flow'
     if 'spy' in c and 'option' in c and 'flow' in c:
         return 'spyflow'
+    if 'option' in c and 'flow' in c:          # all-stocks top-premium export (Barchart "Options Flow")
+        return 'allflow'
     return None
 
 
@@ -148,10 +152,10 @@ def main(dry_run=False):
         # SPY flow: Barchart names the download by the download date, so even a
         # canonical-looking name can carry the wrong day — the trade date comes
         # from the content (Exp Date − DTE) and overrides the filename date.
-        if classify(name) == 'spyflow':
+        if classify(name) in ('spyflow', 'allflow'):
             td = flow_trade_date(path)
             if td:
-                target = CANON_FMT['spyflow'].format(mm=f'{td.month:02d}', dd=f'{td.day:02d}', yyyy=f'{td.year:04d}')
+                target = CANON_FMT[classify(name)].format(mm=f'{td.month:02d}', dd=f'{td.day:02d}', yyyy=f'{td.year:04d}')
         # UOA (unusual stock options activity): same download-date problem; the
         # export carries the trade date in its Time column — use that.
         if classify(name) == 'uoa':

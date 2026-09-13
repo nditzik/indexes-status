@@ -70,6 +70,11 @@ jobs:
       - name: Build uoa_daily.json (unusual options activity)
         run: python3 scripts/build_uoa_daily.py
 
+      # "הכסף הגדול היום" — top single-name option positions from the all-stocks
+      # options-flow export (if present). Consumed by the nidam-markets site.
+      - name: Build big_trades.json (big single-name option positions)
+        run: python3 scripts/build_big_trades.py
+
       # KNN forecast-vs-actual series (the analogs' 20d band + realized SPX)
       # for the "צפי מול בפועל" chart in the KNN tab.
       - name: Build knn_forecast.json (forecast vs actual)
