@@ -125,6 +125,92 @@ def hedge_metrics(rows, d0=None):
     }
 
 
+_UOA_DATE_RE = re.compile(r'uoa-stocks-(\d{2})-(\d{2})-(\d{4})\.csv$')
+
+
+def uoa_metrics(rows):
+    """Stocks-wide unusual-options-activity export (no Side/Premium columns):
+    premium ≈ Latest×Volume×100. Returns None for an SPX-only export (≤5 symbols)
+    — those files (24.8–10.9.2026) are not a stock-market read."""
+    syms = set(); cp = pp = cv = pv = 0.0
+    for r in rows:
+        t = (r.get('Type', '') or '').strip()
+        if t not in ('Put', 'Call'):
+            continue
+        syms.add(r.get('Symbol', ''))
+        prem = (num(r.get('Latest')) or 0) * (num(r.get('Volume')) or 0) * 100
+        vol = num(r.get('Volume')) or 0
+        if t == 'Call':
+            cp += prem; cv += vol
+        else:
+            pp += prem; pv += vol
+    if len(syms) <= 5 or not (cp + pp):
+        return None
+    return {'symbols': len(syms), 'callShare': round(cp / (cp + pp) * 100, 1),
+            'pcVol': round(pv / cv, 2) if cv else None, 'callP': round(cp), 'putP': round(pp)}
+
+
+def pct_rank(vals, x):
+    """0–100: share of history strictly below x (None if too little history)."""
+    vals = [v for v in vals if v is not None]
+    if x is None or len(vals) < 10:
+        return None
+    return round(sum(v < x for v in vals) / len(vals) * 100)
+
+
+def sentiment_lines(flow, hm):
+    """Three DESCRIPTIVE lines for the site's options block (13.9.2026) — text, no
+    score, each metric judged against its own history (the instrument, not a
+    universal threshold): (1) stocks-wide UOA call share, (2) SPY direction +
+    new positions, (3) SPX insurance sold/bought + IV/RV. See
+    docs/research/options-hedging-phase1.md for why SPX is read as hedging."""
+    out = []
+    u = hm.get('uoa') or {}
+    if u.get('callShare') is not None:
+        pr = u.get('callSharePct')
+        if pr is None:
+            tone, word = 'neutral', 'אין עדיין היסטוריה להשוואה'
+        elif pr >= 75:
+            tone, word = 'up', 'גבוה מהרגיל'
+        elif pr <= 25:
+            tone, word = 'down', 'נמוך מהרגיל'
+        else:
+            tone, word = 'neutral', 'בטווח הרגיל'
+        txt = (f"קולים {u['callShare']:.0f}% מהפרמיה החריגה במניות בודדות ({u['symbols']} מניות) — {word}"
+               + (f" (חציון {u['callShareMed']:.0f}%, אחוזון {pr})" if pr is not None else "") + ".")
+        out.append({'key': 'stocks', 'label': 'מניות', 'tone': tone, 'text': txt, 'date': u.get('date')})
+    if flow.get('dirSource') == 'SPY' and flow.get('deltaLabel'):
+        dl, ol = flow.get('deltaLabel'), flow.get('openLabel')
+        tone = 'up' if dl == 'שורי' else 'down' if dl == 'דובי' else 'neutral'
+        txt = f"הכסף הגדול נטו ב-SPY: {dl} (משוקלל-דלתא)"
+        if ol:
+            txt += f" · פוזיציות חדשות שנפתחו היום (${(flow.get('openP') or 0) / 1e6:.0f}M): {ol}"
+        out.append({'key': 'spy', 'label': 'SPY', 'tone': tone, 'text': txt + '.'})
+    sb = hm.get('put_sb')
+    if sb is not None:
+        pr = hm.get('put_sb_pct')
+        if sb >= 1.3:
+            who = 'מוכרים ביטוח יותר משקונים'
+        elif sb <= 0.7:
+            who = 'קונים ביטוח יותר משמוכרים'
+        else:
+            who = 'קנייה ומכירה של ביטוח מאוזנות'
+        txt = f"SPX: {who} (מכירה/קנייה של פוטים {sb:.2f}"
+        if pr is not None:
+            txt += f", אחוזון {pr} מול 60 הימים האחרונים"
+        txt += ")"
+        ivrv = hm.get('iv_rv')
+        if ivrv:
+            fear = 'הפחד מתומחר הרבה מעל התנודתיות בפועל' if ivrv >= 1.8 else ('הפחד מתומחר מעל התנודתיות בפועל' if ivrv >= 1.3 else 'הפחד מתומחר קרוב לתנודתיות בפועל')
+            txt += f" · IV/RV {ivrv:.1f}: {fear}"
+        note = ''
+        if pr is not None and pr >= 67:
+            note = ' במחקר שלנו, מכירת ביטוח גבוהה הקדימה יום מכירה מוסדית בתוך 3 ימים ב-66% מהמקרים (מול 31%).'
+        tone = 'warn' if (pr is not None and pr >= 67) else 'neutral'
+        out.append({'key': 'spx', 'label': 'SPX', 'tone': tone, 'text': txt + '.' + note})
+    return out
+
+
 def directional_read(rows):
     """Delta-weighted directional read of one flow export. Returns a dict of
     the descriptive fields (deltaTilt/deltaLabel/openingLean/quadrants/
@@ -1017,6 +1103,36 @@ if flow_files:
                     pass
                 if spy_same:
                     hm['spy'] = hedge_metrics(load_csv(spy_same[-1]), _d0)
+                # put_sb vs its own trailing history (60 SPX files) — 13.9.2026
+                try:
+                    _sbh = []
+                    for pth in flow_files[-61:-1]:
+                        try:
+                            _sbh.append(hedge_metrics(load_csv(pth))['put_sb'])
+                        except Exception:
+                            pass
+                    hm['put_sb_pct'] = pct_rank(_sbh, hm.get('put_sb'))
+                except Exception:
+                    hm['put_sb_pct'] = None
+                # stocks-wide UOA: same trade date if present, else the latest wide file
+                try:
+                    uoa_files = sorted_by_date(glob.glob('data/uoa-stocks-*.csv'), _UOA_DATE_RE)
+                    _um = []
+                    for pth in uoa_files:
+                        m_ = uoa_metrics(load_csv(pth))
+                        if m_:
+                            m_['date'] = _iso_key(pth, _UOA_DATE_RE); _um.append(m_)
+                    same = [m_ for m_ in _um if m_['date'] == _spx_iso]
+                    cur = same[-1] if same else (_um[-1] if _um else None)
+                    if cur:
+                        histv = [m_['callShare'] for m_ in _um[-61:] if m_['date'] < cur['date']]
+                        cur['callSharePct'] = pct_rank(histv, cur['callShare'])
+                        cur['callShareMed'] = round(sorted(histv)[len(histv) // 2], 1) if histv else None
+                        cur['histDays'] = len(histv)
+                        hm['uoa'] = cur
+                except Exception as e:
+                    print(f'[flow] uoa metrics failed: {e}')
+                hm['lines'] = sentiment_lines(flow, hm)
                 flow['research'] = hm
                 print(f"[flow] research: put_sb {hm.get('put_sb')} · long_share {hm.get('long_share')} · hedge_z {hm.get('hedge_z')} · iv_rv {hm.get('iv_rv')}")
             except Exception as e:
