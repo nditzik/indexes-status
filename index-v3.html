@@ -13,8 +13,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
     <!-- Production stylesheet — legacy renderers fire into legacy IDs inside the tabs -->
-    <link rel="stylesheet" href="v2/overview-prod.css?v=20260704s">
-    <link rel="stylesheet" href="v2/overview-v3.css?v=20260704s">
+    <link rel="stylesheet" href="v2/overview-prod.css?v=20260704t">
+    <link rel="stylesheet" href="v2/overview-v3.css?v=20260704t">
 </head>
 <body class="overview-prod-root v3-body">
 
@@ -570,7 +570,7 @@
             <div class="v3-card-body">
                 <div class="v3-knnfc-meta" id="v3_knnfcMeta">—</div>
                 <div class="v3-knnfc-chart"><canvas id="v3_knnfcChart"></canvas></div>
-                <div class="v3-knnfc-note"><b>רצועה בהירה (min–max)</b> = הטווח המלא של האנלוגים — מבחן סלחני. <b>ליבה כהה (q25–q75)</b> = 50% האמצעיים, לאן <b>רוב</b> האנלוגים הצביעו — זה המבחן האמיתי לדיוק. הקו השחור = תשואת ה-SPX שהתממשה בפועל (20 ימי מסחר קדימה); ירוק = בתוך הרצועה הרחבה, אדום = פרצה. <b style="color:#b45309;">כתום/מקווקו = אמינות נמוכה</b> (האנלוגים רחוקים מדי). פער בקו = יום ללא תחזית.</div>
+                <div class="v3-knnfc-note"><b>רצועה בהירה (min–max)</b> = הטווח המלא של האנלוגים, כולל תרחישי-קיצון חד-פעמיים — מבחן סלחני. <b>ליבה כהה (q25–q75)</b> = 50% האמצעיים, לאן <b>רוב</b> האנלוגים הצביעו — זה המבחן האמיתי לדיוק. <b style="color:#f97316;">הקו הכתום המקווקו = הצפי המרכזי בלי החריגים הקיצוניים</b> (חציון האנלוגים — אנלוג-מפולת בודד לא מזיז אותו). הקו השחור = תשואת ה-SPX שהתממשה בפועל (20 ימי מסחר קדימה); ירוק = בתוך הרצועה הרחבה, אדום = פרצה. <b style="color:#6b7280;">אפור/מקווקו = אמינות נמוכה</b> (האנלוגים רחוקים מדי). פער בקו = יום ללא תחזית.</div>
             </div>
         </div>
 
@@ -620,13 +620,13 @@
 </div>
 
 <!-- ═══ SCRIPTS (same order as legacy index.html) ═══ -->
-<script src="v2/regime.js?v=20260704s"></script>
-<script src="v2/narrative.js?v=20260704s"></script>
-<script src="v2/historical.js?v=20260704s"></script>
-<script src="v2/patterns.js?v=20260704s"></script>
-<script src="v2/forward-tracking.js?v=20260704s"></script>
-<script src="v2/overview-prod.js?v=20260704s"></script>
-<script src="v2/verdict.js?v=20260704s"></script>
+<script src="v2/regime.js?v=20260704t"></script>
+<script src="v2/narrative.js?v=20260704t"></script>
+<script src="v2/historical.js?v=20260704t"></script>
+<script src="v2/patterns.js?v=20260704t"></script>
+<script src="v2/forward-tracking.js?v=20260704t"></script>
+<script src="v2/overview-prod.js?v=20260704t"></script>
+<script src="v2/verdict.js?v=20260704t"></script>
 
 <script>
 // ─── Tab switching ───

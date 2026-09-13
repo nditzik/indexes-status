@@ -5212,18 +5212,20 @@ async function renderV3KnnForecast() {
         } else {
             parts.push(`${d.total} ימים · טרם הבשילו ל-20 יום`);
         }
-        if (d.lowConfCount) parts.push(`<span class="v3-warn">${d.lowConfCount} ימים באמינות נמוכה</span> (כתום/מקווקו)`);
+        if (d.lowConfCount) parts.push(`<span class="v3-muted">${d.lowConfCount} ימים באמינות נמוכה</span> (אפור/מקווקו)`);
         if (d.gapDates && d.gapDates.length) parts.push(`פערים: ${d.gapDates.map(fmtDate).join(', ')}`);
         meta.innerHTML = parts.join(' · ');
     }
     const S = series;                              // closure for segment callbacks
     const lowAt = i => S[i] && S[i].confidence === 'low';
-    const BLUE = 'rgba(59,130,246,0.35)', ORANGE = 'rgba(245,158,11,0.7)';
+    // GRAY marks low-confidence segments (orange now belongs to the
+    // central-forecast line, so it can't double as the reliability mark).
+    const BLUE = 'rgba(59,130,246,0.35)', GRAY = 'rgba(107,114,128,0.65)';
     const labels = S.map(r => fmtDate(r.date));
     // Band-line segment styling: an edge touching a low-confidence day turns
-    // dashed orange; the fill under it lightens to orange. Gaps are nulls →
+    // dashed gray; the fill under it grays out. Gaps are nulls →
     // the lines simply break (a visible "no forecast" gap).
-    const segBorder = { borderColor: c => lowAt(c.p1DataIndex) ? ORANGE : BLUE,
+    const segBorder = { borderColor: c => lowAt(c.p1DataIndex) ? GRAY : BLUE,
                         borderDash:  c => lowAt(c.p1DataIndex) ? [4, 3] : undefined };
     if (canvas._chart) canvas._chart.destroy();
     canvas._chart = new Chart(canvas, {
@@ -5240,7 +5242,7 @@ async function renderV3KnnForecast() {
                   backgroundColor: 'rgba(59,130,246,0.09)', tension: 0.2, spanGaps: false,
                   segment: Object.assign({
                       backgroundColor: c => lowAt(c.p1DataIndex)
-                          ? 'rgba(245,158,11,0.09)' : 'rgba(59,130,246,0.09)' }, segBorder) },
+                          ? 'rgba(107,114,128,0.10)' : 'rgba(59,130,246,0.09)' }, segBorder) },
                 // Core band (q25–q75) — datasets 2,3 — the meaningful test
                 { label: 'ליבה (q25–q75)', data: S.map(r => r.fcQ75),
                   borderColor: 'rgba(59,130,246,0.5)', borderWidth: 1, pointRadius: 0,
@@ -5250,15 +5252,18 @@ async function renderV3KnnForecast() {
                   backgroundColor: 'rgba(59,130,246,0.24)', tension: 0.2, spanGaps: false,
                   segment: Object.assign({
                       backgroundColor: c => lowAt(c.p1DataIndex)
-                          ? 'rgba(245,158,11,0.22)' : 'rgba(59,130,246,0.24)' }, segBorder) },
-                { label: 'צפי (חציון)', data: S.map(r => r.fcMedian),
-                  borderColor: 'rgba(59,130,246,0.7)', borderWidth: 1.5,
-                  borderDash: [4, 3], pointRadius: 0, fill: false, tension: 0.2, spanGaps: false },
+                          ? 'rgba(107,114,128,0.18)' : 'rgba(59,130,246,0.24)' }, segBorder) },
+                // The clean expectation — the MEDIAN of the analogs, immune to
+                // the crash-analog outliers by construction. Prominent orange
+                // so it reads against the blue bands (user request).
+                { label: 'צפי מרכזי (ללא קיצונים)', data: S.map(r => r.fcMedian),
+                  borderColor: '#f97316', borderWidth: 2.5,
+                  borderDash: [6, 4], pointRadius: 0, fill: false, tension: 0.2, spanGaps: false },
                 { label: 'בפועל', data: S.map(r => r.actual),
                   borderColor: '#1a202c', borderWidth: 2, spanGaps: false, tension: 0.1,
                   pointRadius: S.map(r => r.actual == null ? 0 : (r.confidence === 'low' ? 4 : 3)),
                   pointBackgroundColor: S.map(r => r.actual == null ? 'transparent' : (r.hit ? '#10b981' : '#ef4444')),
-                  pointBorderColor: S.map(r => r.confidence === 'low' ? '#f59e0b'
+                  pointBorderColor: S.map(r => r.confidence === 'low' ? '#6b7280'
                       : (r.actual == null ? 'transparent' : (r.hit ? '#10b981' : '#ef4444'))),
                   pointBorderWidth: S.map(r => r.confidence === 'low' ? 2 : 1) },
             ],
