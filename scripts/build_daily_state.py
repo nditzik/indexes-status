@@ -84,6 +84,12 @@ def build_state():
             'openP': sr.flow.get('openP'),
             # research (phase 1, 12.9.2026): hedging metrics tracked daily, not displayed
             'research': sr.flow.get('research'),
+            # v5 (13.9.2026): official options score composition + legacy v4 SPX score
+            'scoreVersion': sr.flow.get('scoreVersion'),
+            'scoreParts': sr.flow.get('scoreParts'),
+            'scoreNote': sr.flow.get('scoreNote'),
+            'spxScore': sr.flow.get('spxScore'),
+            'spxLabel': sr.flow.get('spxLabel'),
         } if sr.flow else None),
         'vixTermRatio': getattr(sr, 'vix_term_ratio', None),   # phase 3.2 / 4b
         'evidence': {   # phase 4b — numbers for the Evidence cards

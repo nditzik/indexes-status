@@ -196,7 +196,11 @@ def email_outputs():
         out = {
             't_score': sr.t_score,
             'b_score': sr.b_score,
-            'f_score': sr.f_score,
+            # v5 (13.9.2026): the JS fallback still mirrors the v4 SPX formula,
+            # so the informational comparison uses flow.spxScore; the official
+            # f_score (v5) is what daily_state must match (emitter check below).
+            'f_score': (sr.flow or {}).get('spxScore', sr.f_score),
+            'f_score_official': sr.f_score,
             'c_score': sr.c_score,
         }
         return out
@@ -317,8 +321,8 @@ def main():
         bds = importlib.import_module('build_daily_state')
         ds_scores = bds.build_state().get('scores', {})
         ds = {'t_score': ds_scores.get('tech'), 'b_score': ds_scores.get('breadth'),
-              'f_score': ds_scores.get('flow'), 'c_score': ds_scores.get('combined')}
-        for key in ('t_score', 'b_score', 'f_score', 'c_score'):
+              'f_score_official': ds_scores.get('flow'), 'c_score': ds_scores.get('combined')}
+        for key in ('t_score', 'b_score', 'f_score_official', 'c_score'):
             if ds.get(key) != em.get(key):
                 print(f'daily_state {key}: {ds.get(key)} != source {em.get(key)} — EMITTER DRIFT')
                 failed = True

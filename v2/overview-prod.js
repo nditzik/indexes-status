@@ -5858,8 +5858,8 @@ function renderV3OptionsCard(metrics) {
         // Canonical Mid share (premium) — same field as everywhere else.
         const midPct = midCanon != null ? Math.round(midCanon) : null;
         items.push({
-            label: 'משקל Flow בציון היום',
-            val: midPct != null ? `${wPct}% · ${midPct}% מהפרמיה ב-Mid` : `${wPct}%`,
+            label: 'משקל אופציות בציון היום',
+            val: `${wPct}%`,   // v5: fixed — the Mid share no longer scales it
             tone: wPct < 20 ? 'v3-warn' : '',
         });
     }

@@ -211,6 +211,112 @@ def sentiment_lines(flow, hm):
     return out
 
 
+def _flow_label(score):
+    """score → 5-level label (mirror of classifyByScore in JS)."""
+    if   score >= 80: return 'שורי חזק',   'pos'
+    elif score >= 60: return 'שורי מתון',  'pos'
+    elif score >= 40: return 'מאוזן',      'warn'
+    elif score >= 20: return 'באריש מתון', 'warn'
+    return 'באריש חזק', 'neg'
+
+
+# ═══════════════════════════════════════════════════
+#  Options score v5 (13.9.2026) — approved by Itzik after the Sep-2026
+#  research (docs/research/options-hedging-phase1.md, -vol-regimes-phase2.md):
+#  the SPX big-print export is hedging, not sentiment (97–100% multi-leg,
+#  structurally bullish), and the same formula on SPY is structurally
+#  bearish (put-dominated, 4–40 every day). So every component is judged
+#  against ITS OWN trailing history (percentile), never a universal threshold:
+#    50%  stocks sentiment — call share of unusual-activity premium across
+#         the whole stock market (uoa-stocks export), percentile vs 60 days
+#    20%  SPX insurance   — 100 − percentile of put sell/buy ratio (heavy
+#         put selling preceded a selling day within 3 sessions 66% vs 31%)
+#    30%  SPY direction   — percentile of the delta-weighted tilt; LOCKED at
+#         50 (neutral) until SPY_MIN_HISTORY SPY files exist (7 on 13.9.2026)
+#  Missing components are dropped and the rest re-normalised. The legacy
+#  v4 SPX score is kept as flow['spxScore'] (the JS fallback still mirrors
+#  it; parity_test compares it informationally).
+# ═══════════════════════════════════════════════════
+FLOW_V5_W = {'uoa': 0.5, 'ins': 0.2, 'spy': 0.3}
+SPY_MIN_HISTORY = 20
+_V5_CACHE = {}
+
+
+def _put_sb_of(path):
+    pa = pb = 0.0
+    for r in load_csv(path):
+        if (r.get('Type', '') or '').strip().lower() != 'put':
+            continue
+        side = (r.get('Side', '') or '').strip().lower(); pr = num(r.get('Premium')) or 0
+        if side == 'ask': pa += pr
+        elif side == 'bid': pb += pr
+    return (pb / pa) if pa else None
+
+
+def _v5_inputs():
+    """Per-date inputs from every file on disk (built once)."""
+    if _V5_CACHE:
+        return _V5_CACHE
+    sb, cs, tilt = {}, {}, {}
+    for pth in sorted_by_date(glob.glob('data/spx-options-flow-*.csv'), _FLOW_DATE_RE):
+        try:
+            v = _put_sb_of(pth)
+            if v is not None: sb[_iso_key(pth, _FLOW_DATE_RE)] = v
+        except Exception:
+            pass
+    for pth in sorted_by_date(glob.glob('data/uoa-stocks-*.csv'), _UOA_DATE_RE):
+        try:
+            m_ = uoa_metrics(load_csv(pth))
+            if m_: cs[_iso_key(pth, _UOA_DATE_RE)] = m_['callShare']
+        except Exception:
+            pass
+    for pth in sorted_by_date(glob.glob('data/spy-options-flow-*.csv'), _SPY_FLOW_DATE_RE):
+        try:
+            dr = directional_read(load_csv(pth))
+            if dr and dr.get('deltaTilt') is not None: tilt[_iso_key(pth, _SPY_FLOW_DATE_RE)] = dr['deltaTilt']
+        except Exception:
+            pass
+    _V5_CACHE.update({'sb': sb, 'cs': cs, 'tilt': tilt})
+    return _V5_CACHE
+
+
+def flow_score_v5(iso):
+    """The v5 options score for one trade date (None when nothing is known)."""
+    c = _v5_inputs()
+    def hist(d, key):
+        return [v for k, v in sorted(d.items()) if k < iso][-60:]
+    parts = {}
+    if iso in c['cs']:
+        pr = pct_rank(hist(c['cs'], iso), c['cs'][iso])
+        if pr is not None: parts['uoa'] = pr
+    if iso in c['sb']:
+        pr = pct_rank(hist(c['sb'], iso), c['sb'][iso])
+        if pr is not None: parts['ins'] = 100 - pr
+    spy_hist = hist(c['tilt'], iso)
+    spy_locked = len(spy_hist) < SPY_MIN_HISTORY or iso not in c['tilt']
+    if spy_locked:
+        parts['spy'] = 50
+    else:
+        pr = pct_rank(spy_hist, c['tilt'][iso])
+        parts['spy'] = pr if pr is not None else 50
+    real = [k for k in ('uoa', 'ins') if k in parts]
+    if not real:
+        return None
+    wsum = sum(FLOW_V5_W[k] for k in parts)
+    score = clamp(round(sum(FLOW_V5_W[k] * parts[k] for k in parts) / wsum))
+    out = {'score': score, 'version': 'v5', 'spyLocked': spy_locked, 'spyFiles': len(spy_hist) + (1 if iso in c['tilt'] else 0),
+           'uoaPct': parts.get('uoa'), 'insPct': parts.get('ins'), 'spyPct': parts.get('spy'),
+           'callShare': c['cs'].get(iso), 'putSb': round(c['sb'][iso], 2) if iso in c['sb'] else None,
+           'weights': {k: FLOW_V5_W[k] for k in parts}}
+    bits = []
+    if 'uoa' in parts: bits.append(f"מניות (UOA) אחוזון {parts['uoa']} · משקל 50%")
+    else: bits.append("מניות (UOA): אין קובץ ליום זה")
+    if 'ins' in parts: bits.append(f"ביטוח SPX אחוזון הפוך {parts['ins']} · משקל 20%")
+    bits.append(f"כיוון SPY {'נעול על 50 (' + str(out['spyFiles']) + '/' + str(SPY_MIN_HISTORY) + ' קבצים)' if spy_locked else 'אחוזון ' + str(parts['spy'])} · משקל 30%")
+    out['note'] = 'ציון אופציות v5 = ' + ' + '.join(bits) + '. כל רכיב מול 60 הימים האחרונים של המכשיר שלו.'
+    return out
+
+
 def directional_read(rows):
     """Delta-weighted directional read of one flow export. Returns a dict of
     the descriptive fields (deltaTilt/deltaLabel/openingLean/quadrants/
@@ -981,11 +1087,7 @@ if flow_files:
             score = clamp(round(score))
 
             # Map score → 5-level label (mirror of classifyByScore in JS)
-            if   score >= 80: label, tone = 'שורי חזק',   'pos'
-            elif score >= 60: label, tone = 'שורי מתון',  'pos'
-            elif score >= 40: label, tone = 'מאוזן',      'warn'
-            elif score >= 20: label, tone = 'באריש מתון', 'warn'
-            else:             label, tone = 'באריש חזק',  'neg'
+            label, tone = _flow_label(score)
 
             # Flow confidence tier — derived from Mid dominance.
             # See README §audit-fix-6.
@@ -1141,6 +1243,21 @@ if flow_files:
         print(f'Options flow parse error: {e}')
 
 f_score = flow['score'] if flow else None
+# ── v5 (13.9.2026): the official options score. v4 SPX score kept as spxScore. ──
+if flow:
+    try:
+        _v5 = flow_score_v5(_iso_key(flow_files[-1], _FLOW_DATE_RE))
+        if _v5 and _v5.get('score') is not None:
+            flow['spxScore'] = flow['score']; flow['spxLabel'] = flow['label']
+            flow['score'] = _v5['score']
+            flow['label'], flow['tone'] = _flow_label(_v5['score'])
+            flow['scoreParts'] = _v5; flow['scoreVersion'] = 'v5'; flow['scoreNote'] = _v5['note']
+            f_score = flow['score']
+            print(f"[flow] v5 score {f_score} (v4 SPX {flow['spxScore']}) · {_v5['note']}")
+        else:
+            print('[flow] v5 inputs missing — falling back to the v4 SPX score')
+    except Exception as e:
+        print(f'[flow] v5 failed ({e}) — falling back to the v4 SPX score')
 
 
 # ═══════════════════════════════════════════════════
@@ -1192,8 +1309,19 @@ def _flow_score_from_file(path):
 
 
 # Trailing daily scores (oldest→newest, today last) over ~22 sessions.
+def _score_for_file(p):
+    # v5 for that trade date; the v4 SPX score only when v5 has no inputs
+    try:
+        v = flow_score_v5(_iso_key(p, _FLOW_DATE_RE))
+        if v and v.get('score') is not None:
+            return v['score']
+    except Exception:
+        pass
+    return _flow_score_from_file(p)
+
+
 _recent_flow_scores = [s for s in
-                       (_flow_score_from_file(p) for p in flow_files[-22:])
+                       (_score_for_file(p) for p in flow_files[-22:])
                        if s is not None]
 # Monthly-smoothed read = simple average of the trailing daily scores.
 flow_smoothed = (round(sum(_recent_flow_scores) / len(_recent_flow_scores))
@@ -1283,8 +1411,9 @@ def combined():
     # proportionally to Tech + Breadth automatically via the num/den
     # re-normalization (they keep their absolute 0.40 / 0.25 weights, so a
     # smaller den lifts their relative influence in the 0.40:0.25 ratio).
-    ds = flow.get('directionalShare') if flow else None
-    w_f = 0.35 * ds if ds is not None else 0.35
+    # v5 (13.9.2026): the options score no longer comes from the SPX
+    # print mix, so the Mid-share scaling is gone — fixed 0.35.
+    w_f = 0.35
     w = {'t': 0.40, 'f': w_f, 'b': 0.25}
     num_, den = 0.0, 0.0
     if t_score is not None: num_ += w['t']*t_score; den += w['t']
@@ -1306,7 +1435,7 @@ c_score, contradiction_penalty = combined()
 # card can show "משקל Flow היום: X% (Y% מהפרמיה ב-Mid)".
 _ds = flow.get('directionalShare') if flow else None
 flow_weight = {
-    'effective': round(0.35 * _ds, 4) if _ds is not None else 0.35,
+    'effective': 0.35,   # v5: fixed (was 0.35 × directional share)
     'directionalShare': _ds,
     'midShare': round(flow['midPct'] / 100, 4) if flow else None,
 }
@@ -3146,7 +3275,7 @@ def build_conclusion():
     change = []
     try:
         if len(flow_files) >= 2 and F is not None:
-            f_prev = _flow_score_from_file(flow_files[-2])
+            f_prev = _score_for_file(flow_files[-2])
             if f_prev is not None and abs(F - f_prev) >= 4:
                 change.append(f'Flow {f_prev}→{F} {"↑" if F > f_prev else "↓"}')
     except Exception:
@@ -3434,7 +3563,13 @@ def _load_recipients():
 #        matching overview-prod.js. Fixes high-Mid days where the old
 #        Mid-included denominator diluted the signal (07-02: 54 → 40).
 #        Changes the Flow score and therefore Combined.
-FORMULA_VERSION = 'v4'
+#   v5 — 2026-09-13: options score rebuilt (flow_score_v5): 50% stocks-wide
+#        UOA call-share percentile + 20% SPX insurance (100 − put sell/buy
+#        percentile) + 30% SPY tilt percentile (locked at 50 until 20 SPY
+#        files). Flow weight fixed at 0.35 (no Mid-share scaling). The
+#        v4 SPX score survives as flow.spxScore. Past rows NOT rewritten —
+#        the site's meter timeline draws a "formula change" marker instead.
+FORMULA_VERSION = 'v5'
 
 
 def _append_scores_history():
