@@ -139,7 +139,10 @@ def classify_symbol(sym, ps):
         askP = sum(x['askP'] for x in pool); bidP = sum(x['bidP'] for x in pool)
         if askP + bidP >= 0.25 * dir_total:
             est = False
-            net = sum((1 if x['type'] == 'Call' else -1) * (x['askP'] - x['bidP']) for x in pool)
+            # הכיוון מרגל-הכותרת כשיש לה צד (אחרת המשפט "מכירת קולים … נטייה למעלה" סותר
+            # את עצמו — קרה ב-GOOGL 14.9); כשאין לה צד — מכל הרגליים הכיווניות יחד.
+            src = [top] if (top['askP'] + top['bidP']) > 0 else pool
+            net = sum((1 if x['type'] == 'Call' else -1) * (x['askP'] - x['bidP']) for x in src)
             direction = 'up' if net > 0 else 'down' if net < 0 else 'flat'
         else:
             est = True
