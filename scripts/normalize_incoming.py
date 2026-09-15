@@ -17,6 +17,7 @@ Runs first in update-data.yml (before any processing). Rules:
 Run standalone for a dry preview:
     python3 scripts/normalize_incoming.py --dry-run
 """
+import csv
 import os
 import re
 import sys
@@ -33,6 +34,7 @@ CANON_RE = {
     'spyflow':   re.compile(r'^spy-options-flow-\d{2}-\d{2}-\d{4}\.csv$'),
     'allflow':   re.compile(r'^options-flow-\d{2}-\d{2}-\d{4}\.csv$'),
     'uoa':       re.compile(r'^uoa-stocks-\d{2}-\d{2}-\d{4}\.csv$'),
+    'uoaspx':    re.compile(r'^uoa-spx-\d{2}-\d{2}-\d{4}\.csv$'),
 }
 CANON_FMT = {
     'watchlist': 'watchlist-sp-500-intraday-{mm}-{dd}-{yyyy}.csv',
@@ -40,6 +42,7 @@ CANON_FMT = {
     'spyflow':   'spy-options-flow-{mm}-{dd}-{yyyy}.csv',
     'allflow':   'options-flow-{mm}-{dd}-{yyyy}.csv',
     'uoa':       'uoa-stocks-{mm}-{dd}-{yyyy}.csv',
+    'uoaspx':    'uoa-spx-{mm}-{dd}-{yyyy}.csv',      # SPX-only UOA export — kept, not used by any score
 }
 
 
@@ -60,6 +63,27 @@ def classify(name):
     if 'option' in c and 'flow' in c:          # all-stocks top-premium export (Barchart "Options Flow")
         return 'allflow'
     return None
+
+
+def uoa_is_spx_only(path):
+    """15.9.2026: Barchart has two 'Unusual Options Activity' exports that look
+    identical — the stocks-wide one (hundreds of symbols) and the $SPX symbol
+    page (one symbol, ~5000 rows). Only the wide one feeds the options score
+    (send_report.uoa_metrics) and uoa_daily; an SPX-only file must never take
+    the canonical uoa-stocks name (it did on 24.8–14.9 and silently removed
+    the stocks component from the score)."""
+    try:
+        syms = set()
+        with open(path, encoding='utf-8-sig', newline='') as f:
+            for i, r in enumerate(csv.DictReader(f)):
+                sym = (r.get('Symbol') or '').strip()
+                if sym and not sym.startswith('Downloaded'):
+                    syms.add(sym)
+                if len(syms) > 5 or i > 20000:
+                    break
+        return len(syms) <= 5
+    except Exception:
+        return False
 
 
 def uoa_trade_date(path):
@@ -160,8 +184,11 @@ def main(dry_run=False):
         # export carries the trade date in its Time column — use that.
         if classify(name) == 'uoa':
             td = uoa_trade_date(path)
+            kind = 'uoaspx' if uoa_is_spx_only(path) else 'uoa'     # by CONTENT, not name
             if td:
-                target = CANON_FMT['uoa'].format(mm=f'{td.month:02d}', dd=f'{td.day:02d}', yyyy=f'{td.year:04d}')
+                target = CANON_FMT[kind].format(mm=f'{td.month:02d}', dd=f'{td.day:02d}', yyyy=f'{td.year:04d}')
+            elif kind == 'uoaspx' and re.match(r'^uoa-stocks-(\d{2})-(\d{2})-(\d{4})\.csv$', name):
+                target = 'uoa-spx-' + name[len('uoa-stocks-'):]
         if not target or target == name:
             continue
         dst = os.path.join(DATA_DIR, target)
