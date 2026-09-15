@@ -553,11 +553,15 @@
     "date": "2026-09-14",
     "tech": 81,
     "breadth": 42,
-    "flow": 69,
-    "combined": 67,
-    "phase": "uptrend_pressure",
+    "flow": 77,
+    "combined": 70,
+    "phase": {
+      "id": "uptrend_pressure",
+      "label": "מגמה תחת לחץ"
+    },
     "confidence": null,
     "coverage": null,
-    "formulaVersion": "v5"
+    "formulaVersion": "v5",
+    "note": "corrected 15.9: first run used an SPX-only UOA export (wrong file), recomputed with the stocks-wide export"
   }
 ]
