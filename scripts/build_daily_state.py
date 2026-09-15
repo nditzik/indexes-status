@@ -61,6 +61,7 @@ def build_state():
             'directionLabel': sr.flow_direction['label'],
             'directionReason': sr.flow_direction['reason'],
             'smoothed': sr.flow_smoothed,
+            'recent': sr.flow.get('recent'),   # v5 dated trailing scores (15.9.2026)
             'streak': sr.flow_streak,
             'compareLine': sr.flow_compare_line,
             # Delta-weighted read (options-block upgrade) — the real net bet.

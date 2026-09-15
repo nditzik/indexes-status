@@ -1320,9 +1320,14 @@ def _score_for_file(p):
     return _flow_score_from_file(p)
 
 
-_recent_flow_scores = [s for s in
-                       (_score_for_file(p) for p in flow_files[-22:])
-                       if s is not None]
+# Dated trailing series (15.9.2026): exposed as flow['recent'] so the dashboard's
+# "7-day patterns" panel shows the OFFICIAL (v5) scores — its own per-file JS
+# series is the v4 SPX formula and drifted (14.9: 24 vs 77).
+flow_recent = [{'date': _iso_key(p, _FLOW_DATE_RE), 'score': _score_for_file(p)} for p in flow_files[-22:]]
+flow_recent = [r for r in flow_recent if r['score'] is not None]
+_recent_flow_scores = [r['score'] for r in flow_recent]
+if flow:
+    flow['recent'] = flow_recent
 # Monthly-smoothed read = simple average of the trailing daily scores.
 flow_smoothed = (round(sum(_recent_flow_scores) / len(_recent_flow_scores))
                  if _recent_flow_scores else None)

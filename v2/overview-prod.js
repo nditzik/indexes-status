@@ -3778,7 +3778,24 @@ function renderFlowCard(metrics, flowAnalytics) {
     renderFlowQuality(raw);
 
     // ─── Historical Context (today vs 22d) ───
-    renderFlowHistory(raw, score, allDays);
+    // v5 (15.9.2026): the official options score no longer comes from the SPX
+    // file, so the trailing days come from daily_state.flow.recent (Python, dated
+    // ISO); the JS per-file series (v4 SPX formula) is only the fallback. Without
+    // this the "7-day patterns" tiles drifted from the headline score (14.9: 24 vs 77).
+    let histDays = allDays, histScore = score;
+    const recent = metrics && metrics._flow && Array.isArray(metrics._flow.recent) ? metrics._flow.recent : null;
+    if (recent && recent.length) {
+        const toIso = d => {
+            if (!d) return d;
+            const m = String(d).match(/^(\d{2})-(\d{2})-(\d{4})$/);   // MM-DD-YYYY → ISO
+            return m ? `${m[3]}-${m[1]}-${m[2]}` : String(d).slice(0, 10);
+        };
+        const byDate = {};
+        recent.forEach(r => { if (r && r.date != null && r.score != null) byDate[toIso(r.date)] = r.score; });
+        histDays = allDays.map(d => byDate[toIso(d.date)] != null ? Object.assign({}, d, { score: byDate[toIso(d.date)] }) : d);
+        if (metrics.flowScore != null) histScore = metrics.flowScore;
+    }
+    renderFlowHistory(raw, histScore, histDays);
 
     // ─── NEW: Score formula breakdown ───
     const t = metrics.techScore, b = metrics.breadthScore, fScore = f.score, combined = metrics.combined;
