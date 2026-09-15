@@ -555,10 +555,7 @@
     "breadth": 42,
     "flow": 77,
     "combined": 70,
-    "phase": {
-      "id": "uptrend_pressure",
-      "label": "מגמה תחת לחץ"
-    },
+    "phase": "uptrend_pressure",
     "confidence": null,
     "coverage": null,
     "formulaVersion": "v5",
