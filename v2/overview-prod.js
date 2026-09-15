@@ -1775,7 +1775,16 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
             if (Number.isFinite(c)) spxByDate[h.date] = c;
         }
 
-        const flowDays = flowAnalytics.days.filter(d => d && d.date && d.score != null);
+        // v5 (15.9.2026): official trailing scores from daily_state.flow.recent
+        // (Python) replace the JS per-file v4 SPX scores, so this chart matches
+        // the headline score and the 7-day tiles. JS series = fallback only.
+        let flowDays = flowAnalytics.days.filter(d => d && d.date && d.score != null);
+        const recentV5 = metrics && metrics._flow && Array.isArray(metrics._flow.recent) ? metrics._flow.recent : null;
+        if (recentV5 && recentV5.length) {
+            const toIso = d => { const m = String(d || '').match(/^(\d{2})-(\d{2})-(\d{4})$/); return m ? `${m[3]}-${m[1]}-${m[2]}` : String(d || '').slice(0, 10); };
+            const byDate = {}; recentV5.forEach(r => { if (r && r.date != null && r.score != null) byDate[toIso(r.date)] = r.score; });
+            flowDays = flowDays.map(d => byDate[toIso(d.date)] != null ? Object.assign({}, d, { score: byDate[toIso(d.date)] }) : d);
+        }
         if (flowDays.length < 3) {
             panel.style.display = 'none';
             return;
@@ -1929,7 +1938,7 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
                     labels,
                     datasets: [
                         {
-                            label: 'ציון Flow אבסולוטי (0-100)',
+                            label: 'ציון אופציות (0-100)',
                             data: flowScores,
                             yAxisID: 'yFlow',
                             borderColor: '#7C3AED',
@@ -1981,7 +1990,7 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
                             callbacks: {
                                 label: (ctx) => {
                                     if (ctx.dataset.yAxisID === 'yFlow') {
-                                        return `ציון Flow אבסולוטי: ${ctx.parsed.y.toFixed(1)}`;
+                                        return `ציון אופציות: ${ctx.parsed.y.toFixed(1)}`;
                                     }
                                     const sign = ctx.parsed.y >= 0 ? '+' : '';
                                     return `SPX מצטבר: ${sign}${ctx.parsed.y.toFixed(2)}%`;
@@ -2000,7 +2009,7 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
                             min: 0, max: 100,
                             ticks: { font: { size: 10 }, color: '#7C3AED', callback: (v) => v },
                             grid:  { color: 'rgba(124, 58, 237, 0.06)' },
-                            title: { display: true, text: 'ציון Flow אבסולוטי', color: '#7C3AED', font: { size: 11 } },
+                            title: { display: true, text: 'ציון אופציות', color: '#7C3AED', font: { size: 11 } },
                         },
                         ySpx: {
                             type: 'linear',
@@ -2023,7 +2032,7 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
             const sign = lastSpxCum >= 0 ? '+' : '';
             let phrase, stateClass = '';
             if (corr != null && corr > 0.5) {
-                phrase = `האופציות והמחיר נעים יחד (קורלציה +${corr.toFixed(2)}). ציון Flow אבסולוטי נוכחי: ${lastFlowVal.toFixed(0)}, SPX מצטבר בחלון: ${sign}${lastSpxCum.toFixed(2)}%.`;
+                phrase = `האופציות והמחיר נעים יחד (קורלציה +${corr.toFixed(2)}). ציון אופציות נוכחי: ${lastFlowVal.toFixed(0)}, SPX מצטבר בחלון: ${sign}${lastSpxCum.toFixed(2)}%.`;
                 stateClass = corr > 0.7 ? 'ov2-pos' : '';
             } else if (corr != null && corr < -0.3) {
                 phrase = `סטייה היסטורית — האופציות נעות הפוך למחיר (קורלציה ${corr.toFixed(2)}). זה דפוס שמופיע כשהשוק מתעלם משינוי בסנטימנט.`;
@@ -2041,7 +2050,7 @@ function renderFlowVsPrice(metrics, flowAnalytics, hist) {
                 phrase = `סנטימנט הגנתי באופציות (${lastFlowVal.toFixed(0)}) למרות מחיר עולה — אזהרה אפשרית.`;
                 stateClass = 'ov2-neg';
             } else {
-                phrase = `מצב מאוזן — ציון Flow אבסולוטי ${lastFlowVal.toFixed(0)} (קרוב לניטרלי 50), SPX מצטבר ${sign}${lastSpxCum.toFixed(2)}%.`;
+                phrase = `מצב מאוזן — ציון אופציות ${lastFlowVal.toFixed(0)} (קרוב לניטרלי 50), SPX מצטבר ${sign}${lastSpxCum.toFixed(2)}%.`;
             }
             verdictEl.textContent = phrase;
             verdictEl.className = 'ov2-fvp-verdict ' + stateClass;
