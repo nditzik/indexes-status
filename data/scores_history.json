@@ -560,5 +560,16 @@
     "coverage": null,
     "formulaVersion": "v5",
     "note": "corrected 15.9: first run used an SPX-only UOA export (wrong file), recomputed with the stocks-wide export"
+  },
+  {
+    "date": "2026-09-15",
+    "tech": 67,
+    "breadth": 42,
+    "flow": 45,
+    "combined": 53,
+    "phase": "uptrend_pressure",
+    "confidence": null,
+    "coverage": null,
+    "formulaVersion": "v5"
   }
 ]
