@@ -317,6 +317,92 @@ def flow_score_v5(iso):
     return out
 
 
+# ═══════════════════════════════════════════════════
+#  Options score v6 (19.9.2026) — approved by Itzik after the 40-day SPY study
+#  (24.7–18.9.2026, scratch research): the index options score comes from the
+#  INDEX, not from single stocks.
+#    score(day) = 60% percentile of the SPY delta-weighted tilt
+#               + 40% percentile of the SPY new-positions tilt (Volume > OI),
+#    each vs its own trailing 60 SPY files (≥10 needed).
+#  Evidence (n=40, terciles of the tilt): next-day S&P −0.29% (23% up) after a
+#  bearish read vs +0.49% (77% up) after a bullish one; a broad selling day
+#  within 3 sessions 75% vs 17%. Same test on SPX (98 days): nothing.
+#  Cleaning: prints with |delta| ≥ 0.85 are dropped — dividend-capture /
+#  stock-replacement (17.9.2026, the day before SPY's ex-dividend: 58% of the
+#  premium, turned "bullish" into "balanced"). Same-day expiries are KEPT:
+#  removing them weakened every relationship (they are real directional bets).
+#  DISPLAY = the daily score. METER = the 2-day average (today + previous SPY
+#  day) so one odd session can't swing Combined (Itzik: "behind the scenes").
+#  Flow weight 0.25 (Tech 0.45, Breadth 0.30) until the 60/80-day re-checks.
+#  SPX = a warning light only (research.put_sb_pct ≥ 67); stocks-wide UOA =
+#  display only. v5 remains the fallback when there is no SPY file for the day.
+# ═══════════════════════════════════════════════════
+FLOW_V6_W = {'tilt': 0.6, 'open': 0.4}
+V6_MIN_HISTORY = 10
+DEEP_ITM_DELTA = 0.85
+_V6_CACHE = {}
+
+
+def spy_clean(rows):
+    """Drop stock-replacement / dividend-capture prints (|delta| ≥ 0.85)."""
+    out = []
+    for r in rows:
+        d = num(r.get('Delta'))
+        if d is not None and abs(d) >= DEEP_ITM_DELTA:
+            continue
+        out.append(r)
+    return out
+
+
+def _v6_inputs():
+    if _V6_CACHE:
+        return _V6_CACHE
+    tilt, opn = {}, {}
+    for pth in sorted_by_date(glob.glob('data/spy-options-flow-*.csv'), _SPY_FLOW_DATE_RE):
+        try:
+            dr = directional_read(spy_clean(load_csv(pth)))
+        except Exception:
+            dr = None
+        if not dr:
+            continue
+        iso = _iso_key(pth, _SPY_FLOW_DATE_RE)
+        if dr.get('deltaTilt') is not None: tilt[iso] = dr['deltaTilt']
+        if dr.get('openTilt') is not None: opn[iso] = dr['openTilt']
+    _V6_CACHE.update({'tilt': tilt, 'open': opn})
+    return _V6_CACHE
+
+
+def flow_score_v6(iso):
+    """Daily v6 score for one trade date, or None (no SPY file / too little history)."""
+    c = _v6_inputs()
+    if iso not in c['tilt']:
+        return None
+    def hist(d):
+        return [v for k, v in sorted(d.items()) if k < iso][-60:]
+    tp = pct_rank(hist(c['tilt']), c['tilt'][iso]) if len(hist(c['tilt'])) >= V6_MIN_HISTORY else None
+    if tp is None:
+        return None
+    op = pct_rank(hist(c['open']), c['open'].get(iso)) if iso in c['open'] else None
+    parts = {'tilt': tp}
+    if op is not None: parts['open'] = op
+    wsum = sum(FLOW_V6_W[k] for k in parts)
+    score = clamp(round(sum(FLOW_V6_W[k] * parts[k] for k in parts) / wsum))
+    return {'score': score, 'version': 'v6', 'tiltPct': tp, 'openPct': op,
+            'tilt': c['tilt'][iso], 'open': c['open'].get(iso), 'histDays': len(hist(c['tilt']))}
+
+
+def flow_meter_v6(iso):
+    """What enters Combined: the average of today's v6 score and the previous SPY day's."""
+    today = flow_score_v6(iso)
+    if not today:
+        return None, None
+    prev_dates = [k for k in sorted(_v6_inputs()['tilt']) if k < iso]
+    prev = flow_score_v6(prev_dates[-1]) if prev_dates else None
+    if prev:
+        return round((today['score'] + prev['score']) / 2), prev['score']
+    return today['score'], None
+
+
 def directional_read(rows):
     """Delta-weighted directional read of one flow export. Returns a dict of
     the descriptive fields (deltaTilt/deltaLabel/openingLean/quadrants/
@@ -1161,12 +1247,14 @@ if flow_files:
             spy_files = sorted_by_date(glob.glob('data/spy-options-flow-*.csv'), _SPY_FLOW_DATE_RE)
             spy_same = [p for p in spy_files if _iso_key(p, _SPY_FLOW_DATE_RE) == _spx_iso]
             if spy_same:
-                dr = directional_read(load_csv(spy_same[-1]))
+                _spy_rows = load_csv(spy_same[-1])
+                _spy_cl = spy_clean(_spy_rows)
+                dr = directional_read(_spy_cl)
                 if dr:
                     flow.update(dr)
                     flow['dirSource'] = 'SPY'
                     flow['dirNote'] = (f"קריאת הכיוון מייצוא SPY ({dr['dirPrints']} עסקאות עם צד, "
-                                       f"{dr['legMultiPct']:.0f}% מולטי-לג)")
+                                       f"{dr['legMultiPct']:.0f}% מולטי-לג; בלי {len(_spy_rows) - len(_spy_cl)} עסקאות עמוקות בכסף)")
                     print(f"[flow] direction from {os.path.basename(spy_same[-1])}: "
                           f"tilt {dr['deltaTilt']:+.2f} {dr['deltaLabel']} · open {dr['openLabel']} (${dr['openP']/1e6:.0f}M) · multi {dr['legMultiPct']:.0f}%")
             else:
@@ -1243,8 +1331,40 @@ if flow_files:
         print(f'Options flow parse error: {e}')
 
 f_score = flow['score'] if flow else None
-# ── v5 (13.9.2026): the official options score. v4 SPX score kept as spxScore. ──
+# ── v6 (19.9.2026): SPY-only score. Falls through to v5 below when no SPY file. ──
+f_meter = None          # what enters Combined (2-day average); f_score = the daily display value
+_v6_done = False
 if flow:
+    try:
+        _iso6 = _iso_key(flow_files[-1], _FLOW_DATE_RE)
+        _v6 = flow_score_v6(_iso6)
+        if _v6:
+            _m6, _prev6 = flow_meter_v6(_iso6)
+            flow['spxScore'] = flow['score']; flow['spxLabel'] = flow['label']
+            flow['score'] = _v6['score']
+            flow['label'], flow['tone'] = _flow_label(_v6['score'])
+            flow['meterScore'] = _m6
+            flow['scoreParts'] = dict(_v6, meterScore=_m6, prevScore=_prev6)
+            flow['scoreVersion'] = 'v6'
+            flow['scoreNote'] = (f"ציון אופציות v6 = כיוון הכסף הגדול ב-SPY (אחוזון {_v6['tiltPct']}, משקל 60%)"
+                                 + (f" + פוזיציות חדשות (אחוזון {_v6['openPct']}, משקל 40%)" if _v6['openPct'] is not None else "")
+                                 + f", מול {_v6['histDays']} ימי SPY קודמים, בלי עסקאות עמוקות בכסף."
+                                 + (f" במד השוק נכנס ממוצע יומיים: {_m6} (היום {_v6['score']}, אתמול {_prev6})." if _prev6 is not None else ""))
+            # SPX = warning light only: heavy put SELLING preceded a broad selling day within 3 sessions 66% vs 31%
+            _r6 = flow.get('research') or {}
+            _pp = _r6.get('put_sb_pct')
+            flow['spxWarning'] = {'active': bool(_pp is not None and _pp >= 67), 'putSb': _r6.get('put_sb'), 'pct': _pp,
+                                  'text': ('מכירת ביטוח חריגה ב-SPX (אחוזון %s מול 60 יום). במחקר שלנו זה הקדים יום מכירה מוסדית בתוך 3 ימי מסחר ב-66%% מהמקרים, מול 31%% בשאר הימים.' % _pp) if (_pp is not None and _pp >= 67) else ''}
+            for _l in (_r6.get('lines') or []):
+                if _l.get('key') == 'stocks': _l['display'] = 'bigtrades'     # stocks = display only, shown with the big-trades block
+                if _l.get('key') == 'spy' and _v6.get('tiltPct') is not None:
+                    _l['text'] = _l['text'].rstrip('.') + f" · אחוזון {_v6['tiltPct']} מול {_v6['histDays']} ימים" + (f", פוזיציות חדשות אחוזון {_v6['openPct']}" if _v6.get('openPct') is not None else '') + '.'
+            f_score = flow['score']; f_meter = _m6; _v6_done = True
+            print(f"[flow] v6 score {f_score} (meter {f_meter}; v4 SPX {flow['spxScore']}) · tilt pct {_v6['tiltPct']} · open pct {_v6['openPct']}")
+    except Exception as e:
+        print(f'[flow] v6 failed ({e}) — trying v5')
+# ── v5 (13.9.2026): fallback when there is no SPY file for the day. v4 SPX score kept as spxScore. ──
+if flow and not _v6_done:
     try:
         _v5 = flow_score_v5(_iso_key(flow_files[-1], _FLOW_DATE_RE))
         if _v5 and _v5.get('score') is not None:
@@ -1310,7 +1430,13 @@ def _flow_score_from_file(path):
 
 # Trailing daily scores (oldest→newest, today last) over ~22 sessions.
 def _score_for_file(p):
-    # v5 for that trade date; the v4 SPX score only when v5 has no inputs
+    # v6 (SPY) for that trade date; else v5; the v4 SPX score only when neither has inputs
+    try:
+        v6 = flow_score_v6(_iso_key(p, _FLOW_DATE_RE))
+        if v6:
+            return v6['score']
+    except Exception:
+        pass
     try:
         v = flow_score_v5(_iso_key(p, _FLOW_DATE_RE))
         if v and v.get('score') is not None:
@@ -1324,10 +1450,21 @@ def _score_for_file(p):
 # "7-day patterns" panel shows the OFFICIAL (v5) scores — its own per-file JS
 # series is the v4 SPX formula and drifted (14.9: 24 vs 77).
 flow_recent = [{'date': _iso_key(p, _FLOW_DATE_RE), 'score': _score_for_file(p)} for p in flow_files[-22:]]
+# v6-only dated series (up to 60 days) with the S&P close — for the site's "options vs price" chart
+flow_v6_series = []
+try:
+    _px = {h.get('date'): h.get('spx_price') for h in history_rich if h.get('date')}
+    for _p in flow_files[-60:]:
+        _i = _iso_key(_p, _FLOW_DATE_RE); _v = flow_score_v6(_i)
+        if _v:
+            flow_v6_series.append({'date': _i, 'score': _v['score'], 'meter': flow_meter_v6(_i)[0], 'spx': _px.get(_i)})
+except Exception as e:
+    print(f'[flow] v6 series failed: {e}')
 flow_recent = [r for r in flow_recent if r['score'] is not None]
 _recent_flow_scores = [r['score'] for r in flow_recent]
 if flow:
     flow['recent'] = flow_recent
+    flow['v6Series'] = flow_v6_series
 # Monthly-smoothed read = simple average of the trailing daily scores.
 flow_smoothed = (round(sum(_recent_flow_scores) / len(_recent_flow_scores))
                  if _recent_flow_scores else None)
@@ -1416,13 +1553,13 @@ def combined():
     # proportionally to Tech + Breadth automatically via the num/den
     # re-normalization (they keep their absolute 0.40 / 0.25 weights, so a
     # smaller den lifts their relative influence in the 0.40:0.25 ratio).
-    # v5 (13.9.2026): the options score no longer comes from the SPX
-    # print mix, so the Mid-share scaling is gone — fixed 0.35.
-    w_f = 0.35
-    w = {'t': 0.40, 'f': w_f, 'b': 0.25}
+    # v6 (19.9.2026): Tech 0.45 · Options 0.25 · Breadth 0.30. The options input is
+    # f_meter (2-day average of the daily v6 score); f_score stays the daily display.
+    w = {'t': 0.45, 'f': 0.25, 'b': 0.30} if _v6_done else {'t': 0.40, 'f': 0.35, 'b': 0.25}
+    _f_in = f_meter if f_meter is not None else f_score
     num_, den = 0.0, 0.0
     if t_score is not None: num_ += w['t']*t_score; den += w['t']
-    if f_score is not None: num_ += w['f']*f_score; den += w['f']
+    if _f_in is not None: num_ += w['f']*_f_in; den += w['f']
     if b_score is not None: num_ += w['b']*b_score; den += w['b']
     if den == 0:
         return None, 0
@@ -1440,7 +1577,8 @@ c_score, contradiction_penalty = combined()
 # card can show "משקל Flow היום: X% (Y% מהפרמיה ב-Mid)".
 _ds = flow.get('directionalShare') if flow else None
 flow_weight = {
-    'effective': 0.35,   # v5: fixed (was 0.35 × directional share)
+    'effective': 0.25 if _v6_done else 0.35,   # v6: 0.25 (v5 fallback: 0.35)
+    'weights': ({'tech': 0.45, 'flow': 0.25, 'breadth': 0.30} if _v6_done else {'tech': 0.40, 'flow': 0.35, 'breadth': 0.25}),
     'directionalShare': _ds,
     'midShare': round(flow['midPct'] / 100, 4) if flow else None,
 }
@@ -3574,7 +3712,12 @@ def _load_recipients():
 #        files). Flow weight fixed at 0.35 (no Mid-share scaling). The
 #        v4 SPX score survives as flow.spxScore. Past rows NOT rewritten —
 #        the site's meter timeline draws a "formula change" marker instead.
-FORMULA_VERSION = 'v5'
+#   v6 — 2026-09-19: options score from SPY only (flow_score_v6: 60% delta-tilt
+#        percentile + 40% new-positions percentile, deep-ITM prints dropped).
+#        Display = daily score; Combined uses the 2-day average (flow.meterScore).
+#        Weights Tech 0.45 / Options 0.25 / Breadth 0.30. SPX = warning light,
+#        stocks UOA = display only. v5 is the fallback when no SPY file exists.
+FORMULA_VERSION = 'v6'
 
 
 def _append_scores_history():

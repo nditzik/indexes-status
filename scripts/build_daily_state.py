@@ -86,6 +86,10 @@ def build_state():
             # research (phase 1, 12.9.2026): hedging metrics tracked daily, not displayed
             'research': sr.flow.get('research'),
             # v5 (13.9.2026): official options score composition + legacy v4 SPX score
+            # v6 (19.9.2026): daily display score = scores.flow; meterScore = the 2-day average that enters Combined
+            'meterScore': sr.flow.get('meterScore'),
+            'v6Series': sr.flow.get('v6Series'),
+            'spxWarning': sr.flow.get('spxWarning'),
             'scoreVersion': sr.flow.get('scoreVersion'),
             'scoreParts': sr.flow.get('scoreParts'),
             'scoreNote': sr.flow.get('scoreNote'),
