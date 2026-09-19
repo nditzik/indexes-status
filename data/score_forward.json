@@ -712,6 +712,8 @@
     "confidence": null,
     "coverage": null,
     "formulaVersion": "v6",
+    "flowMeter": 22,
+    "note": "recomputed 19.9 under v6 (SPY-only options score; Itzik asked that Friday already carry the new scores). v5 values were flow 80 / combined 72.",
     "fwd5": null,
     "fwd20": null
   }
