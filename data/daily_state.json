@@ -568,19 +568,39 @@
       "IT"
     ],
     "sectorRs": {
+      "UTL": {
+        "rs5": -2.15,
+        "rs20": -6.62,
+        "leading": false
+      },
+      "FIN": {
+        "rs5": -1.72,
+        "rs20": -2.86,
+        "leading": false
+      },
       "ENE": {
         "rs5": -4.31,
         "rs20": -7.34,
         "leading": false
       },
+      "IT": {
+        "rs5": 0.12,
+        "rs20": 2.61,
+        "leading": true
+      },
+      "COM": {
+        "rs5": -2.73,
+        "rs20": -3.7,
+        "leading": false
+      },
+      "CD": {
+        "rs5": -2.04,
+        "rs20": -7.47,
+        "leading": false
+      },
       "HC": {
         "rs5": 1.62,
         "rs20": -1.72,
-        "leading": false
-      },
-      "MAT": {
-        "rs5": -1.37,
-        "rs20": -5.69,
         "leading": false
       },
       "RE": {
@@ -593,34 +613,14 @@
         "rs20": -5.35,
         "leading": false
       },
-      "IT": {
-        "rs5": 0.12,
-        "rs20": 2.61,
-        "leading": true
+      "MAT": {
+        "rs5": -1.37,
+        "rs20": -5.69,
+        "leading": false
       },
       "IND": {
         "rs5": -1.32,
         "rs20": -5.98,
-        "leading": false
-      },
-      "UTL": {
-        "rs5": -2.15,
-        "rs20": -6.62,
-        "leading": false
-      },
-      "FIN": {
-        "rs5": -1.72,
-        "rs20": -2.86,
-        "leading": false
-      },
-      "COM": {
-        "rs5": -2.73,
-        "rs20": -3.7,
-        "leading": false
-      },
-      "CD": {
-        "rs5": -2.04,
-        "rs20": -7.47,
         "leading": false
       }
     },
