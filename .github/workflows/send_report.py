@@ -324,16 +324,21 @@ def flow_score_v5(iso):
 #    score(day) = 60% percentile of the SPY delta-weighted tilt
 #               + 40% percentile of the SPY new-positions tilt (Volume > OI),
 #    each vs its own trailing 60 SPY files (≥10 needed).
-#  Evidence (n=40, terciles of the tilt): next-day S&P −0.29% (23% up) after a
-#  bearish read vs +0.49% (77% up) after a bullish one; a broad selling day
-#  within 3 sessions 75% vs 17%. Same test on SPX (98 days): nothing.
+#  Evidence, first pass (n=40, 24.7–18.9): next-day S&P −0.29% (23% up) after a
+#  bearish read vs +0.49% (77% up) after a bullish one; selling day within 3
+#  sessions 75% vs 17%. SECOND PASS (n=77, 1.6–18.9, 20.9.2026): the effect
+#  halved — next day −0.04% (40% up) vs +0.23% (60% up), selling day 67% vs 50%
+#  (base 55%), rank corr 0.20. It is regime-dependent: 0.04 in June–July, 0.44
+#  in the last 8 weeks. So: the score is a DESCRIPTION of what big money does on
+#  the index, not a forecast — no predictive numbers in user-facing text, and the
+#  meter weight is 0.15. Same test on SPX (98 days): nothing at all.
 #  Cleaning: prints with |delta| ≥ 0.85 are dropped — dividend-capture /
 #  stock-replacement (17.9.2026, the day before SPY's ex-dividend: 58% of the
 #  premium, turned "bullish" into "balanced"). Same-day expiries are KEPT:
 #  removing them weakened every relationship (they are real directional bets).
 #  DISPLAY = the daily score. METER = the 2-day average (today + previous SPY
 #  day) so one odd session can't swing Combined (Itzik: "behind the scenes").
-#  Flow weight 0.25 (Tech 0.45, Breadth 0.30) until the 60/80-day re-checks.
+#  Flow weight 0.15 (Tech 0.50, Breadth 0.35) since the 77-day re-check (was 0.25 for one day).
 #  SPX = a warning light only (research.put_sb_pct ≥ 67); stocks-wide UOA =
 #  display only. v5 remains the fallback when there is no SPY file for the day.
 # ═══════════════════════════════════════════════════
@@ -1555,7 +1560,9 @@ def combined():
     # smaller den lifts their relative influence in the 0.40:0.25 ratio).
     # v6 (19.9.2026): Tech 0.45 · Options 0.25 · Breadth 0.30. The options input is
     # f_meter (2-day average of the daily v6 score); f_score stays the daily display.
-    w = {'t': 0.45, 'f': 0.25, 'b': 0.30} if _v6_done else {'t': 0.40, 'f': 0.35, 'b': 0.25}
+    # 20.9.2026: with 77 SPY days (1.6–18.9) the next-day relationship halved (rank corr 0.20;
+    # 0.04 in June–July, 0.44 in the last 8 weeks) — so the options weight drops to 0.15.
+    w = {'t': 0.50, 'f': 0.15, 'b': 0.35} if _v6_done else {'t': 0.40, 'f': 0.35, 'b': 0.25}
     _f_in = f_meter if f_meter is not None else f_score
     num_, den = 0.0, 0.0
     if t_score is not None: num_ += w['t']*t_score; den += w['t']
@@ -1577,8 +1584,8 @@ c_score, contradiction_penalty = combined()
 # card can show "משקל Flow היום: X% (Y% מהפרמיה ב-Mid)".
 _ds = flow.get('directionalShare') if flow else None
 flow_weight = {
-    'effective': 0.25 if _v6_done else 0.35,   # v6: 0.25 (v5 fallback: 0.35)
-    'weights': ({'tech': 0.45, 'flow': 0.25, 'breadth': 0.30} if _v6_done else {'tech': 0.40, 'flow': 0.35, 'breadth': 0.25}),
+    'effective': 0.15 if _v6_done else 0.35,   # v6: 0.15 since 20.9.2026 (v5 fallback: 0.35)
+    'weights': ({'tech': 0.50, 'flow': 0.15, 'breadth': 0.35} if _v6_done else {'tech': 0.40, 'flow': 0.35, 'breadth': 0.25}),
     'directionalShare': _ds,
     'midShare': round(flow['midPct'] / 100, 4) if flow else None,
 }
@@ -3715,7 +3722,8 @@ def _load_recipients():
 #   v6 — 2026-09-19: options score from SPY only (flow_score_v6: 60% delta-tilt
 #        percentile + 40% new-positions percentile, deep-ITM prints dropped).
 #        Display = daily score; Combined uses the 2-day average (flow.meterScore).
-#        Weights Tech 0.45 / Options 0.25 / Breadth 0.30. SPX = warning light,
+#        Weights Tech 0.50 / Options 0.15 / Breadth 0.35 (0.45/0.25/0.30 on day one,
+#        lowered 20.9 after the 77-day re-check). SPX = warning light,
 #        stocks UOA = display only. v5 is the fallback when no SPY file exists.
 FORMULA_VERSION = 'v6'
 
