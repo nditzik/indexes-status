@@ -465,7 +465,7 @@
     "coverage": null,
     "formulaVersion": "v4",
     "fwd5": 0.49,
-    "fwd20": null
+    "fwd20": 1.18
   },
   {
     "date": "2026-08-24",
@@ -660,7 +660,7 @@
     "coverage": null,
     "formulaVersion": "v5",
     "note": "corrected 15.9: first run used an SPX-only UOA export (wrong file), recomputed with the stocks-wide export",
-    "fwd5": null,
+    "fwd5": 1.9,
     "fwd20": null
   },
   {
@@ -714,6 +714,19 @@
     "formulaVersion": "v6",
     "flowMeter": 24,
     "note": "v6 (SPY-only options score), recomputed at Itzik's request; 20.9: 60-day SPY history + options weight 0.15 after the 77-day re-check. v5 values were flow 80 / combined 72.",
+    "fwd5": null,
+    "fwd20": null
+  },
+  {
+    "date": "2026-09-21",
+    "tech": 95,
+    "breadth": 45,
+    "flow": 35,
+    "combined": 66,
+    "phase": "uptrend_pressure",
+    "confidence": null,
+    "coverage": null,
+    "formulaVersion": "v6",
     "fwd5": null,
     "fwd20": null
   }
