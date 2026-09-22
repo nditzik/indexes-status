@@ -1,14 +1,14 @@
 {
   "horizon": 20,
-  "hitRate": 0.933,
-  "coreHitRate": 0.483,
-  "maturedCount": 60,
-  "total": 80,
+  "hitRate": 0.934,
+  "coreHitRate": 0.492,
+  "maturedCount": 61,
+  "total": 81,
   "gapDates": [
     "2026-06-12",
     "2026-06-15"
   ],
-  "lowConfCount": 19,
+  "lowConfCount": 20,
   "series": [
     {
       "date": "2026-05-22",
@@ -880,9 +880,9 @@
       "fcQ25": -0.53,
       "fcQ75": 2.93,
       "fcMedian": 1.6,
-      "actual": null,
-      "hit": null,
-      "coreHit": null,
+      "actual": 1.18,
+      "hit": true,
+      "coreHit": true,
       "confidence": "high",
       "medDist": 0.74
     },
@@ -1151,6 +1151,20 @@
       "coreHit": null,
       "confidence": "high",
       "medDist": 0.67
+    },
+    {
+      "date": "2026-09-21",
+      "gap": false,
+      "fcMin": -2.98,
+      "fcMax": 5.43,
+      "fcQ25": -0.63,
+      "fcQ75": 4.61,
+      "fcMedian": 1.47,
+      "actual": null,
+      "hit": null,
+      "coreHit": null,
+      "confidence": "low",
+      "medDist": 1.01
     }
   ]
 }
