@@ -101,6 +101,9 @@ def build_state():
             'spxPrice': sr.spx.get('price') if sr.spx else None,
             'spxMa200': sr.spx.get('ma200') if sr.spx else None,
             'pctMa200': round(sr.p200, 1) if getattr(sr, 'p200', None) is not None else None,
+            # 24.9.2026: % of S&P stocks above their 50-day MA — the breadth number the weekly
+            # forecast's "split market" claim is scored against (nidam-markets forecast tracker)
+            'pctMa50': round(sr.a50 / sr.total * 100, 1) if getattr(sr, 'total', 0) else None,
             'vix': sr.vix,
             'nhCount': getattr(sr, 'nh', None),
             'nlCount': getattr(sr, 'nl', None),
