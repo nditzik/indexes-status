@@ -661,7 +661,7 @@
     "formulaVersion": "v5",
     "note": "corrected 15.9: first run used an SPX-only UOA export (wrong file), recomputed with the stocks-wide export",
     "fwd5": 1.9,
-    "fwd20": null
+    "fwd20": 2.46
   },
   {
     "date": "2026-09-15",
@@ -857,7 +857,7 @@
     "confidence": null,
     "coverage": null,
     "formulaVersion": "v6",
-    "fwd5": null,
+    "fwd5": 0.43,
     "fwd20": null
   },
   {
@@ -905,6 +905,19 @@
     "breadth": 37,
     "flow": 83,
     "combined": 64,
+    "phase": "uptrend_pressure",
+    "confidence": null,
+    "coverage": null,
+    "formulaVersion": "v6",
+    "fwd5": null,
+    "fwd20": null
+  },
+  {
+    "date": "2026-10-12",
+    "tech": 90,
+    "breadth": 34,
+    "flow": 25,
+    "combined": 55,
     "phase": "uptrend_pressure",
     "confidence": null,
     "coverage": null,
