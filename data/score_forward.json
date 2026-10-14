@@ -674,7 +674,7 @@
     "coverage": null,
     "formulaVersion": "v5",
     "fwd5": 2.36,
-    "fwd20": null
+    "fwd20": 2.9
   },
   {
     "date": "2026-09-16",
@@ -870,7 +870,7 @@
     "confidence": null,
     "coverage": null,
     "formulaVersion": "v6",
-    "fwd5": null,
+    "fwd5": -0.17,
     "fwd20": null
   },
   {
@@ -918,6 +918,19 @@
     "breadth": 34,
     "flow": 25,
     "combined": 55,
+    "phase": "uptrend_pressure",
+    "confidence": null,
+    "coverage": null,
+    "formulaVersion": "v6",
+    "fwd5": null,
+    "fwd20": null
+  },
+  {
+    "date": "2026-10-13",
+    "tech": 90,
+    "breadth": 34,
+    "flow": 26,
+    "combined": 51,
     "phase": "uptrend_pressure",
     "confidence": null,
     "coverage": null,
