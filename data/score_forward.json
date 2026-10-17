@@ -715,7 +715,7 @@
     "flowMeter": 24,
     "note": "v6 (SPY-only options score), recomputed at Itzik's request; 20.9: 60-day SPY history + options weight 0.15 after the 77-day re-check. v5 values were flow 80 / combined 72.",
     "fwd5": 1.21,
-    "fwd20": null
+    "fwd20": 0.12
   },
   {
     "date": "2026-09-21",
@@ -909,7 +909,7 @@
     "confidence": null,
     "coverage": null,
     "formulaVersion": "v6",
-    "fwd5": null,
+    "fwd5": -1.95,
     "fwd20": null
   },
   {
@@ -957,6 +957,19 @@
     "breadth": 66,
     "flow": 15,
     "combined": 75,
+    "phase": "uptrend_pressure",
+    "confidence": null,
+    "coverage": null,
+    "formulaVersion": "v6",
+    "fwd5": null,
+    "fwd20": null
+  },
+  {
+    "date": "2026-10-16",
+    "tech": 58,
+    "breadth": 63,
+    "flow": 23,
+    "combined": 54,
     "phase": "uptrend_pressure",
     "confidence": null,
     "coverage": null,
