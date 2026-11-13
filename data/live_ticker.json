@@ -1,62 +1,62 @@
 {
-  "fetchedAt": "2026-11-13T01:27:11Z",
+  "fetchedAt": "2026-11-13T20:13:41Z",
   "source": "yahoo-v8-chart",
-  "vixTermRatio": 0.9322,
+  "vixTermRatio": 0.9285,
   "tickers": [
     {
       "symbol": "SPY",
-      "price": 757.12,
-      "prev": 759.8099975585938,
-      "time": 1794517200,
+      "price": 753.63,
+      "prev": 757.1199951171875,
+      "time": 1794600815,
       "state": null
     },
     {
       "symbol": "QQQ",
-      "price": 688.17,
-      "prev": 690.3800048828125,
-      "time": 1794517200,
+      "price": 679.77,
+      "prev": 688.1699829101562,
+      "time": 1794600818,
       "state": null
     },
     {
       "symbol": "DIA",
-      "price": 522.47,
-      "prev": 524.4400024414062,
-      "time": 1794517200,
+      "price": 522.95,
+      "prev": 522.469970703125,
+      "time": 1794600813,
       "state": null
     },
     {
       "symbol": "IWM",
-      "price": 278.44,
-      "prev": 283.0899963378906,
-      "time": 1794517200,
+      "price": 277.48,
+      "prev": 278.44000244140625,
+      "time": 1794600819,
       "state": null
     },
     {
       "symbol": "^VIX",
-      "price": 18.7,
-      "prev": 17.489999771118164,
-      "time": 1794518101,
+      "price": 18.95,
+      "prev": 18.700000762939453,
+      "time": 1794599911,
       "state": null
     },
     {
       "symbol": "^VIX3M",
-      "price": 20.06,
-      "prev": 19.239999771118164,
-      "time": 1794518101,
+      "price": 20.41,
+      "prev": 20.059999465942383,
+      "time": 1794599911,
       "state": null
     },
     {
       "symbol": "^TNX",
-      "price": 5.103,
-      "prev": 4.998000144958496,
-      "time": 1794513594,
+      "price": 5.151,
+      "prev": 5.103000164031982,
+      "time": 1794599914,
       "state": null
     },
     {
       "symbol": "DX-Y.NYB",
-      "price": 103.149,
-      "prev": 102.91000366210938,
-      "time": 1794532628,
+      "price": 103.4,
+      "prev": 103.16999816894531,
+      "time": 1794600219,
       "state": null
     }
   ]
