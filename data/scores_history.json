@@ -1090,5 +1090,16 @@
     "confidence": null,
     "coverage": null,
     "formulaVersion": "v6"
+  },
+  {
+    "date": "2026-11-20",
+    "tech": 20,
+    "breadth": 18,
+    "flow": 21,
+    "combined": 25,
+    "phase": "capitulation",
+    "confidence": null,
+    "coverage": null,
+    "formulaVersion": "v6"
   }
 ]
